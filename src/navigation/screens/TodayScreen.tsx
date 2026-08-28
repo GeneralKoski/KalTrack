@@ -7,6 +7,7 @@ import {
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { AddEntrySheet, type DiaryPick } from "@/src/containers/diary/AddEntrySheet";
+import { CalorieRing } from "@/src/containers/diary/CalorieRing";
 import { DayHeader } from "@/src/containers/diary/DayHeader";
 import { FreeEntrySheet } from "@/src/containers/diary/FreeEntrySheet";
 import { MacroBars } from "@/src/containers/diary/MacroBars";
@@ -24,12 +25,14 @@ import {
 } from "@/src/db/queries/diary";
 import { getFood } from "@/src/db/queries/foods";
 import { getRecipe } from "@/src/db/queries/recipes";
+import { getTargetsFor } from "@/src/db/queries/settings";
 import { todayIso } from "@/src/domain/date";
-import type { Nutrients } from "@/src/domain/nutrition";
+import { EMPTY_NUTRIENTS, type Nutrients } from "@/src/domain/nutrition";
+import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
-import type { MealEntryRow, MealTypeRow } from "@/src/types/nutrition";
+import type { MealEntryRow, MealTypeRow, TargetRow } from "@/src/types/nutrition";
 import { showToast } from "@/src/utils/toast";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { Plus, UtensilsCrossed } from "lucide-react-native";
@@ -48,12 +51,15 @@ interface DayData {
   /** Nome risolto di ogni riga, indicizzato per id della riga. */
   names: Record<string, string>;
   mealTypes: MealTypeRow[];
+  /** Obiettivo in vigore in quel giorno, non quello di oggi. */
+  targets: TargetRow | null;
 }
 
 export function TodayScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
+  const { navigate } = useAppNav();
   const today = todayIso();
 
   const [date, setDate] = useState(today);
@@ -64,9 +70,10 @@ export function TodayScreen() {
   const addSheetRef = useRef<BottomSheetModal>(null);
 
   const loader = useCallback(async (): Promise<DayData> => {
-    const [diary, mealTypes] = await Promise.all([
+    const [diary, mealTypes, targets] = await Promise.all([
       getDayDiary(date),
       listMealTypes(),
+      getTargetsFor(date),
     ]);
 
     // I nomi non stanno sulla riga (che porta solo lo snapshot dei macro):
@@ -84,7 +91,7 @@ export function TodayScreen() {
       }
     }
 
-    return { diary, names, mealTypes };
+    return { diary, names, mealTypes, targets };
   }, [date]);
 
   const { data, loading, reload } = useFocusData<DayData>(loader);
@@ -201,24 +208,32 @@ export function TodayScreen() {
             ]}
           >
             <Card style={styles.summary}>
-              <Text style={[styles.kcal, { color: colors.text }]}>
-                {Math.round(totals?.kcal ?? 0)}
-                <Text style={[styles.kcalUnit, { color: colors.textMuted }]}>
-                  {" kcal"}
-                </Text>
-              </Text>
+              <CalorieRing
+                consumed={totals?.kcal ?? 0}
+                target={data?.targets?.kcal ?? null}
+              />
+
+              {data?.targets ? null : (
+                <TouchableOpacity
+                  onPress={() => navigate("Targets")}
+                  activeOpacity={0.6}
+                >
+                  <Text style={[styles.setTarget, { color: colors.accent }]}>
+                    {t("diary.set_target")}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
               <MacroBars
-                consumed={
-                  totals ?? {
-                    kcal: 0,
-                    protein: 0,
-                    carbs: 0,
-                    sugars: 0,
-                    fat: 0,
-                    saturatedFat: 0,
-                    fiber: 0,
-                    salt: 0,
-                  }
+                consumed={totals ?? EMPTY_NUTRIENTS}
+                targets={
+                  data?.targets
+                    ? {
+                        proteinG: data.targets.protein_g,
+                        carbsG: data.targets.carbs_g,
+                        fatG: data.targets.fat_g,
+                      }
+                    : null
                 }
               />
             </Card>
@@ -293,13 +308,10 @@ const styles = StyleSheet.create({
   summary: {
     gap: theme.spacing.sm,
   },
-  kcal: {
-    fontSize: 34,
-    fontWeight: "700",
-  },
-  kcalUnit: {
-    fontSize: 16,
-    fontWeight: "500",
+  setTarget: {
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "center",
   },
   loader: {
     marginTop: theme.spacing.xl,

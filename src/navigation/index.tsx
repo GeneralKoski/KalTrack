@@ -26,6 +26,7 @@ import { GymScreen } from "@/src/navigation/screens/GymScreen";
 import { RecipeFormScreen } from "@/src/navigation/screens/RecipeFormScreen";
 import { RecipesScreen } from "@/src/navigation/screens/RecipesScreen";
 import { SettingsScreen } from "@/src/navigation/screens/SettingsScreen";
+import { TargetsScreen } from "@/src/navigation/screens/TargetsScreen";
 import { ProfileScreen } from "@/src/navigation/screens/ProfileScreen";
 import { ProgressScreen } from "@/src/navigation/screens/ProgressScreen";
 import { TodayScreen } from "@/src/navigation/screens/TodayScreen";
@@ -156,6 +157,10 @@ const RootStack = createNativeStackNavigator({
     Settings: {
       screen: SettingsScreen,
       linking: { path: "impostazioni" },
+    },
+    Targets: {
+      screen: TargetsScreen,
+      linking: { path: "obiettivi" },
     },
   },
 });

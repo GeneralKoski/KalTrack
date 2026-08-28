@@ -176,3 +176,55 @@ export const entryNutrients = (row: MealEntryRow): Nutrients => ({
   fiber: row.fiber,
   salt: row.salt,
 });
+
+// ─── Profilo e obiettivi ─────────────────────────────────────────────────────
+
+export interface ProfileRow {
+  id: string;
+  sex: string | null;
+  birthdate: string | null;
+  height_cm: number | null;
+  activity_level: string | null;
+  goal: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface TargetRow {
+  id: string;
+  valid_from: string;
+  kcal: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  steps: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+// ─── Peso e passi ────────────────────────────────────────────────────────────
+
+export interface WeightLogRow {
+  id: string;
+  date: string;
+  weight_kg: number;
+  body_fat_pct: number | null;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export type StepSource = "manual" | "voice";
+
+export interface StepLogRow {
+  id: string;
+  date: string;
+  steps: number;
+  source: StepSource;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}

@@ -57,7 +57,8 @@
   "profile": {
     "my_foods": "I miei alimenti",
     "my_recipes": "I miei pasti",
-    "settings": "Impostazioni"
+    "settings": "Impostazioni",
+    "targets": "Obiettivi"
   },
   "recipes": {
     "title": "I miei pasti",
@@ -116,6 +117,45 @@
     "protein_short": "Proteine",
     "carbs_short": "Carboidrati",
     "fat_short": "Grassi",
-    "unknown_entry": "Voce senza nome"
+    "unknown_entry": "Voce senza nome",
+    "set_target": "Imposta un obiettivo",
+    "kcal_left": "rimaste",
+    "kcal_over": "oltre",
+    "kcal_eaten": "kcal",
+    "of_target": "su %{target} kcal"
+  },
+  "targets": {
+    "title": "Obiettivi",
+    "profile": "I tuoi dati",
+    "daily": "Obiettivi giornalieri",
+    "sex": "Sesso",
+    "sex_value": {
+      "male": "Uomo",
+      "female": "Donna"
+    },
+    "birthdate": "Data di nascita (AAAA-MM-GG)",
+    "height": "Altezza (cm)",
+    "activity": "Livello di attività",
+    "activity_value": {
+      "sedentary": "Sedentario",
+      "light": "Leggero",
+      "moderate": "Moderato",
+      "active": "Attivo",
+      "very_active": "Molto attivo"
+    },
+    "goal": "Obiettivo",
+    "goal_value": {
+      "cut": "Definizione",
+      "maintain": "Mantenimento",
+      "bulk": "Massa"
+    },
+    "kcal": "Calorie (kcal)",
+    "steps": "Passi",
+    "compute": "Calcola dai tuoi dati",
+    "explain": "Con %{weight} kg il tuo metabolismo basale è circa %{bmr} kcal, che con il tuo livello di attività diventano %{tdee} kcal al giorno.",
+    "explain_missing": "Inserisci data di nascita, altezza e almeno una pesata per calcolare gli obiettivi in automatico.",
+    "cannot_compute": "Servono data di nascita, altezza e una pesata",
+    "kcal_required": "Imposta almeno le calorie",
+    "saved": "Obiettivi salvati"
   }
 }
