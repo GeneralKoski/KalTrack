@@ -25,5 +25,36 @@
     "progress": "Progress",
     "gym": "Gym",
     "profile": "Profile"
+  },
+  "foods": {
+    "title": "My foods",
+    "search_placeholder": "Search a food",
+    "empty": "No food found",
+    "new_title": "New food",
+    "edit_title": "Edit food",
+    "name": "Name",
+    "brand": "Brand",
+    "values_per_100": "Values per 100 g/ml",
+    "kcal": "Calories (kcal)",
+    "kcal_from_macros": "Macros add up to %{value} kcal",
+    "protein": "Protein (g)",
+    "carbs": "Carbs (g)",
+    "sugars": "Of which sugars (g)",
+    "fat": "Fat (g)",
+    "saturated_fat": "Of which saturated (g)",
+    "fiber": "Fibre (g)",
+    "salt": "Salt (g)",
+    "serving": "Serving",
+    "is_liquid": "Liquid (values per 100 ml)",
+    "default_serving": "Default serving (g)",
+    "serving_label": "Serving label",
+    "serving_label_placeholder": "1 pot = 150 g",
+    "saved": "Food saved",
+    "deleted": "Food deleted",
+    "delete_title": "Delete this food?",
+    "delete_message": "Meals already logged stay unchanged: they keep the values from when you logged them."
+  },
+  "profile": {
+    "my_foods": "My foods"
   }
 }

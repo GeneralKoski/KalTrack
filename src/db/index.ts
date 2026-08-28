@@ -1,5 +1,6 @@
 import { DB_NAME } from "@/src/consts";
 import { runMigrations } from "@/src/db/migrations";
+import { applySeeds } from "@/src/db/seed";
 import { wrapDatabase, type LocalDatabase } from "@/src/db/sqliteAdapter";
 import { logger } from "@/src/utils/logger";
 import * as SQLite from "expo-sqlite";
@@ -34,6 +35,7 @@ export async function initDatabase(): Promise<void> {
   const db = await getDb();
   const version = await runMigrations(db);
   logger.info(`[db] schema alla versione ${version}`);
+  await applySeeds(db);
 }
 
 export async function closeDb(): Promise<void> {

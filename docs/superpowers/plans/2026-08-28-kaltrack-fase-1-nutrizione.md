@@ -3864,7 +3864,8 @@ La fase è chiusa quando, su un telefono reale:
 **Copertura della spec.** Le sezioni 3.2, 3.3, 3.4, 3.5 e 3.6 sono coperte dai Task 1 e 4. Il modello dati della sezione 4 è coperto dal Task 2 (tabelle) più il Task 5 (migrazione 003). Le fasi 1-9 elencate nella sezione 8 della spec mappano sui Task 1-10 di questo piano. Le sezioni 5 (assistente), 7 (palestra) e 6 limitatamente ai tab Palestra e alle parti AI di Progressi restano fuori: sono Fase 2 e Fase 3 e avranno il proprio piano. La sezione 4.3 (tabelle palestra) e 4.4 (`ai_calls`) non sono nella migrazione 001 di proposito: si aggiungono con le migrazioni della fase che le usa, così lo schema non porta tabelle vuote per mesi.
 
 **Divergenze dalla spec introdotte qui, da riportare nella spec.**
-- Il seed alimenti passa da "~400" a "almeno 150": 150 voci curate a mano coprono l'uso quotidiano, e il resto arriva da OpenFoodFacts in Fase 2 senza doverlo scrivere a mano.
+- Il seed alimenti passa da "~400" a "almeno 150" (consegnate 193): coprono l'uso
+  quotidiano, e il resto arriva da OpenFoodFacts in Fase 2 senza scriverlo a mano.
 - Aggiunta la colonna `name_norm` su `foods` e `recipes` (migrazione 003), non prevista nella sezione 4.1: serve alla ricerca accent-insensitive e servirà al matching vocale.
 - Gli ingredienti annidati contano a **porzioni**, non a grammi. La spec diceva solo "può contenere un'altra ricetta"; questo piano fissa l'unità.
 - `expo-image-picker` si installa nel Task 6 e non nel Task 1, perché la foto della ricetta è la sua prima consumatrice.
@@ -3877,4 +3878,8 @@ La fase è chiusa quando, su un telefono reale:
   `moduleNameMapper` verso `jest/mocks/expo-crypto.js` (Task 1).
 - `react-dom` sembra una dipendenza web ma serve a gluestack anche su native: non
   rimuoverlo (Task 1 Step 7).
+- **Require cycle** (emerso nel Task 5): `db/index` importa `db/seed` per il seed
+  d'avvio, e `db/seed` importava `getDb` da `db/index`. Metro lo segnala a runtime
+  e puo' dare import `undefined`. Regola: tutto cio' che `db/index` importa deve
+  **ricevere** la connessione come parametro, non chiamare `getDb()`.
 - I `CHECK` nella migrazione 001 non sono verificati da un test dedicato: se un `INSERT` viene rifiutato in modo inatteso durante il Task 6 o 7, la causa è quasi certamente lì.

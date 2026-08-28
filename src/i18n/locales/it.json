@@ -25,5 +25,36 @@
     "progress": "Progressi",
     "gym": "Palestra",
     "profile": "Profilo"
+  },
+  "foods": {
+    "title": "I miei alimenti",
+    "search_placeholder": "Cerca un alimento",
+    "empty": "Nessun alimento trovato",
+    "new_title": "Nuovo alimento",
+    "edit_title": "Modifica alimento",
+    "name": "Nome",
+    "brand": "Marca",
+    "values_per_100": "Valori per 100 g/ml",
+    "kcal": "Calorie (kcal)",
+    "kcal_from_macros": "Dai macro risultano %{value} kcal",
+    "protein": "Proteine (g)",
+    "carbs": "Carboidrati (g)",
+    "sugars": "Di cui zuccheri (g)",
+    "fat": "Grassi (g)",
+    "saturated_fat": "Di cui saturi (g)",
+    "fiber": "Fibre (g)",
+    "salt": "Sale (g)",
+    "serving": "Porzione",
+    "is_liquid": "Liquido (valori per 100 ml)",
+    "default_serving": "Porzione predefinita (g)",
+    "serving_label": "Etichetta porzione",
+    "serving_label_placeholder": "1 vasetto = 150 g",
+    "saved": "Alimento salvato",
+    "deleted": "Alimento eliminato",
+    "delete_title": "Eliminare l'alimento?",
+    "delete_message": "I pasti già registrati non cambiano: conservano i valori del momento in cui li hai inseriti."
+  },
+  "profile": {
+    "my_foods": "I miei alimenti"
   }
 }

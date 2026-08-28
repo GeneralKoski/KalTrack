@@ -17,6 +17,8 @@ import { Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Text } from "@/src/components/ui";
+import { FoodFormScreen } from "@/src/navigation/screens/FoodFormScreen";
+import { FoodsScreen } from "@/src/navigation/screens/FoodsScreen";
 import { GymScreen } from "@/src/navigation/screens/GymScreen";
 import { ProfileScreen } from "@/src/navigation/screens/ProfileScreen";
 import { ProgressScreen } from "@/src/navigation/screens/ProgressScreen";
@@ -125,6 +127,14 @@ const RootStack = createNativeStackNavigator({
       screen: Tab,
       linking: { path: "" },
     },
+    Foods: {
+      screen: FoodsScreen,
+      linking: { path: "alimenti" },
+    },
+    FoodForm: {
+      screen: FoodFormScreen,
+      linking: { path: "alimenti/modifica" },
+    },
   },
 });
 
@@ -136,10 +146,10 @@ export type RootStackParamList = StaticParamList<typeof RootStack>;
 
 declare global {
   namespace ReactNavigation {
-    // Augmentation di React Navigation: l'interfaccia deve estendere
-    // RootStackParamList e resta senza membri propri finché nessuna schermata
-    // ha parametri. I parametri delle singole rotte si dichiarano qui.
-    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-    interface RootParamList extends RootStackParamList {}
+    // Augmentation di React Navigation: i parametri delle singole rotte si
+    // dichiarano qui.
+    interface RootParamList extends RootStackParamList {
+      FoodForm: { id?: string };
+    }
   }
 }

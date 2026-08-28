@@ -9,6 +9,8 @@ export interface NavParams {
   ProgressTab: undefined;
   GymTab: undefined;
   ProfileTab: undefined;
+  Foods: undefined;
+  FoodForm: { id?: string };
 }
 
 type NavigateFn = (name: string, params?: object) => void;

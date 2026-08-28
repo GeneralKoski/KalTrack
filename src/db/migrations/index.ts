@@ -1,5 +1,6 @@
 import { migration001 } from "@/src/db/migrations/001_initial";
 import { migration002 } from "@/src/db/migrations/002_meal_types";
+import { migration003 } from "@/src/db/migrations/003_name_norm";
 import type { Migration } from "@/src/db/migrations/types";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 import { logger } from "@/src/utils/logger";
@@ -7,7 +8,11 @@ import { logger } from "@/src/utils/logger";
 export type { Migration };
 export { MEAL_TYPE_IDS } from "@/src/db/migrations/002_meal_types";
 
-export const MIGRATIONS: Migration[] = [migration001, migration002];
+export const MIGRATIONS: Migration[] = [
+  migration001,
+  migration002,
+  migration003,
+];
 
 /**
  * Applica le migrazioni mancanti in base a PRAGMA user_version e ritorna la
