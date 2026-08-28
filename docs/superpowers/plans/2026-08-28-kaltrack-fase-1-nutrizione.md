@@ -229,7 +229,7 @@ Rimuovere il blocco `"web"`. Lasciare invariati i plugin esistenti.
 - [ ] **Step 7: Rimuovere le dipendenze inutili e aggiungere quelle nuove**
 
 ```bash
-npm uninstall react-native-web react-dom expo-router expo-web-browser expo-glass-effect expo-symbols
+npm uninstall react-native-web expo-router expo-web-browser expo-glass-effect expo-symbols
 npx expo install expo-sqlite expo-crypto expo-file-system expo-network expo-linear-gradient expo-sharing expo-haptics
 npm install --save-dev better-sqlite3 @types/better-sqlite3 jest jest-expo @types/jest
 ```
@@ -819,7 +819,11 @@ export const newId = (): string => Crypto.randomUUID();
 export const nowIso = (): string => new Date().toISOString();
 ```
 
-Per i test su Node, `expo-crypto` è mockato dal preset jest-expo. Se `randomUUID` non fosse disponibile nel mock, aggiungere in `jest.setup.js` un mock esplicito che ritorna `crypto.randomUUID()` di Node.
+Il mock di `expo-crypto` del preset jest-expo **non** espone `randomUUID` (verificato:
+ritorna `undefined`). Il Task 1 lo risolve mappando `expo-crypto` a
+`jest/mocks/expo-crypto.js` via `moduleNameMapper`. Un `jest.setup.js` che patcha il
+modulo non funziona: il registry dei moduli viene resettato per file di test, e un
+`jest.mock()` con factory non puo' referenziare variabili fuori scope.
 
 - [ ] **Step 10: Scrivere `src/db/index.ts`**
 
@@ -3867,7 +3871,10 @@ La fase è chiusa quando, su un telefono reale:
 
 **Consistenza dei tipi.** `Nutrients` usa camelCase (`saturatedFat`) mentre le righe DB usano snake_case (`saturated_fat`): la conversione avviene solo in `foodNutrients` e nelle `add*Entry`, mai altrove. `FoodRow`, `RecipeRow`, `RecipeItemRow`, `MealRow`, `MealEntryRow`, `MealTypeRow`, `ProfileRow`, `TargetRow`, `StepLogRow`, `WeightLogRow` vivono tutti in `src/types/nutrition.ts` e rispecchiano esattamente le colonne. `searchFoods` e `searchRecipes` hanno la stessa firma `(term, limit?)`. `getDayDiary` è l'unico punto che aggrega un giorno: nessuna schermata somma per conto proprio.
 
-**Rischi di esecuzione.**
-- `better-sqlite3` sotto il preset jest-expo: se non si carica, il fallback è nel Task 1 Step 8.
-- `expo-crypto.randomUUID()` nei test: se il mock jest-expo non lo espone, mock esplicito in `jest.setup.js` (Task 2 Step 9).
+**Rischi di esecuzione** (i primi due verificati durante il Task 1).
+- `better-sqlite3` sotto il preset jest-expo: **funziona**, nessun fallback necessario.
+- `expo-crypto.randomUUID()` nei test: **non disponibile**, risolto con
+  `moduleNameMapper` verso `jest/mocks/expo-crypto.js` (Task 1).
+- `react-dom` sembra una dipendenza web ma serve a gluestack anche su native: non
+  rimuoverlo (Task 1 Step 7).
 - I `CHECK` nella migrazione 001 non sono verificati da un test dedicato: se un `INSERT` viene rifiutato in modo inatteso durante il Task 6 o 7, la causa è quasi certamente lì.
