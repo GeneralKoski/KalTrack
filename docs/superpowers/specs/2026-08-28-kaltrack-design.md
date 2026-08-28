@@ -33,8 +33,9 @@ rifare il modello dati.
 ### 2.2 Sorgenti dei dati nutrizionali
 
 Tre livelli, in cascata:
-1. **Seed locale** di ~400 alimenti comuni italiani (crudi e generici: petto di pollo,
-   riso, olio EVO, uovo). Offline, immediato, curato.
+1. **Seed locale** di almeno 150 alimenti comuni italiani (crudi e generici: petto di
+   pollo, riso, olio EVO, uovo), curati a mano. Offline, immediato. Il resto del
+   catalogo arriva da OpenFoodFacts al primo uso invece di essere scritto a mano.
 2. **OpenFoodFacts** per prodotti di marca, via barcode o ricerca testuale. Il risultato
    viene copiato in locale al primo uso, quindi la seconda volta e' offline.
 3. **Stima AI** come fallback, marcata `is_estimated`.
@@ -126,7 +127,7 @@ local-first).
 | `expo-audio` | registrazione vocale |
 | `expo-speech` | risposte parlate dell'assistente |
 | `expo-camera` | foto pasti e scan barcode (integrato) |
-| `expo-image-picker` | scelta foto da galleria |
+| `expo-image-picker` | scelta foto da galleria (Fase 1, foto ricetta) |
 | `expo-image-manipulator` | resize e compressione prima dell'invio all'AI |
 | `expo-file-system` | base64 per audio e foto |
 | `expo-crypto` | `randomUUID()` per gli id |
@@ -157,16 +158,19 @@ Migrazioni numerate in `src/db/migrations/`, applicate in base a `PRAGMA user_ve
 ### 4.1 Nutrizione
 
 **`foods`** - tabella unica per alimenti base e prodotti di marca.
-`name`, `brand`, `source` (`seed` | `off` | `user` | `ai`), `barcode`, `off_id`,
+`name`, `name_norm` (nome normalizzato: minuscolo, senza accenti ne' punteggiatura,
+usato dalla ricerca e dal matching vocale), `brand`, `source` (`seed` | `off` | `user` | `ai`), `barcode`, `off_id`,
 valori per 100 g o 100 ml: `kcal`, `protein`, `carbs`, `sugars`, `fat`, `saturated_fat`,
 `fiber`, `salt`; `is_liquid`, `default_serving_g`, `serving_label` ("1 vasetto = 150 g"),
 `image_uri`, `is_favorite`, `usage_count`, `is_estimated`.
 
-**`recipes`** - i pasti custom dell'utente: `name`, `photo_uri`, `servings`, `notes`,
-`is_favorite`, `usage_count`. I valori nutrizionali sono derivati, non memorizzati.
+**`recipes`** - i pasti custom dell'utente: `name`, `name_norm`, `photo_uri`, `servings`,
+`notes`, `is_favorite`, `usage_count`. I valori nutrizionali sono derivati, non memorizzati.
 
 **`recipe_items`** - riga di ricetta: `recipe_id`, `food_id` **oppure** `child_recipe_id`
-(una ricetta puo' contenerne un'altra), `quantity_g`, `sort`.
+(una ricetta puo' contenerne un'altra), `quantity_g`, `servings`, `sort`.
+Un ingrediente-alimento si conta in **grammi**, un ingrediente-ricetta in **porzioni**:
+l'unita' resta cosi' non ambigua a ogni livello di annidamento.
 Vincolo: esattamente uno tra `food_id` e `child_recipe_id` valorizzato. Le ricette
 annidate sono limitate a profondita' 3 e protette da un check anti-ciclo in fase di
 salvataggio.
@@ -416,6 +420,12 @@ integrazione con l'assistente di sistema Android per lanciare KalTrack a voce da
 ### 9.3 Infrastruttura
 Backend Laravel per sync multi-device e per fare da proxy alle chiamate AI, eliminando la
 chiave nel bundle.
+
+## 9-bis. Nota sulle migrazioni
+
+Le tabelle della palestra (4.3) e `ai_calls` (4.4) non entrano nella migrazione
+iniziale: ogni fase aggiunge le proprie tabelle con una migrazione numerata propria,
+cosi' lo schema non porta tabelle vuote per mesi.
 
 ## 10. Rischi noti
 
