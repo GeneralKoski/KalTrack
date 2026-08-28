@@ -46,17 +46,29 @@ const palette = {
 const lightSemanticColors = {
   background: "#f5f6fa",
   surface: "#ffffff",
+  // Riempimenti tenui: sfondo di chip, tab inattivi, segnaposto immagine.
+  surfaceMuted: palette.gray100,
   border: "#e5e7eb",
   text: palette.gray900,
+  textSecondary: palette.gray700,
   textMuted: palette.gray500,
+  textFaint: palette.gray400,
+  // Estremi del gradiente di sfondo delle schermate.
+  gradientEdge: "#dcefe5",
+  gradientCenter: "#f6fbf9",
 };
 
 const darkSemanticColors = {
   background: "#0f0f0f",
   surface: "#1c1c1e",
+  surfaceMuted: "#2c2c2e",
   border: "#2c2c2e",
   text: "#f2f2f7",
+  textSecondary: "#c7c7cc",
   textMuted: palette.gray400,
+  textFaint: palette.gray500,
+  gradientEdge: "#0d1a14",
+  gradientCenter: "#131513",
 };
 
 // ─── Valori condivisi (non dipendono dal tema) ────────────────────────────────

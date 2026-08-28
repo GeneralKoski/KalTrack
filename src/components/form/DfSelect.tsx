@@ -65,7 +65,9 @@ export const DfSelect = ({
 
         return (
           <View ref={fieldRef} style={styles.wrapper}>
-            {label && <Text style={styles.label}>{label}</Text>}
+            {label && (
+              <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+            )}
 
             <Select
               defaultValue={value}
@@ -80,16 +82,19 @@ export const DfSelect = ({
               <SelectTrigger
                 style={[
                   styles.trigger,
-                  { borderColor: colors.border },
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
                   error && styles.triggerError,
-                  disabled && styles.triggerDisabled,
+                  disabled && { backgroundColor: colors.surfaceMuted },
                 ]}
                 className=""
               >
                 <SelectInput
                   placeholder={resolvedPlaceholder}
-                  style={styles.triggerInput}
-                  placeholderTextColor={theme.colors.gray400}
+                  style={[styles.triggerInput, { color: colors.text }]}
+                  placeholderTextColor={colors.textFaint}
                   className="placeholder:text-gray-400 leading-normal"
                 />
                 <SelectIcon className="absolute right-3" as={ChevronDownIcon} />
@@ -131,11 +136,9 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: "500",
     fontSize: 14,
-    color: theme.colors.gray900,
     marginBottom: 6,
   },
   trigger: {
-    backgroundColor: theme.colors.white,
     borderWidth: 1,
     borderRadius: theme.radius.md,
     paddingVertical: 12,
@@ -146,7 +149,6 @@ const styles = StyleSheet.create({
   },
   triggerInput: {
     fontSize: 16,
-    color: theme.colors.gray900,
     fontFamily: theme.fonts.regular,
     flex: 1,
     height: "100%",
@@ -156,9 +158,6 @@ const styles = StyleSheet.create({
   },
   triggerError: {
     borderColor: theme.colors.error,
-  },
-  triggerDisabled: {
-    backgroundColor: theme.colors.gray100,
   },
   errorText: {
     fontSize: 12,

@@ -1,31 +1,36 @@
 import { Card } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
+import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
-import type { FoodRow } from "@/src/types/nutrition";
-import { Salad, Star } from "lucide-react-native";
+import type { RecipeRow } from "@/src/types/nutrition";
+import { CookingPot, Star } from "lucide-react-native";
 import React from "react";
 import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
 
-interface FoodListItemProps {
-  food: FoodRow;
+interface RecipeListItemProps {
+  recipe: RecipeRow;
+  kcalPerServing: number;
+  ingredientCount: number;
   onPress: () => void;
   onToggleFavorite: () => void;
 }
 
-export const FoodListItem: React.FC<FoodListItemProps> = ({
-  food,
+export const RecipeListItem: React.FC<RecipeListItemProps> = ({
+  recipe,
+  kcalPerServing,
+  ingredientCount,
   onPress,
   onToggleFavorite,
 }) => {
+  const { t } = useTranslation();
   const { colors } = useAppTheme();
-  const isFavorite = food.is_favorite === 1;
-  const unit = food.is_liquid === 1 ? "ml" : "g";
+  const isFavorite = recipe.is_favorite === 1;
 
   return (
     <Card onPress={onPress} style={styles.card}>
-      {food.image_uri ? (
-        <Image source={{ uri: food.image_uri }} style={styles.photo} />
+      {recipe.photo_uri ? (
+        <Image source={{ uri: recipe.photo_uri }} style={styles.photo} />
       ) : (
         <View
           style={[
@@ -34,30 +39,25 @@ export const FoodListItem: React.FC<FoodListItemProps> = ({
             { backgroundColor: colors.surfaceMuted },
           ]}
         >
-          <Salad size={20} color={colors.textFaint} />
+          <CookingPot size={22} color={colors.textFaint} />
         </View>
       )}
 
       <View style={styles.body}>
         <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
-          {food.name}
+          {recipe.name}
         </Text>
-        {food.brand ? (
-          <Text
-            style={[styles.brand, { color: colors.textMuted }]}
-            numberOfLines={1}
-          >
-            {food.brand}
-          </Text>
-        ) : null}
+        <Text style={[styles.meta, { color: colors.textMuted }]}>
+          {t("recipes.ingredients_count", { count: ingredientCount })}
+        </Text>
       </View>
 
       <View style={styles.right}>
         <Text style={[styles.kcal, { color: colors.textSecondary }]}>
-          {Math.round(food.kcal)} kcal
+          {Math.round(kcalPerServing)} kcal
         </Text>
         <Text style={[styles.per, { color: colors.textFaint }]}>
-          per 100 {unit}
+          {t("recipes.per_serving_short")}
         </Text>
       </View>
 
@@ -65,7 +65,6 @@ export const FoodListItem: React.FC<FoodListItemProps> = ({
         onPress={onToggleFavorite}
         activeOpacity={0.6}
         hitSlop={10}
-        style={styles.star}
       >
         <Star
           size={20}
@@ -84,8 +83,8 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   photo: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     borderRadius: theme.radius.lg,
   },
   photoEmpty: {
@@ -99,7 +98,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
   },
-  brand: {
+  meta: {
     fontSize: 13,
     marginTop: 1,
   },
@@ -112,8 +111,5 @@ const styles = StyleSheet.create({
   },
   per: {
     fontSize: 11,
-  },
-  star: {
-    paddingLeft: theme.spacing.xs,
   },
 });

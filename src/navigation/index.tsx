@@ -8,18 +8,24 @@ import {
 } from "@react-navigation/bottom-tabs";
 import {
   createStaticNavigation,
+  DarkTheme,
+  DefaultTheme,
   type StaticParamList,
 } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { CalendarDays, Dumbbell, TrendingUp, User } from "lucide-react-native";
-import React from "react";
-import { Platform } from "react-native";
+import React, { useMemo } from "react";
+import { Platform, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { FoodFormScreen } from "@/src/navigation/screens/FoodFormScreen";
 import { FoodsScreen } from "@/src/navigation/screens/FoodsScreen";
 import { GymScreen } from "@/src/navigation/screens/GymScreen";
+import { RecipeFormScreen } from "@/src/navigation/screens/RecipeFormScreen";
+import { RecipesScreen } from "@/src/navigation/screens/RecipesScreen";
+import { SettingsScreen } from "@/src/navigation/screens/SettingsScreen";
 import { ProfileScreen } from "@/src/navigation/screens/ProfileScreen";
 import { ProgressScreen } from "@/src/navigation/screens/ProgressScreen";
 import { TodayScreen } from "@/src/navigation/screens/TodayScreen";
@@ -42,6 +48,16 @@ function TabBar(props: BottomTabBarProps) {
   );
 }
 
+// La label è un componente a sé perché deve leggere il tema con un hook, cosa
+// impossibile dentro l'oggetto statico di screenOptions.
+function TabLabel({ color, children }: { color: string; children: string }) {
+  return (
+    <Text numberOfLines={1} style={[styles.tabLabel, { color }]}>
+      {children}
+    </Text>
+  );
+}
+
 // ─── Tab navigator ────────────────────────────────────────────────────────────
 
 const Tab = createBottomTabNavigator({
@@ -50,28 +66,20 @@ const Tab = createBottomTabNavigator({
     headerShown: false,
     tabBarShowLabel: true,
     tabBarActiveTintColor: theme.colors.primary,
+    // Grigio medio scelto apposta: screenOptions è un oggetto statico e non
+    // può leggere il tema, e questo valore ha contrasto sufficiente sia sul
+    // fondo chiaro sia su quello scuro della tab bar.
     tabBarInactiveTintColor: theme.colors.gray400,
     tabBarLabel: ({ color, children }) => (
-      <Text
-        numberOfLines={1}
-        style={{
-          fontWeight: "500",
-          fontSize: 11,
-          color,
-          marginTop: 2,
-          overflow: "visible",
-        }}
-      >
-        {children}
-      </Text>
+      <TabLabel color={color}>{children}</TabLabel>
     ),
     tabBarItemStyle: {
       paddingVertical: 3,
     },
+    // Colori di sfondo e bordo li applica TabBar: qui restano solo i valori
+    // che non dipendono dal tema.
     tabBarStyle: {
-      backgroundColor: theme.colors.white,
       borderTopWidth: 1,
-      borderTopColor: theme.colors.gray100,
     },
   } satisfies BottomTabNavigationOptions,
   screens: {
@@ -135,12 +143,63 @@ const RootStack = createNativeStackNavigator({
       screen: FoodFormScreen,
       linking: { path: "alimenti/modifica" },
     },
+    Recipes: {
+      screen: RecipesScreen,
+      linking: { path: "pasti" },
+    },
+    RecipeForm: {
+      screen: RecipeFormScreen,
+      linking: { path: "pasti/modifica" },
+    },
+    Settings: {
+      screen: SettingsScreen,
+      linking: { path: "impostazioni" },
+    },
+  },
+});
+
+const styles = StyleSheet.create({
+  tabLabel: {
+    fontWeight: "500",
+    fontSize: 11,
+    marginTop: 2,
+    overflow: "visible",
   },
 });
 
 // ─── Export ───────────────────────────────────────────────────────────────────
 
-export const Navigation = createStaticNavigation(RootStack);
+const StaticNavigation = createStaticNavigation(RootStack);
+
+/**
+ * Navigazione col tema di React Navigation derivato dal nostro.
+ *
+ * Serve perché la tab bar prende il proprio sfondo da `colors.card` del tema di
+ * React Navigation: passarle uno `style` non basta, `tabBarStyle` lo sovrascrive
+ * e in tema scuro la barra resterebbe bianca.
+ */
+export function Navigation() {
+  const { colors, isDark } = useAppTheme();
+
+  const navigationTheme = useMemo(
+    () => ({
+      ...(isDark ? DarkTheme : DefaultTheme),
+      dark: isDark,
+      colors: {
+        ...(isDark ? DarkTheme : DefaultTheme).colors,
+        primary: theme.colors.primary,
+        background: colors.background,
+        card: colors.surface,
+        text: colors.text,
+        border: colors.border,
+        notification: theme.colors.error,
+      },
+    }),
+    [colors, isDark],
+  );
+
+  return <StaticNavigation theme={navigationTheme} />;
+}
 
 export type RootStackParamList = StaticParamList<typeof RootStack>;
 
@@ -150,6 +209,7 @@ declare global {
     // dichiarano qui.
     interface RootParamList extends RootStackParamList {
       FoodForm: { id?: string };
+      RecipeForm: { id?: string };
     }
   }
 }

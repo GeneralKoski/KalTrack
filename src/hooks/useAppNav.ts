@@ -11,6 +11,9 @@ export interface NavParams {
   ProfileTab: undefined;
   Foods: undefined;
   FoodForm: { id?: string };
+  Recipes: undefined;
+  RecipeForm: { id?: string };
+  Settings: undefined;
 }
 
 type NavigateFn = (name: string, params?: object) => void;

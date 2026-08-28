@@ -1,3 +1,4 @@
+import { useAppTheme } from "@/src/components/ThemeContext";
 import { TextInput } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
@@ -23,9 +24,20 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   loading = false,
 }) => {
   const { t } = useTranslation();
-  const accent = onDark ? "rgba(255,255,255,0.7)" : theme.colors.gray400;
+  const { colors } = useAppTheme();
+  const accent = onDark ? "rgba(255,255,255,0.7)" : colors.textFaint;
   return (
-    <View style={[styles.container, onDark ? styles.dark : styles.light]}>
+    <View
+      style={[
+        styles.container,
+        onDark
+          ? styles.dark
+          : [
+              styles.light,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ],
+      ]}
+    >
       {loading ? (
         <ActivityIndicator size="small" color={accent} style={styles.icon} />
       ) : (
@@ -35,10 +47,11 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder ?? t("search")}
-        placeholderTextColor={
-          onDark ? "rgba(255,255,255,0.7)" : theme.colors.gray400
-        }
-        style={[styles.input, { color: onDark ? theme.colors.white : theme.colors.gray900 }]}
+        placeholderTextColor={accent}
+        style={[
+          styles.input,
+          { color: onDark ? theme.colors.white : colors.text },
+        ]}
       />
     </View>
   );
@@ -53,11 +66,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     height: 48,
   },
-  light: {
-    backgroundColor: theme.colors.white,
-    borderWidth: 1,
-    borderColor: theme.colors.gray200,
-  },
+  light: { borderWidth: 1 },
   dark: { backgroundColor: "rgba(255,255,255,0.15)" },
   // Larghezza pari all'icona Search (20) per non spostare il layout quando lo
   // spinner la sostituisce.

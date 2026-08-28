@@ -1,9 +1,10 @@
 import { Card, ScreenBackground } from "@/src/components/kal";
+import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
-import { ChevronRight, Salad } from "lucide-react-native";
+import { ChevronRight, CookingPot, Salad, Settings } from "lucide-react-native";
 import React from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -11,18 +12,39 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export function ProfileScreen() {
   const { t } = useTranslation();
   const { navigate } = useAppNav();
+  const { colors } = useAppTheme();
 
   return (
     <View style={styles.root}>
       <ScreenBackground />
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
-        <Text style={styles.title}>{t("tabs.profile")}</Text>
+        <Text style={[styles.title, { color: colors.text }]}>
+          {t("tabs.profile")}
+        </Text>
 
         <ScrollView contentContainerStyle={styles.content}>
           <Card onPress={() => navigate("Foods")} style={styles.row}>
             <Salad size={22} color={theme.colors.primary} />
-            <Text style={styles.rowLabel}>{t("profile.my_foods")}</Text>
-            <ChevronRight size={20} color={theme.colors.gray400} />
+            <Text style={[styles.rowLabel, { color: colors.text }]}>
+              {t("profile.my_foods")}
+            </Text>
+            <ChevronRight size={20} color={colors.textFaint} />
+          </Card>
+
+          <Card onPress={() => navigate("Recipes")} style={styles.row}>
+            <CookingPot size={22} color={theme.colors.primary} />
+            <Text style={[styles.rowLabel, { color: colors.text }]}>
+              {t("profile.my_recipes")}
+            </Text>
+            <ChevronRight size={20} color={colors.textFaint} />
+          </Card>
+
+          <Card onPress={() => navigate("Settings")} style={styles.row}>
+            <Settings size={22} color={theme.colors.primary} />
+            <Text style={[styles.rowLabel, { color: colors.text }]}>
+              {t("profile.settings")}
+            </Text>
+            <ChevronRight size={20} color={colors.textFaint} />
           </Card>
         </ScrollView>
       </SafeAreaView>
@@ -40,7 +62,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "700",
-    color: theme.colors.gray900,
     paddingHorizontal: theme.spacing.md,
     paddingTop: theme.spacing.sm,
   },
@@ -57,6 +78,5 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: "600",
-    color: theme.colors.gray900,
   },
 });

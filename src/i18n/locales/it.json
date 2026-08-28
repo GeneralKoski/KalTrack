@@ -16,7 +16,6 @@
   "warning": "Attenzione",
   "no_result_found": "Nessun dato trovato",
   "required_field": "Campo obbligatorio",
-  "settings": "Impostazioni",
   "default_input_placeholder": "Digita",
   "select_date_placeholder": "Seleziona una data",
   "select_placeholder": "Seleziona...",
@@ -52,9 +51,51 @@
     "saved": "Alimento salvato",
     "deleted": "Alimento eliminato",
     "delete_title": "Eliminare l'alimento?",
-    "delete_message": "I pasti già registrati non cambiano: conservano i valori del momento in cui li hai inseriti."
+    "delete_message": "I pasti già registrati non cambiano: conservano i valori del momento in cui li hai inseriti.",
+    "photo": "Foto"
   },
   "profile": {
-    "my_foods": "I miei alimenti"
+    "my_foods": "I miei alimenti",
+    "my_recipes": "I miei pasti",
+    "settings": "Impostazioni"
+  },
+  "recipes": {
+    "title": "I miei pasti",
+    "search_placeholder": "Cerca un pasto",
+    "empty": "Nessun pasto salvato",
+    "new_title": "Nuovo pasto",
+    "edit_title": "Modifica pasto",
+    "name": "Nome",
+    "name_placeholder": "Iper pizza proteica",
+    "name_required": "Dai un nome al pasto",
+    "servings": "Porzioni",
+    "servings_unit": "porzioni",
+    "servings_count": "%{count} porzioni",
+    "ingredients": "Ingredienti",
+    "ingredients_count": "%{count} ingredienti",
+    "add_ingredient": "Aggiungi ingrediente",
+    "tab_foods": "Alimenti",
+    "tab_recipes": "I miei pasti",
+    "notes": "Note",
+    "per_serving": "A porzione",
+    "per_serving_short": "a porzione",
+    "total": "Totale",
+    "saved": "Pasto salvato",
+    "deleted": "Pasto eliminato",
+    "delete_title": "Eliminare il pasto?",
+    "delete_message": "I pasti già registrati nel diario non cambiano.",
+    "cycle_error": "Un pasto non può contenere se stesso",
+    "depth_error": "Troppi pasti annidati uno dentro l'altro"
+  },
+  "photo": {
+    "from_gallery": "Dalla galleria",
+    "take": "Scatta foto"
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "theme": "Aspetto",
+    "theme_system": "Come il sistema",
+    "theme_light": "Chiaro",
+    "theme_dark": "Scuro"
   }
 }

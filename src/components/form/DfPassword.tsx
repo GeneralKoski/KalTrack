@@ -41,7 +41,11 @@ export const DfPassword = ({
 
   return (
     <View style={[styles.wrapper, wrapperStyle]}>
-      {resolvedLabel && <Text style={styles.label}>{resolvedLabel}</Text>}
+      {resolvedLabel && (
+        <Text style={[styles.label, { color: colors.text }]}>
+          {resolvedLabel}
+        </Text>
+      )}
 
       <Controller
         control={control}
@@ -58,7 +62,7 @@ export const DfPassword = ({
                 onChangeText={onChange}
                 onBlur={onBlur}
                 placeholder={placeholder ?? t("default_input_placeholder")}
-                placeholderTextColor={theme.colors.gray400}
+                placeholderTextColor={colors.textFaint}
                 secureTextEntry={!visible}
                 autoComplete="password"
                 textContentType="password"
@@ -66,7 +70,11 @@ export const DfPassword = ({
                 autoCorrect={false}
                 style={[
                   styles.input,
-                  { borderColor: colors.border },
+                  {
+                    color: colors.text,
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
                   error && styles.inputError,
                 ]}
               />
@@ -76,9 +84,9 @@ export const DfPassword = ({
                 style={styles.eyeButton}
               >
                 {visible ? (
-                  <EyeOff size={20} color={theme.colors.gray400} />
+                  <EyeOff size={20} color={colors.textFaint} />
                 ) : (
-                  <Eye size={20} color={theme.colors.gray400} />
+                  <Eye size={20} color={colors.textFaint} />
                 )}
               </Pressable>
             </View>
@@ -99,7 +107,6 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: "500",
     fontSize: 14,
-    color: theme.colors.gray900,
     marginBottom: 6,
   },
   inputContainer: {
@@ -108,8 +115,6 @@ const styles = StyleSheet.create({
   },
   input: {
     fontSize: 16,
-    color: theme.colors.gray900,
-    backgroundColor: theme.colors.white,
     borderWidth: 1,
     borderRadius: theme.radius.xl,
     paddingVertical: 8,

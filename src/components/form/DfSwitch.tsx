@@ -1,7 +1,7 @@
 import { Switch } from "@/components/ui/switch";
+import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { theme } from "@/src/styles";
-import { hexToRgba } from "@/src/utils/utils";
 import {
   Controller,
   useFormContext,
@@ -32,6 +32,8 @@ const BasicDfSwitch = ({
   onValueChange,
   disabled,
 }: SwitchProps) => {
+  const { colors } = useAppTheme();
+
   return (
     <Switch
       value={initialValue}
@@ -41,11 +43,11 @@ const BasicDfSwitch = ({
       }}
       disabled={disabled}
       thumbColor={theme.colors.white}
-      // @ts-expect-error web-only prop
-      activeThumbColor={theme.colors.white}
       trackColor={{
-        false: hexToRgba(theme.colors.gray600, 0.3),
-        true: theme.colors.gray600,
+        // Track spento semantico: il grigio fisso del template spariva sul
+        // fondo scuro. Acceso di brand: lo switch dice "attivo", non "neutro".
+        false: colors.border,
+        true: theme.colors.primary,
       }}
     />
   );
@@ -63,12 +65,15 @@ const DfSwitchWithForm = ({
   rules,
   ...props
 }: DfSwitchWithFormProps) => {
+  const { colors } = useAppTheme();
   const { control } = useFormContext();
   const fieldRef = useFieldRegistration(name);
 
   return (
     <View ref={fieldRef} style={styles.wrapper}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && (
+        <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+      )}
       <Controller
         control={control}
         name={name}
@@ -101,7 +106,6 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: "500",
     fontSize: 14,
-    color: theme.colors.gray900,
     marginBottom: 6,
   },
   errorText: {

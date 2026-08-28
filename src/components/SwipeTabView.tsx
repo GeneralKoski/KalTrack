@@ -1,3 +1,4 @@
+import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { theme } from "@/src/styles";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -47,6 +48,7 @@ export function SwipeTabView({
   renderPage,
   pageStyle,
 }: SwipeTabViewProps) {
+  const { colors } = useAppTheme();
   const { width: windowWidth } = useWindowDimensions();
   const [pagerWidth, setPagerWidth] = useState(0);
   const pageWidth = pagerWidth || windowWidth;
@@ -143,7 +145,12 @@ export function SwipeTabView({
 
   return (
     <View style={styles.root}>
-      <View style={styles.tabBar}>
+      <View
+        style={[
+          styles.tabBar,
+          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+        ]}
+      >
         <ScrollView
           ref={scrollRef}
           horizontal
@@ -152,7 +159,7 @@ export function SwipeTabView({
           <View style={styles.tabBarInner}>
             {tabs.map((item, i) => {
               const active = i === index;
-              const color = active ? theme.colors.brand900 : theme.colors.gray400;
+              const color = active ? theme.colors.brand900 : colors.textFaint;
               return (
                 <Pressable
                   key={item.key}
@@ -206,9 +213,7 @@ export function SwipeTabView({
 const styles = StyleSheet.create({
   root: { flex: 1 },
   tabBar: {
-    backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.gray100,
   },
   tabBarInner: {
     flexDirection: "row",

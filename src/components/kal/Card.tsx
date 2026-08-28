@@ -1,3 +1,4 @@
+import { useAppTheme } from "@/src/components/ThemeContext";
 import { theme } from "@/src/styles";
 import React, { type ReactNode } from "react";
 import { StyleSheet, TouchableOpacity, View, type ViewStyle } from "react-native";
@@ -8,11 +9,24 @@ interface CardProps {
   style?: ViewStyle;
 }
 
-// Card bianca arrotondata con ombra leggera (base di tutte le liste).
+// Card arrotondata con ombra leggera (base di tutte le liste).
 // Lo stile (incluso flexDirection) è applicato sempre a una View interna, così
 // resta valido anche quando la card è premibile.
 export const Card: React.FC<CardProps> = ({ children, onPress, style }) => {
-  const content = <View style={[styles.card, style]}>{children}</View>;
+  const { colors, isDark } = useAppTheme();
+  const content = (
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: colors.surface },
+        // Al buio l'ombra non si vede: senza bordo la card sparirebbe nello sfondo.
+        isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
 
   if (onPress) {
     // TouchableOpacity (non Pressable con style-as-function): NativeWind v4 non
@@ -28,7 +42,6 @@ export const Card: React.FC<CardProps> = ({ children, onPress, style }) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: theme.colors.white,
     borderRadius: theme.radius.xl,
     padding: theme.spacing.md,
     shadowColor: theme.colors.gray900,

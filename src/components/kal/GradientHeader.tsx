@@ -39,7 +39,8 @@ export const GradientHeader: React.FC<GradientHeaderProps> = ({
 
   return (
     <LinearGradient
-      colors={["#0a2540", "#0e4c7e"]}
+      // Gradiente di brand: uguale nei due temi, il contenuto sopra è bianco.
+      colors={[theme.colors.brand900, theme.colors.brand600]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={[styles.container, { paddingTop: insets.top + 8 }]}

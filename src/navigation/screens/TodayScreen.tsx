@@ -1,4 +1,5 @@
 import { ScreenBackground } from "@/src/components/kal";
+import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
@@ -8,12 +9,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export function TodayScreen() {
   const { t } = useTranslation();
+  const { colors } = useAppTheme();
 
   return (
     <View style={styles.root}>
       <ScreenBackground />
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
-        <Text style={styles.title}>{t("tabs.today")}</Text>
+        <Text style={[styles.title, { color: colors.text }]}>
+          {t("tabs.today")}
+        </Text>
       </SafeAreaView>
     </View>
   );

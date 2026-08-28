@@ -1,4 +1,5 @@
 import { DfNumberInput } from "@/src/components/form/DfNumberInput";
+import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { kcalFromMacros } from "@/src/domain/nutrition";
@@ -24,6 +25,7 @@ const toNumber = (value: unknown): number => {
  */
 export const NutrientFields: React.FC = () => {
   const { t } = useTranslation();
+  const { colors } = useAppTheme();
   const [kcal, protein, carbs, fat] = useWatch({
     name: ["kcal", "protein", "carbs", "fat"],
   });
@@ -44,7 +46,13 @@ export const NutrientFields: React.FC = () => {
         decimals={0}
         rules={{ required: t("required_field") }}
       />
-      <Text style={[styles.hint, drifted && styles.hintWarning]}>
+      <Text
+        style={[
+          styles.hint,
+          { color: colors.textMuted },
+          drifted && styles.hintWarning,
+        ]}
+      >
         {t("foods.kcal_from_macros", { value: Math.round(computed) })}
       </Text>
 
@@ -92,7 +100,6 @@ export const NutrientFields: React.FC = () => {
 const styles = StyleSheet.create({
   hint: {
     fontSize: 12,
-    color: theme.colors.gray500,
     marginTop: -theme.spacing.sm,
     marginBottom: theme.spacing.sm,
   },

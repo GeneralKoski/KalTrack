@@ -1,4 +1,4 @@
-import { theme } from "@/src/styles";
+import { useAppTheme } from "@/src/components/ThemeContext";
 import { useEffect } from "react";
 import { type ViewStyle } from "react-native";
 import Animated, {
@@ -10,6 +10,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 export const Skeleton = ({ style }: { style?: ViewStyle | ViewStyle[] }) => {
+  const { colors } = useAppTheme();
   const opacity = useSharedValue(0.3);
 
   useEffect(() => {
@@ -28,7 +29,11 @@ export const Skeleton = ({ style }: { style?: ViewStyle | ViewStyle[] }) => {
 
   return (
     <Animated.View
-      style={[{ backgroundColor: theme.colors.gray200 }, style, animatedStyle]}
+      style={[
+        { backgroundColor: colors.surfaceMuted },
+        style,
+        animatedStyle,
+      ]}
     />
   );
 };

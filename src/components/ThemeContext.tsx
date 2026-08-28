@@ -1,37 +1,42 @@
+import { useThemeStore } from "@/src/stores/themeStore";
 import { darkTheme, lightTheme, type AppTheme } from "@/src/styles";
 import React, { createContext, useContext, useMemo } from "react";
-import { Platform, useColorScheme } from "react-native";
+import { useColorScheme } from "react-native";
 
-const ThemeContext = createContext<AppTheme>(lightTheme);
+interface ThemeContextValue extends AppTheme {
+  isDark: boolean;
+}
+
+const ThemeContext = createContext<ThemeContextValue>({
+  ...lightTheme,
+  isDark: false,
+});
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const systemScheme = useColorScheme();
+  const mode = useThemeStore((s) => s.mode);
 
-  // Su native il tema è forzato da userInterfaceStyle in app.json.
-  // Su web useColorScheme() legge la preferenza del browser — forziamo light.
-  const scheme = Platform.OS === "web" ? "light" : systemScheme;
+  // `system` segue il telefono, le altre due scelte vincono su di esso.
+  const isDark =
+    mode === "system" ? systemScheme === "dark" : mode === "dark";
 
-  const theme = useMemo(
-    () => (scheme === "dark" ? darkTheme : lightTheme),
-    [scheme],
+  const value = useMemo(
+    () => ({ ...(isDark ? darkTheme : lightTheme), isDark }),
+    [isDark],
   );
 
   return (
-    <ThemeContext.Provider value={theme}>
-      {children}
-    </ThemeContext.Provider>
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
   );
 };
 
 /**
- * Restituisce il tema corrente (light/dark) in base alle impostazioni di sistema.
- *
- * Usare per i soli valori dinamici (colori).
- * Per padding, radius, font — importare `theme` direttamente da `@/src/styles`
- * e usare StyleSheet.create() per evitare ricalcoli ad ogni render.
+ * Tema corrente. Usare per i soli valori dinamici (colori semantici).
+ * Per padding, radius, font e colori di brand importare `theme` da
+ * `@/src/styles` e usarlo dentro StyleSheet.create().
  *
  * @example
  * const { colors } = useAppTheme();
  * <View style={[styles.card, { backgroundColor: colors.surface }]} />
  */
-export const useAppTheme = (): AppTheme => useContext(ThemeContext);
+export const useAppTheme = (): ThemeContextValue => useContext(ThemeContext);

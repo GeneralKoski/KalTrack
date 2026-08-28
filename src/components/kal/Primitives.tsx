@@ -1,3 +1,4 @@
+import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { theme } from "@/src/styles";
 import { Inbox } from "lucide-react-native";
@@ -14,23 +15,33 @@ export const SectionLabel: React.FC<{
   children: ReactNode;
   right?: ReactNode;
   style?: ViewStyle;
-}> = ({ children, right, style }) => (
-  <View style={[styles.sectionRow, style]}>
-    <Text style={styles.sectionLabel}>{children}</Text>
-    {right}
-  </View>
-);
+}> = ({ children, right, style }) => {
+  const { colors } = useAppTheme();
+  return (
+    <View style={[styles.sectionRow, style]}>
+      <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
+        {children}
+      </Text>
+      {right}
+    </View>
+  );
+};
 
 // Stato vuoto centrato con icona e messaggio.
 export const EmptyState: React.FC<{ message: string; icon?: ReactNode }> = ({
   message,
   icon,
-}) => (
-  <View style={styles.empty}>
-    {icon ?? <Inbox size={40} color={theme.colors.gray300} />}
-    <Text style={styles.emptyText}>{message}</Text>
-  </View>
-);
+}) => {
+  const { colors } = useAppTheme();
+  return (
+    <View style={styles.empty}>
+      {icon ?? <Inbox size={40} color={colors.textFaint} />}
+      <Text style={[styles.emptyText, { color: colors.textFaint }]}>
+        {message}
+      </Text>
+    </View>
+  );
+};
 
 // Tile quadrato arrotondato per l'icona nelle liste (nave, sezione, ecc.).
 export const IconTile: React.FC<{
@@ -60,9 +71,14 @@ export const Chip: React.FC<{
   //   bianco per contrasto), dimensione leggermente ridotta (storico movimenti).
   variant?: "default" | "primary" | "dot";
 }> = ({ label, active = false, onPress, dotColor, variant = "default" }) => {
+  const { colors } = useAppTheme();
   const primary = variant === "primary";
   const dot = variant === "dot";
   const chipDotColor = dot && active ? theme.colors.white : dotColor;
+  const inactive = {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+  };
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -73,14 +89,14 @@ export const Chip: React.FC<{
         dot
           ? active
             ? { backgroundColor: dotColor ?? theme.colors.gray600 }
-            : styles.chipInactive
+            : inactive
           : primary
             ? active
               ? styles.chipActivePrimary
-              : styles.chipInactivePrimary
+              : { backgroundColor: colors.surfaceMuted }
             : active
               ? styles.chipActive
-              : styles.chipInactive,
+              : inactive,
       ]}
     >
       {dotColor && (
@@ -94,12 +110,15 @@ export const Chip: React.FC<{
       )}
       <Text
         style={[
-          active
-            ? styles.chipTextActive
-            : primary
-              ? styles.chipTextInactivePrimary
-              : styles.chipTextInactive,
+          styles.chipText,
           dot && styles.chipTextSmall,
+          {
+            color: active
+              ? theme.colors.white
+              : primary
+                ? colors.textMuted
+                : colors.textSecondary,
+          },
         ]}
       >
         {label}
@@ -118,26 +137,35 @@ export interface StatTile {
 export const StatTiles: React.FC<{ tiles: StatTile[]; style?: ViewStyle }> = ({
   tiles,
   style,
-}) => (
-  <View style={[styles.statRow, style]}>
-    {tiles.map((tile, idx) => (
-      <React.Fragment key={tile.label}>
-        {idx > 0 && <View style={styles.statDivider} />}
-        <View style={styles.statTile}>
-          <Text
-            style={[
-              styles.statValue,
-              tile.color ? { color: tile.color } : null,
-            ]}
-          >
-            {tile.value}
-          </Text>
-          <Text style={styles.statLabel}>{tile.label}</Text>
-        </View>
-      </React.Fragment>
-    ))}
-  </View>
-);
+}) => {
+  const { colors } = useAppTheme();
+  return (
+    <View style={[styles.statRow, { backgroundColor: colors.surface }, style]}>
+      {tiles.map((tile, idx) => (
+        <React.Fragment key={tile.label}>
+          {idx > 0 && (
+            <View
+              style={[styles.statDivider, { backgroundColor: colors.border }]}
+            />
+          )}
+          <View style={styles.statTile}>
+            <Text
+              style={[
+                styles.statValue,
+                tile.color ? { color: tile.color } : null,
+              ]}
+            >
+              {tile.value}
+            </Text>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>
+              {tile.label}
+            </Text>
+          </View>
+        </React.Fragment>
+      ))}
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   sectionRow: {
@@ -151,7 +179,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 1,
-    color: theme.colors.gray500,
     textTransform: "uppercase",
   },
   empty: {
@@ -160,7 +187,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.xl * 2,
     gap: theme.spacing.md,
   },
-  emptyText: { fontSize: 14, color: theme.colors.gray400, textAlign: "center" },
+  emptyText: { fontSize: 14, textAlign: "center" },
   iconTile: {
     borderRadius: theme.radius.lg,
     alignItems: "center",
@@ -180,34 +207,14 @@ const styles = StyleSheet.create({
   },
   chipSmall: { paddingHorizontal: 12, paddingVertical: 7 },
   chipActive: { backgroundColor: theme.colors.gray600 },
-  chipInactive: {
-    backgroundColor: theme.colors.white,
-    borderColor: theme.colors.gray200,
-  },
   chipDot: { width: 8, height: 8, borderRadius: 4 },
   chipDotSmall: { width: 7, height: 7, borderRadius: 3.5 },
   chipTextSmall: { fontSize: 13 },
   chipActivePrimary: { backgroundColor: theme.colors.primary },
-  chipInactivePrimary: { backgroundColor: "#f1f5f9" },
-  chipTextActive: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: theme.colors.white,
-  },
-  chipTextInactive: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: theme.colors.gray700,
-  },
-  chipTextInactivePrimary: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#475569",
-  },
+  chipText: { fontSize: 14, fontWeight: "600" },
   statRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.white,
     borderRadius: theme.radius.xl,
     paddingVertical: theme.spacing.md,
     shadowColor: theme.colors.gray900,
@@ -217,13 +224,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   statTile: { flex: 1, alignItems: "center", gap: 2 },
-  statDivider: { width: 1, height: 32, backgroundColor: theme.colors.gray200 },
+  statDivider: { width: 1, height: 32 },
   statValue: { fontSize: 24, fontWeight: "700", color: theme.colors.brand700 },
   statLabel: {
     fontSize: 12,
     fontWeight: "600",
     letterSpacing: 0.5,
-    color: theme.colors.gray500,
     textTransform: "uppercase",
   },
 });

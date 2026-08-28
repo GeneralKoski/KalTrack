@@ -1,4 +1,5 @@
 import { Chip, SectionLabel } from "@/src/components/kal/Primitives";
+import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
@@ -41,6 +42,7 @@ export const DateRangeField: React.FC<{
   maxDate?: Date;
 }> = ({ label, from, to, onChangeFrom, onChangeTo, minDate, maxDate }) => {
   const { t } = useTranslation();
+  const { colors } = useAppTheme();
   const [iosField, setIosField] = useState<"from" | "to" | null>(null);
   const [temp, setTemp] = useState<Date>(new Date());
 
@@ -78,33 +80,47 @@ export const DateRangeField: React.FC<{
     <View style={styles.group}>
       {label ? <SectionLabel>{label}</SectionLabel> : null}
       <View style={styles.rangeRow}>
-        <Pressable style={styles.rangeField} onPress={() => open("from")}>
+        <Pressable
+          style={[styles.rangeField, { borderColor: colors.border }]}
+          onPress={() => open("from")}
+        >
           <Text
-            style={[styles.rangeText, !from && styles.rangePlaceholder]}
+            style={[
+              styles.rangeText,
+              { color: from ? colors.text : colors.textFaint },
+            ]}
             numberOfLines={1}
             adjustsFontSizeToFit
           >
             {from ? formatDMY(from) : "gg/mm/aaaa"}
           </Text>
-          <CalendarDays size={16} color={theme.colors.gray400} />
+          <CalendarDays size={16} color={colors.textFaint} />
         </Pressable>
-        <ArrowRight size={16} color={theme.colors.gray400} />
-        <Pressable style={styles.rangeField} onPress={() => open("to")}>
+        <ArrowRight size={16} color={colors.textFaint} />
+        <Pressable
+          style={[styles.rangeField, { borderColor: colors.border }]}
+          onPress={() => open("to")}
+        >
           <Text
-            style={[styles.rangeText, !to && styles.rangePlaceholder]}
+            style={[
+              styles.rangeText,
+              { color: to ? colors.text : colors.textFaint },
+            ]}
             numberOfLines={1}
             adjustsFontSizeToFit
           >
             {to ? formatDMY(to) : "gg/mm/aaaa"}
           </Text>
-          <CalendarDays size={16} color={theme.colors.gray400} />
+          <CalendarDays size={16} color={colors.textFaint} />
         </Pressable>
       </View>
 
       {iosField && (
         <Modal transparent animationType="fade" onRequestClose={() => setIosField(null)}>
           <Pressable style={styles.modalBackdrop} onPress={() => setIosField(null)}>
-            <Pressable style={styles.modalSheet}>
+            <Pressable
+              style={[styles.modalSheet, { backgroundColor: colors.surface }]}
+            >
               <DateTimePicker
                 value={temp}
                 mode="date"
@@ -115,7 +131,9 @@ export const DateRangeField: React.FC<{
               />
               <View style={styles.modalActions}>
                 <Pressable onPress={() => setIosField(null)}>
-                  <Text style={styles.modalCancel}>{t("cancel")}</Text>
+                  <Text style={[styles.modalCancel, { color: colors.textMuted }]}>
+                    {t("cancel")}
+                  </Text>
                 </Pressable>
                 <Pressable
                   onPress={() => {
@@ -205,6 +223,7 @@ export const PickerField: React.FC<{
   onToggle: (code: string) => void;
   icon?: ReactNode;
 }> = ({ label, placeholder, options, selected, onToggle, icon }) => {
+  const { colors } = useAppTheme();
   const [open, setOpen] = useState(false);
   if (options.length === 0) return null;
 
@@ -220,7 +239,7 @@ export const PickerField: React.FC<{
     <View style={styles.group}>
       <SectionLabel>{label}</SectionLabel>
       <TouchableOpacity
-        style={styles.pickerField}
+        style={[styles.pickerField, { borderColor: colors.border }]}
         activeOpacity={0.6}
         onPress={() => setOpen((v) => !v)}
       >
@@ -228,27 +247,27 @@ export const PickerField: React.FC<{
         <Text
           style={[
             styles.pickerText,
-            chosen.length === 0 && styles.rangePlaceholder,
+            { color: chosen.length === 0 ? colors.textFaint : colors.text },
           ]}
           numberOfLines={1}
         >
           {summary}
         </Text>
         {open ? (
-          <ChevronDown size={18} color={theme.colors.gray400} />
+          <ChevronDown size={18} color={colors.textFaint} />
         ) : (
-          <ChevronRight size={18} color={theme.colors.gray400} />
+          <ChevronRight size={18} color={colors.textFaint} />
         )}
       </TouchableOpacity>
 
       {open && (
-        <View style={styles.pickerList}>
+        <View style={[styles.pickerList, { borderColor: colors.border }]}>
           {options.map((opt) => {
             const active = selected.includes(opt.code);
             return (
               <TouchableOpacity
                 key={opt.code}
-                style={styles.pickerRow}
+                style={[styles.pickerRow, { borderBottomColor: colors.border }]}
                 activeOpacity={0.6}
                 onPress={() => onToggle(opt.code)}
               >
@@ -256,7 +275,11 @@ export const PickerField: React.FC<{
                   <View style={[styles.pickerDot, { backgroundColor: opt.dotColor }]} />
                 ) : null}
                 <Text
-                  style={[styles.pickerRowText, active && styles.pickerRowTextActive]}
+                  style={[
+                    styles.pickerRowText,
+                    { color: active ? colors.text : colors.textSecondary },
+                    active && styles.pickerRowTextActive,
+                  ]}
                   numberOfLines={1}
                 >
                   {opt.label}
@@ -277,14 +300,21 @@ export const FilterActions: React.FC<{
   onApply: () => void;
 }> = ({ onReset, onApply }) => {
   const { t } = useTranslation();
+  const { colors } = useAppTheme();
   return (
     <View style={styles.actions}>
       <TouchableOpacity
-        style={[styles.btn, styles.reset]}
+        style={[
+          styles.btn,
+          styles.reset,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
         activeOpacity={0.6}
         onPress={onReset}
       >
-        <Text style={styles.resetText}>{t("reset")}</Text>
+        <Text style={[styles.resetText, { color: colors.textSecondary }]}>
+          {t("reset")}
+        </Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.btn, styles.apply]}
@@ -337,11 +367,9 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.lg,
   },
   reset: {
-    backgroundColor: theme.colors.white,
     borderWidth: 1,
-    borderColor: theme.colors.gray200,
   },
-  resetText: { fontSize: 15, fontWeight: "700", color: theme.colors.gray700 },
+  resetText: { fontSize: 15, fontWeight: "700" },
   apply: { backgroundColor: theme.colors.primary },
   applyText: { fontSize: 15, fontWeight: "700", color: theme.colors.white },
   rangeRow: {
@@ -356,28 +384,24 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 6,
     borderWidth: 1,
-    borderColor: theme.colors.gray200,
     borderRadius: theme.radius.lg,
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: 12,
   },
-  rangeText: { flexShrink: 1, fontSize: 15, color: theme.colors.gray900 },
-  rangePlaceholder: { color: theme.colors.gray400 },
+  rangeText: { flexShrink: 1, fontSize: 15 },
   pickerField: {
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.sm,
     borderWidth: 1,
-    borderColor: theme.colors.gray200,
     borderRadius: theme.radius.lg,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: 14,
     marginTop: theme.spacing.sm,
   },
-  pickerText: { flex: 1, fontSize: 15, color: theme.colors.gray900 },
+  pickerText: { flex: 1, fontSize: 15 },
   pickerList: {
     borderWidth: 1,
-    borderColor: theme.colors.gray200,
     borderRadius: theme.radius.lg,
     marginTop: theme.spacing.xs,
     overflow: "hidden",
@@ -389,11 +413,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.gray100,
   },
   pickerDot: { width: 8, height: 8, borderRadius: 4 },
-  pickerRowText: { flex: 1, fontSize: 15, color: theme.colors.gray700 },
-  pickerRowTextActive: { fontWeight: "700", color: theme.colors.gray900 },
+  pickerRowText: { flex: 1, fontSize: 15 },
+  pickerRowTextActive: { fontWeight: "700" },
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",
@@ -401,7 +424,6 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
   },
   modalSheet: {
-    backgroundColor: theme.colors.white,
     borderRadius: theme.radius.xl,
     padding: theme.spacing.md,
   },
@@ -411,6 +433,6 @@ const styles = StyleSheet.create({
     gap: theme.spacing.lg,
     paddingTop: theme.spacing.sm,
   },
-  modalCancel: { fontSize: 16, fontWeight: "600", color: theme.colors.gray500 },
+  modalCancel: { fontSize: 16, fontWeight: "600" },
   modalOk: { fontSize: 16, fontWeight: "700", color: theme.colors.primary },
 });

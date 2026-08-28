@@ -8,15 +8,25 @@ import Toast from "react-native-toast-message";
 
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import "@/global.css";
-import { ThemeProvider } from "@/src/components/ThemeContext";
+import { ThemeProvider, useAppTheme } from "@/src/components/ThemeContext";
 import { toastConfig } from "@/src/components/toastConfig";
 import { initDatabase } from "@/src/db";
 import { Navigation } from "@/src/navigation";
+import { useThemeStore } from "@/src/stores/themeStore";
 import { logger } from "@/src/utils/logger";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
+// Dentro ThemeProvider: le icone della status bar devono invertirsi col tema.
+function ThemedStatusBar() {
+  const { isDark } = useAppTheme();
+  return <StatusBar style={isDark ? "light" : "dark"} />;
+}
+
 export function App() {
   const [dbReady, setDbReady] = useState(false);
+  // Senza questo gate l'app mostrerebbe un lampo di tema chiaro prima che la
+  // preferenza salvata venga riletta da AsyncStorage.
+  const themeReady = useThemeStore((s) => s.isHydrated);
 
   // Su native i font sono embedded dal plugin expo-font (app.json).
   const [fontsLoaded] = useFonts({
@@ -52,17 +62,17 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (fontsLoaded && dbReady) SplashScreen.hideAsync();
-  }, [fontsLoaded, dbReady]);
+    if (fontsLoaded && dbReady && themeReady) SplashScreen.hideAsync();
+  }, [fontsLoaded, dbReady, themeReady]);
 
-  if (!fontsLoaded || !dbReady) return null;
+  if (!fontsLoaded || !dbReady || !themeReady) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <GluestackUIProvider>
-        <StatusBar style="dark" />
         <SafeAreaProvider>
           <ThemeProvider>
+            <ThemedStatusBar />
             <BottomSheetModalProvider>
               <Navigation />
               <Toast config={toastConfig} />

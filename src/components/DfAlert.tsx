@@ -160,7 +160,10 @@ export function DfAlert({
                     label={cancelLabel ?? t("cancel")}
                     variant={cancelVariant ?? "outlined"}
                     color={cancelColor}
-                    style={styles.cancelButton}
+                    style={[
+                      styles.cancelButton,
+                      { borderColor: colors.border },
+                    ]}
                     onPress={handleCancel}
                     disabled={loading}
                   />
@@ -216,7 +219,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cancelButton: {
-    borderColor: theme.colors.gray100,
     paddingVertical: 8,
     paddingHorizontal: 16,
     minHeight: 30,

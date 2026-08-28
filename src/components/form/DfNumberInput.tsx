@@ -121,7 +121,9 @@ export const DfNumberInput = ({
 
   return (
     <View style={[styles.wrapper, fieldContainerStyle]}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && (
+        <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+      )}
       <Controller
         control={control}
         name={name}
@@ -149,15 +151,28 @@ export const DfNumberInput = ({
             <>
               <View style={styles.inputWrapper}>
                 {showCurrency && currencyPosition === "left" && (
-                  <Text style={[styles.currencySymbol, styles.currencyLeft]}>
+                  <Text
+                    style={[
+                      styles.currencySymbol,
+                      styles.currencyLeft,
+                      { color: colors.textMuted },
+                    ]}
+                  >
                     {currencySymbol}
                   </Text>
                 )}
                 <InputComponent
                   style={[
                     styles.input,
-                    { borderColor: colors.border },
-                    readOnly && styles.inputReadOnly,
+                    {
+                      color: colors.text,
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                    },
+                    readOnly && {
+                      backgroundColor: colors.surfaceMuted,
+                      color: colors.textMuted,
+                    },
                     error && styles.inputError,
                     showCurrency &&
                       currencyPosition === "left" &&
@@ -168,7 +183,7 @@ export const DfNumberInput = ({
                     style,
                   ]}
                   placeholder={placeholder}
-                  placeholderTextColor={theme.colors.gray400}
+                  placeholderTextColor={colors.textFaint}
                   autoCapitalize="none"
                   onChangeText={handleChangeText}
                   onBlur={onBlur}
@@ -179,7 +194,13 @@ export const DfNumberInput = ({
                   {...props}
                 />
                 {showCurrency && currencyPosition === "right" && (
-                  <Text style={[styles.currencySymbol, styles.currencyRight]}>
+                  <Text
+                    style={[
+                      styles.currencySymbol,
+                      styles.currencyRight,
+                      { color: colors.textMuted },
+                    ]}
+                  >
                     {currencySymbol}
                   </Text>
                 )}
@@ -204,7 +225,6 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: "500",
     fontSize: 14,
-    color: theme.colors.gray900,
     marginBottom: 6,
   },
   inputWrapper: {
@@ -213,17 +233,11 @@ const styles = StyleSheet.create({
   },
   input: {
     fontSize: 16,
-    color: theme.colors.gray900,
-    backgroundColor: theme.colors.white,
     borderWidth: 1,
     borderRadius: theme.radius.md,
     paddingVertical: 12,
     paddingHorizontal: 14,
     minHeight: 48,
-  },
-  inputReadOnly: {
-    backgroundColor: theme.colors.gray100,
-    color: theme.colors.gray500,
   },
   inputError: {
     borderColor: theme.colors.error,
@@ -236,7 +250,6 @@ const styles = StyleSheet.create({
   currencySymbol: {
     position: "absolute",
     fontSize: 16,
-    color: theme.colors.gray500,
     fontWeight: "500",
     zIndex: 1,
   },

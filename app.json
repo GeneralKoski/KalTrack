@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "kaltrack",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.koski.kaltrack",
@@ -73,7 +73,14 @@
       ],
       "@react-native-community/datetimepicker",
       "expo-sqlite",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "KalTrack accede alle foto per allegare l'immagine di un alimento o di un pasto.",
+          "cameraPermission": "KalTrack usa la fotocamera per scattare la foto di un alimento o di un pasto."
+        }
+      ]
     ],
     "experiments": {
       "reactCompiler": true

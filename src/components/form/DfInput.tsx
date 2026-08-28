@@ -32,7 +32,9 @@ export const DfInput = ({
 
   return (
     <View style={styles.wrapper}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && (
+        <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+      )}
 
       <Controller
         control={control}
@@ -48,13 +50,20 @@ export const DfInput = ({
               onChangeText={onChange}
               onBlur={onBlur}
               placeholder={placeholder ?? t("default_input_placeholder")}
-              placeholderTextColor={theme.colors.gray400}
+              placeholderTextColor={colors.textFaint}
               editable={!readOnly}
               style={[
                 styles.input,
-                { borderColor: colors.border },
+                {
+                  color: colors.text,
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                },
                 error && styles.inputError,
-                readOnly && styles.inputReadOnly,
+                readOnly && {
+                  backgroundColor: colors.surfaceMuted,
+                  color: colors.textMuted,
+                },
               ]}
               {...textInputProps}
             />
@@ -75,13 +84,10 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: "500",
     fontSize: 14,
-    color: theme.colors.gray900,
     marginBottom: 6,
   },
   input: {
     fontSize: 16,
-    color: theme.colors.gray900,
-    backgroundColor: theme.colors.white,
     borderWidth: 1,
     borderRadius: theme.radius.xl,
     paddingVertical: 8,
@@ -90,10 +96,6 @@ const styles = StyleSheet.create({
   },
   inputError: {
     borderColor: theme.colors.error,
-  },
-  inputReadOnly: {
-    backgroundColor: theme.colors.gray100,
-    color: theme.colors.gray500,
   },
   errorText: {
     fontSize: 12,

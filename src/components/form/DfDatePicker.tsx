@@ -69,7 +69,7 @@ export const DfDatePicker = ({
         <View
           style={[
             styles.picker,
-            { borderColor: colors.border },
+            { backgroundColor: colors.surface, borderColor: colors.border },
             style?.picker,
             error && styles.inputError,
           ]}
@@ -97,7 +97,7 @@ export const DfDatePicker = ({
               border: "none",
               outline: "none",
               fontSize: 16,
-              color: theme.colors.gray900,
+              color: colors.text,
               backgroundColor: "transparent",
               flex: 1,
               fontFamily: theme.fonts.regular,
@@ -145,7 +145,7 @@ export const DfDatePicker = ({
         <Pressable
           style={[
             styles.picker,
-            { borderColor: colors.border },
+            { backgroundColor: colors.surface, borderColor: colors.border },
             style?.picker,
             error && styles.inputError,
           ]}
@@ -163,13 +163,14 @@ export const DfDatePicker = ({
           {iconPosition === "left" && (
             <Calendar
               size={20}
-              color={theme.colors.gray500}
+              color={colors.textMuted}
               style={{ marginRight: 8 }}
             />
           )}
           <Text
             style={[
               styles.pickerText,
+              { color: colors.text },
               style?.pickerText,
               iconPosition === "left" && { flex: 1 },
             ]}
@@ -177,13 +178,13 @@ export const DfDatePicker = ({
             {value ? (
               formatDate(value)
             ) : (
-              <Text style={styles.pickerPlaceholder}>
+              <Text style={{ color: colors.textFaint }}>
                 {t("select_date_placeholder")}
               </Text>
             )}
           </Text>
           {iconPosition === "right" && (
-            <Calendar size={20} color={theme.colors.gray500} />
+            <Calendar size={20} color={colors.textMuted} />
           )}
         </Pressable>
         {isIos && (
@@ -197,10 +198,24 @@ export const DfDatePicker = ({
               style={styles.modalOverlay}
               onPress={() => setShowIosPicker(false)}
             >
-              <Pressable style={styles.modalContent}>
-                <View style={styles.modalHeader}>
+              <Pressable
+                style={[
+                  styles.modalContent,
+                  { backgroundColor: colors.surface },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.modalHeader,
+                    { borderBottomColor: colors.border },
+                  ]}
+                >
                   <Pressable onPress={() => setShowIosPicker(false)}>
-                    <Text style={styles.modalCancel}>{t("cancel")}</Text>
+                    <Text
+                      style={[styles.modalCancel, { color: colors.textMuted }]}
+                    >
+                      {t("cancel")}
+                    </Text>
                   </Pressable>
                   <Pressable
                     onPress={() => {
@@ -240,7 +255,11 @@ export const DfDatePicker = ({
       rules={rules}
       render={({ field: { onChange, value }, fieldState: { error } }) => (
         <View ref={fieldRef} style={styles.wrapper}>
-          {label && <Text style={[styles.label, style?.label]}>{label}</Text>}
+          {label && (
+            <Text style={[styles.label, { color: colors.text }, style?.label]}>
+              {label}
+            </Text>
+          )}
           {(Platform.OS === "web" ? webInput : mobileInput)({
             value,
             onChange,
@@ -259,11 +278,9 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: "500",
     fontSize: 14,
-    color: theme.colors.gray900,
     marginBottom: 6,
   },
   picker: {
-    backgroundColor: theme.colors.white,
     borderWidth: 1,
     borderRadius: theme.radius.md,
     paddingVertical: 12,
@@ -275,10 +292,6 @@ const styles = StyleSheet.create({
   },
   pickerText: {
     fontSize: 16,
-    color: theme.colors.gray900,
-  },
-  pickerPlaceholder: {
-    color: theme.colors.gray400,
   },
   inputError: {
     borderColor: theme.colors.error,
@@ -294,7 +307,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.4)",
   },
   modalContent: {
-    backgroundColor: theme.colors.white,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingBottom: 32,
@@ -308,11 +320,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.gray200,
   },
   modalCancel: {
     fontSize: 16,
-    color: theme.colors.gray500,
   },
   modalConfirm: {
     fontSize: 16,

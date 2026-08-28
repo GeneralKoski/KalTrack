@@ -1,3 +1,4 @@
+import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { theme } from "@/src/styles";
 import {
@@ -30,21 +31,25 @@ function ToastCard({
   text1?: string;
   text2?: string;
 }) {
+  const { colors } = useAppTheme();
   const { color, bg, Icon } = VARIANTS[variant];
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: colors.surface }]}>
       <View style={[styles.accent, { backgroundColor: color }]} />
       <View style={[styles.iconTile, { backgroundColor: bg }]}>
         <Icon size={20} color={color} />
       </View>
       <View style={styles.body}>
         {text1 ? (
-          <Text style={styles.title} numberOfLines={2}>
+          <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
             {text1}
           </Text>
         ) : null}
         {text2 ? (
-          <Text style={styles.message} numberOfLines={5}>
+          <Text
+            style={[styles.message, { color: colors.textMuted }]}
+            numberOfLines={5}
+          >
             {text2}
           </Text>
         ) : null}
@@ -77,7 +82,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: theme.spacing.md,
     width: "92%",
-    backgroundColor: theme.colors.white,
     borderRadius: theme.radius.xl,
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.md,
@@ -103,6 +107,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   body: { flex: 1, gap: 2 },
-  title: { fontSize: 15, fontWeight: "700", color: theme.colors.gray900 },
-  message: { fontSize: 13, color: theme.colors.gray500, lineHeight: 18 },
+  title: { fontSize: 15, fontWeight: "700" },
+  message: { fontSize: 13, lineHeight: 18 },
 });

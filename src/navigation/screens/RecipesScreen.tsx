@@ -1,21 +1,39 @@
 import { EmptyState, ScreenBackground, SearchBar } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
-import { FoodListItem } from "@/src/containers/foods/FoodListItem";
-import { searchFoods, toggleFoodFavorite } from "@/src/db/queries/foods";
+import { RecipeListItem } from "@/src/containers/recipes/RecipeListItem";
+import {
+  buildRecipeTree,
+  getRecipeItems,
+  searchRecipes,
+  toggleRecipeFavorite,
+} from "@/src/db/queries/recipes";
+import { recipePerServing } from "@/src/domain/nutrition";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
-import type { FoodRow } from "@/src/types/nutrition";
-import { Plus, Salad } from "lucide-react-native";
+import type { RecipeRow } from "@/src/types/nutrition";
+import { CookingPot, Plus } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SEARCH_DEBOUNCE_MS = 250;
 
-export function FoodsScreen() {
+interface RecipeListEntry {
+  recipe: RecipeRow;
+  kcalPerServing: number;
+  ingredientCount: number;
+}
+
+export function RecipesScreen() {
   const { t } = useTranslation();
   const { navigate } = useAppNav();
   const { colors } = useAppTheme();
@@ -28,16 +46,31 @@ export function FoodsScreen() {
     return () => clearTimeout(timeout);
   }, [term]);
 
-  const loader = useCallback(() => searchFoods(debounced), [debounced]);
-  const { data, loading, reload } = useFocusData<FoodRow[]>(loader);
+  const loader = useCallback(async (): Promise<RecipeListEntry[]> => {
+    const rows = await searchRecipes(debounced);
+    return Promise.all(
+      rows.map(async (recipe) => {
+        const [tree, items] = await Promise.all([
+          buildRecipeTree(recipe.id),
+          getRecipeItems(recipe.id),
+        ]);
+        return {
+          recipe,
+          kcalPerServing: tree ? recipePerServing(tree).kcal : 0,
+          ingredientCount: items.length,
+        };
+      }),
+    );
+  }, [debounced]);
 
-  // useFocusData ricarica al focus; qui serve anche a ogni cambio del termine.
+  const { data, loading, reload } = useFocusData<RecipeListEntry[]>(loader);
+
   useEffect(() => {
     reload();
   }, [debounced, reload]);
 
   const onToggleFavorite = async (id: string) => {
-    await toggleFoodFavorite(id);
+    await toggleRecipeFavorite(id);
     reload();
   };
 
@@ -46,14 +79,14 @@ export function FoodsScreen() {
       <ScreenBackground />
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
         <Text style={[styles.title, { color: colors.text }]}>
-          {t("foods.title")}
+          {t("recipes.title")}
         </Text>
 
         <View style={styles.searchWrap}>
           <SearchBar
             value={term}
             onChangeText={setTerm}
-            placeholder={t("foods.search_placeholder")}
+            placeholder={t("recipes.search_placeholder")}
           />
         </View>
 
@@ -62,12 +95,14 @@ export function FoodsScreen() {
         ) : (
           <FlatList
             data={data ?? []}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => item.recipe.id}
             renderItem={({ item }) => (
-              <FoodListItem
-                food={item}
-                onPress={() => navigate("FoodForm", { id: item.id })}
-                onToggleFavorite={() => onToggleFavorite(item.id)}
+              <RecipeListItem
+                recipe={item.recipe}
+                kcalPerServing={item.kcalPerServing}
+                ingredientCount={item.ingredientCount}
+                onPress={() => navigate("RecipeForm", { id: item.recipe.id })}
+                onToggleFavorite={() => onToggleFavorite(item.recipe.id)}
               />
             )}
             contentContainerStyle={[
@@ -78,8 +113,8 @@ export function FoodsScreen() {
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
               <EmptyState
-                message={t("foods.empty")}
-                icon={<Salad size={40} color={colors.textFaint} />}
+                message={t("recipes.empty")}
+                icon={<CookingPot size={40} color={colors.textFaint} />}
               />
             }
           />
@@ -89,7 +124,7 @@ export function FoodsScreen() {
       <TouchableOpacity
         style={[styles.fab, { bottom: insets.bottom + theme.spacing.lg }]}
         activeOpacity={0.6}
-        onPress={() => navigate("FoodForm", {})}
+        onPress={() => navigate("RecipeForm", {})}
       >
         <Plus size={26} color={theme.colors.white} strokeWidth={2.5} />
       </TouchableOpacity>
@@ -98,12 +133,8 @@ export function FoodsScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
-  safe: {
-    flex: 1,
-  },
+  root: { flex: 1 },
+  safe: { flex: 1 },
   title: {
     fontSize: 24,
     fontWeight: "700",

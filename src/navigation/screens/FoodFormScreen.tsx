@@ -5,7 +5,8 @@ import { DfForm } from "@/src/components/form/DfForm";
 import { DfInput } from "@/src/components/form/DfInput";
 import { DfNumberInput } from "@/src/components/form/DfNumberInput";
 import { DfSwitch } from "@/src/components/form/DfSwitch";
-import { ScreenBackground } from "@/src/components/kal";
+import { PhotoField, ScreenBackground } from "@/src/components/kal";
+import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { NutrientFields } from "@/src/containers/foods/NutrientFields";
 import { createFood, deleteFood, getFood, updateFood } from "@/src/db/queries/foods";
@@ -81,12 +82,14 @@ const num = (value: unknown): number => {
 export function FoodFormScreen() {
   const { t } = useTranslation();
   const { goBack } = useAppNav();
+  const { colors } = useAppTheme();
   const route = useRoute<RouteProp<{ params: { id?: string } }, "params">>();
   const id = route.params?.id;
 
   const [initial, setInitial] = useState<FoodFormValues | null>(
     id ? null : EMPTY_VALUES,
   );
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
@@ -94,7 +97,9 @@ export function FoodFormScreen() {
     let active = true;
     (async () => {
       const row = await getFood(id);
-      if (active) setInitial(row ? toValues(row) : EMPTY_VALUES);
+      if (!active) return;
+      setInitial(row ? toValues(row) : EMPTY_VALUES);
+      setPhotoUri(row?.image_uri ?? null);
     })();
     return () => {
       active = false;
@@ -119,6 +124,7 @@ export function FoodFormScreen() {
       isLiquid: values.isLiquid,
       defaultServingG: values.defaultServingG ? num(values.defaultServingG) : null,
       servingLabel: values.servingLabel.trim() || null,
+      imageUri: photoUri,
     };
 
     if (id) {
@@ -144,9 +150,9 @@ export function FoodFormScreen() {
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
         <View style={styles.header}>
           <TouchableOpacity onPress={goBack} activeOpacity={0.6} hitSlop={10}>
-            <ChevronLeft size={26} color={theme.colors.gray800} />
+            <ChevronLeft size={26} color={colors.textSecondary} />
           </TouchableOpacity>
-          <Text style={styles.title}>
+          <Text style={[styles.title, { color: colors.text }]}>
             {id ? t("foods.edit_title") : t("foods.new_title")}
           </Text>
           <View style={styles.headerSpacer} />
@@ -168,10 +174,19 @@ export function FoodFormScreen() {
               />
               <DfInput name="brand" label={t("foods.brand")} />
 
-              <Text style={styles.section}>{t("foods.values_per_100")}</Text>
+              <Text style={[styles.section, { color: colors.textMuted }]}>
+                {t("foods.photo")}
+              </Text>
+              <PhotoField uri={photoUri} onChange={setPhotoUri} height={140} />
+
+              <Text style={[styles.section, { color: colors.textMuted }]}>
+                {t("foods.values_per_100")}
+              </Text>
               <NutrientFields />
 
-              <Text style={styles.section}>{t("foods.serving")}</Text>
+              <Text style={[styles.section, { color: colors.textMuted }]}>
+                {t("foods.serving")}
+              </Text>
               <DfSwitch name="isLiquid" label={t("foods.is_liquid")} />
               <DfNumberInput
                 name="defaultServingG"
@@ -230,7 +245,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: "700",
-    color: theme.colors.gray900,
   },
   headerSpacer: {
     width: 26,
@@ -242,7 +256,6 @@ const styles = StyleSheet.create({
   section: {
     fontSize: 12,
     fontWeight: "700",
-    color: theme.colors.gray500,
     letterSpacing: 0.6,
     textTransform: "uppercase",
     marginTop: theme.spacing.md,

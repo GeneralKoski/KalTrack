@@ -27,6 +27,16 @@ Valgono le guide Dieffetech `docs/react-native/` (`core.md`, `guidelines.md`). O
 - **No target web**: nessun branch `Platform.OS === "web"`, nessuna dipendenza web.
 - **Estrazione componenti**: feature-specific in `src/containers/<feature>/`, solo se davvero generico e presentazionale in `src/components/`.
 
+### Moduli nativi: rebuild obbligatorio
+
+Il dev client e' un APK compilato: contiene solo i moduli nativi presenti **al
+momento del build**. Installare un pacchetto con codice nativo (`expo-image-picker`,
+`expo-camera`, `expo-audio`, `expo-speech`...) e ricaricare da Metro **non basta**:
+l'app parte e poi fallisce con `Cannot find native module 'X'`.
+
+Dopo ogni `npx expo install` di un modulo nativo va rilanciato `npm run android`.
+I pacchetti solo-JS (`react-dom`, `dayjs`, ...) non lo richiedono.
+
 ### Gate di fine task (identico per ogni task)
 
 Nessun task è chiuso finché tutti e cinque non passano:
@@ -3878,6 +3888,8 @@ La fase è chiusa quando, su un telefono reale:
   `moduleNameMapper` verso `jest/mocks/expo-crypto.js` (Task 1).
 - `react-dom` sembra una dipendenza web ma serve a gluestack anche su native: non
   rimuoverlo (Task 1 Step 7).
+- **Moduli nativi installati a meta' piano** (emerso nel Task 6): richiedono
+  `npm run android`, non basta il reload di Metro. Vedi la sezione dedicata sopra.
 - **Require cycle** (emerso nel Task 5): `db/index` importa `db/seed` per il seed
   d'avvio, e `db/seed` importava `getDb` da `db/index`. Metro lo segnala a runtime
   e puo' dare import `undefined`. Regola: tutto cio' che `db/index` importa deve

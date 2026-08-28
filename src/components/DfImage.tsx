@@ -1,4 +1,4 @@
-import { theme } from "@/src/styles";
+import { useAppTheme } from "@/src/components/ThemeContext";
 import React, { useState } from "react";
 import {
   Image,
@@ -31,6 +31,7 @@ export const DfImage = ({
   containerStyle,
   resizeMode = "cover",
 }: DfImageProps) => {
+  const { colors } = useAppTheme();
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
@@ -40,10 +41,21 @@ export const DfImage = ({
   const imageSource = isInvalid || hasError ? placeholder : source;
 
   return (
-    <View style={[styles.container, containerStyle]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.surfaceMuted },
+        containerStyle,
+      ]}
+    >
       {/* Skeleton */}
       {loading && !isInvalid && (
-        <View style={[StyleSheet.absoluteFill, styles.skeleton]} />
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: colors.surfaceMuted },
+          ]}
+        />
       )}
 
       <Image
@@ -65,9 +77,5 @@ export const DfImage = ({
 const styles = StyleSheet.create({
   container: {
     overflow: "hidden",
-    backgroundColor: theme.colors.gray100,
-  },
-  skeleton: {
-    backgroundColor: theme.colors.gray200,
   },
 });

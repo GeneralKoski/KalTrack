@@ -1,3 +1,4 @@
+import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { theme } from "@/src/styles";
 import { Image } from "expo-image";
@@ -32,6 +33,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   size = 52,
   statusColor,
 }) => {
+  const { colors } = useAppTheme();
   const flagSize = Math.round(size * 0.42);
   const statusSize = Math.round(size * 0.3);
   return (
@@ -39,7 +41,12 @@ export const Avatar: React.FC<AvatarProps> = ({
       {photoUri ? (
         <Image
           source={{ uri: photoUri }}
-          style={[styles.photo, { width: size, height: size, borderRadius: size / 2 }]}
+          style={{
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            backgroundColor: colors.surfaceMuted,
+          }}
           contentFit="cover"
         />
       ) : (
@@ -59,7 +66,12 @@ export const Avatar: React.FC<AvatarProps> = ({
           source={{ uri: flagUri }}
           style={[
             styles.flag,
-            { width: flagSize, height: flagSize, borderRadius: flagSize / 2 },
+            {
+              width: flagSize,
+              height: flagSize,
+              borderRadius: flagSize / 2,
+              borderColor: colors.surface,
+            },
           ]}
           contentFit="cover"
         />
@@ -73,6 +85,7 @@ export const Avatar: React.FC<AvatarProps> = ({
               height: statusSize,
               borderRadius: statusSize / 2,
               backgroundColor: statusColor,
+              borderColor: colors.surface,
             },
           ]}
         />
@@ -82,7 +95,6 @@ export const Avatar: React.FC<AvatarProps> = ({
 };
 
 const styles = StyleSheet.create({
-  photo: { backgroundColor: theme.colors.gray200 },
   fallback: {
     backgroundColor: theme.colors.brand100,
     alignItems: "center",
@@ -94,13 +106,11 @@ const styles = StyleSheet.create({
     bottom: -2,
     right: -2,
     borderWidth: 2,
-    borderColor: theme.colors.white,
   },
   status: {
     position: "absolute",
     top: -1,
     right: -1,
     borderWidth: 2,
-    borderColor: theme.colors.white,
   },
 });

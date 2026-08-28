@@ -100,7 +100,7 @@ export const DfBottomSheet = forwardRef<BottomSheetModal, DfBottomSheetProps>(
           onDismiss?.();
         }}
         backdropComponent={renderBackdrop}
-        backgroundStyle={{ backgroundColor: theme.colors.white }}
+        backgroundStyle={{ backgroundColor: colors.surface }}
         handleIndicatorStyle={{ backgroundColor: colors.border }}
         {...(Platform.OS === "web" && {
           containerStyle: {

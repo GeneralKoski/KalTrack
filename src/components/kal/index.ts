@@ -17,6 +17,7 @@ export {
   type FilterOption,
   PickerField,
 } from "./Filters";
+export { PhotoField } from "./PhotoField";
 export { ScreenBackground } from "./ScreenBackground";
 export { SearchBar } from "./SearchBar";
 export { TargetDot, TARGET_COLOR } from "./TargetDot";

@@ -2,6 +2,7 @@ import {
   useFieldRegistration,
   useFormScrollContext,
 } from "@/src/components/form/FormScrollContext";
+import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text, TextInput } from "@/src/components/ui";
 import { theme } from "@/src/styles";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -151,6 +152,7 @@ export const DfDateMaskInput = ({
   label,
   rules,
 }: DfDateMaskInputProps) => {
+  const { colors } = useAppTheme();
   const { control, clearErrors, watch } = useFormContext();
   const fieldRef = useFieldRegistration(name);
   const formScroll = useFormScrollContext();
@@ -216,9 +218,19 @@ export const DfDateMaskInput = ({
       rules={rules}
       render={({ field: { onChange }, fieldState: { error } }) => (
         <View ref={fieldRef} style={styles.wrapper}>
-          {label && <Text style={styles.label}>{label}</Text>}
+          {label && (
+            <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+          )}
           <TextInput
-            style={[styles.input, error && styles.inputError]}
+            style={[
+              styles.input,
+              {
+                color: colors.text,
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+              },
+              error && styles.inputError,
+            ]}
             placeholder="DD/MM/YYYY"
             keyboardType="number-pad"
             value={displayValue}
@@ -250,15 +262,11 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: "500",
     fontSize: 14,
-    color: theme.colors.gray900,
     marginBottom: 6,
   },
   input: {
     fontSize: 16,
-    color: theme.colors.gray900,
-    backgroundColor: theme.colors.white,
     borderWidth: 1,
-    borderColor: theme.colors.gray300,
     borderRadius: theme.radius.md,
     paddingVertical: 12,
     paddingHorizontal: 14,

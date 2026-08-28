@@ -57,3 +57,49 @@ export interface FoodInput {
   imageUri?: string | null;
   isEstimated?: boolean;
 }
+
+// ─── Ricette ─────────────────────────────────────────────────────────────────
+
+/** Riga della tabella recipes. */
+export interface RecipeRow {
+  id: string;
+  name: string;
+  name_norm: string;
+  photo_uri: string | null;
+  servings: number;
+  notes: string | null;
+  is_favorite: number;
+  usage_count: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/**
+ * Riga di recipe_items. Esattamente uno tra food_id e child_recipe_id è
+ * valorizzato: un alimento si conta in grammi, una ricetta in porzioni.
+ */
+export interface RecipeItemRow {
+  id: string;
+  recipe_id: string;
+  food_id: string | null;
+  child_recipe_id: string | null;
+  quantity_g: number | null;
+  servings: number | null;
+  sort: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export type RecipeItemInput =
+  | { foodId: string; quantityG: number }
+  | { childRecipeId: string; servings: number };
+
+export interface RecipeInput {
+  name: string;
+  servings: number;
+  photoUri?: string | null;
+  notes?: string | null;
+  items: RecipeItemInput[];
+}

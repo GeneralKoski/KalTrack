@@ -1,3 +1,4 @@
+import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { theme } from "@/src/styles";
 import { CheckSquare, Square } from "lucide-react-native";
@@ -25,6 +26,8 @@ const BasicDfCheckbox = ({
   onValueChange,
   disabled,
 }: CheckboxProps) => {
+  const { colors } = useAppTheme();
+
   return (
     <Pressable
       onPress={() => {
@@ -39,7 +42,7 @@ const BasicDfCheckbox = ({
       {initialValue ? (
         <CheckSquare size={22} color={theme.colors.primaryDark} />
       ) : (
-        <Square size={22} color={theme.colors.gray400} />
+        <Square size={22} color={colors.textFaint} />
       )}
     </Pressable>
   );
@@ -56,11 +59,14 @@ const DfCheckboxWithForm = ({
   onValueChange,
   ...props
 }: DfCheckboxWithFormProps) => {
+  const { colors } = useAppTheme();
   const { control } = useFormContext();
 
   return (
     <View style={styles.wrapper}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && (
+        <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+      )}
       <Controller
         control={control}
         name={name}
@@ -92,7 +98,6 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: "500",
     fontSize: 14,
-    color: theme.colors.gray900,
     marginBottom: 6,
   },
   errorText: {

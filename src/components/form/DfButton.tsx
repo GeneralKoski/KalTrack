@@ -1,3 +1,4 @@
+import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { theme } from "@/src/styles";
 import React from "react";
@@ -5,6 +6,7 @@ import {
   ActivityIndicator,
   Keyboard,
   Pressable,
+  type StyleProp,
   StyleSheet,
   TextStyle,
   View,
@@ -19,7 +21,7 @@ interface DfButtonProps {
   loading?: boolean;
   disabled?: boolean;
   icon?: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   labelStyle?: TextStyle;
   fullWidth?: boolean;
 }
@@ -28,7 +30,7 @@ export const DfButton = ({
   label,
   onPress,
   variant = "filled",
-  color = theme.colors.gray600,
+  color: colorProp,
   loading = false,
   disabled = false,
   icon,
@@ -36,6 +38,8 @@ export const DfButton = ({
   labelStyle,
   fullWidth = true,
 }: DfButtonProps) => {
+  const { colors } = useAppTheme();
+  const color = colorProp ?? colors.textMuted;
   const isFilled = variant === "filled";
   const isOutlined = variant === "outlined";
 
@@ -52,11 +56,11 @@ export const DfButton = ({
             styles.base,
             fullWidth && styles.fullWidth,
             isFilled && {
-              backgroundColor: disabled ? theme.colors.gray300 : color,
+              backgroundColor: disabled ? colors.surfaceMuted : color,
             },
             isOutlined && {
               borderWidth: 1.5,
-              borderColor: disabled ? theme.colors.gray100 : color,
+              borderColor: disabled ? colors.border : color,
               borderRadius: theme.radius.xl,
             },
             pressed && { opacity: 0.75 },
@@ -75,13 +79,13 @@ export const DfButton = ({
                 style={[
                   styles.label,
                   isFilled && {
-                    color: disabled ? theme.colors.gray400 : theme.colors.white,
+                    color: disabled ? colors.textFaint : theme.colors.white,
                   },
                   isOutlined && {
-                    color: disabled ? theme.colors.gray400 : color,
+                    color: disabled ? colors.textFaint : color,
                   },
                   variant === "ghost" && {
-                    color: disabled ? theme.colors.gray400 : color,
+                    color: disabled ? colors.textFaint : color,
                   },
                   labelStyle,
                 ]}
