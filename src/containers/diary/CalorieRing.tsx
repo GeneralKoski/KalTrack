@@ -3,7 +3,6 @@ import { targetColor } from "@/src/components/kal";
 import { Text } from "@/src/components/ui";
 import { targetStatus } from "@/src/domain/targets";
 import { useTranslation } from "@/src/hooks/useTranslation";
-import { theme } from "@/src/styles";
 import React, { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {

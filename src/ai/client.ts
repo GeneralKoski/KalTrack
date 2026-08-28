@@ -1,3 +1,5 @@
+import { getNetworkStateAsync } from "expo-network";
+
 import { getDb } from "@/src/db/index";
 import { newId, nowIso } from "@/src/db/ids";
 import {
@@ -9,7 +11,9 @@ import {
 } from "@/src/ai/config";
 import {
   AiRequestError,
+  AiResponseError,
   MissingApiKeyError,
+  OfflineError,
 } from "@/src/ai/errors";
 import { logger } from "@/src/utils/logger";
 
@@ -83,6 +87,32 @@ async function logCall(entry: {
 /** Millisecondi trascorsi, senza Date.now() nei punti in cui non è disponibile. */
 const elapsed = (from: number): number => Math.max(0, Date.now() - from);
 
+const isAbort = (error: unknown): boolean =>
+  error instanceof Error && error.name === "AbortError";
+
+/**
+ * Ottimista come useOnlineStatus: si dichiara offline solo se il nativo lo
+ * afferma. Se la lettura non è disponibile si preferisce non mentire e lasciar
+ * passare l'errore originale.
+ */
+async function isOffline(): Promise<boolean> {
+  try {
+    const state = await getNetworkStateAsync();
+    return state.isConnected === false || state.isInternetReachable === false;
+  } catch (error) {
+    logger.warn("[ai] stato di rete non leggibile", error);
+    return false;
+  }
+}
+
+/**
+ * fetch fallisce nello stesso identico modo per "sei offline" e per "il
+ * provider non risponde", e l'abort del timeout arriva come AbortError
+ * anonimo: senza tradurli la UI vocale non può dire tre cose diverse per tre
+ * guasti diversi. La traduzione sta qui attorno alla sola fetch e NON attorno
+ * al corpo delle funzioni: avvolgere anche quello riscriverebbe gli
+ * AiRequestError/AiResponseError che il client genera leggendo la risposta.
+ */
 async function withTimeout(
   input: RequestInfo,
   init: RequestInit,
@@ -91,9 +121,58 @@ async function withTimeout(
   const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
   try {
     return await fetch(input, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (isAbort(error)) {
+      throw new AiRequestError(`Nessuna risposta entro ${AI_TIMEOUT_MS} ms`);
+    }
+    if (await isOffline()) throw new OfflineError();
+    throw error;
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * I tool call arrivano da JSON non tipizzato, e il loop dell'assistente li
+ * dereferenzia subito (`call.function.name`, `call.id`). Un elemento senza
+ * `function` ucciderebbe l'intero turno con un TypeError, e uno senza `id`
+ * farebbe partire il giro successivo con `tool_call_id: undefined`, respinto
+ * dal provider con un 400 attribuito alla chiamata sbagliata. Qui si scartano:
+ * a valle esiste già un percorso di degrado pulito per "nessun tool".
+ * Non sostituire con un cast `as ToolCall[]`: è esattamente il difetto tolto.
+ */
+function parseToolCalls(raw: unknown): ToolCall[] {
+  if (!Array.isArray(raw)) return [];
+  const calls: ToolCall[] = [];
+  for (const entry of raw) {
+    if (typeof entry !== "object" || entry === null) {
+      logger.warn("[ai] tool call scartato: non è un oggetto");
+      continue;
+    }
+    const { id, function: fn } = entry as { id?: unknown; function?: unknown };
+    if (typeof fn !== "object" || fn === null) {
+      logger.warn("[ai] tool call scartato: manca function");
+      continue;
+    }
+    const { name, arguments: args } = fn as {
+      name?: unknown;
+      arguments?: unknown;
+    };
+    if (typeof id !== "string" || id.length === 0) {
+      logger.warn("[ai] tool call scartato: id mancante");
+      continue;
+    }
+    if (typeof name !== "string" || name.length === 0) {
+      logger.warn("[ai] tool call scartato: nome mancante");
+      continue;
+    }
+    if (typeof args !== "string") {
+      logger.warn(`[ai] tool call ${name} scartato: argomenti non stringa`);
+      continue;
+    }
+    calls.push({ id, type: "function", function: { name, arguments: args } });
+  }
+  return calls;
 }
 
 /**
@@ -140,10 +219,11 @@ export async function chat(args: {
     }
 
     const json = (await response.json()) as {
-      choices?: { message?: { content?: string; tool_calls?: ToolCall[] } }[];
+      choices?: { message?: { content?: unknown; tool_calls?: unknown } }[];
       usage?: { prompt_tokens?: number; completion_tokens?: number };
     };
     const message = json.choices?.[0]?.message;
+    const toolCalls = parseToolCalls(message?.tool_calls);
 
     await logCall({
       capability: args.capability,
@@ -155,8 +235,8 @@ export async function chat(args: {
     });
 
     return {
-      content: message?.content ?? null,
-      toolCalls: message?.tool_calls ?? [],
+      content: typeof message?.content === "string" ? message.content : null,
+      toolCalls,
       usage: json.usage
         ? {
             promptTokens: json.usage.prompt_tokens ?? 0,
@@ -216,7 +296,17 @@ export async function transcribeAudio(args: {
       );
     }
 
-    const json = (await response.json()) as { text?: string };
+    const json = (await response.json()) as { text?: unknown };
+    // Un 200 con un body inatteso NON è una trascrizione riuscita: restituire
+    // "" lo registrerebbe come success e a valle si spenderebbe una chat
+    // completion con un messaggio utente vuoto. Il silenzio dell'utente è un
+    // altro caso e lo distingue transcribe.ts, non questo ramo.
+    if (typeof json.text !== "string") {
+      throw new AiResponseError(
+        "Trascrizione: la risposta non contiene il campo text",
+      );
+    }
+
     await logCall({
       capability: args.capability,
       model: args.model,
@@ -225,7 +315,7 @@ export async function transcribeAudio(args: {
       latencyMs: elapsed(startedAt),
       success: true,
     });
-    return json.text ?? "";
+    return json.text;
   } catch (error) {
     await logCall({
       capability: args.capability,

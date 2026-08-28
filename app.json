@@ -80,6 +80,12 @@
           "photosPermission": "KalTrack accede alle foto per allegare l'immagine di un alimento o di un pasto.",
           "cameraPermission": "KalTrack usa la fotocamera per scattare la foto di un alimento o di un pasto."
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "KalTrack usa il microfono per registrare quello che dici e trascriverlo nel diario."
+        }
       ]
     ],
     "experiments": {
