@@ -1,8 +1,10 @@
 import { createTestDb } from "@/src/db/__testing__/betterSqliteAdapter";
 import { __setDbForTesting } from "@/src/db/index";
 import { runMigrations } from "@/src/db/migrations";
+import { toggleExerciseBan } from "@/src/db/queries/exercises";
 import { deleteFood, searchFoods, updateFood } from "@/src/db/queries/foods";
-import { applySeeds } from "@/src/db/seed";
+import { applyExerciseSeeds, applySeeds } from "@/src/db/seed";
+import { SEED_EXERCISES } from "@/src/db/seed/exercises";
 import { SEED_FOODS } from "@/src/db/seed/foods";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
@@ -155,6 +157,100 @@ describe("dati del seed", () => {
           `${food.id} ha ${food.defaultServingG ? "defaultServingG" : "NIENTE"}`,
         );
       }
+    }
+  });
+});
+
+describe("applyExerciseSeeds", () => {
+  const countExercises = async (): Promise<number> => {
+    const row = await db.getFirstAsync<{ n: number }>(
+      "SELECT COUNT(*) AS n FROM exercises",
+    );
+    return row?.n ?? 0;
+  };
+
+  it("inserisce tutti gli esercizi di seed", async () => {
+    await applyExerciseSeeds(db);
+    expect(await countExercises()).toBe(SEED_EXERCISES.length);
+  });
+
+  it("è idempotente", async () => {
+    await applyExerciseSeeds(db);
+    await applyExerciseSeeds(db);
+    expect(await countExercises()).toBe(SEED_EXERCISES.length);
+  });
+
+  it("non resuscita un esercizio vietato dall'utente", async () => {
+    await applyExerciseSeeds(db);
+    await toggleExerciseBan(SEED_EXERCISES[0].id);
+    await applyExerciseSeeds(db);
+
+    const row = await db.getFirstAsync<{ is_banned: number }>(
+      "SELECT is_banned FROM exercises WHERE id = ?",
+      [SEED_EXERCISES[0].id],
+    );
+    expect(row?.is_banned).toBe(1);
+  });
+
+  it("li marca come non custom, così si distinguono dai tuoi", async () => {
+    await applyExerciseSeeds(db);
+    const row = await db.getFirstAsync<{ is_custom: number }>(
+      "SELECT is_custom FROM exercises WHERE id = ?",
+      [SEED_EXERCISES[0].id],
+    );
+    expect(row?.is_custom).toBe(0);
+  });
+});
+
+describe("dati del seed esercizi", () => {
+  it("copre almeno 150 esercizi", () => {
+    expect(SEED_EXERCISES.length).toBeGreaterThanOrEqual(150);
+  });
+
+  it("gli id sono unici e conformi", () => {
+    expect(new Set(SEED_EXERCISES.map((e) => e.id)).size).toBe(
+      SEED_EXERCISES.length,
+    );
+    for (const exercise of SEED_EXERCISES) {
+      expect(exercise.id).toMatch(/^ex-[a-z0-9-]+$/);
+    }
+  });
+
+  it("i nomi sono unici", () => {
+    const names = SEED_EXERCISES.map((e) => e.name.toLowerCase());
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("nessun esercizio è senza attrezzatura dichiarata", () => {
+    // Chi si allena a casa filtra su questo campo: lasciarlo vuoto lo
+    // renderebbe invisibile o sempre proposto, entrambi sbagliati.
+    for (const exercise of SEED_EXERCISES) {
+      expect(`${exercise.id}: ${exercise.equipment.length}`).not.toBe(
+        `${exercise.id}: 0`,
+      );
+    }
+  });
+
+  it("i muscoli secondari non ripetono il primario", () => {
+    for (const exercise of SEED_EXERCISES) {
+      expect(
+        `${exercise.id}: ${exercise.secondaryMuscles.includes(exercise.muscleGroup)}`,
+      ).toBe(`${exercise.id}: false`);
+    }
+  });
+
+  it("ogni gruppo muscolare ha almeno un'opzione senza macchinari", () => {
+    // Serve a poter generare una scheda anche per chi si allena a casa.
+    const groups = new Set(SEED_EXERCISES.map((e) => e.muscleGroup));
+    for (const group of groups) {
+      const homeFriendly = SEED_EXERCISES.filter(
+        (e) =>
+          e.muscleGroup === group &&
+          e.equipment.every((eq) =>
+            ["corpo_libero", "elastici", "manubri", "kettlebell", "sbarra", "panca", "trx"].includes(eq),
+          ),
+      );
+      expect(`${group}: ${homeFriendly.length > 0}`).toBe(`${group}: true`);
     }
   });
 });

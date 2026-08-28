@@ -1,4 +1,5 @@
 import { nowIso } from "@/src/db/ids";
+import { SEED_EXERCISES } from "@/src/db/seed/exercises";
 import { SEED_FOODS } from "@/src/db/seed/foods";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 import { normalizeText } from "@/src/domain/text";
@@ -53,4 +54,41 @@ export async function applySeeds(db: LocalDatabase): Promise<void> {
     }
   });
   logger.info(`[db] ${missing.length} alimenti di seed inseriti`);
+}
+
+/**
+ * Stessa logica del seed alimenti: id stabili, idempotente, e la scelta
+ * dell'utente vince. Un esercizio vietato o cancellato non torna indietro.
+ */
+export async function applyExerciseSeeds(db: LocalDatabase): Promise<void> {
+  const existing = await db.getAllAsync<{ id: string }>(
+    "SELECT id FROM exercises",
+  );
+  const present = new Set(existing.map((r) => r.id));
+  const missing = SEED_EXERCISES.filter((e) => !present.has(e.id));
+  if (missing.length === 0) return;
+
+  const now = nowIso();
+  await db.withTransactionAsync(async () => {
+    for (const exercise of missing) {
+      await db.runAsync(
+        `INSERT INTO exercises (id, name, name_norm, muscle_group,
+           secondary_muscles, equipment, is_custom, is_banned, dislike_level,
+           instructions, usage_count, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?, 0, ?, ?)`,
+        [
+          exercise.id,
+          exercise.name,
+          normalizeText(exercise.name),
+          exercise.muscleGroup,
+          JSON.stringify(exercise.secondaryMuscles),
+          JSON.stringify(exercise.equipment),
+          exercise.instructions ?? null,
+          now,
+          now,
+        ],
+      );
+    }
+  });
+  logger.info(`[db] ${missing.length} esercizi di seed inseriti`);
 }
