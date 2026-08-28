@@ -8,6 +8,8 @@ import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { AddEntrySheet, type DiaryPick } from "@/src/containers/diary/AddEntrySheet";
 import { CalorieRing } from "@/src/containers/diary/CalorieRing";
+import { DayStatCard } from "@/src/containers/tracking/DayStatCard";
+import { QuickLogSheet } from "@/src/containers/tracking/QuickLogSheet";
 import { DayHeader } from "@/src/containers/diary/DayHeader";
 import { FreeEntrySheet } from "@/src/containers/diary/FreeEntrySheet";
 import { MacroBars } from "@/src/containers/diary/MacroBars";
@@ -26,6 +28,14 @@ import {
 import { getFood } from "@/src/db/queries/foods";
 import { getRecipe } from "@/src/db/queries/recipes";
 import { getTargetsFor } from "@/src/db/queries/settings";
+import {
+  getSteps,
+  getWeight,
+  setSteps,
+  setWeight,
+  deleteSteps,
+  deleteWeight,
+} from "@/src/db/queries/tracking";
 import { todayIso } from "@/src/domain/date";
 import { EMPTY_NUTRIENTS, type Nutrients } from "@/src/domain/nutrition";
 import { useAppNav } from "@/src/hooks/useAppNav";
@@ -35,7 +45,7 @@ import { theme } from "@/src/styles";
 import type { MealEntryRow, MealTypeRow, TargetRow } from "@/src/types/nutrition";
 import { showToast } from "@/src/utils/toast";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
-import { Plus, UtensilsCrossed } from "lucide-react-native";
+import { Footprints, Plus, Scale, UtensilsCrossed } from "lucide-react-native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -53,6 +63,9 @@ interface DayData {
   mealTypes: MealTypeRow[];
   /** Obiettivo in vigore in quel giorno, non quello di oggi. */
   targets: TargetRow | null;
+  /** Null, non zero, quando il giorno non ha una misura. */
+  steps: number | null;
+  weightKg: number | null;
 }
 
 export function TodayScreen() {
@@ -66,14 +79,18 @@ export function TodayScreen() {
   const [pendingPick, setPendingPick] = useState<DiaryPick | null>(null);
   const [editingEntry, setEditingEntry] = useState<MealEntryRow | null>(null);
   const [freeOpen, setFreeOpen] = useState(false);
+  const [stepsOpen, setStepsOpen] = useState(false);
+  const [weightOpen, setWeightOpen] = useState(false);
   const [mealTypeId, setMealTypeId] = useState<string | null>(null);
   const addSheetRef = useRef<BottomSheetModal>(null);
 
   const loader = useCallback(async (): Promise<DayData> => {
-    const [diary, mealTypes, targets] = await Promise.all([
+    const [diary, mealTypes, targets, stepRow, weightRow] = await Promise.all([
       getDayDiary(date),
       listMealTypes(),
       getTargetsFor(date),
+      getSteps(date),
+      getWeight(date),
     ]);
 
     // I nomi non stanno sulla riga (che porta solo lo snapshot dei macro):
@@ -91,7 +108,14 @@ export function TodayScreen() {
       }
     }
 
-    return { diary, names, mealTypes, targets };
+    return {
+      diary,
+      names,
+      mealTypes,
+      targets,
+      steps: stepRow?.steps ?? null,
+      weightKg: weightRow?.weight_kg ?? null,
+    };
   }, [date]);
 
   const { data, loading, reload } = useFocusData<DayData>(loader);
@@ -238,6 +262,26 @@ export function TodayScreen() {
               />
             </Card>
 
+            <View style={styles.stats}>
+              <DayStatCard
+                icon={Footprints}
+                label={t("tracking.steps")}
+                value={data?.steps ?? null}
+                unit={t("tracking.steps_unit")}
+                target={data?.targets?.steps ?? null}
+                emptyLabel={t("tracking.not_recorded")}
+                onPress={() => setStepsOpen(true)}
+              />
+              <DayStatCard
+                icon={Scale}
+                label={t("tracking.weight")}
+                value={data?.weightKg ?? null}
+                unit="kg"
+                emptyLabel={t("tracking.not_recorded")}
+                onPress={() => setWeightOpen(true)}
+              />
+            </View>
+
             {data && data.diary.meals.length === 0 ? (
               <EmptyState
                 message={t("diary.empty")}
@@ -294,6 +338,50 @@ export function TodayScreen() {
         onConfirm={confirmFree}
         onClose={() => setFreeOpen(false)}
       />
+
+      <QuickLogSheet
+        isOpen={stepsOpen}
+        title={t("tracking.steps")}
+        unit={t("tracking.steps_unit")}
+        initialValue={data?.steps ?? null}
+        onConfirm={async (value) => {
+          await setSteps(date, value);
+          setStepsOpen(false);
+          reload();
+        }}
+        onDelete={
+          data?.steps != null
+            ? async () => {
+                await deleteSteps(date);
+                setStepsOpen(false);
+                reload();
+              }
+            : undefined
+        }
+        onClose={() => setStepsOpen(false)}
+      />
+
+      <QuickLogSheet
+        isOpen={weightOpen}
+        title={t("tracking.weight")}
+        unit="kg"
+        initialValue={data?.weightKg ?? null}
+        onConfirm={async (value) => {
+          await setWeight(date, value);
+          setWeightOpen(false);
+          reload();
+        }}
+        onDelete={
+          data?.weightKg != null
+            ? async () => {
+                await deleteWeight(date);
+                setWeightOpen(false);
+                reload();
+              }
+            : undefined
+        }
+        onClose={() => setWeightOpen(false)}
+      />
     </View>
   );
 }
@@ -306,6 +394,10 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   summary: {
+    gap: theme.spacing.sm,
+  },
+  stats: {
+    flexDirection: "row",
     gap: theme.spacing.sm,
   },
   setTarget: {

@@ -157,5 +157,20 @@
     "cannot_compute": "Servono data di nascita, altezza e una pesata",
     "kcal_required": "Imposta almeno le calorie",
     "saved": "Obiettivi salvati"
+  },
+  "tracking": {
+    "steps": "Passi",
+    "steps_unit": "passi",
+    "weight": "Peso",
+    "not_recorded": "Non registrato"
+  },
+  "progress": {
+    "weight": "Peso",
+    "weight_empty": "Nessuna pesata registrata",
+    "steps_weekly": "Passi, media di 14 giorni",
+    "steps_empty": "Nessun passo registrato",
+    "kcal_weekly": "Calorie, media di 14 giorni",
+    "kcal_empty": "Nessun pasto registrato",
+    "no_data": "Nessun dato"
   }
 }
