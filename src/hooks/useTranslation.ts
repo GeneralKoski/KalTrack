@@ -8,7 +8,7 @@ import { useCallback } from "react";
  *
  * @example
  * const { t, language, setLanguage } = useTranslation();
- * <Text>{t("login")}</Text>
+ * <Text>{t("save")}</Text>
  * <Text>{t("greeting", { name: "Marco" })}</Text>
  */
 export function useTranslation() {

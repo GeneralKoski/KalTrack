@@ -2,9 +2,23 @@
 // Usare questi colori in StyleSheet.create() — non cambiano mai.
 
 const palette = {
-  primary: "#6366f1",
-  primaryDark: "#4f46e5",
+  primary: "#10b981",
+  primaryDark: "#059669",
   secondary: "#f59e0b",
+
+  // Scala del brand (emerald): brand500 coincide con primary.
+  brand50: "#ecfdf5",
+  brand100: "#d1fae5",
+  brand500: "#10b981",
+  brand600: "#059669",
+  brand700: "#047857",
+  brand900: "#064e3b",
+
+  // Colori dei macronutrienti: sempre gli stessi in grafici, barre e legende,
+  // così le tre rappresentazioni non possono divergere.
+  macroProtein: "#3b82f6",
+  macroCarbs: "#f59e0b",
+  macroFat: "#a855f7",
 
   success: "#22c55e",
   error: "#ef4444",
@@ -132,8 +146,14 @@ const spacing = {
  */
 export const MAX_WEB_WIDTH = 480;
 
+const macro = {
+  protein: palette.macroProtein,
+  carbs: palette.macroCarbs,
+  fat: palette.macroFat,
+};
+
 export const theme = {
-  colors: palette,
+  colors: { ...palette, macro },
   fonts,
   radius,
   spacing,

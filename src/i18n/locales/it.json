@@ -18,17 +18,12 @@
   "required_field": "Campo obbligatorio",
   "settings": "Impostazioni",
   "default_input_placeholder": "Digita",
-  "login": "Accedi",
-  "logout": "Esci",
-  "login_subtitle": "Inserisci le tue credenziali",
-  "email": "Email",
-  "email_placeholder": "nome@esempio.it",
-  "email_required": "Email obbligatoria",
-  "email_error": "Email non valida",
-  "password": "Password",
-  "password_required": "Password obbligatoria",
-  "home": "Home",
-  "profile": "Profilo",
   "select_date_placeholder": "Seleziona una data",
-  "select_placeholder": "Seleziona..."
+  "select_placeholder": "Seleziona...",
+  "tabs": {
+    "today": "Oggi",
+    "progress": "Progressi",
+    "gym": "Palestra",
+    "profile": "Profilo"
+  }
 }

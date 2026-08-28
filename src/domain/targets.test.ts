@@ -3,6 +3,7 @@ import {
   ageAt,
   bmr,
   suggestTargets,
+  targetStatus,
   tdee,
 } from "@/src/domain/targets";
 
@@ -107,5 +108,29 @@ describe("suggestTargets", () => {
       goal: "cut",
     });
     expect(result.carbsG).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe("targetStatus", () => {
+  it("sotto obiettivo", () => {
+    expect(targetStatus(1500, 2000)).toBe("under");
+  });
+
+  it("centrato entro il 5%", () => {
+    expect(targetStatus(1950, 2000)).toBe("on_target");
+    expect(targetStatus(2000, 2000)).toBe("on_target");
+    expect(targetStatus(2100, 2000)).toBe("on_target");
+  });
+
+  it("oltre obiettivo appena superata la tolleranza", () => {
+    expect(targetStatus(2101, 2000)).toBe("over");
+  });
+
+  it("senza obiettivo non si può sforare", () => {
+    expect(targetStatus(3000, 0)).toBe("under");
+  });
+
+  it("a zero consumate è sotto obiettivo", () => {
+    expect(targetStatus(0, 2000)).toBe("under");
   });
 });

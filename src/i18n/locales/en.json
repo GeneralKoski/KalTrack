@@ -18,17 +18,12 @@
   "required_field": "Required field",
   "settings": "Settings",
   "default_input_placeholder": "Type",
-  "login": "Log in",
-  "logout": "Log out",
-  "login_subtitle": "Enter your credentials",
-  "email": "Email",
-  "email_placeholder": "name@example.com",
-  "email_required": "Email is required",
-  "email_error": "Invalid email",
-  "password": "Password",
-  "password_required": "Password is required",
-  "home": "Home",
-  "profile": "Profile",
   "select_date_placeholder": "Select a date",
-  "select_placeholder": "Select..."
+  "select_placeholder": "Select...",
+  "tabs": {
+    "today": "Today",
+    "progress": "Progress",
+    "gym": "Gym",
+    "profile": "Profile"
+  }
 }

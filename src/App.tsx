@@ -9,6 +9,7 @@ import Toast from "react-native-toast-message";
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import "@/global.css";
 import { ThemeProvider } from "@/src/components/ThemeContext";
+import { toastConfig } from "@/src/components/toastConfig";
 import { initDatabase } from "@/src/db";
 import { Navigation } from "@/src/navigation";
 import { logger } from "@/src/utils/logger";
@@ -64,7 +65,7 @@ export function App() {
           <ThemeProvider>
             <BottomSheetModalProvider>
               <Navigation />
-              <Toast />
+              <Toast config={toastConfig} />
             </BottomSheetModalProvider>
           </ThemeProvider>
         </SafeAreaProvider>

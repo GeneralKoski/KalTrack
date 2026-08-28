@@ -74,3 +74,20 @@ export function suggestTargets(input: {
   const carbsG = Math.max(0, Math.round((kcal - proteinG * 4 - fatG * 9) / 4));
   return { kcal, proteinG, carbsG, fatG };
 }
+
+export type TargetStatus = "under" | "on_target" | "over";
+
+/** Tolleranza entro cui un valore si considera centrato sull'obiettivo. */
+export const ON_TARGET_TOLERANCE = 0.05;
+
+/**
+ * Posizione di un valore rispetto al suo obiettivo giornaliero. Senza obiettivo
+ * (0 o negativo) non c'è nulla da superare: lo stato resta `under`.
+ */
+export function targetStatus(value: number, target: number): TargetStatus {
+  if (target <= 0) return "under";
+  const ratio = value / target;
+  if (ratio > 1 + ON_TARGET_TOLERANCE) return "over";
+  if (ratio >= 1 - ON_TARGET_TOLERANCE) return "on_target";
+  return "under";
+}

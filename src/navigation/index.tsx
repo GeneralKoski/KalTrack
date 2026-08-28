@@ -11,13 +11,16 @@ import {
   type StaticParamList,
 } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { HomeIcon } from "lucide-react-native";
+import { CalendarDays, Dumbbell, TrendingUp, User } from "lucide-react-native";
 import React from "react";
 import { Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Text } from "@/src/components/ui";
-import { HomeScreen } from "@/src/navigation/screens/HomeScreen";
+import { GymScreen } from "@/src/navigation/screens/GymScreen";
+import { ProfileScreen } from "@/src/navigation/screens/ProfileScreen";
+import { ProgressScreen } from "@/src/navigation/screens/ProgressScreen";
+import { TodayScreen } from "@/src/navigation/screens/TodayScreen";
 
 const TAB_BAR_CONTENT_HEIGHT = Platform.select({
   ios: 50,
@@ -70,17 +73,44 @@ const Tab = createBottomTabNavigator({
     },
   } satisfies BottomTabNavigationOptions,
   screens: {
-    Home: {
-      screen: HomeScreen,
-      linking: { path: "home" },
+    TodayTab: {
+      screen: TodayScreen,
+      linking: { path: "oggi" },
       options: {
-        title: i18n.t("home"),
-        tabBarIcon: ({ color, focused }) =>
-          focused ? (
-            <HomeIcon color={color} size={24} strokeWidth={2.5} />
-          ) : (
-            <HomeIcon color={color} size={24} />
-          ),
+        title: i18n.t("tabs.today"),
+        tabBarIcon: ({ color, focused }) => (
+          <CalendarDays color={color} size={24} strokeWidth={focused ? 2.5 : 2} />
+        ),
+      },
+    },
+    ProgressTab: {
+      screen: ProgressScreen,
+      linking: { path: "progressi" },
+      options: {
+        title: i18n.t("tabs.progress"),
+        tabBarIcon: ({ color, focused }) => (
+          <TrendingUp color={color} size={24} strokeWidth={focused ? 2.5 : 2} />
+        ),
+      },
+    },
+    GymTab: {
+      screen: GymScreen,
+      linking: { path: "palestra" },
+      options: {
+        title: i18n.t("tabs.gym"),
+        tabBarIcon: ({ color, focused }) => (
+          <Dumbbell color={color} size={24} strokeWidth={focused ? 2.5 : 2} />
+        ),
+      },
+    },
+    ProfileTab: {
+      screen: ProfileScreen,
+      linking: { path: "profilo" },
+      options: {
+        title: i18n.t("tabs.profile"),
+        tabBarIcon: ({ color, focused }) => (
+          <User color={color} size={24} strokeWidth={focused ? 2.5 : 2} />
+        ),
       },
     },
   },
