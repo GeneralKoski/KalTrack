@@ -97,5 +97,25 @@
     "theme_system": "Come il sistema",
     "theme_light": "Chiaro",
     "theme_dark": "Scuro"
+  },
+  "diary": {
+    "day_today": "Oggi",
+    "day_yesterday": "Ieri",
+    "day_tomorrow": "Domani",
+    "empty": "Nessun pasto registrato",
+    "add_title": "Aggiungi al diario",
+    "add_here": "Aggiungi qui",
+    "tab_foods": "Alimenti",
+    "tab_recipes": "I miei pasti",
+    "tab_free": "Voce libera",
+    "free_entry": "Voce libera",
+    "free_entry_hint": "Un piatto di cui conosci solo i valori all'incirca",
+    "free_label_placeholder": "Margherita al ristorante",
+    "free_kcal_placeholder": "Calorie (kcal)",
+    "free_macros_optional": "Macro, se li conosci",
+    "protein_short": "Proteine",
+    "carbs_short": "Carboidrati",
+    "fat_short": "Grassi",
+    "unknown_entry": "Voce senza nome"
   }
 }
