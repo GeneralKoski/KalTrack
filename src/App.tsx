@@ -9,6 +9,7 @@ import Toast from "react-native-toast-message";
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import "@/global.css";
 import { ThemeProvider } from "@/src/components/ThemeContext";
+import { initDatabase } from "@/src/db";
 import { Navigation } from "@/src/navigation";
 import { logger } from "@/src/utils/logger";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
@@ -30,15 +31,17 @@ export function App() {
     "Poppins-BoldItalic": require("@/assets/fonts/Poppins-BoldItalic.ttf"),
   });
 
-  // Gate d'avvio: font caricati + database pronto. Il DB viene inizializzato
-  // nel Task 2; il gate esiste già così l'avvio non cambia forma quando arriva.
+  // Gate d'avvio: font caricati + schema del database migrato.
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        if (active) setDbReady(true);
+        await initDatabase();
       } catch (error) {
-        logger.error("[app] inizializzazione fallita", error);
+        // Sbloccare comunque l'avvio: senza questo l'app resterebbe sulla
+        // splash per sempre e non ci sarebbe modo di vedere l'errore.
+        logger.error("[app] inizializzazione database fallita", error);
+      } finally {
         if (active) setDbReady(true);
       }
     })();
