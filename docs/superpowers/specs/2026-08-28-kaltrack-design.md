@@ -314,11 +314,43 @@ In Impostazioni c'e' l'elenco delle azioni auto-confermate, con revoca.
 Se manca un dato essenziale l'assistente fa una domanda e tiene aperta la sessione invece
 di indovinare.
 
+### 5.5-bis Lingua dell'assistente
+
+L'app e' solo italiana (3.6), ma la lingua dell'assistente si decide in tre punti
+distinti, con vincoli diversi.
+
+**Trascrizione.** Whisper e' multilingue, ma la lingua va **fissata a `it`**, non
+lasciata all'autodetect: su clip corte come "duecento grammi di riso" la rilevazione
+automatica a volte sbaglia lingua, e fissarla migliora anche accuratezza e latenza.
+
+**Comprensione e tool calling.** Schema dei tool e istruzioni di sistema **in inglese**,
+contenuto utente e risposte **in italiano**. I modelli seguono le istruzioni meglio in
+inglese e rispondono comunque nella lingua dell'utente. E' una convenzione interna:
+l'utente vede solo italiano.
+
+**Risposta parlata.** La lingua qui non la decide Groq ma il motore TTS del sistema
+operativo. iOS ha voci italiane native; su Android arrivano da Google TTS e possono
+mancare. Va quindi verificata a runtime la disponibilita' di una voce `it-IT`: se
+manca, l'assistente ripiega sul **solo testo**, senza parlare in un'altra lingua ne'
+restare muto.
+
+**Due specificita' dell'italiano da gestire esplicitamente nel prompt di parsing:**
+
+- **Gli etti.** "Un etto di prosciutto", "due etti e mezzo di pasta", "mezzo chilo"
+  sono il modo normale di esprimere le quantita' in Italia. Vanno normalizzati:
+  etto = 100 g, mezzo chilo = 500 g, "un etto e mezzo" = 150 g. Senza istruzione
+  esplicita il modello passa a volte `1` invece di `100`.
+- **Termini inglesi mescolati.** In nutrizione e palestra si parla italiano usando
+  "whey", "overnight oats", "lat machine", "leg press" nella stessa frase. Whisper
+  gestisce bene il code-switching; il matching lato locale e' gia' coperto da
+  `normalizeText` (5.4), che normalizza entrambe le lingue allo stesso modo.
+
 ### 5.6 Risposte parlate
 
 Risposta vocale con `expo-speech` in italiano, attiva di default, disattivabile da
 Impostazioni (`voice_reply_enabled`). Il testo e' comunque sempre a schermo: la voce e' un
-canale in piu', mai l'unico.
+canale in piu', mai l'unico - il che copre anche il caso in cui la voce `it-IT` non sia
+installata sul dispositivo (5.5-bis).
 
 ### 5.7 Percorso manuale sempre presente
 
@@ -433,7 +465,9 @@ cosi' lo schema non porta tabelle vuote per mesi.
 |---|---|
 | Chiave Groq nel bundle | Uso personale, APK non distribuito. Proxy se cambia (9.3) |
 | Perdita del telefono | Export/import JSON in Fase 1 |
-| Disponibilita' dei model id Groq | Configurazione centralizzata in `src/ai/config.ts` |
+| Disponibilita' dei model id Groq | Configurazione centralizzata in `src/ai/config.ts`; i model id si fissano in implementazione verificando cosa e' attivo |
+| Voce TTS italiana assente su Android | Verifica a runtime delle voci disponibili, fallback a solo testo (5.5-bis) |
+| Quantita' in etti interpretate come grammi | Istruzione esplicita di normalizzazione nel prompt di parsing (5.5-bis) |
 | L'AI inventa valori nutrizionali | L'LLM non produce mai i macro: risoluzione locale in cascata (5.4) |
 | Copertura OpenFoodFacts sui prodotti italiani | Seed locale come base, creazione prodotto manuale sempre disponibile |
 | Latenza percepita dell'assistente | Trascrizione mostrata appena pronta, esecuzione in background, feedback aptico |
