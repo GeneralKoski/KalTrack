@@ -159,7 +159,7 @@ export function FoodFormScreen() {
         </View>
 
         {!initial ? (
-          <ActivityIndicator style={styles.loader} color={theme.colors.primary} />
+          <ActivityIndicator style={styles.loader} color={colors.accent} />
         ) : (
           <FormScreen contentContainerStyle={styles.content} bottomSpacing={40}>
             <DfForm<FoodFormValues>

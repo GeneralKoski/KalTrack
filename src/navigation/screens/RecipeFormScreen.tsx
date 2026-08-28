@@ -270,7 +270,7 @@ export function RecipeFormScreen() {
         </View>
 
         {loading ? (
-          <ActivityIndicator style={styles.loader} color={theme.colors.primary} />
+          <ActivityIndicator style={styles.loader} color={colors.accent} />
         ) : (
           <FormScreen contentContainerStyle={styles.content} bottomSpacing={40}>
             <Text style={[styles.label, { color: colors.textMuted }]}>
@@ -338,8 +338,7 @@ export function RecipeFormScreen() {
             <DfButton
               label={t("recipes.add_ingredient")}
               variant="outlined"
-              color={theme.colors.primary}
-              icon={<Plus size={18} color={theme.colors.primary} />}
+              icon={<Plus size={18} color={colors.accent} />}
               onPress={() => pickerRef.current?.present()}
               style={styles.addButton}
             />
@@ -367,7 +366,6 @@ export function RecipeFormScreen() {
 
             <DfButton
               label={t("save")}
-              color={theme.colors.primary}
               loading={saving}
               onPress={onSave}
               style={styles.save}

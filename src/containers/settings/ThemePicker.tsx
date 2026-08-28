@@ -37,18 +37,18 @@ export const ThemePicker: React.FC = () => {
           >
             <Icon
               size={20}
-              color={selected ? theme.colors.primary : colors.textMuted}
+              color={selected ? colors.accent : colors.textMuted}
             />
             <Text
               style={[
                 styles.label,
-                { color: selected ? theme.colors.primary : colors.text },
+                { color: selected ? colors.accent : colors.text },
               ]}
             >
               {t(`settings.theme_${option}`)}
             </Text>
             {selected ? (
-              <Check size={18} color={theme.colors.primary} />
+              <Check size={18} color={colors.accent} />
             ) : null}
           </TouchableOpacity>
         );

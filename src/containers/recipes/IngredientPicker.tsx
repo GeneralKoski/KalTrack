@@ -122,8 +122,7 @@ const TabButton: React.FC<{
     <TouchableOpacity
       style={[
         styles.tab,
-        { backgroundColor: colors.surfaceMuted },
-        active && styles.tabActive,
+        { backgroundColor: active ? colors.accent : colors.surfaceMuted },
       ]}
       onPress={onPress}
       activeOpacity={0.6}
@@ -131,8 +130,7 @@ const TabButton: React.FC<{
       <Text
         style={[
           styles.tabLabel,
-          { color: colors.textMuted },
-          active && styles.tabLabelActive,
+          { color: active ? colors.accentOn : colors.textMuted },
         ]}
       >
         {label}
@@ -176,15 +174,9 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.full,
     alignItems: "center",
   },
-  tabActive: {
-    backgroundColor: theme.colors.brand100,
-  },
   tabLabel: {
     fontSize: 14,
     fontWeight: "600",
-  },
-  tabLabelActive: {
-    color: theme.colors.brand700,
   },
   search: {
     marginBottom: theme.spacing.sm,

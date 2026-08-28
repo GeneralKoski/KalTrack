@@ -40,7 +40,7 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
           <Text
             style={[
               styles.quantity,
-              { color: colors.textMuted },
+              { color: isRecipe ? colors.text : colors.textMuted },
               isRecipe && styles.quantityRecipe,
             ]}
           >
@@ -85,7 +85,6 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   quantityRecipe: {
-    color: theme.colors.primaryDark,
     fontWeight: "600",
   },
   kcal: {

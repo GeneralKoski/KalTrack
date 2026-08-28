@@ -223,7 +223,9 @@ export const DfDatePicker = ({
                       setShowIosPicker(false);
                     }}
                   >
-                    <Text style={styles.modalConfirm}>{t("confirm")}</Text>
+                    <Text style={[styles.modalConfirm, { color: colors.accent }]}>
+                      {t("confirm")}
+                    </Text>
                   </Pressable>
                 </View>
                 <DateTimePicker
@@ -327,6 +329,5 @@ const styles = StyleSheet.create({
   modalConfirm: {
     fontSize: 16,
     fontWeight: "600",
-    color: theme.colors.primary,
   },
 });

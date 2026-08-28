@@ -49,16 +49,23 @@ export const IconTile: React.FC<{
   color?: string;
   bg?: string;
   size?: number;
-}> = ({ children, bg = theme.colors.brand50, size = 56 }) => (
-  <View
-    style={[
-      styles.iconTile,
-      { width: size, height: size, backgroundColor: bg },
-    ]}
-  >
-    {children}
-  </View>
-);
+}> = ({ children, bg, size = 56 }) => {
+  const { colors } = useAppTheme();
+  return (
+    <View
+      style={[
+        styles.iconTile,
+        {
+          width: size,
+          height: size,
+          backgroundColor: bg ?? colors.surfaceMuted,
+        },
+      ]}
+    >
+      {children}
+    </View>
+  );
+};
 
 // Chip/pill filtro selezionabile.
 export const Chip: React.FC<{
@@ -66,7 +73,7 @@ export const Chip: React.FC<{
   active?: boolean;
   onPress?: () => void;
   dotColor?: string;
-  // "primary": blu se selezionato, azzurrino se cliccabile (es. filtri notifiche).
+  // "primary": interattivo se selezionato, tenue se cliccabile (es. filtri notifiche).
   // "dot": se selezionato prende lo sfondo del colore del pallino (che diventa
   //   bianco per contrasto), dimensione leggermente ridotta (storico movimenti).
   variant?: "default" | "primary" | "dot";
@@ -90,12 +97,10 @@ export const Chip: React.FC<{
           ? active
             ? { backgroundColor: dotColor ?? theme.colors.gray600 }
             : inactive
-          : primary
-            ? active
-              ? styles.chipActivePrimary
-              : { backgroundColor: colors.surfaceMuted }
-            : active
-              ? styles.chipActive
+          : active
+            ? { backgroundColor: colors.accent }
+            : primary
+              ? { backgroundColor: colors.surfaceMuted }
               : inactive,
       ]}
     >
@@ -113,8 +118,12 @@ export const Chip: React.FC<{
           styles.chipText,
           dot && styles.chipTextSmall,
           {
+            // Un chip "dot" attivo sta sopra un colore di dato: li' il bianco
+            // resta bianco. Gli altri stanno sopra `accent`.
             color: active
-              ? theme.colors.white
+              ? dot
+                ? theme.colors.white
+                : colors.accentOn
               : primary
                 ? colors.textMuted
                 : colors.textSecondary,
@@ -150,10 +159,7 @@ export const StatTiles: React.FC<{ tiles: StatTile[]; style?: ViewStyle }> = ({
           )}
           <View style={styles.statTile}>
             <Text
-              style={[
-                styles.statValue,
-                tile.color ? { color: tile.color } : null,
-              ]}
+              style={[styles.statValue, { color: tile.color ?? colors.text }]}
             >
               {tile.value}
             </Text>
@@ -206,11 +212,9 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   chipSmall: { paddingHorizontal: 12, paddingVertical: 7 },
-  chipActive: { backgroundColor: theme.colors.gray600 },
   chipDot: { width: 8, height: 8, borderRadius: 4 },
   chipDotSmall: { width: 7, height: 7, borderRadius: 3.5 },
   chipTextSmall: { fontSize: 13 },
-  chipActivePrimary: { backgroundColor: theme.colors.primary },
   chipText: { fontSize: 14, fontWeight: "600" },
   statRow: {
     flexDirection: "row",
@@ -225,7 +229,7 @@ const styles = StyleSheet.create({
   },
   statTile: { flex: 1, alignItems: "center", gap: 2 },
   statDivider: { width: 1, height: 32 },
-  statValue: { fontSize: 24, fontWeight: "700", color: theme.colors.brand700 },
+  statValue: { fontSize: 24, fontWeight: "700" },
   statLabel: {
     fontSize: 12,
     fontWeight: "600",

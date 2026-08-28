@@ -17,7 +17,8 @@ export {
   type FilterOption,
   PickerField,
 } from "./Filters";
+export { MetalPanel, MetalSurface } from "./MetalSurface";
 export { PhotoField } from "./PhotoField";
 export { ScreenBackground } from "./ScreenBackground";
 export { SearchBar } from "./SearchBar";
-export { TargetDot, TARGET_COLOR } from "./TargetDot";
+export { TargetDot, targetColor } from "./TargetDot";

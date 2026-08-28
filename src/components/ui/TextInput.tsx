@@ -1,4 +1,5 @@
-import { resolveFontFamily, resolveFontWeight, theme } from "@/src/styles";
+import { useAppTheme } from "@/src/components/ThemeContext";
+import { resolveFontFamily, resolveFontWeight } from "@/src/styles";
 import { hexToRgba } from "@/src/utils/utils";
 import React from "react";
 import {
@@ -14,6 +15,7 @@ export type TextInputProps = RNTextInputProps;
  */
 export const TextInput = React.forwardRef<RNTextInput, TextInputProps>(
   ({ style, ...props }, ref) => {
+    const { colors } = useAppTheme();
     const flat = StyleSheet.flatten(style);
 
     const weight = resolveFontWeight(flat?.fontWeight) ?? "regular";
@@ -23,7 +25,7 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputProps>(
     return (
       <RNTextInput
         ref={ref}
-        selectionColor={hexToRgba(theme.colors.primary, 0.5)}
+        selectionColor={hexToRgba(colors.accent, 0.5)}
         {...props}
         style={[
           flat,

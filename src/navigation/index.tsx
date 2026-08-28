@@ -65,10 +65,12 @@ const Tab = createBottomTabNavigator({
   screenOptions: {
     headerShown: false,
     tabBarShowLabel: true,
-    tabBarActiveTintColor: theme.colors.primary,
-    // Grigio medio scelto apposta: screenOptions è un oggetto statico e non
-    // può leggere il tema, e questo valore ha contrasto sufficiente sia sul
-    // fondo chiaro sia su quello scuro della tab bar.
+    // Il colore della tab attiva non è impostato qui: screenOptions è un
+    // oggetto statico e non può leggere il tema, quindi lo lasciamo ereditare
+    // da `colors.primary` del tema di React Navigation, che `Navigation`
+    // costruisce più sotto a partire da `colors.accent`.
+    // Grigio medio scelto apposta per l'inattivo: ha contrasto sufficiente sia
+    // sul fondo chiaro sia su quello scuro della tab bar.
     tabBarInactiveTintColor: theme.colors.gray400,
     tabBarLabel: ({ color, children }) => (
       <TabLabel color={color}>{children}</TabLabel>
@@ -187,7 +189,7 @@ export function Navigation() {
       dark: isDark,
       colors: {
         ...(isDark ? DarkTheme : DefaultTheme).colors,
-        primary: theme.colors.primary,
+        primary: colors.accent,
         background: colors.background,
         card: colors.surface,
         text: colors.text,

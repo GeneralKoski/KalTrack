@@ -159,7 +159,7 @@ export function SwipeTabView({
           <View style={styles.tabBarInner}>
             {tabs.map((item, i) => {
               const active = i === index;
-              const color = active ? theme.colors.brand900 : colors.textFaint;
+              const color = active ? colors.accent : colors.textFaint;
               return (
                 <Pressable
                   key={item.key}
@@ -174,7 +174,13 @@ export function SwipeTabView({
                 </Pressable>
               );
             })}
-            <Animated.View style={[styles.indicator, indicatorStyle]} />
+            <Animated.View
+              style={[
+                styles.indicator,
+                { backgroundColor: colors.accent },
+                indicatorStyle,
+              ]}
+            />
           </View>
         </ScrollView>
       </View>
@@ -197,7 +203,7 @@ export function SwipeTabView({
                     renderPage(item, i)
                   ) : (
                     <View style={styles.pageLoader}>
-                      <ActivityIndicator color={theme.colors.primary} />
+                      <ActivityIndicator color={colors.accent} />
                     </View>
                   )}
                 </ScrollView>
@@ -233,7 +239,6 @@ const styles = StyleSheet.create({
     left: 0,
     bottom: 0,
     height: 2,
-    backgroundColor: theme.colors.brand900,
   },
   pager: { flex: 1, overflow: "hidden" },
   row: { flex: 1, flexDirection: "row" },

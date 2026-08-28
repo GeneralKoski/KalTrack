@@ -40,7 +40,7 @@ const BasicDfCheckbox = ({
       hitSlop={4}
     >
       {initialValue ? (
-        <CheckSquare size={22} color={theme.colors.primaryDark} />
+        <CheckSquare size={22} color={colors.accent} />
       ) : (
         <Square size={22} color={colors.textFaint} />
       )}

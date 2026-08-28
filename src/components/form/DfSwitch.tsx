@@ -42,12 +42,14 @@ const BasicDfSwitch = ({
         onValueChange?.(val);
       }}
       disabled={disabled}
-      thumbColor={theme.colors.white}
+      // Sul track acceso il pollice prende il contrasto opposto: sullo scuro
+      // `accent` e' quasi bianco e un pollice bianco sparirebbe.
+      thumbColor={initialValue ? colors.accentOn : theme.colors.white}
       trackColor={{
         // Track spento semantico: il grigio fisso del template spariva sul
-        // fondo scuro. Acceso di brand: lo switch dice "attivo", non "neutro".
+        // fondo scuro. Acceso interattivo: lo switch dice "attivo", non "neutro".
         false: colors.border,
-        true: theme.colors.primary,
+        true: colors.accent,
       }}
     />
   );

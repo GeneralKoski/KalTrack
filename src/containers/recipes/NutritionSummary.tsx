@@ -1,3 +1,4 @@
+import { MetalPanel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { roundNutrients, type Nutrients } from "@/src/domain/nutrition";
@@ -35,7 +36,7 @@ export const NutritionSummary: React.FC<NutritionSummaryProps> = ({
   });
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.surface }]}>
+    <MetalPanel radius={theme.radius.xl} style={styles.card}>
       <View style={styles.column}>
         <Text style={[styles.label, { color: colors.textMuted }]}>
           {t("recipes.per_serving")}
@@ -57,7 +58,7 @@ export const NutritionSummary: React.FC<NutritionSummaryProps> = ({
         </Text>
         <MacroLine nutrients={totals} muted />
       </View>
-    </View>
+    </MetalPanel>
   );
 };
 
@@ -103,11 +104,8 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: theme.radius.xl,
     padding: theme.spacing.md,
     marginTop: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.brand100,
   },
   column: {
     flex: 1,

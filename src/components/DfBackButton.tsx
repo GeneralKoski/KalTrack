@@ -18,7 +18,7 @@ interface DfBackButtonProps {
 export const DfBackButton = ({
   label,
   onPress,
-  color = theme.colors.primary,
+  color,
   showLabel = true,
   style,
 }: DfBackButtonProps) => {
@@ -46,7 +46,7 @@ export const DfBackButton = ({
     >
       {({ pressed }) => (
         <View style={[styles.content, pressed && { opacity: 0.75 }]}>
-          <ChevronLeftIcon color={color} />
+          <ChevronLeftIcon color={color ?? colors.accent} />
           {showLabel && (
             <Text
               style={[styles.label, { color: colors.text }]}

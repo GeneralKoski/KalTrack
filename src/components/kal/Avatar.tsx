@@ -1,6 +1,5 @@
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
-import { theme } from "@/src/styles";
 import { Image } from "expo-image";
 import React from "react";
 import { StyleSheet, View } from "react-native";
@@ -53,10 +52,20 @@ export const Avatar: React.FC<AvatarProps> = ({
         <View
           style={[
             styles.fallback,
-            { width: size, height: size, borderRadius: size / 2 },
+            {
+              width: size,
+              height: size,
+              borderRadius: size / 2,
+              backgroundColor: colors.surfaceMuted,
+            },
           ]}
         >
-          <Text style={[styles.initials, { fontSize: size * 0.34 }]}>
+          <Text
+            style={[
+              styles.initials,
+              { fontSize: size * 0.34, color: colors.text },
+            ]}
+          >
             {initials(name)}
           </Text>
         </View>
@@ -96,11 +105,10 @@ export const Avatar: React.FC<AvatarProps> = ({
 
 const styles = StyleSheet.create({
   fallback: {
-    backgroundColor: theme.colors.brand100,
     alignItems: "center",
     justifyContent: "center",
   },
-  initials: { fontWeight: "700", color: theme.colors.brand700 },
+  initials: { fontWeight: "700" },
   flag: {
     position: "absolute",
     bottom: -2,

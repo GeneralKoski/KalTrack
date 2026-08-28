@@ -1,3 +1,4 @@
+import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { theme } from "@/src/styles";
 import { LinearGradient } from "expo-linear-gradient";
@@ -23,7 +24,8 @@ interface GradientHeaderProps {
   children?: ReactNode;
 }
 
-// Header a gradiente navy comune a tutte le schermate (da mockup "om-mesh").
+// Header metallizzato comune a tutte le schermate: una lastra illuminata
+// dall'alto, non piu' un gradiente di brand.
 export const GradientHeader: React.FC<GradientHeaderProps> = ({
   kicker,
   title,
@@ -36,27 +38,37 @@ export const GradientHeader: React.FC<GradientHeaderProps> = ({
   children,
 }) => {
   const insets = useSafeAreaInsets();
+  const { colors } = useAppTheme();
 
   return (
     <LinearGradient
-      // Gradiente di brand: uguale nei due temi, il contenuto sopra è bianco.
-      colors={[theme.colors.brand900, theme.colors.brand600]}
+      // Metallo: sul chiaro e' argento, sullo scuro grafite. Il contenuto sopra
+      // non puo' quindi essere bianco fisso, usa i colori di testo del tema.
+      colors={[colors.metalTop, colors.metalBottom]}
       start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[styles.container, { paddingTop: insets.top + 8 }]}
+      end={{ x: 0, y: 1 }}
+      style={[
+        styles.container,
+        { paddingTop: insets.top + 8, borderBottomColor: colors.metalEdge },
+      ]}
     >
       <View style={styles.row}>
         {onBack && (
           <Pressable onPress={onBack} hitSlop={12} style={styles.backBtn}>
-            <ChevronLeft size={24} color={theme.colors.white} />
+            <ChevronLeft size={24} color={colors.text} />
           </Pressable>
         )}
         {left && <View style={styles.left}>{left}</View>}
         <View style={styles.titleBlock}>
-          {kicker && <Text style={styles.kicker}>{kicker}</Text>}
+          {kicker && (
+            <Text style={[styles.kicker, { color: colors.textMuted }]}>
+              {kicker}
+            </Text>
+          )}
           <Text
             style={[
               styles.title,
+              { color: colors.text },
               titleSize
                 ? { fontSize: titleSize, lineHeight: titleSize + 4 }
                 : null,
@@ -66,7 +78,10 @@ export const GradientHeader: React.FC<GradientHeaderProps> = ({
             {title}
           </Text>
           {subtitle && (
-            <Text style={styles.subtitle} numberOfLines={1}>
+            <Text
+              style={[styles.subtitle, { color: colors.textMuted }]}
+              numberOfLines={1}
+            >
               {subtitle}
             </Text>
           )}
@@ -84,13 +99,17 @@ export const HeaderCircleButton: React.FC<{
   children: ReactNode;
 }> = ({ onPress, children }) => {
   const [active, setActive] = useState(false);
+  const { colors } = useAppTheme();
 
   return (
     <Pressable
       onPress={onPress}
       onPressIn={() => setActive(true)}
       onPressOut={() => setActive(false)}
-      style={[styles.circleBtn, active && styles.circleBtnActive]}
+      style={[
+        styles.circleBtn,
+        active && { backgroundColor: colors.surfaceMuted },
+      ]}
       hitSlop={8}
     >
       {children}
@@ -102,6 +121,7 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: theme.spacing.lg,
     paddingBottom: theme.spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   row: {
     flexDirection: "row",
@@ -124,7 +144,6 @@ const styles = StyleSheet.create({
     lineHeight: 15,
     fontWeight: "600",
     letterSpacing: 1.5,
-    color: "rgba(255,255,255,0.6)",
     textTransform: "uppercase",
     marginBottom: 4,
   },
@@ -132,12 +151,10 @@ const styles = StyleSheet.create({
     fontSize: 26,
     lineHeight: 30,
     fontWeight: "700",
-    color: theme.colors.white,
   },
   subtitle: {
     fontSize: 14,
     lineHeight: 17,
-    color: "rgba(255,255,255,0.75)",
     marginTop: 0,
   },
   right: {
@@ -151,8 +168,5 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-  },
-  circleBtnActive: {
-    backgroundColor: "rgba(255,255,255,0.28)",
   },
 });

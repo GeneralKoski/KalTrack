@@ -1,4 +1,9 @@
-import { EmptyState, ScreenBackground, SearchBar } from "@/src/components/kal";
+import {
+  EmptyState,
+  MetalSurface,
+  ScreenBackground,
+  SearchBar,
+} from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { RecipeListItem } from "@/src/containers/recipes/RecipeListItem";
@@ -91,7 +96,7 @@ export function RecipesScreen() {
         </View>
 
         {loading && !data ? (
-          <ActivityIndicator style={styles.loader} color={theme.colors.primary} />
+          <ActivityIndicator style={styles.loader} color={colors.accent} />
         ) : (
           <FlatList
             data={data ?? []}
@@ -126,7 +131,9 @@ export function RecipesScreen() {
         activeOpacity={0.6}
         onPress={() => navigate("RecipeForm", {})}
       >
-        <Plus size={26} color={theme.colors.white} strokeWidth={2.5} />
+        <MetalSurface radius={28} style={styles.fabSurface}>
+          <Plus size={26} color={colors.text} strokeWidth={2.5} />
+        </MetalSurface>
       </TouchableOpacity>
     </View>
   );
@@ -158,16 +165,17 @@ const styles = StyleSheet.create({
   fab: {
     position: "absolute",
     right: theme.spacing.md,
-    width: 56,
-    height: 56,
     borderRadius: 28,
-    backgroundColor: theme.colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
     shadowColor: theme.colors.gray900,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 6,
+  },
+  fabSurface: {
+    width: 56,
+    height: 56,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

@@ -24,7 +24,7 @@ export function ProfileScreen() {
 
         <ScrollView contentContainerStyle={styles.content}>
           <Card onPress={() => navigate("Foods")} style={styles.row}>
-            <Salad size={22} color={theme.colors.primary} />
+            <Salad size={22} color={colors.text} />
             <Text style={[styles.rowLabel, { color: colors.text }]}>
               {t("profile.my_foods")}
             </Text>
@@ -32,7 +32,7 @@ export function ProfileScreen() {
           </Card>
 
           <Card onPress={() => navigate("Recipes")} style={styles.row}>
-            <CookingPot size={22} color={theme.colors.primary} />
+            <CookingPot size={22} color={colors.text} />
             <Text style={[styles.rowLabel, { color: colors.text }]}>
               {t("profile.my_recipes")}
             </Text>
@@ -40,7 +40,7 @@ export function ProfileScreen() {
           </Card>
 
           <Card onPress={() => navigate("Settings")} style={styles.row}>
-            <Settings size={22} color={theme.colors.primary} />
+            <Settings size={22} color={colors.text} />
             <Text style={[styles.rowLabel, { color: colors.text }]}>
               {t("profile.settings")}
             </Text>

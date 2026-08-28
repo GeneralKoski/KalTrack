@@ -10,7 +10,6 @@ import { DfButton } from "@/src/components/form/DfButton";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
-import { theme } from "@/src/styles";
 import { X } from "lucide-react-native";
 import React from "react";
 import { Dimensions, Pressable, StyleSheet, View } from "react-native";
@@ -49,7 +48,7 @@ export function DfAlert({
   confirmLabel,
   cancelLabel,
   confirmIcon,
-  confirmColor = theme.colors.primary,
+  confirmColor,
   cancelVariant,
   cancelColor,
   loading = false,

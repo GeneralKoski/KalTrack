@@ -142,7 +142,9 @@ export const DateRangeField: React.FC<{
                     setIosField(null);
                   }}
                 >
-                  <Text style={styles.modalOk}>{t("ok")}</Text>
+                  <Text style={[styles.modalOk, { color: colors.accent }]}>
+                    {t("ok")}
+                  </Text>
                 </Pressable>
               </View>
             </Pressable>
@@ -159,21 +161,25 @@ export const DateRangeField: React.FC<{
 export const FilterButton: React.FC<{
   activeCount: number;
   onPress: () => void;
-}> = ({ activeCount, onPress }) => (
-  <TouchableOpacity
-    onPress={onPress}
-    activeOpacity={0.6}
-    style={styles.filterBtn}
-    hitSlop={8}
-  >
-    <Filter size={20} color={theme.colors.white} />
-    {activeCount > 0 && (
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>{activeCount}</Text>
-      </View>
-    )}
-  </TouchableOpacity>
-);
+}> = ({ activeCount, onPress }) => {
+  const { colors } = useAppTheme();
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.6}
+      style={[styles.filterBtn, { backgroundColor: colors.surfaceMuted }]}
+      hitSlop={8}
+    >
+      <Filter size={20} color={colors.text} />
+      {activeCount > 0 && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{activeCount}</Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+};
 
 export interface FilterOption {
   code: string;
@@ -284,7 +290,7 @@ export const PickerField: React.FC<{
                 >
                   {opt.label}
                 </Text>
-                {active ? <Check size={18} color={theme.colors.primary} /> : null}
+                {active ? <Check size={18} color={colors.accent} /> : null}
               </TouchableOpacity>
             );
           })}
@@ -317,11 +323,13 @@ export const FilterActions: React.FC<{
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.btn, styles.apply]}
+        style={[styles.btn, { backgroundColor: colors.accent }]}
         activeOpacity={0.6}
         onPress={onApply}
       >
-        <Text style={styles.applyText}>{t("apply")}</Text>
+        <Text style={[styles.applyText, { color: colors.accentOn }]}>
+          {t("apply")}
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -332,7 +340,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.15)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -370,8 +377,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   resetText: { fontSize: 15, fontWeight: "700" },
-  apply: { backgroundColor: theme.colors.primary },
-  applyText: { fontSize: 15, fontWeight: "700", color: theme.colors.white },
+  applyText: { fontSize: 15, fontWeight: "700" },
   rangeRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -434,5 +440,5 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing.sm,
   },
   modalCancel: { fontSize: 16, fontWeight: "600" },
-  modalOk: { fontSize: 16, fontWeight: "700", color: theme.colors.primary },
+  modalOk: { fontSize: 16, fontWeight: "700" },
 });

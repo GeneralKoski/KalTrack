@@ -17,9 +17,11 @@ function mix(from: string, to: string, ratio: number): string {
   return `#${channel(0)}${channel(1)}${channel(2)}`;
 }
 
-// Sfondo delle schermate: più chiaro al centro, leggermente verde ai bordi
-// (tinta del brand). Va inserito come PRIMO figlio del contenitore radice
-// della schermata: è un absolute-fill, non un wrapper con figli.
+// Sfondo delle schermate: appena più chiaro al centro che ai bordi. Su tema
+// scuro parte dal nero pieno, quindi la sfumatura è quasi impercettibile ed è
+// voluta: serve solo a togliere la piattezza, non a colorare.
+// Va inserito come PRIMO figlio del contenitore radice della schermata: è un
+// absolute-fill, non un wrapper con figli.
 export const ScreenBackground: React.FC = () => {
   const { colors } = useAppTheme();
   const edge = colors.gradientEdge;

@@ -1,18 +1,14 @@
 // ─── Palette (stessi valori in entrambi i temi) ───────────────────────────────
 // Usare questi colori in StyleSheet.create() — non cambiano mai.
 
+// L'interfaccia è monocroma: nero, bianco e grigi metallizzati. Il colore è
+// riservato ai DATI (macronutrienti, stato rispetto all'obiettivo, errori), così
+// quando compare significa sempre qualcosa. Per questo qui non esistono
+// `primary` né una scala di brand: il colore dell'interattivo dipende dal tema
+// (scuro su chiaro, chiaro su scuro) e vive nei token semantici come `accent`.
 const palette = {
-  primary: "#10b981",
-  primaryDark: "#059669",
+  // Marcatore di preferito: è uno stato dell'utente, non decorazione.
   secondary: "#f59e0b",
-
-  // Scala del brand (emerald): brand500 coincide con primary.
-  brand50: "#ecfdf5",
-  brand100: "#d1fae5",
-  brand500: "#10b981",
-  brand600: "#059669",
-  brand700: "#047857",
-  brand900: "#064e3b",
 
   // Colori dei macronutrienti: sempre gli stessi in grafici, barre e legende,
   // così le tre rappresentazioni non possono divergere.
@@ -44,31 +40,55 @@ const palette = {
 // NON usare in StyleSheet.create() — usare solo tramite useAppTheme().
 
 const lightSemanticColors = {
-  background: "#f5f6fa",
+  background: "#f2f2f4",
   surface: "#ffffff",
   // Riempimenti tenui: sfondo di chip, tab inattivi, segnaposto immagine.
-  surfaceMuted: palette.gray100,
-  border: "#e5e7eb",
-  text: palette.gray900,
-  textSecondary: palette.gray700,
-  textMuted: palette.gray500,
-  textFaint: palette.gray400,
+  surfaceMuted: "#e8e8ea",
+  border: "#d8d8dc",
+  text: "#0a0a0b",
+  textSecondary: "#3f3f46",
+  textMuted: "#71717a",
+  textFaint: "#a1a1aa",
+
+  // Interattivo: scuro sul chiaro, chiaro sullo scuro. Sostituisce il vecchio
+  // `primary` di brand, che non esiste più.
+  accent: "#18181b",
+  // Testo e icone SOPRA una superficie `accent`.
+  accentOn: "#ffffff",
+
+  // Superficie metallizzata: gradiente dall'alto verso il basso più una linea
+  // di luce sul bordo superiore. Sul chiaro è argento.
+  metalTop: "#fdfdfd",
+  metalBottom: "#e7e7ea",
+  metalHighlight: "#ffffff",
+  metalEdge: "#cfcfd4",
+
   // Estremi del gradiente di sfondo delle schermate.
-  gradientEdge: "#dcefe5",
-  gradientCenter: "#f6fbf9",
+  gradientEdge: "#e6e6e9",
+  gradientCenter: "#f7f7f9",
 };
 
 const darkSemanticColors = {
-  background: "#0f0f0f",
-  surface: "#1c1c1e",
-  surfaceMuted: "#2c2c2e",
-  border: "#2c2c2e",
-  text: "#f2f2f7",
-  textSecondary: "#c7c7cc",
-  textMuted: palette.gray400,
-  textFaint: palette.gray500,
-  gradientEdge: "#0d1a14",
-  gradientCenter: "#131513",
+  // Nero pieno, non grigio scurissimo: su OLED spegne davvero i pixel.
+  background: "#000000",
+  surface: "#131316",
+  surfaceMuted: "#1e1e22",
+  border: "#2a2a2f",
+  text: "#fafafa",
+  textSecondary: "#d4d4d8",
+  textMuted: "#a1a1aa",
+  textFaint: "#71717a",
+
+  accent: "#e5e5e7",
+  accentOn: "#0a0a0b",
+
+  metalTop: "#3a3a3d",
+  metalBottom: "#232326",
+  metalHighlight: "#4a4a4d",
+  metalEdge: "#101013",
+
+  gradientEdge: "#000000",
+  gradientCenter: "#0a0a0c",
 };
 
 // ─── Valori condivisi (non dipendono dal tema) ────────────────────────────────
