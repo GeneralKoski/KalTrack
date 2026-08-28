@@ -1,6 +1,8 @@
 import { migration001 } from "@/src/db/migrations/001_initial";
 import { migration002 } from "@/src/db/migrations/002_meal_types";
 import { migration003 } from "@/src/db/migrations/003_name_norm";
+import { migration004 } from "@/src/db/migrations/004_ai_calls";
+import { migration005 } from "@/src/db/migrations/005_gym";
 import type { Migration } from "@/src/db/migrations/types";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 import { logger } from "@/src/utils/logger";
@@ -12,6 +14,8 @@ export const MIGRATIONS: Migration[] = [
   migration001,
   migration002,
   migration003,
+  migration004,
+  migration005,
 ];
 
 /**

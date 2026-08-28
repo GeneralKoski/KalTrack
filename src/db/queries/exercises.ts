@@ -1,0 +1,190 @@
+import { getDb } from "@/src/db/index";
+import { newId, nowIso } from "@/src/db/ids";
+import { normalizeText } from "@/src/domain/text";
+import {
+  exerciseEquipment,
+  type Equipment,
+  type ExerciseRow,
+  type MuscleGroup,
+} from "@/src/types/gym";
+
+const SELECT = "SELECT * FROM exercises WHERE deleted_at IS NULL";
+
+export interface ExerciseInput {
+  name: string;
+  muscleGroup: MuscleGroup;
+  secondaryMuscles: MuscleGroup[];
+  equipment: Equipment[];
+  instructions?: string | null;
+  notes?: string | null;
+  isCustom?: boolean;
+}
+
+export async function createExercise(input: ExerciseInput): Promise<string> {
+  const db = await getDb();
+  const id = newId();
+  const now = nowIso();
+
+  await db.runAsync(
+    `INSERT INTO exercises (id, name, name_norm, muscle_group, secondary_muscles,
+       equipment, is_custom, is_banned, dislike_level, notes, instructions,
+       usage_count, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, 0, ?, ?)`,
+    [
+      id,
+      input.name,
+      normalizeText(input.name),
+      input.muscleGroup,
+      JSON.stringify(input.secondaryMuscles),
+      JSON.stringify(input.equipment),
+      input.isCustom === false ? 0 : 1,
+      input.notes ?? null,
+      input.instructions ?? null,
+      now,
+      now,
+    ],
+  );
+  return id;
+}
+
+export async function getExercise(id: string): Promise<ExerciseRow | null> {
+  const db = await getDb();
+  return db.getFirstAsync<ExerciseRow>(`${SELECT} AND id = ?`, [id]);
+}
+
+/**
+ * Ricerca esercizi. Gli esercizi vietati sono esclusi per default: `is_banned`
+ * significa "non propormelo mai", quindi non deve nemmeno comparire in elenco
+ * salvo che si stia esplicitamente gestendo la lista dei vietati.
+ */
+export async function searchExercises(args: {
+  term?: string;
+  muscleGroup?: MuscleGroup;
+  includeBanned?: boolean;
+  limit?: number;
+}): Promise<ExerciseRow[]> {
+  const db = await getDb();
+  const clauses: string[] = [];
+  const params: (string | number)[] = [];
+
+  const normalized = normalizeText(args.term ?? "");
+  if (normalized !== "") {
+    clauses.push("name_norm LIKE ?");
+    params.push(`%${normalized}%`);
+  }
+  if (args.muscleGroup) {
+    clauses.push("muscle_group = ?");
+    params.push(args.muscleGroup);
+  }
+  if (!args.includeBanned) clauses.push("is_banned = 0");
+
+  const where = clauses.length > 0 ? ` AND ${clauses.join(" AND ")}` : "";
+  params.push(args.limit ?? 100);
+
+  return db.getAllAsync<ExerciseRow>(
+    `${SELECT}${where} ORDER BY dislike_level ASC, usage_count DESC, name ASC LIMIT ?`,
+    params,
+  );
+}
+
+export async function toggleExerciseBan(id: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    "UPDATE exercises SET is_banned = 1 - is_banned, updated_at = ? WHERE id = ?",
+    [nowIso(), id],
+  );
+}
+
+/** 0 = va bene, 1 = preferirei evitarlo, 2 = solo come ultima risorsa. */
+export async function setExerciseDislike(
+  id: string,
+  level: 0 | 1 | 2,
+): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    "UPDATE exercises SET dislike_level = ?, updated_at = ? WHERE id = ?",
+    [level, nowIso(), id],
+  );
+}
+
+export async function incrementExerciseUsage(id: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    "UPDATE exercises SET usage_count = usage_count + 1, updated_at = ? WHERE id = ?",
+    [nowIso(), id],
+  );
+}
+
+export async function setEquipmentAvailability(
+  name: Equipment | string,
+  available: boolean,
+): Promise<void> {
+  const db = await getDb();
+  const now = nowIso();
+  const existing = await db.getFirstAsync<{ id: string }>(
+    "SELECT id FROM user_equipment WHERE name = ? AND deleted_at IS NULL",
+    [name],
+  );
+
+  if (existing) {
+    await db.runAsync(
+      "UPDATE user_equipment SET available = ?, updated_at = ? WHERE id = ?",
+      [available ? 1 : 0, now, existing.id],
+    );
+    return;
+  }
+  await db.runAsync(
+    `INSERT INTO user_equipment (id, name, available, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?)`,
+    [newId(), name, available ? 1 : 0, now, now],
+  );
+}
+
+export async function listAvailableEquipment(): Promise<string[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<{ name: string }>(
+    "SELECT name FROM user_equipment WHERE available = 1 AND deleted_at IS NULL",
+  );
+  return rows.map((r) => r.name);
+}
+
+/**
+ * Alternative a un esercizio, filtrate LOCALMENTE.
+ *
+ * Il filtro locale viene prima di qualunque AI di proposito: in palestra senza
+ * campo la funzione deve restare usabile, e l'AI serve solo a ordinare e
+ * spiegare, non a decidere cosa è possibile.
+ *
+ * I vietati non compaiono mai. Gli sgraditi sì, ma in fondo: "non mi piace" non
+ * è "non esiste", e come ultima risorsa vanno comunque offerti.
+ */
+export async function suggestAlternatives(
+  exerciseId: string,
+  options: { onlyAvailableEquipment?: boolean; limit?: number } = {},
+): Promise<ExerciseRow[]> {
+  const source = await getExercise(exerciseId);
+  if (!source) return [];
+
+  const candidates = await searchExercises({
+    muscleGroup: source.muscle_group,
+    limit: 200,
+  });
+
+  let filtered = candidates.filter((row) => row.id !== exerciseId);
+
+  if (options.onlyAvailableEquipment) {
+    const available = new Set(await listAvailableEquipment());
+    filtered = filtered.filter((row) => {
+      const needed = exerciseEquipment(row);
+      // Senza attrezzatura dichiarata l'esercizio è a corpo libero: sempre fattibile.
+      return needed.length === 0 || needed.every((item) => available.has(item));
+    });
+  }
+
+  return filtered
+    .sort(
+      (a, b) =>
+        a.dislike_level - b.dislike_level || b.usage_count - a.usage_count,
+    )
+    .slice(0, options.limit ?? 10);
+}
