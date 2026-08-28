@@ -5,7 +5,10 @@ import { getLocales } from "expo-localization";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-const SUPPORTED_LANGUAGES = ["it", "en"] as const;
+// App a lingua singola. Lo store resta perché aggiungere una lingua significa
+// aggiungere il file in src/i18n/locales/, il codice qui e la voce in
+// app.json > expo-localization > supportedLocales: nient'altro cambia.
+const SUPPORTED_LANGUAGES = ["it"] as const;
 type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 
 const getDeviceLanguage = (): SupportedLanguage => {

@@ -67,8 +67,7 @@
         "expo-localization",
         {
           "supportedLocales": [
-            "it",
-            "en"
+            "it"
           ]
         }
       ],

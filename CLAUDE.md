@@ -69,6 +69,23 @@ Il layer `src/db/` è l'unico che conosce SQL:
 TDEE, date), tutte coperte da test unitari. Le schermate non calcolano nulla per
 conto proprio.
 
+### Lingua
+
+**Solo italiano.** L'app è personale, l'inglese sarebbe stato lavoro doppio su
+ogni stringa per un utente che non esiste. La struttura i18n resta in piedi
+(`i18n-js`, `useTranslation`, `translationStore`), quindi ogni testo visibile va
+comunque scritto come `t("chiave")` e mai come stringa letterale nel JSX.
+
+Per reintrodurre una lingua servono tre modifiche e nient'altro:
+
+1. tradurre una copia di `src/i18n/locales/it.json` (le chiavi ci sono già tutte)
+2. registrarla in `src/i18n/index.ts` e in `SUPPORTED_LANGUAGES`
+   (`src/stores/translationStore.ts`)
+3. aggiungerla a `app.json` > plugin `expo-localization` > `supportedLocales`
+
+Lo store rileva già la lingua del dispositivo e la persiste: con più lingue
+disponibili quel comportamento torna attivo da solo.
+
 ### Path alias
 
 `@/` per gli import assoluti dalla root (es. `@/src/components/...`). Mai
@@ -111,8 +128,7 @@ Valgono le guide Dieffetech `docs/react-native/`:
 - Token da `@/src/styles`, mai hex o numeri magici inline.
 - Elementi assoluti, overlay e bottoni flottanti ancorati con
   `useSafeAreaInsets()`.
-- Ogni testo visibile via `t("chiave")`, chiavi in **entrambi** `it.json` e
-  `en.json`.
+- Ogni testo visibile via `t("chiave")`, chiavi in `src/i18n/locales/it.json`.
 - Animazioni con `react-native-reanimated`; il suo plugin babel resta l'ultimo.
 - TypeScript strict, mai `any`.
 - Logging solo via `logger`, mai `console.*`.

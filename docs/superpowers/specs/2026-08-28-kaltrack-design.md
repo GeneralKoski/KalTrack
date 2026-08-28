@@ -144,7 +144,7 @@ Valgono le guide Dieffetech `docs/react-native/`:
 - `StyleSheet.create()` primario, NativeWind disponibile ma non prevalente
 - safe area via `useSafeAreaInsets()` per tutto cio' che e' assoluto
 - componenti `@/src/components/ui` al posto delle primitive RN nude
-- ogni testo visibile via `t("chiave")`, chiavi in `it.json` **e** `en.json`
+- ogni testo visibile via `t("chiave")`, chiavi in `it.json` (app solo italiano)
 - animazioni con `react-native-reanimated`
 - import con alias `@/`, TypeScript strict, mai `any`
 - logging solo via `logger`

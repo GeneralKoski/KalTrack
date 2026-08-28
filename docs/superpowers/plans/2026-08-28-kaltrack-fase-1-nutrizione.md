@@ -19,7 +19,7 @@ Valgono le guide Dieffetech `docs/react-native/` (`core.md`, `guidelines.md`). O
 - **Colori semantici** (`background`, `surface`, `border`, `text`, `textMuted`) solo via `useAppTheme()`, mai dentro `StyleSheet.create()`.
 - **Safe area**: tutto ciò che è assoluto, flottante o overlay usa `useSafeAreaInsets()`. Mai offset fissi.
 - **Componenti**: sempre `Text` e `TextInput` da `@/src/components/ui`, mai le primitive RN nude (perdono il font Poppins).
-- **i18n**: ogni testo visibile via `t("chiave")`. Chiavi aggiunte in **entrambi** `src/i18n/locales/it.json` e `en.json`.
+- **i18n**: ogni testo visibile via `t("chiave")`. Chiavi in `src/i18n/locales/it.json`. **Solo italiano** dal Task 5 in poi: `en.json` e' stato rimosso (decisione registrata in `CLAUDE.md`, che spiega come reintrodurre una lingua).
 - **Animazioni**: `react-native-reanimated`. Il plugin babel resta l'ultimo in `babel.config.js`.
 - **Import**: alias `@/`, mai `../../`.
 - **TypeScript**: `strict: true`, mai `any`.
@@ -1534,7 +1534,7 @@ day."
 
 **Files:**
 - Create: `src/components/kal/Card.tsx`, `Primitives.tsx`, `SearchBar.tsx`, `GradientHeader.tsx`, `ScreenBackground.tsx`, `Avatar.tsx`, `TrafficDot.tsx`, `Filters.tsx`, `index.ts`; `src/components/SwipeTabView.tsx`, `src/components/ExitConfirm.tsx`, `src/components/toastConfig.tsx`; `src/hooks/useFocusData.ts`, `src/hooks/useAppNav.ts`, `src/hooks/useOnlineStatus.ts`; `src/navigation/screens/TodayScreen.tsx`, `ProgressScreen.tsx`, `GymScreen.tsx`, `ProfileScreen.tsx`
-- Modify: `src/styles.ts` (palette KalTrack e colori dei macro), `src/navigation/index.tsx` (4 tab), `src/i18n/locales/it.json`, `src/i18n/locales/en.json`, `src/App.tsx` (toastConfig)
+- Modify: `src/styles.ts` (palette KalTrack e colori dei macro), `src/navigation/index.tsx` (4 tab), `src/i18n/locales/it.json`, `src/App.tsx` (toastConfig)
 - Delete: `src/navigation/screens/HomeScreen.tsx`
 
 **Interfaces:**
@@ -1656,7 +1656,7 @@ Le rotte di dettaglio si aggiungono qui man mano che i task successivi le creano
 
 - [ ] **Step 6: Aggiungere le chiavi i18n**
 
-In `it.json` e `en.json`, sotto una nuova chiave `tabs`:
+In `it.json`, sotto una nuova chiave `tabs`:
 
 ```json
 "tabs": { "today": "Oggi", "progress": "Progressi", "gym": "Palestra", "profile": "Profilo" }
@@ -1722,7 +1722,7 @@ navigation and i18n; screens land in the following tasks."
 
 **Files:**
 - Create: `src/domain/text.ts`, `src/domain/text.test.ts`, `src/types/nutrition.ts`, `src/db/migrations/003_name_norm.ts`, `src/db/queries/foods.ts`, `src/db/queries/foods.test.ts`, `src/db/seed/foods.ts`, `src/db/seed/index.ts`, `src/navigation/screens/FoodsScreen.tsx`, `src/navigation/screens/FoodFormScreen.tsx`, `src/containers/foods/FoodListItem.tsx`, `src/containers/foods/NutrientFields.tsx`
-- Modify: `src/db/index.ts` (override per i test, applicazione seed), `src/db/migrations/index.ts`, `src/navigation/index.tsx`, `src/hooks/useAppNav.ts`, i due file i18n
+- Modify: `src/db/index.ts` (override per i test, applicazione seed), `src/db/migrations/index.ts`, `src/navigation/index.tsx`, `src/hooks/useAppNav.ts`, il file i18n
 
 **Interfaces:**
 - Consumes: `LocalDatabase`, `getDb`, `newId`, `nowIso`, `Nutrients`, `scaleNutrients`
@@ -2415,7 +2415,7 @@ Il test sulla coerenza calorie/macro serve a intercettare errori di battitura ne
 
 Registrare `Foods` e `FoodForm` nel RootStack e in `NavParams`. `FoodForm` prende `{ id?: string }`.
 
-Aggiungere le chiavi i18n in `it.json` e `en.json` sotto `foods`.
+Aggiungere le chiavi i18n in `it.json` sotto `foods`.
 
 - [ ] **Step 14: Gate**
 
@@ -2472,7 +2472,7 @@ adapter, so the SQL itself is covered rather than mocked."
 
 **Files:**
 - Create: `src/db/queries/recipes.ts`, `src/db/queries/recipes.test.ts`, `src/navigation/screens/RecipesScreen.tsx`, `src/navigation/screens/RecipeFormScreen.tsx`, `src/containers/recipes/RecipeListItem.tsx`, `src/containers/recipes/IngredientRow.tsx`, `src/containers/recipes/IngredientPicker.tsx`, `src/containers/recipes/NutritionSummary.tsx`
-- Modify: `src/types/nutrition.ts`, `src/navigation/index.tsx`, `src/hooks/useAppNav.ts`, i due file i18n, `package.json` (expo-image-picker)
+- Modify: `src/types/nutrition.ts`, `src/navigation/index.tsx`, `src/hooks/useAppNav.ts`, il file i18n, `package.json` (expo-image-picker)
 
 **Interfaces:**
 - Consumes: `RecipeNode`, `RecipeItemNode`, `recipeTotals`, `recipePerServing`, `foodNutrients`, `getFood`, `normalizeText`
@@ -2984,7 +2984,7 @@ Il cuore dell'app: la schermata Oggi.
 
 **Files:**
 - Create: `src/db/queries/diary.ts`, `src/db/queries/diary.test.ts`, `src/containers/diary/DayHeader.tsx`, `src/containers/diary/MealSection.tsx`, `src/containers/diary/EntryRow.tsx`, `src/containers/diary/AddEntrySheet.tsx`, `src/containers/diary/QuantitySheet.tsx`, `src/navigation/screens/MealTypesScreen.tsx`
-- Modify: `src/navigation/screens/TodayScreen.tsx`, `src/types/nutrition.ts`, `src/navigation/index.tsx`, `src/hooks/useAppNav.ts`, i due file i18n
+- Modify: `src/navigation/screens/TodayScreen.tsx`, `src/types/nutrition.ts`, `src/navigation/index.tsx`, `src/hooks/useAppNav.ts`, il file i18n
 
 **Interfaces:**
 - Consumes: `Nutrients`, `sumNutrients`, `scaleNutrients`, `recipePerServing`, `buildRecipeTree`, `foodNutrients`, `todayIso`, `addDays`, `dayLabelKind`
@@ -3281,7 +3281,7 @@ snapshots, which is what 'dinner like yesterday' needs."
 
 **Files:**
 - Create: `src/db/queries/settings.ts`, `src/db/queries/settings.test.ts`, `src/containers/profile/ProfileForm.tsx`, `src/containers/profile/TargetsForm.tsx`, `src/containers/diary/CalorieRing.tsx`, `src/containers/diary/MacroBars.tsx`, `src/navigation/screens/TargetsScreen.tsx`
-- Modify: `src/navigation/screens/ProfileScreen.tsx`, `src/navigation/screens/TodayScreen.tsx`, `src/navigation/index.tsx`, `src/hooks/useAppNav.ts`, i due file i18n
+- Modify: `src/navigation/screens/ProfileScreen.tsx`, `src/navigation/screens/TodayScreen.tsx`, `src/navigation/index.tsx`, `src/hooks/useAppNav.ts`, il file i18n
 
 **Interfaces:**
 - Consumes: `suggestTargets`, `ageAt`, `bmr`, `tdee`, `Sex`, `ActivityLevel`, `Goal`, `todayIso`
@@ -3466,7 +3466,7 @@ colour never carries the information alone."
 
 **Files:**
 - Create: `src/db/queries/tracking.ts`, `src/db/queries/tracking.test.ts`, `src/containers/tracking/StepsCard.tsx`, `src/containers/tracking/WeightCard.tsx`, `src/containers/tracking/QuickLogSheet.tsx`, `src/navigation/screens/StepsScreen.tsx`, `src/navigation/screens/WeightScreen.tsx`
-- Modify: `src/navigation/screens/TodayScreen.tsx`, `src/navigation/screens/ProgressScreen.tsx`, `src/navigation/index.tsx`, `src/hooks/useAppNav.ts`, i due file i18n
+- Modify: `src/navigation/screens/TodayScreen.tsx`, `src/navigation/screens/ProgressScreen.tsx`, `src/navigation/index.tsx`, `src/hooks/useAppNav.ts`, il file i18n
 
 **Interfaces:**
 - Consumes: `todayIso`, `addDays`, `startOfWeek`
@@ -3642,7 +3642,7 @@ Chiude la Fase 1: senza questo, perdere il telefono significa perdere tutto.
 
 **Files:**
 - Create: `src/services/backup.ts`, `src/services/backup.test.ts`, `src/navigation/screens/BackupScreen.tsx`
-- Modify: `src/navigation/screens/ProfileScreen.tsx`, `src/navigation/index.tsx`, `src/hooks/useAppNav.ts`, i due file i18n
+- Modify: `src/navigation/screens/ProfileScreen.tsx`, `src/navigation/index.tsx`, `src/hooks/useAppNav.ts`, il file i18n
 
 **Interfaces:**
 - Consumes: `getDb`, `nowIso`
