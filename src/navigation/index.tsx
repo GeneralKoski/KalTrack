@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
+import { BackupScreen } from "@/src/navigation/screens/BackupScreen";
 import { FoodFormScreen } from "@/src/navigation/screens/FoodFormScreen";
 import { FoodsScreen } from "@/src/navigation/screens/FoodsScreen";
 import { GymScreen } from "@/src/navigation/screens/GymScreen";
@@ -161,6 +162,10 @@ const RootStack = createNativeStackNavigator({
     Targets: {
       screen: TargetsScreen,
       linking: { path: "obiettivi" },
+    },
+    Backup: {
+      screen: BackupScreen,
+      linking: { path: "backup" },
     },
   },
 });

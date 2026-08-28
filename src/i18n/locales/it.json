@@ -58,7 +58,8 @@
     "my_foods": "I miei alimenti",
     "my_recipes": "I miei pasti",
     "settings": "Impostazioni",
-    "targets": "Obiettivi"
+    "targets": "Obiettivi",
+    "backup": "Backup"
   },
   "recipes": {
     "title": "I miei pasti",
@@ -172,5 +173,22 @@
     "kcal_weekly": "Calorie, media di 14 giorni",
     "kcal_empty": "Nessun pasto registrato",
     "no_data": "Nessun dato"
+  },
+  "backup": {
+    "title": "Backup",
+    "explain": "I dati vivono solo su questo telefono. Esporta ogni tanto un backup: è l'unico modo per non perdere tutto se il telefono si rompe o lo cambi.",
+    "last_export": "Ultimo backup: %{date}",
+    "never_exported": "Non hai ancora esportato nessun backup",
+    "export": "Esporta backup",
+    "export_failed": "Export non riuscito",
+    "restore_section": "Ripristino",
+    "import": "Importa da file",
+    "invalid_file": "Il file non è un backup valido",
+    "confirm_title": "Ripristinare il backup?",
+    "confirm_warning": "I dati attuali verranno sostituiti da quelli del file. L'operazione non si può annullare.",
+    "confirm_restore": "Sostituisci i dati",
+    "file_date": "Backup del %{date}",
+    "restored": "Backup ripristinato",
+    "restore_failed": "Ripristino non riuscito"
   }
 }

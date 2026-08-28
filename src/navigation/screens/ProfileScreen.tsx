@@ -4,7 +4,7 @@ import { Text } from "@/src/components/ui";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
-import { ChevronRight, CookingPot, Salad, Settings, Target } from "lucide-react-native";
+import { ChevronRight, CookingPot, DatabaseBackup, Salad, Settings, Target } from "lucide-react-native";
 import React from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -43,6 +43,14 @@ export function ProfileScreen() {
             <CookingPot size={22} color={colors.text} />
             <Text style={[styles.rowLabel, { color: colors.text }]}>
               {t("profile.my_recipes")}
+            </Text>
+            <ChevronRight size={20} color={colors.textFaint} />
+          </Card>
+
+          <Card onPress={() => navigate("Backup")} style={styles.row}>
+            <DatabaseBackup size={22} color={colors.text} />
+            <Text style={[styles.rowLabel, { color: colors.text }]}>
+              {t("profile.backup")}
             </Text>
             <ChevronRight size={20} color={colors.textFaint} />
           </Card>

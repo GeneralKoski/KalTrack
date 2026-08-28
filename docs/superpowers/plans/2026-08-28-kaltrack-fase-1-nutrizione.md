@@ -3854,6 +3854,31 @@ import, all data back."
 
 ---
 
+## Scostamenti dal piano, applicati durante l'esecuzione
+
+Registrati qui perché il piano resti leggibile come racconto di cosa è successo,
+non solo di cosa era previsto.
+
+- **`react-dom` non va rimosso**: sembra una dipendenza web ma serve a gluestack
+  anche su native (Task 1).
+- **`expo-crypto.randomUUID()` non esiste** sotto il mock jest-expo: risolto con
+  `moduleNameMapper` verso un mock controllato (Task 1).
+- **Require cycle** `db/index` → `db/seed` → `db/index`: `applySeeds` riceve la
+  connessione invece di chiamare `getDb()` (Task 5).
+- **Seed alimenti**: 193 voci consegnate contro le 150 minime richieste.
+- **Liste virtualizzate annidate**: `DfBottomSheet` avvolge già i figli in uno
+  `ScrollView`, quindi i selettori usano `map()` con risultati limitati (Task 6).
+- **`DfButton` usava `Pressable` con style-funzione**, vietato dalla guida:
+  riscritto con `TouchableOpacity`.
+- **Tab bar**: lo sfondo si imposta dal tema di React Navigation, non da uno
+  `style` passato a `BottomTabBar` (che `tabBarStyle` sovrascrive).
+- **Tracking anticipato**: le query di peso e passi sono entrate col Task 8, non
+  col 9, perché la schermata obiettivi ha bisogno dell'ultima pesata.
+
+**Fuori piano, richiesti in corsa:** app solo italiana, foto anche sugli
+alimenti, tema chiaro/scuro con scelta utente, e la riprogettazione monocroma
+metallizzata (il colore resta solo sui dati).
+
 ## Definizione di completo per la Fase 1
 
 La fase è chiusa quando, su un telefono reale:
