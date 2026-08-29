@@ -217,14 +217,16 @@ const styles = StyleSheet.create({
   buttonWrapper: {
     flex: 1,
   },
+  // Nessun padding orizzontale qui: questi stili finiscono sul TouchableOpacity
+  // ESTERNO di DfButton, che ha gia' il suo padding sulla View interna. Sommati
+  // facevano 40dp per lato e in un dialogo a due bottoni non restava spazio per
+  // la parola: "Annulla" veniva troncato in "Annul...".
   cancelButton: {
     paddingVertical: 8,
-    paddingHorizontal: 16,
     minHeight: 30,
   },
   confirmButton: {
     paddingVertical: 8,
-    paddingHorizontal: 16,
     minHeight: 30,
   },
 });

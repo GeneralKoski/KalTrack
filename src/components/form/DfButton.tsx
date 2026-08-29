@@ -68,7 +68,11 @@ export const DfButton = ({
   ) : (
     <>
       {icon}
+      {/* L'etichetta di un bottone non va mai a capo: "Annulla" spezzato in
+          "Annull" e "a" e' sempre un difetto, mai una scelta. Se il testo non
+          ci sta, il bottone va allargato, non il testo mandato a capo. */}
       <Text
+        numberOfLines={1}
         style={[
           styles.label,
           {
