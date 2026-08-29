@@ -1,6 +1,7 @@
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { persistPhoto } from "@/src/services/photoStorage";
 import { theme } from "@/src/styles";
 import * as ImagePicker from "expo-image-picker";
 import { Camera, ImagePlus, X } from "lucide-react-native";
@@ -12,6 +13,8 @@ interface PhotoFieldProps {
   onChange: (uri: string | null) => void;
   /** Altezza dell'anteprima. Più bassa dove la foto è un dettaglio. */
   height?: number;
+  /** Prefisso del file archiviato, per riconoscerlo: "food", "recipe", "progress". */
+  prefix?: string;
 }
 
 /**
@@ -23,8 +26,19 @@ export const PhotoField: React.FC<PhotoFieldProps> = ({
   uri,
   onChange,
   height = 160,
+  prefix = "photo",
 }) => {
   const { t } = useTranslation();
+
+  /**
+   * La copia in archivio permanente avviene QUI e non nei chiamanti: ImagePicker
+   * restituisce un URI nella cache, che il sistema svuota quando vuole. Farlo
+   * nel componente significa che nessuna schermata futura può dimenticarsene e
+   * ritrovarsi con foto sparite.
+   */
+  const store = async (pickedUri: string) => {
+    onChange(await persistPhoto(pickedUri, prefix));
+  };
   const { colors } = useAppTheme();
 
   const pickFromLibrary = async () => {
@@ -34,7 +48,7 @@ export const PhotoField: React.FC<PhotoFieldProps> = ({
       allowsEditing: true,
       aspect: [4, 3],
     });
-    if (!result.canceled && result.assets[0]) onChange(result.assets[0].uri);
+    if (!result.canceled && result.assets[0]) await store(result.assets[0].uri);
   };
 
   const takePhoto = async () => {
@@ -46,7 +60,7 @@ export const PhotoField: React.FC<PhotoFieldProps> = ({
       allowsEditing: true,
       aspect: [4, 3],
     });
-    if (!result.canceled && result.assets[0]) onChange(result.assets[0].uri);
+    if (!result.canceled && result.assets[0]) await store(result.assets[0].uri);
   };
 
   if (uri) {

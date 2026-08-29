@@ -25,6 +25,7 @@ import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import type { MealTypeRow } from "@/src/types/nutrition";
+import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useNavigation } from "@react-navigation/native";
@@ -35,7 +36,7 @@ import {
   CopyPlus,
   ShoppingCart,
 } from "lucide-react-native";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -117,10 +118,6 @@ export function MealPlanScreen() {
 
   const { data, loading, reload } = useFocusData<WeekData>(loader);
 
-  // useFocusData ricarica al focus; qui serve anche a ogni cambio settimana.
-  useEffect(() => {
-    reload();
-  }, [weekStart, reload]);
 
   const changeWeek = (delta: number) => {
     const nextStart = addDays(weekStart, delta * 7);
@@ -152,21 +149,40 @@ export function MealPlanScreen() {
     setPendingPick(picked);
   };
 
+  /**
+   * Esegue un'azione riportando l'esito. Senza, una promise rigettata dopo la
+   * chiusura del dialogo non lascia traccia: l'utente vede il tocco non
+   * produrre nulla e non sa perché. Capita davvero, per esempio quando il piano
+   * referenzia un alimento cancellato dall'archivio.
+   */
+  const guarded = async (action: () => Promise<unknown>, failure: string) => {
+    try {
+      await action();
+      reload();
+    } catch (error) {
+      logger.error("[MealPlanScreen] azione fallita", error);
+      showToast.error({ title: t(failure) });
+    }
+  };
+
   const saveQuantity = async (value: number) => {
     const pick = pendingPick;
     const mealTypeId = pendingMealTypeId;
     setPendingPick(null);
     if (!pick || !mealTypeId || pick.kind === "free") return;
 
-    await addPlanEntry({
-      date: selectedDate,
-      mealTypeId,
-      foodId: pick.kind === "food" ? pick.food.id : null,
-      recipeId: pick.kind === "recipe" ? pick.recipe.id : null,
-      quantityG: pick.kind === "food" ? value : null,
-      servings: pick.kind === "recipe" ? value : null,
-    });
-    reload();
+    await guarded(
+      () =>
+        addPlanEntry({
+          date: selectedDate,
+          mealTypeId,
+          foodId: pick.kind === "food" ? pick.food.id : null,
+          recipeId: pick.kind === "recipe" ? pick.recipe.id : null,
+          quantityG: pick.kind === "food" ? value : null,
+          servings: pick.kind === "recipe" ? value : null,
+        }),
+      "plan.save_failed",
+    );
   };
 
   const saveLabel = async () => {
@@ -177,8 +193,10 @@ export function MealPlanScreen() {
       return;
     }
     setPendingPick(null);
-    await addPlanEntry({ date: selectedDate, mealTypeId, label });
-    reload();
+    await guarded(
+      () => addPlanEntry({ date: selectedDate, mealTypeId, label }),
+      "plan.save_failed",
+    );
   };
 
   const removeEntry = async () => {
@@ -192,7 +210,17 @@ export function MealPlanScreen() {
 
   const applyDay = async () => {
     setConfirmApply(false);
-    const result = await applyPlanToDiary(selectedDate);
+    let result: Awaited<ReturnType<typeof applyPlanToDiary>>;
+    try {
+      result = await applyPlanToDiary(selectedDate);
+    } catch (error) {
+      // Capita quando il piano referenzia un alimento poi cancellato: la
+      // transazione va in rollback e senza questo il tocco non produrrebbe
+      // nulla, senza spiegazione.
+      logger.error("[MealPlanScreen] trasferimento nel diario fallito", error);
+      showToast.error({ title: t("plan.apply_failed") });
+      return;
+    }
     if (result.alreadyApplied) {
       showToast.info({ title: t("plan.apply_already") });
       return;
@@ -213,12 +241,17 @@ export function MealPlanScreen() {
 
   const copyWeek = async () => {
     setConfirmCopy(false);
-    const copied = await copyPlanWeek(weekStart, addDays(weekStart, 7));
-    if (copied === 0) {
-      showToast.info({ title: t("plan.copy_week_empty") });
-      return;
+    try {
+      const copied = await copyPlanWeek(weekStart, addDays(weekStart, 7));
+      if (copied === 0) {
+        showToast.info({ title: t("plan.copy_week_empty") });
+        return;
+      }
+      showToast.success({ title: t("plan.copy_week_done") });
+    } catch (error) {
+      logger.error("[MealPlanScreen] copia settimana fallita", error);
+      showToast.error({ title: t("plan.copy_week_failed") });
     }
-    showToast.success({ title: t("plan.copy_week_done") });
   };
 
   const openShoppingList = () => {

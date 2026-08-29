@@ -48,9 +48,6 @@ export function ExercisesScreen() {
   );
   const { data, loading, reload } = useFocusData<ExerciseRow[]>(loader);
 
-  useEffect(() => {
-    reload();
-  }, [debounced, reload]);
 
   const act = async (fn: () => Promise<void>) => {
     await fn();

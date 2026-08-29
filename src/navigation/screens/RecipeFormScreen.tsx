@@ -313,7 +313,7 @@ export function RecipeFormScreen() {
             />
 
             <View style={styles.photo}>
-              <PhotoField uri={photoUri} onChange={setPhotoUri} />
+              <PhotoField uri={photoUri} onChange={setPhotoUri} prefix="recipe" />
             </View>
 
             <SectionLabel style={styles.section}>

@@ -28,7 +28,7 @@ import { theme } from "@/src/styles";
 import { formatDate } from "@/src/utils/dateUtils";
 import { logger } from "@/src/utils/logger";
 import { ChevronLeft, Ruler } from "lucide-react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Keyboard,
@@ -80,9 +80,6 @@ export function MeasurementsScreen() {
 
   const { data, loading, reload } = useFocusData<MeasurementsData>(loader);
 
-  useEffect(() => {
-    reload();
-  }, [site, reload]);
 
   const rows = data?.rows ?? [];
   const today = todayIso();

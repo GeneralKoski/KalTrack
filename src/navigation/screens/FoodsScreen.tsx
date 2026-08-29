@@ -36,10 +36,6 @@ export function FoodsScreen() {
   const loader = useCallback(() => searchFoods(debounced), [debounced]);
   const { data, loading, reload } = useFocusData<FoodRow[]>(loader);
 
-  // useFocusData ricarica al focus; qui serve anche a ogni cambio del termine.
-  useEffect(() => {
-    reload();
-  }, [debounced, reload]);
 
   const onToggleFavorite = async (id: string) => {
     await toggleFoodFavorite(id);

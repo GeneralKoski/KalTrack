@@ -154,7 +154,7 @@ export function ProgressPhotosScreen() {
           >
             <SectionLabel>{t("progress_photos.add")}</SectionLabel>
             <Card style={styles.card}>
-              <PhotoField uri={pendingUri} onChange={setPendingUri} />
+              <PhotoField uri={pendingUri} onChange={setPendingUri} prefix="progress" />
 
               {pendingUri ? (
                 <>

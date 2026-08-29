@@ -179,7 +179,7 @@ export function FoodFormScreen() {
               <Text style={[styles.section, { color: colors.textMuted }]}>
                 {t("foods.photo")}
               </Text>
-              <PhotoField uri={photoUri} onChange={setPhotoUri} height={140} />
+              <PhotoField uri={photoUri} onChange={setPhotoUri} height={140} prefix="food" />
 
               <Text style={[styles.section, { color: colors.textMuted }]}>
                 {t("foods.values_per_100")}

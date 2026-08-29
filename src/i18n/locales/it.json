@@ -485,7 +485,10 @@
     "label_placeholder": "Es. cena fuori",
     "label_required": "Serve un nome",
     "delete_title": "Togliere dal piano?",
-    "deleted": "Tolto dal piano"
+    "deleted": "Tolto dal piano",
+    "save_failed": "Non sono riuscito a salvare",
+    "apply_failed": "Trasferimento nel diario non riuscito: forse un alimento del piano è stato eliminato",
+    "copy_week_failed": "Copia della settimana non riuscita"
   },
   "shopping": {
     "title": "Lista della spesa",

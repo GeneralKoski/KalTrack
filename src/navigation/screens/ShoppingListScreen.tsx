@@ -10,7 +10,7 @@ import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import { useRoute, type RouteProp } from "@react-navigation/native";
 import { Check, ChevronLeft, ShoppingCart } from "lucide-react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -75,12 +75,8 @@ export function ShoppingListScreen() {
     () => planToShoppingList(range[0], range[1]),
     [range],
   );
-  const { data, loading, reload } = useFocusData<ShoppingItem[]>(loader);
+  const { data, loading } = useFocusData<ShoppingItem[]>(loader);
 
-  // useFocusData ricarica al focus; qui serve anche a ogni cambio intervallo.
-  useEffect(() => {
-    reload();
-  }, [range, reload]);
 
   const items = data ?? [];
   const takenCount = items.filter((item) => taken.has(item.foodId)).length;

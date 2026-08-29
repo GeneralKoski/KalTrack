@@ -46,7 +46,7 @@ import type { MealEntryRow, MealTypeRow, TargetRow } from "@/src/types/nutrition
 import { showToast } from "@/src/utils/toast";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { Footprints, Plus, Scale, UtensilsCrossed } from "lucide-react-native";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -120,9 +120,6 @@ export function TodayScreen() {
 
   const { data, loading, reload } = useFocusData<DayData>(loader);
 
-  useEffect(() => {
-    reload();
-  }, [date, reload]);
 
   const openAdd = (typeId?: string) => {
     setMealTypeId(typeId ?? data?.mealTypes[0]?.id ?? null);

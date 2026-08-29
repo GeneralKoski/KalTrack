@@ -10,14 +10,18 @@ interface FocusData<T> {
 
 /**
  * Carica dati dal DB locale al focus della schermata (local-first: nessun
- * fetch di rete). Il loader è tenuto in un ref, così l'effetto di focus resta
- * stabile anche se il chiamante lo ridefinisce a ogni render.
+ * fetch di rete) e ogni volta che il loader cambia.
+ *
+ * Il loader va memoizzato dal chiamante con useCallback sulle sue dipendenze
+ * (il termine di ricerca, la data scelta...): cambiandolo l'effetto riparte da
+ * solo, CON il suo cleanup. È il motivo per cui le schermate non devono
+ * aggiungere un useEffect che richiama reload(): quello scarterebbe il cleanup,
+ * e una risposta lenta di un filtro precedente sovrascriverebbe i dati di
+ * quello corrente.
  */
 export function useFocusData<T>(loader: () => Promise<T>): FocusData<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
-  const loaderRef = useRef(loader);
-  loaderRef.current = loader;
   const dataRef = useRef<T | null>(null);
 
   const run = useCallback(() => {
@@ -27,7 +31,7 @@ export function useFocusData<T>(loader: () => Promise<T>): FocusData<T> {
     if (dataRef.current === null) setLoading(true);
     (async () => {
       try {
-        const result = await loaderRef.current();
+        const result = await loader();
         if (active) {
           dataRef.current = result;
           setData(result);
@@ -41,7 +45,7 @@ export function useFocusData<T>(loader: () => Promise<T>): FocusData<T> {
     return () => {
       active = false;
     };
-  }, []);
+  }, [loader]);
 
   useFocusEffect(run);
 

@@ -70,9 +70,6 @@ export function RecipesScreen() {
 
   const { data, loading, reload } = useFocusData<RecipeListEntry[]>(loader);
 
-  useEffect(() => {
-    reload();
-  }, [debounced, reload]);
 
   const onToggleFavorite = async (id: string) => {
     await toggleRecipeFavorite(id);
