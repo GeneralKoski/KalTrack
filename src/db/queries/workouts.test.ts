@@ -333,3 +333,69 @@ describe("recentSessions", () => {
     expect(session.dayName).toBe("Push A");
   });
 });
+
+describe("riprendere un allenamento", () => {
+  /**
+   * Il difetto che questo test blocca: ogni ritorno sulla schermata apriva una
+   * sessione nuova. Uscire e rientrare due volte lasciava tre "Giorno 1" nello
+   * stesso giorno, due dei quali vuoti, e le serie finivano divise.
+   */
+  it("riprende la sessione aperta dello stesso giorno di scheda", async () => {
+    const routineId = await createRoutine(pushDay());
+    const days = await listRoutineDays(routineId);
+
+    const first = await startSession({
+      date: "2026-08-28",
+      routineDayId: days[0].id,
+    });
+    const second = await startSession({
+      date: "2026-08-28",
+      routineDayId: days[0].id,
+    });
+    expect(second).toBe(first);
+    expect(await recentSessions()).toHaveLength(1);
+  });
+
+  it("ne apre una nuova dopo che la precedente e' finita", async () => {
+    const first = await startSession({ date: "2026-08-28" });
+    await endSession(first);
+    const second = await startSession({ date: "2026-08-28" });
+
+    expect(second).not.toBe(first);
+    expect(await recentSessions()).toHaveLength(2);
+  });
+
+  it("tiene separati giorni di scheda diversi nello stesso giorno", async () => {
+    const routineId = await createRoutine({
+      ...pushDay(),
+      days: [
+        { ...pushDay().days[0], name: "Push A" },
+        { ...pushDay().days[0], name: "Pull B" },
+      ],
+    });
+    const days = await listRoutineDays(routineId);
+
+    const push = await startSession({
+      date: "2026-08-28",
+      routineDayId: days[0].id,
+    });
+    const pull = await startSession({
+      date: "2026-08-28",
+      routineDayId: days[1].id,
+    });
+    expect(pull).not.toBe(push);
+  });
+
+  /** Un allenamento libero non si confonde con uno di scheda. */
+  it("non riprende una sessione di scheda per un allenamento libero", async () => {
+    const routineId = await createRoutine(pushDay());
+    const days = await listRoutineDays(routineId);
+    const planned = await startSession({
+      date: "2026-08-28",
+      routineDayId: days[0].id,
+    });
+    const free = await startSession({ date: "2026-08-28" });
+
+    expect(free).not.toBe(planned);
+  });
+});

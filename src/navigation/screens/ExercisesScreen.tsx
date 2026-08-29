@@ -1,6 +1,12 @@
 import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { DfAlert } from "@/src/components/DfAlert";
-import { EmptyState, ScreenBackground, SearchBar } from "@/src/components/kal";
+import {
+  EmptyState,
+  ScreenBackground,
+  SearchBar,
+  SectionLabel,
+} from "@/src/components/kal";
+import { EquipmentPicker } from "@/src/containers/gym/EquipmentPicker";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { ExerciseListItem } from "@/src/containers/gym/ExerciseListItem";
@@ -71,6 +77,14 @@ export function ExercisesScreen() {
             {t("gym.exercises")}
           </Text>
         </View>
+
+        {/* L'attrezzatura sta qui perche' e' il presupposto di tutto il resto:
+            senza dichiararla, "proponi alternativa con la mia attrezzatura" e
+            la generazione della scheda non hanno su cosa lavorare. */}
+        <SectionLabel style={styles.equipmentLabel}>
+          {t("gym.equipment_title")}
+        </SectionLabel>
+        <EquipmentPicker />
 
         <View style={styles.searchWrap}>
           <SearchBar
@@ -154,6 +168,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   title: { flex: 1, fontSize: 18, fontWeight: "700" },
+  equipmentLabel: { paddingHorizontal: theme.spacing.md },
   searchWrap: {
     paddingHorizontal: theme.spacing.md,
     paddingBottom: theme.spacing.sm,

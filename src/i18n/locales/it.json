@@ -342,7 +342,8 @@
     "no_sessions": "Nessun allenamento registrato.",
     "session_open": "Allenamento in corso",
     "free_workout": "Allenamento libero",
-    "sets_count": "%{count} serie"
+    "sets_count": "%{count} serie",
+    "equipment_hint": "Tocca quello che hai: serve per proporti alternative fattibili e per generare schede. Il corpo libero c'è sempre."
   },
   "assistant": {
     "open": "Parla con l'assistente",

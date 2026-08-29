@@ -141,6 +141,25 @@ export async function setEquipmentAvailability(
   );
 }
 
+/**
+ * Lo stato di OGNI attrezzo, non solo di quelli disponibili.
+ *
+ * Serve alla schermata che li fa spuntare: un attrezzo mai toccato non e' in
+ * tabella, e senza questa distinzione non si potrebbe mostrare la differenza
+ * fra "non ce l'ho" e "non l'ho ancora detto".
+ */
+export async function listEquipmentAvailability(): Promise<
+  Record<string, boolean>
+> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<{ name: string; available: number }>(
+    "SELECT name, available FROM user_equipment WHERE deleted_at IS NULL",
+  );
+  const state: Record<string, boolean> = {};
+  for (const row of rows) state[row.name] = row.available === 1;
+  return state;
+}
+
 export async function listAvailableEquipment(): Promise<string[]> {
   const db = await getDb();
   const rows = await db.getAllAsync<{ name: string }>(

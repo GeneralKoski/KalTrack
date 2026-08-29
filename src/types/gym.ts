@@ -12,18 +12,22 @@ export type MuscleGroup =
   | "avambracci"
   | "full_body";
 
-export type Equipment =
-  | "corpo_libero"
-  | "bilanciere"
-  | "manubri"
-  | "kettlebell"
-  | "cavi"
-  | "macchina"
-  | "panca"
-  | "sbarra"
-  | "elastici"
-  | "trx"
-  | "cardio";
+/** L'elenco chiuso degli attrezzi, in un array per poterli mostrare tutti. */
+export const EQUIPMENT = [
+  "corpo_libero",
+  "bilanciere",
+  "manubri",
+  "kettlebell",
+  "cavi",
+  "macchina",
+  "panca",
+  "sbarra",
+  "elastici",
+  "trx",
+  "cardio",
+] as const;
+
+export type Equipment = (typeof EQUIPMENT)[number];
 
 /** Blocchi: è il livello che rende esprimibili superset, circuiti e dropset. */
 export type BlockKind = "single" | "superset" | "circuit" | "dropset";

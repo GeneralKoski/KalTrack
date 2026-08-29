@@ -269,11 +269,29 @@ export async function getRoutineDay(
   return { day, name: day.name, blocks };
 }
 
+/**
+ * Apre un allenamento, o riprende quello gia' aperto.
+ *
+ * Riprendere non e' un di piu': senza, ogni ritorno sulla schermata - uscire e
+ * rientrare, chiudere l'app a meta' serie - lasciava dietro una sessione vuota
+ * nello storico, e le serie finivano divise fra due allenamenti dello stesso
+ * giorno. Una sessione e' aperta finche' non ha `ended_at`.
+ */
 export async function startSession(args: {
   date: string;
   routineDayId?: string | null;
 }): Promise<string> {
   const db = await getDb();
+
+  const open = await db.getFirstAsync<{ id: string }>(
+    `SELECT id FROM workout_sessions
+      WHERE date = ? AND ended_at IS NULL AND deleted_at IS NULL
+        AND routine_day_id IS ?
+      ORDER BY started_at DESC LIMIT 1`,
+    [args.date, args.routineDayId ?? null],
+  );
+  if (open) return open.id;
+
   const id = newId();
   const now = nowIso();
   await db.runAsync(
