@@ -37,6 +37,13 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
+            // L'indice PRIMA della colonna: su SQLite togliere una colonna che
+            // ha ancora un indice sopra fallisce con "error in index ... after
+            // drop column", e il rollback si ferma a meta'.
+            $table->dropUnique(['handle']);
+        });
+
+        Schema::table('users', function (Blueprint $table) {
             $table->dropColumn([
                 'handle',
                 'display_name',

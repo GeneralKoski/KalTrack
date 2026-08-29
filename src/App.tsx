@@ -16,6 +16,7 @@ import { Navigation } from "@/src/navigation";
 import { syncStepsOnStartup } from "@/src/services/healthConnect";
 import { syncSharedStats } from "@/src/services/shareSync";
 import { runSync } from "@/src/services/sync";
+import { startSyncScheduler } from "@/src/services/syncScheduler";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { configureNotificationHandler } from "@/src/services/reminders";
 import { useThemeStore } from "@/src/stores/themeStore";
@@ -91,6 +92,14 @@ export function App() {
   useEffect(() => {
     if (fontsLoaded && dbReady && themeReady) SplashScreen.hideAsync();
   }, [fontsLoaded, dbReady, themeReady]);
+
+  // La sincronizzazione periodica parte quando il database e' pronto e si
+  // ferma con l'app: senza la pulizia, un ricaricamento in sviluppo
+  // lascerebbe dietro un timer per ogni ricarica.
+  useEffect(() => {
+    if (!dbReady) return;
+    return startSyncScheduler();
+  }, [dbReady]);
 
   if (!fontsLoaded || !dbReady || !themeReady) return null;
 
