@@ -105,15 +105,47 @@ describe("matchScore", () => {
     expect(matchScore("caffè", "Caffe'")).toBe(1);
   });
 
-  it("premia il match esatto più della sottostringa, e questa più del fuzzy", () => {
-    // Query lunga: qui la tolleranza al refuso è ammessa.
+  it("il match esatto batte ogni altro modo di somigliarsi", () => {
     const exact = matchScore("parmigiano", "parmigiano") ?? 0;
     const substring = matchScore("parmigiano", "parmigiano reggiano") ?? 0;
     const fuzzy = matchScore("parmigiano", "parmiggiano") ?? 0;
 
+    expect(exact).toBe(1);
     expect(exact).toBeGreaterThan(substring);
-    expect(substring).toBeGreaterThan(fuzzy);
+    expect(exact).toBeGreaterThan(fuzzy);
+    expect(substring).toBeGreaterThan(0);
     expect(fuzzy).toBeGreaterThan(0);
+  });
+
+  /**
+   * Le fasce sotto l'esatto NON sono in ordine fisso, e non devono esserlo.
+   *
+   * Tenere il fuzzy sempre sotto la sottostringa era comodo ma sbagliato:
+   * "burro d arachidi" e "burro di arachidi" distano un carattere su
+   * diciassette, e quel match vale piu' di "Burro" preso come pezzo della
+   * stessa frase. Con l'ordinamento rigido vinceva "Burro", e trenta grammi
+   * di burro d'arachidi entravano nel diario come 227 kcal di burro.
+   */
+  it("un refuso su una frase lunga batte un nome che ne copre un pezzo", () => {
+    const refuso = matchScore("burro d'arachidi", "Burro di arachidi") ?? 0;
+    const pezzo = matchScore("burro d'arachidi", "Burro") ?? 0;
+
+    expect(refuso).toBeGreaterThan(pezzo);
+    expect(pezzo).toBeLessThan(0.5);
+  });
+
+  /**
+   * Nessuna delle due frasi contiene l'altra e la distanza di edit e' troppo
+   * alta: senza il confronto per parole intere l'unico candidato rimasto era
+   * "Mela", che con la query condivide quattro lettere e nessuna parola.
+   */
+  it("due nomi che condividono la parola principale si somigliano", () => {
+    const stessaParola =
+      matchScore("melanzane grigliate", "Melanzane crude") ?? 0;
+    const soleLettere = matchScore("melanzane grigliate", "Mela") ?? 0;
+
+    expect(stessaParola).toBeGreaterThan(soleLettere);
+    expect(stessaParola).toBeGreaterThan(0.7);
   });
 
   it("su parole brevi non tollera nessun refuso", () => {
@@ -149,7 +181,10 @@ describe("matchScore", () => {
   it("tollera il refuso dentro una parola abbastanza lunga", () => {
     const fuzzy = matchScore("peto di pollo", "Petto di pollo");
     expect(fuzzy).not.toBeNull();
-    expect(fuzzy ?? 0).toBeLessThan(0.75);
+    // Alto, e deve esserlo: un carattere su quattordici e' un refuso di
+    // battitura, non un altro alimento.
+    expect(fuzzy ?? 0).toBeGreaterThan(0.7);
+    expect(fuzzy ?? 0).toBeLessThan(1);
   });
 });
 
@@ -178,6 +213,35 @@ describe("matchScore sui nomi reali del seed", () => {
     expect(bestSeedName("tempeh")).toBe("Tempeh");
     expect(bestSeedName("petto di pollo")).toBe("Petto di pollo crudo");
   });
+
+  /**
+   * I casi che il difetto produceva davvero. Ognuno finiva nel diario con i
+   * valori di un altro alimento: trenta grammi di burro d'arachidi come burro
+   * (227 kcal invece di 176, e 0,2 g di proteine invece di 7,5), duecento
+   * grammi di melanzane come mela.
+   */
+  it.each([
+    ["burro d'arachidi", "Burro di arachidi"],
+    ["melanzane grigliate", "Melanzane crude"],
+    ["petto di pollo alla piastra", "Petto di pollo crudo"],
+    ["yogurt greco", "Yogurt greco 0% grassi"],
+  ])("per %s sceglie %s", (query, expected) => {
+    expect(bestSeedName(query)).toBe(expected);
+  });
+
+  /** Il nome corto preso dentro una frase lunga non deve mai vincere. */
+  it.each(["uva passa", "pesca sciroppata", "banana bread"])(
+    "non risolve %s con la sola parola contenuta",
+    (query) => {
+      const best = bestSeedName(query);
+      // Puo' non trovare niente, e va benissimo: la cascata prosegue verso
+      // OpenFoodFacts. Quel che non deve fare e' rispondere "Uva" o "Pesca".
+      expect(["Uva", "Pesca", "Banana", null]).toContain(best);
+      if (best !== null) {
+        expect(matchScore(query, best) ?? 0).toBeLessThan(0.5);
+      }
+    },
+  );
 });
 
 describe("resolveFoodItem — validazione degli input", () => {

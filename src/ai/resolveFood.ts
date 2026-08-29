@@ -96,15 +96,46 @@ const SUBSTRING_BASE = 0.75;
 const SUBSTRING_SPAN = 0.15;
 
 /**
+ * Fascia del match parziale: il candidato e' contenuto NELLA query, cioe'
+ * copre solo un pezzo di quel che l'utente ha detto. E' il segnale piu' debole
+ * di tutti e sta sotto ogni altra fascia.
+ */
+const PARTIAL_BASE = 0.4;
+const PARTIAL_SPAN = 0.3;
+
+/**
  * Quanto pesa la POSIZIONE del match rispetto al rapporto di lunghezza dentro
  * la fascia della sottostringa. Alto di proposito: "inizia con" è un segnale
  * di pertinenza molto più forte di "è corto".
  */
 const POSITION_WEIGHT = 0.7;
 
-/** Fascia di punteggio del match fuzzy: sempre sotto la sottostringa. */
+/**
+ * Fascia del match fuzzy, cioe' del refuso.
+ *
+ * Si SOVRAPPONE di proposito a quella della sottostringa. Tenerla sempre sotto
+ * era una regola comoda ma sbagliata: "burro d arachidi" e "burro di arachidi"
+ * distano un carattere su diciassette, e quel match vale piu' di "Burro" preso
+ * come pezzo della stessa frase. Con le fasce separate vinceva "Burro", e
+ * trenta grammi di burro d'arachidi entravano nel diario come 227 kcal di
+ * burro.
+ */
 const FUZZY_BASE = 0.6;
-const FUZZY_SPAN = 0.14;
+const FUZZY_SPAN = 0.35;
+
+/**
+ * Fascia del match per PAROLE condivise.
+ *
+ * "melanzane grigliate" non contiene "Melanzane crude" ne' viceversa, e la
+ * distanza di edit fra le due e' troppo alta: senza questa fascia l'unico
+ * candidato rimasto era "Mela", che con la query condivide quattro lettere e
+ * nessuna parola.
+ */
+const WORD_BASE = 0.62;
+const WORD_SPAN = 0.28;
+
+/** Parole troppo corte non identificano un alimento: "di", "al", "con". */
+const MIN_WORD_LEN = 4;
 
 /**
  * Tetto di sicurezza sui candidati caricati, non un criterio di selezione: il
@@ -158,10 +189,18 @@ export function editDistance(a: string, b: string): number {
 /**
  * Somiglianza fra due nomi, o null se non si somigliano abbastanza.
  *
- * Le tre fasce non si sovrappongono di proposito: un match esatto (1) batte
- * sempre una sottostringa (0.75-0.90), che batte sempre un match a distanza di
- * edit (0.60-0.74). Così la confidenza dice anche *come* si è arrivati al
- * risultato, e i livelli della cascata sono confrontabili fra loro.
+ * Quattro modi di somigliarsi, in ordine di forza del segnale:
+ *  - identico (1);
+ *  - il candidato CONTIENE la query, l'utente ha detto meno del nome
+ *    completo (0.75-0.90);
+ *  - refuso, misurato sulla lunghezza (0.60-0.95);
+ *  - parole intere in comune (0.62-0.90);
+ *  - la query contiene il candidato, che copre solo un pezzo di quel che e'
+ *    stato detto (0.40-0.70): il segnale piu' debole.
+ *
+ * Le ultime fasce si sovrappongono, e devono: un refuso di un carattere su una
+ * frase lunga e' un match migliore di una parola presa a caso dentro la stessa
+ * frase, e nessun ordinamento rigido delle fasce puo' dirlo.
  *
  * Qui sta l'unica soglia di accettazione: null significa "non abbastanza
  * simile". Un secondo filtro a valle sarebbe una soglia morta che nasconde la
@@ -181,14 +220,24 @@ export function matchScore(query: string, candidate: string): number | null {
   // Da qui in giù si tratta di match parziali: su query cortissime sono rumore.
   if (q.length < MIN_PARTIAL_QUERY_LEN) return null;
 
-  if (c.includes(q) || q.includes(c)) {
-    // Il solo rapporto di lunghezza premia il candidato più corto, che è il
-    // criterio sbagliato: per "uovo" faceva vincere "Albume d'uovo" su "Uovo
-    // di gallina intero". Conta anche DOVE cade il match: un candidato che
-    // inizia con la query, o in cui la query è una parola intera, è più
-    // pertinente di uno che se la porta in coda.
-    const ratio = Math.min(q.length, c.length) / Math.max(q.length, c.length);
-    const startsWith = c.startsWith(q) || q.startsWith(c);
+  /**
+   * I due contenimenti NON sono lo stesso caso e non vanno pesati uguale.
+   *
+   * Il candidato contiene la query ("burro arachidi" dentro "Burro di
+   * arachidi"): l'utente ha detto meno del nome completo, ed e' il caso
+   * normale. Conta dove cade il match, perche' per "uovo" deve vincere "Uovo
+   * di gallina intero" e non "Albume d'uovo".
+   *
+   * La query contiene il candidato ("Burro" dentro "burro d'arachidi"): il
+   * nome trovato e' solo un PEZZO di quel che e' stato detto, e il resto e'
+   * rimasto fuori. Premiarlo per la posizione faceva vincere "Burro" su
+   * "Burro di arachidi" (0,87 contro 0,71), e 30 g di burro d'arachidi
+   * finivano nel diario come 227 kcal di burro. Qui conta solo QUANTO della
+   * frase e' coperto: cinque lettere su sedici non bastano.
+   */
+  if (c.includes(q)) {
+    const ratio = q.length / c.length;
+    const startsWith = c.startsWith(q);
     const wholeWord = new RegExp(`(^|\\s)${escapeForRegExp(q)}($|\\s)`).test(c);
 
     const position = startsWith ? 1 : wholeWord ? 0.6 : 0;
@@ -196,6 +245,33 @@ export function matchScore(query: string, candidate: string): number | null {
       SUBSTRING_BASE +
       SUBSTRING_SPAN * (POSITION_WEIGHT * position + (1 - POSITION_WEIGHT) * ratio);
     return round2(score);
+  }
+
+  if (q.includes(c)) {
+    // Solo copertura, e su una fascia BASSA: il nome trovato e' un pezzo di
+    // quel che e' stato detto, e il resto e' rimasto fuori. "Burro" dentro
+    // "burro d'arachidi" copre cinque lettere su sedici, e deve perdere
+    // contro chiunque copra davvero la frase.
+    const coverage = c.length / q.length;
+    return round2(PARTIAL_BASE + PARTIAL_SPAN * coverage * coverage);
+  }
+
+  // Parole intere condivise, prima del fuzzy: due nomi che hanno in comune la
+  // parola principale si somigliano piu' di due che si somigliano lettera per
+  // lettera senza condividerne nessuna.
+  const words = (value: string): string[] =>
+    value.split(" ").filter((w) => w.length >= MIN_WORD_LEN);
+  const qWords = words(q);
+  const cWords = words(c);
+  if (qWords.length > 0 && cWords.length > 0) {
+    const shared = qWords.filter((w) => cWords.includes(w));
+    if (shared.length > 0) {
+      // Quanto le due frasi si coprono a vicenda, non quante parole in
+      // assoluto: "melanzane" su due parole conta piu' che su cinque.
+      const overlap =
+        (shared.length / qWords.length + shared.length / cWords.length) / 2;
+      return round2(WORD_BASE + WORD_SPAN * overlap);
+    }
   }
 
   if (q.length < MIN_FUZZY_QUERY_LEN) return null;
@@ -206,9 +282,11 @@ export function matchScore(query: string, candidate: string): number | null {
   const threshold = Math.floor(q.length * MAX_DISTANCE_RATIO);
   const distance = editDistance(q, c);
   if (distance > threshold) return null;
-  // +1 al denominatore: il caso peggiore resta dentro la fascia fuzzy invece di
-  // finire esattamente sulla soglia di accettazione.
-  return round2(FUZZY_BASE + FUZZY_SPAN * (1 - distance / (threshold + 1)));
+  // La somiglianza si misura sulla LUNGHEZZA, non sulla soglia: un carattere
+  // di differenza su diciassette e' quasi un'identita', su cinque e' un altro
+  // alimento. Normalizzare sulla soglia dava lo stesso punteggio a entrambi.
+  const similarity = 1 - distance / Math.max(q.length, c.length);
+  return round2(FUZZY_BASE + FUZZY_SPAN * similarity);
 }
 
 interface Match<T> {
