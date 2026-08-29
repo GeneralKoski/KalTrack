@@ -268,3 +268,233 @@ describe("cosa arriva dal server", () => {
     expect(passi?.steps).toBe(9450);
   });
 });
+
+describe("allineamento fra due dispositivi", () => {
+  /**
+   * Il caso peggiore trovato: `weight_logs` ha un UNIQUE su `date`, ma la
+   * riga arriva con l'id dell'altro telefono. L'ON CONFLICT e' su `id`, la
+   * violazione e' su `date`, quindi l'INSERT solleva - e siccome applyChanges
+   * scrive tutto in UNA transazione, l'intero lotto viene annullato. La
+   * sincronizzazione si blocca li' e ci resta a ogni giro.
+   */
+  it("due dispositivi che pesano lo stesso giorno non bloccano tutto", async () => {
+    const database = await getDb();
+    // Il peso di questo telefono per il 29.
+    await database.runAsync(
+      `INSERT INTO weight_logs (id, date, weight_kg, created_at, updated_at)
+       VALUES ('locale-1', '2026-08-29', 78.5, '2026-08-29T08:00:00.000Z', '2026-08-29T08:00:00.000Z')`,
+    );
+
+    // L'altro telefono ha registrato lo stesso giorno, con un id suo.
+    const applied = await applyChanges([
+      {
+        table: "weight_logs",
+        id: "altro-telefono-1",
+        payload: {
+          id: "altro-telefono-1",
+          date: "2026-08-29",
+          weight_kg: 79.1,
+          created_at: "2026-08-29T09:00:00.000Z",
+          updated_at: "2026-08-29T09:00:00.000Z",
+        },
+        updatedAt: "2026-08-29T09:00:00.000Z",
+        deletedAt: null,
+        createdAt: "2026-08-29T09:00:00.000Z",
+      },
+      // Una riga innocente nello stesso lotto: non deve pagare per l'altra.
+      {
+        table: "water_logs",
+        id: "acqua-1",
+        payload: {
+          id: "acqua-1",
+          date: "2026-08-29",
+          ml: 500,
+          created_at: "2026-08-29T09:00:00.000Z",
+          updated_at: "2026-08-29T09:00:00.000Z",
+        },
+        updatedAt: "2026-08-29T09:00:00.000Z",
+        deletedAt: null,
+        createdAt: "2026-08-29T09:00:00.000Z",
+      },
+    ]);
+
+    // L'acqua deve essere entrata comunque.
+    const acqua = await database.getFirstAsync<{ ml: number }>(
+      "SELECT ml FROM water_logs WHERE id = 'acqua-1'",
+    );
+    expect(acqua?.ml).toBe(500);
+    expect(applied).toBeGreaterThanOrEqual(1);
+
+    // E un solo peso per quel giorno: quello piu' recente vince.
+    const pesi = await database.getAllAsync<{ weight_kg: number }>(
+      "SELECT weight_kg FROM weight_logs WHERE date = '2026-08-29' AND deleted_at IS NULL",
+    );
+    expect(pesi).toHaveLength(1);
+    expect(pesi[0].weight_kg).toBe(79.1);
+  });
+});
+
+describe("i due orologi", () => {
+  /**
+   * Il difetto che questo test blocca: `runSync` usava UN cursore per due
+   * cose, l'ora del server per scaricare e la stessa ora confrontata con gli
+   * `updated_at` locali per inviare. Con il telefono anche solo un minuto
+   * indietro rispetto al server, le righe scritte in quel minuto risultavano
+   * gia' inviate e non partivano mai piu'.
+   */
+  it("il segnaposto di invio e' un'ora locale, non del server", async () => {
+    // Una riga scritta "adesso" secondo il telefono.
+    const database = await getDb();
+    const oraLocale = "2026-08-29T10:00:00.000Z";
+    await database.runAsync(
+      `INSERT INTO water_logs (id, date, ml, created_at, updated_at)
+       VALUES ('w1', '2026-08-29', 250, ?, ?)`,
+      [oraLocale, oraLocale],
+    );
+
+    // Il server e' avanti di dieci minuti: il suo cursore e' nel futuro
+    // rispetto a qualunque updated_at locale.
+    const cursoreDelServer = "2026-08-29T10:10:00.000Z";
+    const conCursoreServer = await collectChanges(cursoreDelServer);
+    expect(conCursoreServer.some((c) => c.id === "w1")).toBe(false);
+
+    // Con il segnaposto locale la riga parte, che e' il comportamento giusto.
+    const conSegnapostoLocale = await collectChanges("2026-08-29T09:00:00.000Z");
+    expect(conSegnapostoLocale.some((c) => c.id === "w1")).toBe(true);
+  });
+
+  /**
+   * Il formato deve restare confrontabile come stringa: e' cosi' che SQLite
+   * decide cosa e' cambiato dopo il segnaposto.
+   */
+  it("gli orari locali sono ordinabili come stringhe", async () => {
+    const database = await getDb();
+    for (const [id, t] of [
+      ["a", "2026-08-29T09:00:00.000Z"],
+      ["b", "2026-08-29T10:00:00.000Z"],
+      ["c", "2026-08-29T11:00:00.000Z"],
+    ]) {
+      await database.runAsync(
+        `INSERT INTO water_logs (id, date, ml, created_at, updated_at)
+         VALUES (?, '2026-08-29', 100, ?, ?)`,
+        [id, t, t],
+      );
+    }
+
+    const dopo = await collectChanges("2026-08-29T10:00:00.000Z");
+    const ids = dopo.filter((c) => c.table === "water_logs").map((c) => c.id);
+    expect(ids).toContain("c");
+    expect(ids).not.toContain("a");
+    expect(ids).not.toContain("b");
+  });
+});
+
+describe("cancellazioni e conflitti", () => {
+  /** Una cancellazione arrivata dall'altro telefono deve vincere se e' piu' recente. */
+  it("una cancellazione piu' recente sovrascrive la riga locale", async () => {
+    const id = await food({ name: "Da cancellare" });
+    const database = await getDb();
+    await database.runAsync("UPDATE foods SET updated_at = ? WHERE id = ?", [
+      "2026-08-29T09:00:00.000Z",
+      id,
+    ]);
+
+    await applyChanges([
+      {
+        table: "foods",
+        id,
+        payload: {
+          id,
+          name: "Da cancellare",
+          name_norm: "da cancellare",
+          kcal: 100,
+          created_at: "2026-08-29T08:00:00.000Z",
+          updated_at: "2026-08-29T12:00:00.000Z",
+          deleted_at: "2026-08-29T12:00:00.000Z",
+        },
+        updatedAt: "2026-08-29T12:00:00.000Z",
+        deletedAt: "2026-08-29T12:00:00.000Z",
+        createdAt: "2026-08-29T08:00:00.000Z",
+      },
+    ]);
+
+    const row = await database.getFirstAsync<{ deleted_at: string | null }>(
+      "SELECT deleted_at FROM foods WHERE id = ?",
+      [id],
+    );
+    expect(row?.deleted_at).toBe("2026-08-29T12:00:00.000Z");
+  });
+
+  /**
+   * Il verso opposto: ho modificato qui DOPO che l'altro l'ha cancellata.
+   * La mia modifica vince, e la riga resta viva.
+   */
+  it("una modifica locale piu' recente batte una cancellazione vecchia", async () => {
+    const id = await food({ name: "Modificata dopo" });
+    const database = await getDb();
+    await database.runAsync("UPDATE foods SET updated_at = ? WHERE id = ?", [
+      "2026-08-29T15:00:00.000Z",
+      id,
+    ]);
+
+    await applyChanges([
+      {
+        table: "foods",
+        id,
+        payload: { id, name: "x", deleted_at: "2026-08-29T10:00:00.000Z" },
+        updatedAt: "2026-08-29T10:00:00.000Z",
+        deletedAt: "2026-08-29T10:00:00.000Z",
+        createdAt: "2026-08-29T08:00:00.000Z",
+      },
+    ]);
+
+    const row = await database.getFirstAsync<{ deleted_at: string | null }>(
+      "SELECT deleted_at FROM foods WHERE id = ?",
+      [id],
+    );
+    expect(row?.deleted_at).toBeNull();
+  });
+
+  /** Una riga rotta non deve portarsi dietro le altre del lotto. */
+  it("una riga che non si puo' scrivere non annulla il lotto", async () => {
+    const applied = await applyChanges([
+      {
+        table: "meal_entries",
+        id: "orfana-1",
+        // meal_id punta a un pasto che qui non esiste: la foreign key rifiuta.
+        payload: {
+          id: "orfana-1",
+          meal_id: "pasto-inesistente",
+          source_kind: "free",
+          kcal: 100,
+          created_at: "2026-08-29T10:00:00.000Z",
+          updated_at: "2026-08-29T10:00:00.000Z",
+        },
+        updatedAt: "2026-08-29T10:00:00.000Z",
+        deletedAt: null,
+        createdAt: "2026-08-29T10:00:00.000Z",
+      },
+      {
+        table: "water_logs",
+        id: "buona-1",
+        payload: {
+          id: "buona-1",
+          date: "2026-08-29",
+          ml: 330,
+          created_at: "2026-08-29T10:00:00.000Z",
+          updated_at: "2026-08-29T10:00:00.000Z",
+        },
+        updatedAt: "2026-08-29T10:00:00.000Z",
+        deletedAt: null,
+        createdAt: "2026-08-29T10:00:00.000Z",
+      },
+    ]);
+
+    expect(applied).toBe(1);
+    const database = await getDb();
+    const ok = await database.getFirstAsync<{ ml: number }>(
+      "SELECT ml FROM water_logs WHERE id = 'buona-1'",
+    );
+    expect(ok?.ml).toBe(330);
+  });
+});

@@ -61,8 +61,20 @@ export const SYNCED_TABLES = [
 
 export type SyncedTable = (typeof SYNCED_TABLES)[number];
 
-/** Il segnaposto da cui riprendere, salvato tra un avvio e l'altro. */
+/**
+ * DUE segnaposti, perche' ci sono due orologi.
+ *
+ * `sync.cursor` e' l'ora del SERVER e dice da dove riprendere a scaricare.
+ * `sync.pushed_at` e' l'ora di QUESTO telefono e dice cosa e' gia' stato
+ * mandato.
+ *
+ * Usarne uno solo per entrambi confrontava l'ora del server con gli
+ * `updated_at` locali: con il telefono anche solo un minuto indietro rispetto
+ * al server, tutte le righe scritte in quel minuto risultavano gia' inviate e
+ * non partivano mai piu'. Nessun giro successivo le avrebbe recuperate.
+ */
 const CURSOR_KEY = "sync.cursor";
+const PUSHED_KEY = "sync.pushed_at";
 
 /**
  * Impostazioni che NON viaggiano: sono stato di questo dispositivo, non dati
@@ -74,7 +86,7 @@ const CURSOR_KEY = "sync.cursor";
  * avrebbe saltato tutte le righe arrivate prima di quel punto senza averle
  * mai ricevute.
  */
-const LOCAL_ONLY_SETTINGS = new Set([CURSOR_KEY]);
+const LOCAL_ONLY_SETTINGS = new Set([CURSOR_KEY, PUSHED_KEY]);
 
 /**
  * Quante righe per volta. Il server ne accetta 2000: restare sotto lascia
@@ -153,11 +165,34 @@ export async function collectChanges(
 }
 
 /**
+ * Vincoli UNIQUE che NON sono la chiave primaria.
+ *
+ * Sono il punto in cui due dispositivi si scontrano davvero: entrambi possono
+ * registrare il peso dello stesso giorno, ciascuno con il proprio id. La riga
+ * che arriva ha un id diverso ma la stessa data, e l'INSERT viola il vincolo.
+ *
+ * Prima di scrivere si toglie di mezzo la riga locale in conflitto, se quella
+ * in arrivo e' piu' recente. Senza, l'INSERT sollevava, e siccome tutto il
+ * lotto sta in una transazione l'intera sincronizzazione veniva annullata e si
+ * ribloccava identica a ogni giro.
+ */
+const UNIQUE_KEYS: Record<string, string[]> = {
+  weight_logs: ["date"],
+  step_logs: ["date"],
+  achievements: ["code"],
+  body_measurements: ["date", "site"],
+};
+
+/**
  * Scrive nel database locale quel che arriva dal server.
  *
  * Chi ha scritto per ultimo vince, e il confronto si fa qui riga per riga: una
  * modifica locale piu' recente non viene sovrascritta da una copia piu'
  * vecchia arrivata dalla rete.
+ *
+ * Una riga che non si riesce a scrivere NON ferma le altre: viene registrata
+ * e si prosegue. Un lotto che fallisce per intero a causa di una riga sola
+ * bloccherebbe la sincronizzazione per sempre.
  */
 export async function applyChanges(changes: SyncChange[]): Promise<number> {
   if (changes.length === 0) return 0;
@@ -198,6 +233,17 @@ export async function applyChanges(changes: SyncChange[]): Promise<number> {
       );
       if (existing && existing.updated_at >= change.updatedAt) continue;
 
+      // La riga locale che occupa lo stesso posto con un id diverso: se la
+      // nostra e' piu' recente teniamo la nostra e scartiamo quella in
+      // arrivo, altrimenti le facciamo posto.
+      const conflict = await findUniqueConflict(db, change, columns);
+      if (conflict !== null) {
+        if (conflict.updated_at >= change.updatedAt) continue;
+        await db.runAsync(`DELETE FROM ${change.table} WHERE ${key} = ?`, [
+          conflict.key,
+        ]);
+      }
+
       // Solo le colonne che questa versione dello schema conosce: un campo
       // aggiunto da una versione piu' nuova non deve far fallire l'INSERT.
       const usable = columns.filter((c) => c in change.payload);
@@ -207,17 +253,52 @@ export async function applyChanges(changes: SyncChange[]): Promise<number> {
       const placeholders = usable.map(() => "?").join(", ");
       const updates = usable.map((c) => `${c} = excluded.${c}`).join(", ");
 
-      await db.runAsync(
-        `INSERT INTO ${change.table} (${usable.join(", ")})
-         VALUES (${placeholders})
-         ON CONFLICT(${key}) DO UPDATE SET ${updates}`,
-        values,
-      );
-      applied++;
+      try {
+        await db.runAsync(
+          `INSERT INTO ${change.table} (${usable.join(", ")})
+           VALUES (${placeholders})
+           ON CONFLICT(${key}) DO UPDATE SET ${updates}`,
+          values,
+        );
+        applied++;
+      } catch (error) {
+        // Una riga sola non deve annullare il lotto: si annota e si va
+        // avanti. Il giro successivo la ritentera'.
+        logger.warn(
+          `[sync] riga non scritta: ${change.table}/${change.id}`,
+          error,
+        );
+      }
     }
   });
 
   return applied;
+}
+
+/**
+ * La riga locale che occuperebbe lo stesso posto di quella in arrivo secondo
+ * un vincolo UNIQUE, se esiste ed e' un'altra riga.
+ */
+async function findUniqueConflict(
+  db: Awaited<ReturnType<typeof getDb>>,
+  change: SyncChange,
+  columns: string[],
+): Promise<{ key: string; updated_at: string } | null> {
+  const unique = UNIQUE_KEYS[change.table];
+  if (!unique) return null;
+  if (!unique.every((c) => columns.includes(c) && c in change.payload)) {
+    return null;
+  }
+
+  const where = unique.map((c) => `${c} = ?`).join(" AND ");
+  const values = unique.map((c) => change.payload[c] as string | number | null);
+  const row = await db.getFirstAsync<{ id: string; updated_at: string }>(
+    `SELECT id, updated_at FROM ${change.table} WHERE ${where}`,
+    values,
+  );
+
+  if (!row || row.id === change.id) return null;
+  return { key: row.id, updated_at: row.updated_at };
 }
 
 /**
@@ -253,7 +334,8 @@ export async function runSync(): Promise<{
 
     for (let round = 0; round < MAX_ROUNDS; round++) {
       const cursor = await getSetting(CURSOR_KEY);
-      const changes = await collectChanges(cursor);
+      const pushedAt = await getSetting(PUSHED_KEY);
+      const changes = await collectChanges(pushedAt);
 
       const response = await apiRequest<SyncResponse>({
         method: "post",
@@ -266,6 +348,14 @@ export async function runSync(): Promise<{
       // fallisce a meta', il giro successivo riprende dallo stesso punto
       // invece di dare per ricevute righe che non sono mai entrate.
       await setSetting(CURSOR_KEY, response.cursor);
+      // Fin dove siamo arrivati a mandare: il massimo `updated_at` LOCALE fra
+      // le righe inviate, non l'ora corrente. Prendere "adesso" salterebbe le
+      // righe scritte mentre la richiesta era in volo.
+      const maxSent = changes.reduce(
+        (max, c) => (c.updatedAt > max ? c.updatedAt : max),
+        pushedAt ?? "",
+      );
+      if (maxSent !== "") await setSetting(PUSHED_KEY, maxSent);
 
       pushed += response.applied;
       pulled += applied;
