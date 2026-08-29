@@ -14,6 +14,8 @@ import { initDatabase } from "@/src/db";
 import { AssistantButton } from "@/src/containers/assistant/AssistantButton";
 import { Navigation } from "@/src/navigation";
 import { syncStepsOnStartup } from "@/src/services/healthConnect";
+import { syncSharedStats } from "@/src/services/shareSync";
+import { useAccountStore } from "@/src/stores/accountStore";
 import { configureNotificationHandler } from "@/src/services/reminders";
 import { useThemeStore } from "@/src/stores/themeStore";
 import { logger } from "@/src/utils/logger";
@@ -67,6 +69,12 @@ export function App() {
       // Dopo il gate, non dentro: i passi di Health Connect sono un extra e
       // non devono trattenere la splash se il provider è lento a rispondere.
       void syncStepsOnStartup();
+      // L'account e' facoltativo: senza, `restore` non trova niente e la
+      // pubblicazione dei totali non parte nemmeno.
+      void useAccountStore
+        .getState()
+        .restore()
+        .then(() => syncSharedStats());
     })();
     return () => {
       active = false;

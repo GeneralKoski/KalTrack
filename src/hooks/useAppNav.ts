@@ -22,6 +22,9 @@ export interface NavParams {
   Session: { routineId: string; dayIndex: number };
   Achievements: undefined;
   Fasting: undefined;
+  Friends: undefined;
+  FriendProfile: { handle: string };
+  MyProfile: undefined;
   Measurements: undefined;
   ProgressPhotos: undefined;
   MealPlan: undefined;

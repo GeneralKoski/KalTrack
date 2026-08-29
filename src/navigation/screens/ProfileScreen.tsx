@@ -19,6 +19,7 @@ import {
   Target,
   Timer,
   Trophy,
+  Users,
 } from "lucide-react-native";
 import React from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
@@ -132,6 +133,14 @@ export function ProfileScreen() {
             <Bell size={22} color={colors.text} />
             <Text style={[styles.rowLabel, { color: colors.text }]}>
               {t("profile.reminders")}
+            </Text>
+            <ChevronRight size={20} color={colors.textFaint} />
+          </Card>
+
+          <Card onPress={() => navigate("Friends")} style={styles.row}>
+            <Users size={22} color={colors.text} />
+            <Text style={[styles.rowLabel, { color: colors.text }]}>
+              {t("social.title")}
             </Text>
             <ChevronRight size={20} color={colors.textFaint} />
           </Card>

@@ -25,6 +25,9 @@ import { AchievementsScreen } from "@/src/navigation/screens/AchievementsScreen"
 import { BackupScreen } from "@/src/navigation/screens/BackupScreen";
 import { ExercisesScreen } from "@/src/navigation/screens/ExercisesScreen";
 import { FastingScreen } from "@/src/navigation/screens/FastingScreen";
+import { FriendProfileScreen } from "@/src/navigation/screens/FriendProfileScreen";
+import { FriendsScreen } from "@/src/navigation/screens/FriendsScreen";
+import { MyProfileScreen } from "@/src/navigation/screens/MyProfileScreen";
 import { MealPlanScreen } from "@/src/navigation/screens/MealPlanScreen";
 import { MeasurementsScreen } from "@/src/navigation/screens/MeasurementsScreen";
 import { ProgressPhotosScreen } from "@/src/navigation/screens/ProgressPhotosScreen";
@@ -218,6 +221,18 @@ const RootStack = createNativeStackNavigator({
     ShoppingList: {
       screen: ShoppingListScreen,
       linking: { path: "spesa" },
+    },
+    Friends: {
+      screen: FriendsScreen,
+      linking: { path: "amici" },
+    },
+    FriendProfile: {
+      screen: FriendProfileScreen,
+      linking: { path: "amici/profilo" },
+    },
+    MyProfile: {
+      screen: MyProfileScreen,
+      linking: { path: "account" },
     },
     Reminders: {
       screen: RemindersScreen,
