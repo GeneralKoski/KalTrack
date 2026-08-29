@@ -284,10 +284,16 @@ export function RemindersScreen() {
                     </Text>
                   </TouchableOpacity>
 
+                  {/*
+                    Spento, i giorni restano quelli scelti ma si attenuano: sette
+                    chip a pieno contrasto sotto la scritta "Spento" facevano
+                    sembrare acceso un promemoria che non lo era.
+                  */}
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
+                    style={!item.enabled && styles.daysOff}
                     contentContainerStyle={styles.days}
                   >
                     {WEEKDAYS.map((day) => (
@@ -402,6 +408,7 @@ const styles = StyleSheet.create({
   },
   timeLabel: { flexShrink: 1, fontSize: 14 },
   timeValue: { fontSize: 18, fontWeight: "700", marginLeft: "auto" },
+  daysOff: { opacity: 0.45 },
   days: { gap: theme.spacing.sm, paddingRight: theme.spacing.xs },
   loader: { marginTop: theme.spacing.xl },
   overlay: {

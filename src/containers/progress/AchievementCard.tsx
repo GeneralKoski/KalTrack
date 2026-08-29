@@ -45,7 +45,10 @@ export const AchievementCard: React.FC<{ item: AchievementView }> = ({
   const valueLabel =
     item.value === null
       ? null
-      : t(`achievements.value.${item.metric}`, {
+      : // `count` serve al plurale, `value` alla formattazione: senza il primo
+        // il traguardo diceva "1 allenamenti".
+        t(`achievements.value.${item.metric}`, {
+          count: item.value,
           value: formatValue(item.metric, item.value),
         });
 

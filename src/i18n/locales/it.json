@@ -399,10 +399,22 @@
       "bestWeightKg": "Peso"
     },
     "value": {
-      "loggedDays": "%{value} giorni",
-      "workoutDays": "%{value} allenamenti",
-      "totalSteps": "%{value} passi",
-      "bestDaySteps": "%{value} passi",
+      "loggedDays": {
+        "one": "%{value} giorno",
+        "other": "%{value} giorni"
+      },
+      "workoutDays": {
+        "one": "%{value} allenamento",
+        "other": "%{value} allenamenti"
+      },
+      "totalSteps": {
+        "one": "%{value} passo",
+        "other": "%{value} passi"
+      },
+      "bestDaySteps": {
+        "one": "%{value} passo",
+        "other": "%{value} passi"
+      },
       "bestWeightKg": "%{value} kg"
     },
     "remaining": {
@@ -477,7 +489,7 @@
   "measurements": {
     "title": "Misure",
     "unit": "cm",
-    "placeholder": "cm",
+    "placeholder": "84,5",
     "sites": {
       "vita": "Vita",
       "fianchi": "Fianchi",

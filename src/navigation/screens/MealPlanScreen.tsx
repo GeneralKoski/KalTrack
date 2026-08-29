@@ -37,7 +37,7 @@ import {
   CopyPlus,
   ShoppingCart,
 } from "lucide-react-native";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -102,6 +102,24 @@ export function MealPlanScreen() {
 
   const weekEnd = addDays(weekStart, 6);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+
+  const dayScrollRef = useRef<ScrollView>(null);
+  const chipOffsets = useRef<Record<string, number>>({});
+
+  const scrollToSelected = useCallback(() => {
+    const x = chipOffsets.current[selectedDate];
+    if (x === undefined) return;
+    // Un po' di margine a sinistra: un chip incollato al bordo non si legge
+    // come "questo e' il giorno scelto".
+    dayScrollRef.current?.scrollTo({
+      x: Math.max(0, x - theme.spacing.md),
+      animated: true,
+    });
+  }, [selectedDate]);
+
+  useEffect(() => {
+    scrollToSelected();
+  }, [scrollToSelected]);
 
   const loader = useCallback(async (): Promise<WeekData> => {
     const [entries, mealTypes] = await Promise.all([
@@ -311,20 +329,33 @@ export function MealPlanScreen() {
           </TouchableOpacity>
         </View>
 
+        {/*
+          La riga si porta da sola sul giorno scelto: sette chip non ci stanno
+          in larghezza, e aprendo il piano di sabato il chip di sabato restava
+          fuori schermo mentre sotto si vedeva gia' il suo contenuto.
+        */}
         <ScrollView
+          ref={dayScrollRef}
           horizontal
           showsHorizontalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.dayChips}
         >
           {days.map((day, index) => (
-            <DayChip
+            <View
               key={day}
-              label={`${WEEKDAYS[index]} ${Number(day.slice(8, 10))}`}
-              selected={day === selectedDate}
-              planned={(data?.entries ?? []).some((e) => e.row.date === day)}
-              onPress={() => setSelectedDate(day)}
-            />
+              onLayout={(event) => {
+                chipOffsets.current[day] = event.nativeEvent.layout.x;
+                if (day === selectedDate) scrollToSelected();
+              }}
+            >
+              <DayChip
+                label={`${WEEKDAYS[index]} ${Number(day.slice(8, 10))}`}
+                selected={day === selectedDate}
+                planned={(data?.entries ?? []).some((e) => e.row.date === day)}
+                onPress={() => setSelectedDate(day)}
+              />
+            </View>
           ))}
         </ScrollView>
 
