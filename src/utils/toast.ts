@@ -1,3 +1,5 @@
+// i18n e non t(): il toast si chiama anche da fuori un componente React.
+import { i18n } from "@/src/i18n";
 import Toast from "react-native-toast-message";
 
 interface ToastOptions {
@@ -9,7 +11,7 @@ export const showToast = {
   error: ({ title, message }: ToastOptions) => {
     Toast.show({
       type: "error",
-      text1: title ?? "Errore",
+      text1: title ?? i18n.t("error"),
       text2: message,
     });
   },
@@ -17,7 +19,7 @@ export const showToast = {
   success: ({ title, message }: ToastOptions) => {
     Toast.show({
       type: "success",
-      text1: title ?? "Fatto!",
+      text1: title ?? i18n.t("done"),
       text2: message,
     });
   },

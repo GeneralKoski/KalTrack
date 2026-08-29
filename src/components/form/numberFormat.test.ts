@@ -1,4 +1,5 @@
 import {
+  formatNumber,
   numberToDisplay,
   parseToNumber,
 } from "@/src/components/form/numberFormat";
@@ -50,5 +51,26 @@ describe("valore mostrato a schermo", () => {
     const inForm = parseToNumber("1.234,5");
     expect(Number(inForm)).toBe(1234.5);
     expect(parseToNumber(numberToDisplay(inForm, 1))).toBe(inForm);
+  });
+});
+
+describe("punto digitato al posto della virgola", () => {
+  /**
+   * Il difetto che questo test blocca: la tastiera numerica di Android offre
+   * sia la virgola sia il punto. Chi digitava "3.2" vedeva il campo diventare
+   * "32", e salvava dieci volte il valore che intendeva.
+   */
+  it("legge il punto come separatore decimale", () => {
+    expect(formatNumber("3.2", 1)).toBe("3,2");
+    expect(parseToNumber(formatNumber("3.2", 1))).toBe("3.2");
+  });
+
+  it("non tocca i punti di un valore gia' formattato", () => {
+    expect(formatNumber("1.234,5", 1)).toBe("1.234,5");
+    expect(parseToNumber(formatNumber("1.234,5", 1))).toBe("1234.5");
+  });
+
+  it("aggiunge da se' i separatori di migliaia mentre si digita", () => {
+    expect(formatNumber("1234", 0)).toBe("1.234");
   });
 });

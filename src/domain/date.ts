@@ -35,3 +35,20 @@ export function dayLabelKind(iso: string, today: string): DayLabelKind {
   if (iso === addDays(today, 1)) return "tomorrow";
   return "other";
 }
+
+/**
+ * True se la stringa e' una data di calendario che esiste davvero.
+ *
+ * Il solo formato non basta: "2026-02-29" ha la forma giusta ma il 2026 non e'
+ * bisestile. Una data cosi', scritta a database, resta irraggiungibile - nessuna
+ * schermata puo' arrivarci, perche' si naviga di giorno in giorno - ma continua
+ * a comparire nelle medie e nell'ultimo peso registrato.
+ */
+export function isRealIsoDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  if (month < 1 || month > 12 || day < 1) return false;
+  // Il giorno 0 del mese successivo e' l'ultimo di questo, anche a febbraio.
+  const lastDay = new Date(year, month, 0).getDate();
+  return day <= lastDay;
+}

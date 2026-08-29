@@ -68,3 +68,23 @@ export async function deletePhoto(uri: string): Promise<void> {
     logger.error("[photo] eliminazione fallita", error);
   }
 }
+
+/**
+ * Cancella una foto archiviata, se e' una delle nostre.
+ *
+ * Sostituire o togliere una foto lasciava il file precedente in
+ * `documentDirectory/photos` per sempre: nessuno lo referenziava piu' e
+ * nessuno lo cancellava. Su un uso lungo sono decine di megabyte di foto
+ * fantasma dentro il backup del telefono.
+ *
+ * Non solleva mai: se il file non c'e' piu' o non si puo' toccare, l'utente
+ * sta comunque facendo altro e non c'e' niente da dirgli.
+ */
+export async function discardPhoto(uri: string | null): Promise<void> {
+  if (!uri || !uri.startsWith(PHOTOS_DIR)) return;
+  try {
+    await FileSystem.deleteAsync(uri, { idempotent: true });
+  } catch (error) {
+    logger.warn("[foto] cancellazione non riuscita", error);
+  }
+}

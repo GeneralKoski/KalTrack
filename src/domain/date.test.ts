@@ -1,6 +1,7 @@
 import {
   addDays,
   dayLabelKind,
+  isRealIsoDate,
   startOfWeek,
   todayIso,
   toIsoDate,
@@ -79,5 +80,36 @@ describe("dayLabelKind", () => {
 
   it("funziona a cavallo di mese", () => {
     expect(dayLabelKind("2026-08-31", "2026-09-01")).toBe("yesterday");
+  });
+});
+
+describe("isRealIsoDate", () => {
+  it("accetta una data che esiste", () => {
+    expect(isRealIsoDate("2026-08-29")).toBe(true);
+    expect(isRealIsoDate("2024-02-29")).toBe(true);
+  });
+
+  /**
+   * Il difetto che questo test blocca: il modello risolve "ieri" da se', e il
+   * 1 marzo di un anno non bisestile puo' scrivere "2026-02-29". Con la sola
+   * verifica di forma quella riga finiva a database in un giorno dove nessuna
+   * schermata puo' andare a correggerla, ma che continuava a comparire
+   * nell'ultimo peso registrato.
+   */
+  it("rifiuta il 29 febbraio di un anno non bisestile", () => {
+    expect(isRealIsoDate("2026-02-29")).toBe(false);
+  });
+
+  it("rifiuta mesi e giorni fuori scala", () => {
+    expect(isRealIsoDate("2026-13-01")).toBe(false);
+    expect(isRealIsoDate("2026-00-10")).toBe(false);
+    expect(isRealIsoDate("2026-04-31")).toBe(false);
+    expect(isRealIsoDate("2026-01-00")).toBe(false);
+  });
+
+  it("rifiuta quel che non ha nemmeno la forma giusta", () => {
+    expect(isRealIsoDate("29/08/2026")).toBe(false);
+    expect(isRealIsoDate("2026-8-9")).toBe(false);
+    expect(isRealIsoDate("")).toBe(false);
   });
 });

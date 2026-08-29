@@ -1,4 +1,6 @@
+import { i18n } from "@/src/i18n";
 import { logger } from "@/src/utils/logger";
+import { showToast } from "@/src/utils/toast";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useRef, useState } from "react";
 
@@ -38,6 +40,10 @@ export function useFocusData<T>(loader: () => Promise<T>): FocusData<T> {
         }
       } catch (error) {
         logger.error("[useFocusData] errore caricamento", error);
+        // Senza questo la schermata restava identica a una senza dati: chi
+        // guardava un diario vuoto per un errore di lettura non aveva modo di
+        // distinguerlo da un giorno in cui non ha mangiato niente.
+        if (active) showToast.error({ title: i18n.t("load_failed") });
       } finally {
         if (active) setLoading(false);
       }

@@ -103,7 +103,8 @@
   },
   "photo": {
     "from_gallery": "Dalla galleria",
-    "take": "Scatta foto"
+    "take": "Scatta foto",
+    "camera_denied": "Serve il permesso della fotocamera: concedilo dalle impostazioni di sistema."
   },
   "settings": {
     "title": "Impostazioni",
@@ -657,7 +658,7 @@
       "one": "Letto 1 valore",
       "other": "Letti %{count} valori"
     },
-    "check_missing": "Non letti dall'etichetta: %{fields}. Restano a zero finché non li scrivi.",
+    "check_missing": "Non letti dall'etichetta: %{fields}. Controllali prima di salvare.",
     "nothing_read": "Nessun valore leggibile nella foto",
     "failed": "Lettura dell'etichetta non riuscita",
     "no_key": "La lettura dell'etichetta richiede la configurazione dell'AI."
@@ -666,5 +667,8 @@
   "exit_app_message": "Tocca di nuovo indietro per uscire.",
   "password": "Password",
   "reset": "Azzera",
-  "apply": "Applica"
+  "apply": "Applica",
+  "error": "Errore",
+  "done": "Fatto!",
+  "load_failed": "Non sono riuscito a leggere i dati"
 }

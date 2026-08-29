@@ -17,6 +17,7 @@ import { todayIso } from "@/src/domain/date";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { useAssistantLaunch } from "@/src/services/assistantLaunch";
 import { useAssistantStore } from "@/src/stores/assistantStore";
+import { useDayContextStore } from "@/src/stores/dayContextStore";
 import { theme } from "@/src/styles";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
@@ -43,6 +44,7 @@ export const AssistantButton: React.FC = () => {
   const isAutoConfirmed = useAssistantStore((s) => s.isAutoConfirmed);
   const allowAutoConfirm = useAssistantStore((s) => s.allowAutoConfirm);
   const launchRequests = useAssistantLaunch();
+  const referenceDate = useDayContextStore((s) => s.referenceDate);
 
   const buildContext = useCallback((): AssistantContext => contextRef.current, []);
   const contextRef = useRef<AssistantContext>({});
@@ -76,7 +78,9 @@ export const AssistantButton: React.FC = () => {
     let active = true;
     (async () => {
       try {
-        const date = todayIso();
+        // Il giorno che l'utente sta guardando, non quello del telefono: chi
+        // scorre a ieri e detta una voce se la vedeva scrivere su oggi.
+        const date = referenceDate ?? todayIso();
         const [diary, mealTypes, targets, foods, recipes] = await Promise.all([
           getDayDiary(date),
           listMealTypes(),
@@ -132,7 +136,7 @@ export const AssistantButton: React.FC = () => {
     return () => {
       active = false;
     };
-  }, [open]);
+  }, [open, referenceDate]);
 
   const resolvePending = session.resolvePending;
 
@@ -196,7 +200,17 @@ export const AssistantButton: React.FC = () => {
         session={session}
         onClose={close}
         onConfirm={(intent, rememberChoice) => {
-          if (rememberChoice) allowAutoConfirm(intent.toolName);
+          // Le altre azioni gia' a schermo restano da confermare a mano:
+          // spuntare "non chiedere piu'" su una di esse le faceva partire
+          // tutte insieme, senza che nessuno le avesse guardate.
+          if (rememberChoice) {
+            for (const other of session.pending) {
+              if (other !== intent && other.toolName === intent.toolName) {
+                startedRef.current.add(other);
+              }
+            }
+            allowAutoConfirm(intent.toolName);
+          }
           // Si chiude solo quando non resta piu' niente da decidere: con tre
           // azioni proposte, confermarne una faceva sparire le altre due
           // senza che nessuno le avesse viste.

@@ -1,7 +1,8 @@
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
-import { persistPhoto } from "@/src/services/photoStorage";
+import { discardPhoto, persistPhoto } from "@/src/services/photoStorage";
+import { showToast } from "@/src/utils/toast";
 import { theme } from "@/src/styles";
 import * as ImagePicker from "expo-image-picker";
 import { Camera, ImagePlus, X } from "lucide-react-native";
@@ -37,7 +38,11 @@ export const PhotoField: React.FC<PhotoFieldProps> = ({
    * ritrovarsi con foto sparite.
    */
   const store = async (pickedUri: string) => {
-    onChange(await persistPhoto(pickedUri, prefix));
+    const stored = await persistPhoto(pickedUri, prefix);
+    // La foto che stiamo sostituendo non serve piu' a nessuno: senza questa
+    // riga restava in archivio per sempre, senza nessun riferimento.
+    if (uri && uri !== stored) void discardPhoto(uri);
+    onChange(stored);
   };
   const { colors } = useAppTheme();
 
@@ -53,7 +58,12 @@ export const PhotoField: React.FC<PhotoFieldProps> = ({
 
   const takePhoto = async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) return;
+    if (!permission.granted) {
+      // Un `return` muto lasciava credere che il tocco non fosse arrivato:
+      // chi ha negato il permesso deve sapere che deve concederlo lui.
+      showToast.error({ title: t("photo.camera_denied") });
+      return;
+    }
 
     const result = await ImagePicker.launchCameraAsync({
       quality: 0.7,
@@ -69,7 +79,10 @@ export const PhotoField: React.FC<PhotoFieldProps> = ({
         <Image source={{ uri }} style={[styles.image, { height }]} />
         <TouchableOpacity
           style={styles.remove}
-          onPress={() => onChange(null)}
+          onPress={() => {
+            void discardPhoto(uri);
+            onChange(null);
+          }}
           activeOpacity={0.6}
           hitSlop={8}
         >

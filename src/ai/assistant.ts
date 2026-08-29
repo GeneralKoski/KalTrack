@@ -174,6 +174,20 @@ const formatGrams = (grams: number): string =>
   String(Math.round(grams * 10) / 10);
 
 /**
+ * Parole che, poco prima di una quantita', dicono che si sta parlando del
+ * proprio peso e non di cibo. La finestra e' corta di proposito: "peso" a
+ * inizio frase e i grammi a fine frase sono due cose diverse.
+ */
+const BODY_WEIGHT_WORDS =
+  /\b(peso|pesavo|pesato|pesata|pesa|bilancia|segno|segnava)\b/i;
+const BODY_WEIGHT_WINDOW = 30;
+
+const isBodyWeight = (text: string, offset: number): boolean =>
+  BODY_WEIGHT_WORDS.test(
+    text.slice(Math.max(0, offset - BODY_WEIGHT_WINDOW), offset),
+  );
+
+/**
  * Converte in grammi le quantità italiane del trascritto ("due etti e mezzo"
  * -> "250 g") prima che il modello le legga.
  *
@@ -186,7 +200,19 @@ const formatGrams = (grams: number): string =>
 export function normalizeQuantities(text: string): string {
   return text.replace(
     QUANTITY_RE,
-    (match: string, amount: string, unit: string, half: string | undefined) => {
+    (
+      match: string,
+      amount: string,
+      unit: string,
+      half: string | undefined,
+      offset: number,
+      whole: string,
+    ) => {
+      // "peso 80 kg" non e' una quantita' di cibo: convertirlo in "80000 g"
+      // faceva arrivare al modello un peso corporeo in grammi, e da li' o una
+      // pesata assurda o una voce di diario da ottanta chili di qualcosa.
+      if (isBodyWeight(whole, offset)) return match;
+
       const base =
         WORD_NUMBERS[amount.toLowerCase()] ?? Number(amount.replace(",", "."));
       if (!Number.isFinite(base)) return match;

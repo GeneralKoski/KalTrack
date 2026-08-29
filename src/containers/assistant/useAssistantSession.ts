@@ -90,6 +90,9 @@ export function useAssistantSession(
   }, []);
 
   const reset = useCallback(() => {
+    // Invalida il turno in volo: quel che tornera' dal modello non deve
+    // riempire una sessione che l'utente ha gia' chiuso.
+    turnRef.current++;
     stopSpeaking();
     // Il microfono va spento QUI: chiudendo l'assistente mentre registrava, il
     // registratore restava avviato e il tentativo successivo falliva in
@@ -129,13 +132,28 @@ export function useAssistantSession(
     setPending((current) => current.filter((item) => item !== intent));
   }, []);
 
+  /**
+   * Numero del turno in corso.
+   *
+   * Trascrizione e risposta del modello durano secondi, e in quei secondi
+   * l'utente puo' chiudere l'assistente e riaprirlo. Senza questo contatore la
+   * risposta del turno abbandonato arrivava comunque e scriveva la sua
+   * trascrizione, la sua risposta e le sue azioni sopra quelle del turno nuovo.
+   */
+  const turnRef = useRef(0);
+
   const stopListening = useCallback(async () => {
+    const turn = ++turnRef.current;
+    const stale = () => turnRef.current !== turn;
+
     const uri = await recording.stop();
+    if (stale()) return;
     if (!uri) return fail("permission");
 
     setPhase("transcribing");
     try {
       const heard = await transcribeVoice(uri);
+      if (stale()) return;
       if (!heard || heard.trim() === "") return fail("no-speech");
       setTranscript(heard);
 
@@ -144,6 +162,7 @@ export function useAssistantSession(
         transcript: heard,
         context: contextRef.current(),
       });
+      if (stale()) return;
 
       setReply(result.reply);
       setExecuted(result.intents.filter((i) => i.executed));
@@ -159,6 +178,7 @@ export function useAssistantSession(
         if (!spoken) setSpokenReplyUnavailable(true);
       }
     } catch (error) {
+      if (stale()) return;
       if (error instanceof MissingApiKeyError) return fail("no-key");
       if (error instanceof OfflineError) return fail("offline");
       logger.error("[assistant] ciclo fallito", error);

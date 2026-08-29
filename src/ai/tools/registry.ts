@@ -18,7 +18,7 @@ import { getFood } from "@/src/db/queries/foods";
 import { buildRecipeTree, getRecipe } from "@/src/db/queries/recipes";
 import { getTargetsFor, saveTargets } from "@/src/db/queries/settings";
 import { getSteps, setSteps, setWeight } from "@/src/db/queries/tracking";
-import { todayIso } from "@/src/domain/date";
+import { isRealIsoDate, todayIso } from "@/src/domain/date";
 import {
   recipePerServing,
   scaleNutrients,
@@ -32,6 +32,7 @@ import {
   type RecipeRow,
 } from "@/src/types/nutrition";
 import type { NavParams } from "@/src/hooks/useAppNav";
+import { navigationRef } from "@/src/navigation/navigationRef";
 
 /**
  * Giorno a cui si riferiscono i tool quando il modello NON passa una data.
@@ -132,15 +133,18 @@ function reqArray(source: Record<string, unknown>, key: string): unknown[] {
   return value;
 }
 
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-
 function optDate(
   source: Record<string, unknown>,
   key: string,
 ): string | undefined {
   const value = optString(source, key);
   if (value === undefined) return undefined;
-  if (!ISO_DATE.test(value)) fail(`"${key}" deve essere in formato YYYY-MM-DD`);
+  // Non solo la forma: il modello risolve "ieri" da se', e il 1 marzo puo'
+  // scrivere "2026-02-29". Quella riga finirebbe a database in un giorno che
+  // non esiste, dove nessuna schermata puo' andare a correggerla.
+  if (!isRealIsoDate(value)) {
+    fail(`"${key}" non e' una data valida (YYYY-MM-DD)`);
+  }
   return value;
 }
 
@@ -657,6 +661,18 @@ const addMealEntries: ToolFactory = (context) =>
           };
         }
         if (recipeId !== undefined) {
+          // I grammi su un pasto non si possono onorare - un pasto e' definito
+          // per porzioni, e quanto pesa una porzione non e' un dato che
+          // esiste - ma nemmeno buttare via in silenzio: chi ha detto "200
+          // grammi della mia pizza" si vedrebbe registrare una porzione
+          // intera senza che niente lo dica.
+          if (optPositive(source, "quantityG") !== undefined) {
+            fail(
+              "Un pasto si aggiunge a porzioni, non a grammi: manda " +
+                "\"servings\" invece di \"quantityG\", o passa il nome " +
+                "dell'alimento se l'utente intendeva un ingrediente.",
+            );
+          }
           return {
             kind: "recipe",
             recipeId,
@@ -1107,10 +1123,27 @@ const navigate: ToolFactory = () =>
       title: "Navigazione",
       lines: [`Apro ${SCREEN_LABELS[args.screen]}.`],
     }),
-    // Non naviga: la navigazione è un effetto della UI, che legge l'intento e la
-    // esegue con useAppNav. Qui resta solo il messaggio, così il contratto dei
-    // tool non si biforca per un caso solo.
-    execute: async (args) => ({ message: `Apro ${SCREEN_LABELS[args.screen]}.` }),
+    /**
+     * Naviga davvero, tramite il ref della navigazione.
+     *
+     * Prima si limitava a rispondere "Apro Alimenti" contando su una UI che
+     * leggesse l'intento: nessun componente lo faceva, e il tool prometteva
+     * una cosa che non succedeva mai. L'assistente e' montato sopra l'albero
+     * di navigazione, quindi il ref e' l'unica via.
+     */
+    execute: async (args) => {
+      if (!navigationRef.isReady()) {
+        fail("La navigazione non e' ancora pronta");
+      }
+      // Il ref e' tipizzato `any` a monte (navigationRef.ts): il tipo giusto
+      // e' garantito dal `satisfies` su SCREENS, non da questa chiamata.
+      const navigateTo = navigationRef.navigate as (
+        screen: string,
+        params?: Record<string, unknown>,
+      ) => void;
+      navigateTo(args.screen, args.params);
+      return { message: `Apro ${SCREEN_LABELS[args.screen]}.` };
+    },
   });
 
 // ─── Registro ────────────────────────────────────────────────────────────────

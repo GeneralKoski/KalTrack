@@ -42,6 +42,8 @@ import { EMPTY_NUTRIENTS, type Nutrients } from "@/src/domain/nutrition";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { useFocusEffect } from "@react-navigation/native";
+import { useDayContextStore } from "@/src/stores/dayContextStore";
 import { theme } from "@/src/styles";
 import type { MealEntryRow, MealTypeRow, TargetRow } from "@/src/types/nutrition";
 import { showToast } from "@/src/utils/toast";
@@ -84,6 +86,17 @@ export function TodayScreen() {
   const [weightOpen, setWeightOpen] = useState(false);
   const [mealTypeId, setMealTypeId] = useState<string | null>(null);
   const addSheetRef = useRef<BottomSheetModal>(null);
+
+  // L'assistente e' montato sopra la navigazione e non vede questo stato:
+  // glielo passiamo, altrimenti scriverebbe sempre su oggi anche mentre si
+  // sta guardando un altro giorno.
+  const setReferenceDate = useDayContextStore((s) => s.setReferenceDate);
+  useFocusEffect(
+    useCallback(() => {
+      setReferenceDate(date);
+      return () => setReferenceDate(null);
+    }, [date, setReferenceDate]),
+  );
 
   const loader = useCallback(async (): Promise<DayData> => {
     const [diary, mealTypes, targets, stepRow, weightRow] = await Promise.all([

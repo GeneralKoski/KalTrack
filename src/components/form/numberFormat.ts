@@ -14,8 +14,22 @@
 export const formatNumber = (value: string, decimals: number): string => {
   if (!value) return "";
 
+  /**
+   * Un punto digitato dall'utente e' un separatore DECIMALE, non di migliaia.
+   *
+   * La tastiera numerica di Android offre sia la virgola sia il punto, e
+   * scrivere "3.2" e' normale quanto scrivere "3,2". Cancellare il punto
+   * insieme agli altri caratteri non numerici leggeva 32, e il campo mostrava
+   * "32" senza che niente segnalasse la trasformazione.
+   *
+   * L'eccezione e' il valore GIA' formattato che arriva da numberToDisplay
+   * ("1.234,5"): li' la virgola c'e' gia', e i punti sono migliaia.
+   */
+  const hasComma = value.includes(",");
+  const normalized = hasComma ? value : value.replace(/\./g, ",");
+
   // Rimuovi tutti i caratteri non numerici tranne la virgola
-  let cleaned = value.replace(/[^\d,]/g, "");
+  let cleaned = normalized.replace(/[^\d,]/g, "");
 
   // Gestisci il caso di più virgole (tieni solo la prima)
   const parts = cleaned.split(",");

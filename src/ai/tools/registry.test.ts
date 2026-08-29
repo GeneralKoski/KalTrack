@@ -13,7 +13,20 @@ import { getSteps, getWeight, setSteps } from "@/src/db/queries/tracking";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
 import { searchByName } from "@/src/services/openFoodFacts";
 
+import { navigationRef } from "@/src/navigation/navigationRef";
+
 jest.mock("@/src/ai/client");
+
+// La navigazione vive fuori dall'albero React: il tool la raggiunge col ref, e
+// qui interessa che lo chiami davvero, non cosa fa React Navigation.
+// La factory di jest.mock non puo' riferirsi a variabili esterne: i mock si
+// creano dentro e si rileggono dal modulo.
+jest.mock("@/src/navigation/navigationRef", () => ({
+  navigationRef: {
+    navigate: jest.fn(),
+    isReady: jest.fn(() => true),
+  },
+}));
 jest.mock("@/src/services/openFoodFacts", () => {
   const actual = jest.requireActual("@/src/services/openFoodFacts");
   return { ...actual, searchByName: jest.fn() };
@@ -506,14 +519,61 @@ describe("set_target", () => {
   });
 });
 
+describe("add_meal_entries con un pasto", () => {
+  /**
+   * Il difetto che questo test blocca: i grammi mandati insieme a un recipeId
+   * venivano scartati in silenzio, e "duecento grammi della mia pizza"
+   * finiva in diario come una porzione intera.
+   */
+  it("rifiuta i grammi su un pasto invece di ignorarli", async () => {
+    await expect(
+      tool("add_meal_entries").execute({
+        date: DATE,
+        mealTypeId: MEAL_TYPE_IDS.lunch,
+        entries: [{ recipeId: "qualunque", quantityG: 200 }],
+      }),
+    ).rejects.toThrow(AiResponseError);
+  });
+});
+
 describe("navigate", () => {
-  it("non naviga e non scrive: ritorna solo l'intenzione", async () => {
+  const navigateMock = jest.mocked(navigationRef.navigate);
+  const isReadyMock = jest.mocked(navigationRef.isReady);
+
+  beforeEach(() => {
+    navigateMock.mockClear();
+    isReadyMock.mockClear().mockReturnValue(true);
+  });
+
+  /**
+   * Il difetto che questo test blocca: il tool si limitava a rispondere "Apro
+   * Oggi" contando su una UI che leggesse l'intento, e nessun componente lo
+   * faceva. L'assistente prometteva una navigazione che non avveniva mai.
+   */
+  it("apre davvero la schermata, e non scrive niente", async () => {
     const preview = await tool("navigate").preview({ screen: "TodayTab" });
     expect(preview.lines).toEqual(["Apro Oggi."]);
 
     const result = await tool("navigate").execute({ screen: "TodayTab" });
     expect(result.message).toBe("Apro Oggi.");
+    expect(navigateMock).toHaveBeenCalledWith("TodayTab", undefined);
     expect((await getDayDiary(DATE)).meals).toHaveLength(0);
+  });
+
+  it("passa i parametri della rotta", async () => {
+    await tool("navigate").execute({
+      screen: "FoodForm",
+      params: { id: "abc" },
+    });
+    expect(navigateMock).toHaveBeenCalledWith("FoodForm", { id: "abc" });
+  });
+
+  it("non finge di navigare se la navigazione non e' pronta", async () => {
+    isReadyMock.mockReturnValueOnce(false);
+    await expect(
+      tool("navigate").execute({ screen: "TodayTab" }),
+    ).rejects.toThrow(AiResponseError);
+    expect(navigateMock).not.toHaveBeenCalled();
   });
 
   it("rifiuta una schermata che non esiste", async () => {

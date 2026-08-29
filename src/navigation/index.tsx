@@ -19,6 +19,7 @@ import { Platform, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAppTheme } from "@/src/components/ThemeContext";
+import { navigationRef } from "@/src/navigation/navigationRef";
 import { Text } from "@/src/components/ui";
 import { AchievementsScreen } from "@/src/navigation/screens/AchievementsScreen";
 import { BackupScreen } from "@/src/navigation/screens/BackupScreen";
@@ -265,7 +266,10 @@ export function Navigation() {
     [colors, isDark],
   );
 
-  return <StaticNavigation theme={navigationTheme} />;
+  // Il ref serve a chi vive FUORI dall'albero di navigazione: l'assistente e'
+  // montato sopra <Navigation /> e il suo tool "navigate" non ha altro modo
+  // per aprire una schermata.
+  return <StaticNavigation ref={navigationRef} theme={navigationTheme} />;
 }
 
 export type RootStackParamList = StaticParamList<typeof RootStack>;

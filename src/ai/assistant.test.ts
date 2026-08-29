@@ -313,3 +313,33 @@ describe("runAssistant", () => {
     expect(args.messages[1]).toEqual({ role: "user", content: "ciao" });
   });
 });
+
+describe("normalizeQuantities e il peso corporeo", () => {
+  /**
+   * Il difetto che questo test blocca: "peso 80 kg" diventava "peso 80000 g",
+   * e al modello arrivava un peso corporeo in grammi.
+   */
+  it("non converte i chili di una pesata", () => {
+    expect(normalizeQuantities("peso 80 kg")).toBe("peso 80 kg");
+    expect(normalizeQuantities("stamattina pesavo 78,5 kg")).toBe(
+      "stamattina pesavo 78,5 kg",
+    );
+    expect(normalizeQuantities("la bilancia segna 80 kg")).toBe(
+      "la bilancia segna 80 kg",
+    );
+  });
+
+  it("continua a convertire le quantita' di cibo", () => {
+    expect(normalizeQuantities("due etti di riso")).toBe("200 g di riso");
+    expect(normalizeQuantities("mezzo chilo di pane")).toContain("500 g");
+  });
+
+  /** "peso" lontano dalla quantita' non e' una pesata. */
+  it("converte quando il peso e' un'altra frase", () => {
+    expect(
+      normalizeQuantities(
+        "il peso non lo ricordo, comunque ho mangiato due etti di pasta",
+      ),
+    ).toContain("200 g");
+  });
+});

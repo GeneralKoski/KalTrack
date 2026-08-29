@@ -9,35 +9,34 @@ interface CardProps {
   style?: ViewStyle;
 }
 
-// Card arrotondata con ombra leggera (base di tutte le liste).
-// Lo stile (incluso flexDirection) è applicato sempre a una View interna, così
-// resta valido anche quando la card è premibile.
+/**
+ * Card arrotondata con ombra leggera, base di tutte le liste.
+ *
+ * Premibile o no, lo stile finisce sempre sull'elemento PIU' ESTERNO. Con una
+ * View interna che se lo prendeva, un margine o un flexGrow passati a una card
+ * premibile non arrivavano mai al touchable, e la stessa card si comportava in
+ * due modi diversi a seconda che avesse onPress o no.
+ */
 export const Card: React.FC<CardProps> = ({ children, onPress, style }) => {
   const { colors, isDark } = useAppTheme();
-  const content = (
-    <View
-      style={[
-        styles.card,
-        { backgroundColor: colors.surface },
-        // Al buio l'ombra non si vede: senza bordo la card sparirebbe nello sfondo.
-        isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
-        style,
-      ]}
-    >
-      {children}
-    </View>
-  );
+  const cardStyle = [
+    styles.card,
+    { backgroundColor: colors.surface },
+    // Al buio l'ombra non si vede: senza bordo la card sparirebbe nello sfondo.
+    isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+    style,
+  ];
 
   if (onPress) {
     // TouchableOpacity (non Pressable con style-as-function): NativeWind v4 non
     // applica lo style-funzione sui Pressable, lasciando la card senza feedback.
     return (
-      <TouchableOpacity onPress={onPress} activeOpacity={0.6}>
-        {content}
+      <TouchableOpacity onPress={onPress} activeOpacity={0.6} style={cardStyle}>
+        {children}
       </TouchableOpacity>
     );
   }
-  return content;
+  return <View style={cardStyle}>{children}</View>;
 };
 
 const styles = StyleSheet.create({
