@@ -2,6 +2,7 @@ import { getDb } from "@/src/db/index";
 import { newId, nowIso } from "@/src/db/ids";
 import { normalizeText } from "@/src/domain/text";
 import {
+  canDoWith,
   exerciseEquipment,
   type Equipment,
   type ExerciseRow,
@@ -174,11 +175,14 @@ export async function suggestAlternatives(
 
   if (options.onlyAvailableEquipment) {
     const available = new Set(await listAvailableEquipment());
-    filtered = filtered.filter((row) => {
-      const needed = exerciseEquipment(row);
-      // Senza attrezzatura dichiarata l'esercizio è a corpo libero: sempre fattibile.
-      return needed.length === 0 || needed.every((item) => available.has(item));
-    });
+    // Un elenco vuoto significa "non ho ancora detto cosa ho", non "non ho
+    // niente": filtrare su di esso lasciava passare solo il corpo libero e
+    // faceva sembrare che non esistessero alternative.
+    if (available.size > 0) {
+      filtered = filtered.filter((row) =>
+        canDoWith(exerciseEquipment(row), available),
+      );
+    }
   }
 
   return filtered

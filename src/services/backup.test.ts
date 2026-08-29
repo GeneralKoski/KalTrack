@@ -1,8 +1,19 @@
+import { BACKUP_TABLES } from "@/src/services/backup";
 import { createTestDb } from "@/src/db/__testing__/betterSqliteAdapter";
-import { __setDbForTesting } from "@/src/db/index";
+import { __setDbForTesting, getDb } from "@/src/db/index";
 import { MEAL_TYPE_IDS, runMigrations } from "@/src/db/migrations";
 import { addFoodEntry, getDayDiary } from "@/src/db/queries/diary";
+import { createExercise } from "@/src/db/queries/exercises";
 import { createFood, deleteFood, searchFoods } from "@/src/db/queries/foods";
+import { addPlanEntry, listPlanEntries } from "@/src/db/queries/mealPlan";
+import {
+  createRoutine,
+  listRoutineDays,
+  listRoutines,
+  logSet,
+  recentSessions,
+  startSession,
+} from "@/src/db/queries/workouts";
 import { getSteps, setSteps } from "@/src/db/queries/tracking";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
 import {
@@ -161,5 +172,113 @@ describe("parseBackup", () => {
 
   it("rifiuta un file che non è un oggetto", () => {
     expect(() => parseBackup("[1,2,3]")).toThrow(BackupFormatError);
+  });
+});
+
+describe("copertura del backup", () => {
+  /**
+   * Il difetto che questo test blocca: il backup esportava undici tabelle su
+   * ventisette. Chi ripristinava si ritrovava il diario e perdeva palestra,
+   * misure, acqua, digiuni, piano pasti, traguardi e promemoria - senza che
+   * niente glielo dicesse, perche' il ripristino riusciva.
+   */
+  it("copre ogni tabella dello schema", async () => {
+    const database = await getDb();
+    const tables = await database.getAllAsync<{ name: string }>(
+      `SELECT name FROM sqlite_master
+        WHERE type = 'table' AND name NOT LIKE 'sqlite_%'`,
+    );
+    const inSchema = tables.map((t) => t.name).sort();
+    const inBackup = [...BACKUP_TABLES].sort();
+    expect(inBackup).toEqual(inSchema);
+  });
+
+  /**
+   * L'ordine non e' cosmetico: si cancella al contrario, quindi un figlio
+   * elencato prima del padre fa fallire il ripristino con una violazione di
+   * foreign key. Bastava una riga di piano pasti perche' non si potesse piu'
+   * ripristinare niente.
+   */
+  it("elenca ogni padre prima dei suoi figli", () => {
+    const dependencies: Record<string, string[]> = {
+      recipe_items: ["foods", "recipes"],
+      meals: ["meal_types"],
+      meal_entries: ["foods", "meals", "recipes"],
+      meal_plan_entries: ["foods", "meal_types", "recipes"],
+      routine_days: ["routines"],
+      routine_blocks: ["routine_days"],
+      block_exercises: ["exercises", "routine_blocks"],
+      workout_sessions: ["routine_days"],
+      session_sets: ["exercises", "workout_sessions"],
+    };
+
+    for (const [child, parents] of Object.entries(dependencies)) {
+      const childAt = BACKUP_TABLES.indexOf(child as never);
+      expect(childAt).toBeGreaterThanOrEqual(0);
+      for (const parent of parents) {
+        expect(BACKUP_TABLES.indexOf(parent as never)).toBeLessThan(childAt);
+      }
+    }
+  });
+});
+
+describe("giro completo con i dati della palestra", () => {
+  /**
+   * Il difetto che questo test blocca su due fronti: le tabelle della palestra
+   * non erano nel dump, e una riga di piano pasti faceva fallire il ripristino
+   * con una violazione di foreign key perche' `foods` veniva svuotata mentre
+   * `meal_plan_entries` la referenziava ancora.
+   */
+  it("riporta indietro scheda, sessione e piano pasti", async () => {
+    const exerciseId = await createExercise({
+      name: "Panca piana",
+      muscleGroup: "petto",
+      secondaryMuscles: [],
+      equipment: ["bilanciere"],
+    });
+    const routineId = await createRoutine({
+      name: "Full body",
+      days: [
+        {
+          name: "Giorno A",
+          blocks: [
+            {
+              kind: "single",
+              restSeconds: 90,
+              exercises: [{ exerciseId, targetSets: 3, targetReps: "8" }],
+            },
+          ],
+        },
+      ],
+    });
+    const sessionId = await startSession({ date: "2026-08-28" });
+    await logSet({ sessionId, exerciseId, setIndex: 0, reps: 8, weight: 60 });
+
+    const foodId = await createFood({
+      name: "Riso",
+      brand: null,
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 130 },
+      isLiquid: false,
+      defaultServingG: null,
+      servingLabel: null,
+      imageUri: null,
+    });
+    await addPlanEntry({
+      date: "2026-08-29",
+      mealTypeId: MEAL_TYPE_IDS.lunch,
+      foodId,
+      quantityG: 100,
+    });
+
+    const payload = await buildBackup();
+    await freshDb();
+    // Il ripristino non deve sollevare: e' il punto in cui falliva.
+    await restoreBackup(payload);
+
+    expect((await listRoutines()).map((r) => r.name)).toEqual(["Full body"]);
+    const days = await listRoutineDays(routineId);
+    expect(days.map((d) => d.name)).toEqual(["Giorno A"]);
+    expect((await recentSessions())[0].workingSets).toBe(1);
+    expect(await listPlanEntries("2026-08-29", "2026-08-29")).toHaveLength(1);
   });
 });

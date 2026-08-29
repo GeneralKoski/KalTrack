@@ -4,6 +4,7 @@ import { runMigrations } from "@/src/db/migrations";
 import { createExercise } from "@/src/db/queries/exercises";
 import {
   activateRoutine,
+  endSession,
   createRoutine,
   getActiveRoutine,
   getRoutineDay,
@@ -12,6 +13,7 @@ import {
   listRoutines,
   logSet,
   personalBest,
+  recentSessions,
   startSession,
   updateRoutine,
 } from "@/src/db/queries/workouts";
@@ -250,5 +252,84 @@ describe("updateRoutine con storico", () => {
 
     // Le serie restano: cosa è stato fatto non dipende da come è fatta la scheda oggi.
     expect(await lastSetsFor(benchId)).toHaveLength(1);
+  });
+});
+
+describe("recentSessions", () => {
+  it("elenca dal piu' recente, col volume e le serie di lavoro", async () => {
+    const older = await startSession({ date: "2026-08-20" });
+    await logSet({
+      sessionId: older,
+      exerciseId: benchId,
+      setIndex: 0,
+      reps: 10,
+      weight: 60,
+    });
+    await endSession(older);
+
+    const recent = await startSession({ date: "2026-08-28" });
+    await logSet({
+      sessionId: recent,
+      exerciseId: squatId,
+      setIndex: 0,
+      reps: 5,
+      weight: 100,
+    });
+    await logSet({
+      sessionId: recent,
+      exerciseId: squatId,
+      setIndex: 1,
+      reps: 5,
+      weight: 100,
+    });
+
+    const list = await recentSessions();
+    expect(list.map((s) => s.date)).toEqual(["2026-08-28", "2026-08-20"]);
+    expect(list[0].workingSets).toBe(2);
+    expect(list[0].volumeKg).toBe(1000);
+    // Ancora aperta: e' quella che la palestra propone di riprendere.
+    expect(list[0].endedAt).toBeNull();
+    expect(list[1].endedAt).not.toBeNull();
+  });
+
+  /** Una sessione senza serie esiste comunque: e' stata aperta. */
+  it("conta zero serie invece di sparire quando non ne ha nessuna", async () => {
+    await startSession({ date: "2026-08-28" });
+    const list = await recentSessions();
+    expect(list).toHaveLength(1);
+    expect(list[0].workingSets).toBe(0);
+    expect(list[0].volumeKg).toBe(0);
+  });
+
+  it("non conta i riscaldamenti tra le serie di lavoro", async () => {
+    const id = await startSession({ date: "2026-08-28" });
+    await logSet({
+      sessionId: id,
+      exerciseId: benchId,
+      setIndex: 0,
+      reps: 12,
+      weight: 20,
+      isWarmup: true,
+    });
+    await logSet({
+      sessionId: id,
+      exerciseId: benchId,
+      setIndex: 1,
+      reps: 8,
+      weight: 60,
+    });
+
+    const [session] = await recentSessions();
+    expect(session.workingSets).toBe(1);
+    expect(session.volumeKg).toBe(480);
+  });
+
+  it("porta il nome del giorno di scheda quando c'e'", async () => {
+    const routineId = await createRoutine(pushDay());
+    const days = await listRoutineDays(routineId);
+    await startSession({ date: "2026-08-28", routineDayId: days[0].id });
+
+    const [session] = await recentSessions();
+    expect(session.dayName).toBe("Push A");
   });
 });

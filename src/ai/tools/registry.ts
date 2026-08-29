@@ -830,12 +830,60 @@ async function summaryLines(date: string): Promise<string[]> {
     return `sforato di ${num(-remaining)}`;
   };
 
+  /**
+   * Un obiettivo a zero significa "non l'ho impostato", non "il mio obiettivo
+   * e' zero": la schermata degli obiettivi lascia a zero i campi che l'utente
+   * non compila, e la barra dei macro li mostra gia' come assenti. Leggerlo
+   * alla lettera faceva dire all'assistente "Proteine: 120 g su 0 g, sforato
+   * di 120" a chi non aveva mai fissato un obiettivo proteico.
+   */
+  const line = (
+    label: string,
+    eatenText: string,
+    target: number,
+    targetText: string,
+    remaining: string,
+  ): string =>
+    target > 0
+      ? `${label}: ${eatenText} su ${targetText} (${remaining}).`
+      : `${label}: ${eatenText}, nessun obiettivo impostato.`;
+
   return [
-    `Calorie: ${int(eaten.kcal)} su ${int(targets.kcal)} (${left(eaten.kcal, targets.kcal)}).`,
-    `Proteine: ${num(eaten.protein)} g su ${int(targets.protein_g)} g (${left(eaten.protein, targets.protein_g)}).`,
-    `Carboidrati: ${num(eaten.carbs)} g su ${int(targets.carbs_g)} g (${left(eaten.carbs, targets.carbs_g)}).`,
-    `Grassi: ${num(eaten.fat)} g su ${int(targets.fat_g)} g (${left(eaten.fat, targets.fat_g)}).`,
-    `Passi: ${int(walked)} su ${int(targets.steps)} (${left(walked, targets.steps)}).`,
+    line(
+      "Calorie",
+      int(eaten.kcal),
+      targets.kcal,
+      int(targets.kcal),
+      left(eaten.kcal, targets.kcal),
+    ),
+    line(
+      "Proteine",
+      `${num(eaten.protein)} g`,
+      targets.protein_g,
+      `${int(targets.protein_g)} g`,
+      left(eaten.protein, targets.protein_g),
+    ),
+    line(
+      "Carboidrati",
+      `${num(eaten.carbs)} g`,
+      targets.carbs_g,
+      `${int(targets.carbs_g)} g`,
+      left(eaten.carbs, targets.carbs_g),
+    ),
+    line(
+      "Grassi",
+      `${num(eaten.fat)} g`,
+      targets.fat_g,
+      `${int(targets.fat_g)} g`,
+      left(eaten.fat, targets.fat_g),
+    ),
+    line(
+      "Passi",
+      int(walked),
+      targets.steps,
+      int(targets.steps),
+      left(walked, targets.steps),
+    ),
   ];
 }
 

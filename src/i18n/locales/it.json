@@ -76,9 +76,15 @@
     "name_required": "Dai un nome al pasto",
     "servings": "Porzioni",
     "servings_unit": "porzioni",
-    "servings_count": "%{count} porzioni",
+    "servings_count": {
+      "one": "1 porzione",
+      "other": "%{count} porzioni"
+    },
     "ingredients": "Ingredienti",
-    "ingredients_count": "%{count} ingredienti",
+    "ingredients_count": {
+      "one": "1 ingrediente",
+      "other": "%{count} ingredienti"
+    },
     "add_ingredient": "Aggiungi ingrediente",
     "tab_foods": "Alimenti",
     "tab_recipes": "I miei pasti",
@@ -129,7 +135,9 @@
     "kcal_left": "rimaste",
     "kcal_over": "oltre",
     "kcal_eaten": "kcal",
-    "of_target": "su %{target} kcal"
+    "of_target": "su %{target} kcal",
+    "multiplier": "×%{count}",
+    "multiplier_unit": "× la porzione"
   },
   "targets": {
     "title": "Obiettivi",
@@ -271,7 +279,10 @@
     "new_routine": "Nuova scheda",
     "active": "Attiva",
     "activate": "Rendi attiva",
-    "days_count": "%{count} giorni",
+    "days_count": {
+      "one": "1 giorno",
+      "other": "%{count} giorni"
+    },
     "start_session": "Inizia allenamento",
     "session": "Allenamento",
     "finish": "Termina",
@@ -323,7 +334,15 @@
       "elastici": "elastici",
       "trx": "TRX",
       "cardio": "cardio"
-    }
+    },
+    "active_routine": "Scheda attiva",
+    "no_active_routine": "Nessuna scheda attiva",
+    "routine_without_days": "Questa scheda non ha ancora giorni: aprila per aggiungerli.",
+    "recent_sessions": "Ultimi allenamenti",
+    "no_sessions": "Nessun allenamento registrato.",
+    "session_open": "Allenamento in corso",
+    "free_workout": "Allenamento libero",
+    "sets_count": "%{count} serie"
   },
   "assistant": {
     "open": "Parla con l'assistente",
@@ -512,8 +531,14 @@
     "apply": "Porta nel diario",
     "apply_title": "Portare il giorno nel diario?",
     "apply_message": "Le voci diventano voci di diario. Il piano resta dov'è, così puoi confrontarlo con quello che hai mangiato davvero.",
-    "apply_done": "%{count} voci portate nel diario",
-    "apply_skipped": "%{count} voci senza valori sono rimaste fuori",
+    "apply_done": {
+      "one": "1 voce portata nel diario",
+      "other": "%{count} voci portate nel diario"
+    },
+    "apply_skipped": {
+      "one": "1 voce senza valori è rimasta fuori",
+      "other": "%{count} voci senza valori sono rimaste fuori"
+    },
     "apply_already": "Questo giorno è già nel diario",
     "apply_empty": "Questo giorno non ha un piano",
     "applied_badge": "Già nel diario",
@@ -598,8 +623,14 @@
     "unavailable_module": "Health Connect non è incluso in questa versione dell'app: serve una nuova build.",
     "unavailable_provider_missing": "Health Connect non è installato su questo dispositivo.",
     "unavailable_provider_outdated": "Health Connect è troppo vecchio: aggiornalo dal Play Store.",
-    "sync_imported": "%{count} giorni importati",
-    "sync_kept_manual": "%{count} giorni lasciati come li hai scritti",
+    "sync_imported": {
+      "one": "1 giorno importato",
+      "other": "%{count} giorni importati"
+    },
+    "sync_kept_manual": {
+      "one": "1 giorno lasciato come l'hai scritto",
+      "other": "%{count} giorni lasciati come li hai scritti"
+    },
     "sync_nothing": "Nessun dato nuovo da importare",
     "sync_failed": "Importazione dei passi non riuscita"
   },
@@ -607,8 +638,11 @@
     "camera": "Scansiona etichetta",
     "gallery": "Da galleria",
     "hint": "Inquadra la tabella nutrizionale: i campi qui sotto si riempiono da soli e restano modificabili.",
-    "filled": "Letti %{count} valori",
-    "check_missing": "Non letti dall'etichetta: %{fields}. Restano a zero finche' non li scrivi.",
+    "filled": {
+      "one": "Letto 1 valore",
+      "other": "Letti %{count} valori"
+    },
+    "check_missing": "Non letti dall'etichetta: %{fields}. Restano a zero finché non li scrivi.",
     "nothing_read": "Nessun valore leggibile nella foto",
     "failed": "Lettura dell'etichetta non riuscita",
     "no_key": "La lettura dell'etichetta richiede la configurazione dell'AI."

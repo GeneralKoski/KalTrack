@@ -9,6 +9,7 @@ import type {
   RoutineInput,
 } from "@/src/db/queries/workouts";
 import {
+  canDoWith,
   exerciseEquipment,
   type BlockKind,
   type Equipment,
@@ -124,18 +125,16 @@ function checkPreferences(preferences: RoutinePreferences): void {
  * Esercizi che l'utente può davvero fare: mai i vietati (searchExercises li
  * esclude da sé) e solo quelli coperti dall'attrezzatura dichiarata.
  *
- * Senza attrezzatura richiesta l'esercizio è a corpo libero, quindi sempre
- * fattibile: stessa regola di suggestAlternatives.
+ * "corpo_libero" conta sempre come disponibile: e' un valore vero della lista
+ * (un piegamento ha equipment ["corpo_libero"]), e trattarlo come attrezzo da
+ * possedere buttava fuori dal catalogo ogni esercizio senza attrezzi.
  */
 async function eligibleExercises(
   availableEquipment: Equipment[],
 ): Promise<ExerciseRow[]> {
   const rows = await searchExercises({ limit: MAX_CATALOG });
   const available = new Set<string>(availableEquipment);
-  return rows.filter((row) => {
-    const needed = exerciseEquipment(row);
-    return needed.length === 0 || needed.every((item) => available.has(item));
-  });
+  return rows.filter((row) => canDoWith(exerciseEquipment(row), available));
 }
 
 /** Riga compatta per il prompt: id, nome e gruppo bastano a scegliere. */

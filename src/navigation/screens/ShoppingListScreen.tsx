@@ -277,6 +277,7 @@ const styles = StyleSheet.create({
   title: { flex: 1, fontSize: 18, fontWeight: "700" },
   reset: { fontSize: 13, fontWeight: "600" },
   ranges: {
+    alignItems: "center",
     gap: theme.spacing.xs,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,

@@ -5,21 +5,51 @@ import { logger } from "@/src/utils/logger";
 export const BACKUP_FORMAT_VERSION = 1;
 
 /**
- * Tabelle esportate, in ordine di dipendenza: si inserisce in quest'ordine e si
+ * TUTTE le tabelle, in ordine di dipendenza: si inserisce in quest'ordine e si
  * svuota nell'ordine inverso, così le foreign key reggono in entrambi i versi.
+ *
+ * L'elenco deve restare completo. Quando ne mancavano sedici su ventisette il
+ * backup era una trappola: prometteva "l'unico modo per non perdere tutto" e
+ * si portava via solo il diario, lasciando fuori palestra, misure, acqua,
+ * digiuni, piano pasti, traguardi e promemoria. Peggio ancora, cancellare
+ * `foods` senza toccare `meal_plan_entries` faceva fallire il ripristino con
+ * una violazione di foreign key: bastava una riga di piano pasti perché il
+ * backup non si potesse più ripristinare affatto.
+ *
+ * Chi aggiunge una tabella in una migrazione la aggiunge anche qui. Il test
+ * `backup.test.ts` confronta questo elenco con lo schema reale e fallisce se
+ * qualcuno se ne dimentica.
  */
-const TABLES = [
+export const BACKUP_TABLES = [
+  // Senza dipendenze.
   "meal_types",
   "foods",
   "recipes",
+  "exercises",
+  "routines",
+  "profile",
+  "targets",
+  "settings",
+  "user_equipment",
+  "weight_logs",
+  "step_logs",
+  "water_logs",
+  "body_measurements",
+  "progress_photos",
+  "fasting_windows",
+  "achievements",
+  "reminders",
+  "ai_calls",
+  // Dipendenti, dai padri ai figli.
   "recipe_items",
   "meals",
   "meal_entries",
-  "profile",
-  "targets",
-  "weight_logs",
-  "step_logs",
-  "settings",
+  "meal_plan_entries",
+  "routine_days",
+  "routine_blocks",
+  "block_exercises",
+  "workout_sessions",
+  "session_sets",
 ] as const;
 
 export interface BackupPayload {
@@ -51,7 +81,7 @@ export async function buildBackup(): Promise<BackupPayload> {
   );
 
   const tables: BackupPayload["tables"] = {};
-  for (const table of TABLES) {
+  for (const table of BACKUP_TABLES) {
     tables[table] = await db.getAllAsync<Record<string, unknown>>(
       `SELECT * FROM ${table}`,
     );
@@ -84,11 +114,11 @@ export async function restoreBackup(payload: BackupPayload): Promise<void> {
 
   await db.withTransactionAsync(async () => {
     // Svuota in ordine inverso alle dipendenze.
-    for (const table of [...TABLES].reverse()) {
+    for (const table of [...BACKUP_TABLES].reverse()) {
       await db.execAsync(`DELETE FROM ${table}`);
     }
 
-    for (const table of TABLES) {
+    for (const table of BACKUP_TABLES) {
       const rows = payload.tables[table] ?? [];
       for (const row of rows) {
         const columns = Object.keys(row);
@@ -153,7 +183,7 @@ export function backupSummary(payload: BackupPayload): {
   table: string;
   rows: number;
 }[] {
-  return TABLES.map((table) => ({
+  return BACKUP_TABLES.map((table) => ({
     table,
     rows: payload.tables[table]?.length ?? 0,
   })).filter((entry) => entry.rows > 0);

@@ -281,6 +281,7 @@ const styles = StyleSheet.create({
   },
   title: { flex: 1, fontSize: 18, fontWeight: "700" },
   sites: {
+    alignItems: "center",
     paddingHorizontal: theme.spacing.md,
     paddingBottom: theme.spacing.sm,
     gap: theme.spacing.sm,

@@ -206,7 +206,9 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           label={t("gym.rest_seconds")}
           value={block.rest}
           keyboardType="number-pad"
-          width={72}
+          // Largo quanto la sua etichetta: a 72 "Recupero (s)" veniva
+          // troncato in "RECUPERO ...", e l'unita' e' meta' dell'informazione.
+          width={112}
           onChangeText={(value) => onChange({ ...block, rest: value })}
         />
         <TouchableOpacity

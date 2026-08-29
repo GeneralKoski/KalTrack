@@ -56,6 +56,18 @@ const toNumber = (value: string): number | null => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 };
 
+/**
+ * Il recupero e' l'unico campo dove zero e' una risposta e non un campo vuoto:
+ * in un circuito si passa all'esercizio dopo senza pausa. Con la regola
+ * generale (> 0) uno zero diventava null, e alla riapertura la scheda mostrava
+ * i 90 secondi di default al posto della scelta dell'utente.
+ */
+const toRestSeconds = (value: string): number | null => {
+  if (value.trim() === "") return null;
+  const parsed = Number(value.replace(",", "."));
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+};
+
 export function RoutineFormScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
@@ -211,7 +223,7 @@ export function RoutineFormScreen() {
             .filter((block) => block.exercises.length > 0)
             .map((block) => ({
               kind: block.kind,
-              restSeconds: toNumber(block.rest),
+              restSeconds: toRestSeconds(block.rest),
               exercises: block.exercises.map((exercise) => ({
                 exerciseId: exercise.exerciseId,
                 targetSets: toNumber(exercise.sets),
@@ -281,6 +293,10 @@ export function RoutineFormScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
+              // Senza il freno la ScrollView prende tutta l'altezza del form,
+              // e i chip si stirano con lei: "Aggiungi giorno" diventava un
+              // ovale alto mezzo schermo.
+              style={styles.chipScroll}
               contentContainerStyle={styles.dayChips}
             >
               {days.map((item, index) => (
@@ -447,7 +463,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   section: { marginTop: theme.spacing.lg },
-  dayChips: { gap: theme.spacing.sm, paddingBottom: theme.spacing.xs },
+  chipScroll: { flexGrow: 0 },
+  dayChips: {
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    paddingBottom: theme.spacing.xs,
+  },
   addDay: {
     flexDirection: "row",
     alignItems: "center",

@@ -320,7 +320,11 @@ const styles = StyleSheet.create({
   },
   starter: { gap: theme.spacing.sm },
   startTitle: { flexShrink: 1, fontSize: 16, fontWeight: "700" },
-  protocols: { flexDirection: "row", gap: theme.spacing.xs },
+  protocols: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.xs,
+  },
   explain: { marginTop: theme.spacing.xs },
   explainInner: { padding: theme.spacing.md },
   explainText: { fontSize: 13, lineHeight: 19 },

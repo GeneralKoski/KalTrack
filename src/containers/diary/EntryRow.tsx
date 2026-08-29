@@ -24,10 +24,20 @@ export const EntryRow: React.FC<EntryRowProps> = ({
   const { t } = useTranslation();
   const { colors } = useAppTheme();
 
+  /**
+   * Una voce libera non ha grammi: la sua `quantity_g` e' un moltiplicatore che
+   * parte da 1. Scriverla come "1 g" faceva sembrare una pizza da 800 kcal un
+   * grammo di qualcosa, e invitava a "correggerla" a 350 - che moltiplicava le
+   * calorie per trecentocinquanta.
+   */
   const quantity =
     entry.source_kind === "recipe"
       ? t("recipes.servings_count", { count: entry.servings ?? 0 })
-      : `${Math.round(entry.quantity_g ?? 0)} g`;
+      : entry.source_kind === "free"
+        ? (entry.quantity_g ?? 1) === 1
+          ? ""
+          : t("diary.multiplier", { count: entry.quantity_g ?? 1 })
+        : `${Math.round(entry.quantity_g ?? 0)} g`;
 
   return (
     <View style={styles.row}>

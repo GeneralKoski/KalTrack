@@ -399,3 +399,46 @@ export async function personalBest(
   }
   return best;
 }
+
+export interface RecentSession {
+  id: string;
+  date: string;
+  /** Nome del giorno di scheda seguito, null per un allenamento libero. */
+  dayName: string | null;
+  /** Serie di lavoro registrate; i riscaldamenti non contano. */
+  workingSets: number;
+  /** Volume totale in kg (carico per ripetizioni), 0 se a corpo libero. */
+  volumeKg: number;
+  /** Null se la sessione e' ancora aperta: e' quella da riprendere. */
+  endedAt: string | null;
+}
+
+/**
+ * Gli ultimi allenamenti, dal piu' recente.
+ *
+ * Una sessione senza `endedAt` non e' finita: chi apre la palestra e ne trova
+ * una aperta vuole riprenderla, non cominciarne un'altra accanto.
+ */
+export async function recentSessions(limit = 5): Promise<RecentSession[]> {
+  const db = await getDb();
+  return db.getAllAsync<RecentSession>(
+    `SELECT w.id,
+            w.date,
+            d.name AS dayName,
+            w.ended_at AS endedAt,
+            COALESCE(SUM(CASE WHEN s.id IS NULL THEN 0 ELSE 1 END), 0) AS workingSets,
+            COALESCE(SUM(COALESCE(s.weight, 0) * COALESCE(s.reps, 0)), 0) AS volumeKg
+       FROM workout_sessions w
+       LEFT JOIN routine_days d
+         ON d.id = w.routine_day_id AND d.deleted_at IS NULL
+       LEFT JOIN session_sets s
+         ON s.workout_session_id = w.id
+        AND s.is_warmup = 0
+        AND s.deleted_at IS NULL
+      WHERE w.deleted_at IS NULL
+      GROUP BY w.id
+      ORDER BY w.date DESC, w.started_at DESC
+      LIMIT ?`,
+    [limit],
+  );
+}

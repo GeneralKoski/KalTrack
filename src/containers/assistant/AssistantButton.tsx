@@ -4,10 +4,15 @@ import { MetalSurface } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { AssistantOverlay } from "@/src/containers/assistant/AssistantOverlay";
 import { useAssistantSession } from "@/src/containers/assistant/useAssistantSession";
-import { getDayDiary, listMealTypes } from "@/src/db/queries/diary";
+import {
+  entryDisplayNames,
+  getDayDiary,
+  listMealTypes,
+} from "@/src/db/queries/diary";
 import { searchFoods } from "@/src/db/queries/foods";
 import { searchRecipes } from "@/src/db/queries/recipes";
 import { getTargetsFor } from "@/src/db/queries/settings";
+import { getSteps } from "@/src/db/queries/tracking";
 import { todayIso } from "@/src/domain/date";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { useAssistantLaunch } from "@/src/services/assistantLaunch";
@@ -79,6 +84,10 @@ export const AssistantButton: React.FC = () => {
           searchFoods("", CONTEXT_ITEMS),
           searchRecipes("", CONTEXT_ITEMS),
         ]);
+        const [stepLog, names] = await Promise.all([
+          getSteps(date),
+          entryDisplayNames(diary),
+        ]);
         if (!active) return;
 
         contextRef.current = {
@@ -97,15 +106,21 @@ export const AssistantButton: React.FC = () => {
             proteinG: diary.totals.protein,
             carbsG: diary.totals.carbs,
             fatG: diary.totals.fat,
-            steps: 0,
+            // I passi vanno letti, non messi a zero: con lo zero fisso
+            // l'assistente rispondeva "hai fatto 0 passi" a chi ne aveva
+            // appena registrati novemila.
+            steps: stepLog?.steps ?? 0,
           },
           mealTypes: mealTypes.map((m) => ({ id: m.id, name: m.name })),
           foods: foods.map((f) => ({ id: f.id, name: f.name })),
           recipes: recipes.map((r) => ({ id: r.id, name: r.name })),
+          // Il nome della riga e' quello dell'alimento o del pasto, non quello
+          // del tipo di pasto: con il ripiego su `meal.type.name` ogni voce si
+          // chiamava "Colazione", e "togli il pane" non poteva funzionare.
           entries: diary.meals.flatMap((meal) =>
             meal.entries.map((entry) => ({
               id: entry.id,
-              name: entry.label ?? meal.type.name,
+              name: names[entry.id] ?? meal.type.name,
               kcal: entry.kcal,
             })),
           ),

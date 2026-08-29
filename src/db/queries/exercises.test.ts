@@ -171,3 +171,64 @@ describe("suggestAlternatives", () => {
     expect(alternatives.map((a) => a.id)).toContain(pushups);
   });
 });
+
+describe("attrezzatura e corpo libero", () => {
+  /**
+   * Il difetto che questo test blocca: "corpo_libero" e' un valore vero della
+   * lista, non l'assenza di valori, e veniva trattato come un attrezzo da
+   * possedere. Chi dichiarava "ho i manubri" si vedeva sparire dalle
+   * alternative ogni esercizio senza attrezzi.
+   */
+  it("propone gli esercizi a corpo libero anche se non li hai dichiarati", async () => {
+    const dips = await createExercise({
+      name: "Dip alle parallele",
+      muscleGroup: "petto",
+      secondaryMuscles: [],
+      equipment: ["corpo_libero"],
+    });
+    const bench = await createExercise({
+      name: "Panca manubri",
+      muscleGroup: "petto",
+      secondaryMuscles: [],
+      equipment: ["manubri", "panca"],
+    });
+    const machine = await createExercise({
+      name: "Chest press",
+      muscleGroup: "petto",
+      secondaryMuscles: [],
+      equipment: ["macchina"],
+    });
+    await setEquipmentAvailability("manubri", true);
+    await setEquipmentAvailability("panca", true);
+
+    const ids = (
+      await suggestAlternatives(bench, { onlyAvailableEquipment: true })
+    ).map((row) => row.id);
+    expect(ids).toContain(dips);
+    expect(ids).not.toContain(machine);
+  });
+
+  /**
+   * Un elenco vuoto vuol dire "non ho ancora detto cosa ho", non "non ho
+   * niente": filtrandoci sopra le alternative si riducevano al corpo libero.
+   */
+  it("non filtra finche' l'attrezzatura non e' stata dichiarata", async () => {
+    const bench = await createExercise({
+      name: "Panca bilanciere",
+      muscleGroup: "petto",
+      secondaryMuscles: [],
+      equipment: ["bilanciere", "panca"],
+    });
+    const machine = await createExercise({
+      name: "Pectoral machine",
+      muscleGroup: "petto",
+      secondaryMuscles: [],
+      equipment: ["macchina"],
+    });
+
+    const ids = (
+      await suggestAlternatives(bench, { onlyAvailableEquipment: true })
+    ).map((row) => row.id);
+    expect(ids).toContain(machine);
+  });
+});

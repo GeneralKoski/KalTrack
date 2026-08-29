@@ -146,6 +146,29 @@ export const parseStringArray = (value: string | null): string[] => {
   }
 };
 
+/**
+ * Attrezzatura che c'e' sempre, ovunque.
+ *
+ * "corpo_libero" e' un valore vero della lista, non l'assenza di valori: un
+ * piegamento ha `equipment: ["corpo_libero"]`, non un array vuoto. Chi
+ * controlla solo `needed.length === 0` scarta ogni esercizio a corpo libero
+ * appena l'utente dichiara la propria attrezzatura senza spuntare "corpo
+ * libero", che e' l'ultima cosa a cui penserebbe.
+ */
+export const ALWAYS_AVAILABLE_EQUIPMENT: Equipment[] = ["corpo_libero"];
+
+/** True se l'esercizio si puo' fare con l'attrezzatura indicata. */
+export const canDoWith = (
+  needed: Equipment[],
+  available: ReadonlySet<string>,
+): boolean =>
+  needed.length === 0 ||
+  needed.every(
+    (item) =>
+      available.has(item) ||
+      (ALWAYS_AVAILABLE_EQUIPMENT as string[]).includes(item),
+  );
+
 export const exerciseEquipment = (row: ExerciseRow): Equipment[] =>
   parseStringArray(row.equipment) as Equipment[];
 

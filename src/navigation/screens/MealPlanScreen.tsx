@@ -527,6 +527,7 @@ const styles = StyleSheet.create({
   },
   weekLabel: { flexShrink: 1, fontSize: 14, fontWeight: "600" },
   dayChips: {
+    alignItems: "center",
     gap: theme.spacing.xs,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,

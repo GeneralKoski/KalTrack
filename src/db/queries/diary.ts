@@ -1,7 +1,11 @@
 import { getDb } from "@/src/db/index";
 import { newId, nowIso } from "@/src/db/ids";
 import { getFood, incrementFoodUsage } from "@/src/db/queries/foods";
-import { buildRecipeTree, incrementRecipeUsage } from "@/src/db/queries/recipes";
+import {
+  buildRecipeTree,
+  getRecipe,
+  incrementRecipeUsage,
+} from "@/src/db/queries/recipes";
 import {
   EMPTY_NUTRIENTS,
   recipePerServing,
@@ -29,6 +33,33 @@ export interface DayDiary {
   date: string;
   meals: DiaryMeal[];
   totals: Nutrients;
+}
+
+/**
+ * I nomi delle righe di un giorno, per id.
+ *
+ * Il nome non sta sulla riga - che porta solo lo snapshot dei macro - e va
+ * risolto dall'alimento o dal pasto a cui punta. Vive qui perche' lo usano
+ * sia la schermata di oggi sia il contesto dell'assistente: quando
+ * l'assistente aveva la sua versione approssimata, ogni voce si chiamava col
+ * nome del tipo di pasto e "togli il pane" non poteva funzionare.
+ */
+export async function entryDisplayNames(
+  diary: DayDiary,
+): Promise<Record<string, string>> {
+  const names: Record<string, string> = {};
+  for (const meal of diary.meals) {
+    for (const entry of meal.entries) {
+      if (entry.label) {
+        names[entry.id] = entry.label;
+      } else if (entry.food_id) {
+        names[entry.id] = (await getFood(entry.food_id))?.name ?? "";
+      } else if (entry.recipe_id) {
+        names[entry.id] = (await getRecipe(entry.recipe_id))?.name ?? "";
+      }
+    }
+  }
+  return names;
 }
 
 /** Quantità di riferimento di una voce libera: non ha grammi, parte da 1. */

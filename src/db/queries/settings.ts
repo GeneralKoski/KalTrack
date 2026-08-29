@@ -21,7 +21,9 @@ export async function getProfile(): Promise<ProfileRow | null> {
 export async function saveProfile(input: {
   sex: Sex;
   birthdate: string;
-  heightCm: number;
+  /** Null quando non e' stata inserita: la colonna e' nullable apposta, e uno
+   *  zero sarebbe una misura inventata invece di un dato mancante. */
+  heightCm: number | null;
   activityLevel: ActivityLevel;
   goal: Goal;
 }): Promise<void> {

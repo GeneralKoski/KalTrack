@@ -111,6 +111,7 @@ export function TargetsScreen() {
     const suggestion = suggestTargets({
       sex,
       weightKg: weightKg!,
+      // Qui l'altezza c'e' per forza: canCompute lo ha gia' verificato.
       heightCm: num(heightCm),
       age,
       activity,
@@ -130,7 +131,8 @@ export function TargetsScreen() {
     await saveProfile({
       sex,
       birthdate,
-      heightCm: num(heightCm),
+      // Campo vuoto: nessuna altezza, non zero centimetri.
+      heightCm: heightCm.trim() === "" ? null : num(heightCm),
       activityLevel: activity,
       goal,
     });

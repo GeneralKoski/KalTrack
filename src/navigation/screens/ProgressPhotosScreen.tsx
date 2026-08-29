@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: theme.spacing.md },
   card: { gap: theme.spacing.sm },
   section: { marginTop: theme.spacing.md },
-  poses: { gap: theme.spacing.sm },
+  poses: { alignItems: "center", gap: theme.spacing.sm },
   compareRow: {
     flexDirection: "row",
     gap: theme.spacing.sm,

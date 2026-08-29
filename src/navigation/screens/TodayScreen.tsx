@@ -21,13 +21,12 @@ import {
   addFreeEntry,
   addRecipeEntry,
   deleteEntry,
+  entryDisplayNames,
   getDayDiary,
   listMealTypes,
   updateEntryQuantity,
   type DayDiary,
 } from "@/src/db/queries/diary";
-import { getFood } from "@/src/db/queries/foods";
-import { getRecipe } from "@/src/db/queries/recipes";
 import { getTargetsFor } from "@/src/db/queries/settings";
 import {
   getSteps,
@@ -94,20 +93,7 @@ export function TodayScreen() {
       getWeight(date),
     ]);
 
-    // I nomi non stanno sulla riga (che porta solo lo snapshot dei macro):
-    // vanno risolti dall'alimento o dal pasto a cui punta.
-    const names: Record<string, string> = {};
-    for (const meal of diary.meals) {
-      for (const entry of meal.entries) {
-        if (entry.label) {
-          names[entry.id] = entry.label;
-        } else if (entry.food_id) {
-          names[entry.id] = (await getFood(entry.food_id))?.name ?? "";
-        } else if (entry.recipe_id) {
-          names[entry.id] = (await getRecipe(entry.recipe_id))?.name ?? "";
-        }
-      }
-    }
+    const names = await entryDisplayNames(diary);
 
     return {
       diary,
@@ -197,6 +183,10 @@ export function TodayScreen() {
   const promptOpen = pendingPick !== null || editingEntry !== null;
   const promptIsRecipe =
     editingEntry?.source_kind === "recipe" || pendingPick?.kind === "recipe";
+  // Una voce libera si scala per moltiplicatore, non per grammi: chiederle
+  // "quanti g?" e passare il numero a updateEntryQuantity moltiplicava lo
+  // snapshot per quel numero.
+  const promptIsFree = editingEntry?.source_kind === "free";
 
   const promptTitle = editingEntry
     ? (data?.names[editingEntry.id] ?? "")
@@ -322,7 +312,13 @@ export function TodayScreen() {
       <QuantityPrompt
         isOpen={promptOpen}
         title={promptTitle}
-        unit={promptIsRecipe ? t("recipes.servings_unit") : "g"}
+        unit={
+          promptIsRecipe
+            ? t("recipes.servings_unit")
+            : promptIsFree
+              ? t("diary.multiplier_unit")
+              : "g"
+        }
         initialValue={promptValue}
         onConfirm={confirmQuantity}
         onClose={() => {
