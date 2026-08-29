@@ -15,7 +15,7 @@ import type { StepLogRow, StepSource, WeightLogRow } from "@/src/types/nutrition
 export async function getSteps(date: string): Promise<StepLogRow | null> {
   const db = await getDb();
   return db.getFirstAsync<StepLogRow>(
-    "SELECT * FROM step_logs WHERE date = ?",
+    "SELECT * FROM step_logs WHERE date = ? AND deleted_at IS NULL",
     [date],
   );
 }
@@ -35,6 +35,9 @@ export async function setSteps(
      ON CONFLICT(date) DO UPDATE SET
        steps = excluded.steps,
        source = excluded.source,
+       -- Il giorno torna vivo: senza, dopo una cancellazione l'upsert
+       -- aggiornerebbe i numeri su una riga che nessuna lettura vede piu'.
+       deleted_at = NULL,
        updated_at = excluded.updated_at`,
     [newId(), date, Math.round(steps), source, now, now],
   );
@@ -46,20 +49,32 @@ export async function listSteps(
 ): Promise<StepLogRow[]> {
   const db = await getDb();
   return db.getAllAsync<StepLogRow>(
-    "SELECT * FROM step_logs WHERE date BETWEEN ? AND ? ORDER BY date ASC",
+    `SELECT * FROM step_logs WHERE date BETWEEN ? AND ?
+       AND deleted_at IS NULL ORDER BY date ASC`,
     [fromDate, toDate],
   );
 }
 
+/**
+ * Cancellazione LOGICA, non fisica.
+ *
+ * Una riga tolta dal database non ha piu' modo di dire all'altro dispositivo
+ * che e' stata tolta: alla prima sincronizzazione il server la rimanderebbe
+ * indietro e i passi cancellati resusciterebbero.
+ */
 export async function deleteSteps(date: string): Promise<void> {
   const db = await getDb();
-  await db.runAsync("DELETE FROM step_logs WHERE date = ?", [date]);
+  const now = nowIso();
+  await db.runAsync(
+    "UPDATE step_logs SET deleted_at = ?, updated_at = ? WHERE date = ? AND deleted_at IS NULL",
+    [now, now, date],
+  );
 }
 
 export async function getWeight(date: string): Promise<WeightLogRow | null> {
   const db = await getDb();
   return db.getFirstAsync<WeightLogRow>(
-    "SELECT * FROM weight_logs WHERE date = ?",
+    "SELECT * FROM weight_logs WHERE date = ? AND deleted_at IS NULL",
     [date],
   );
 }
@@ -81,6 +96,8 @@ export async function setWeight(
        weight_kg = excluded.weight_kg,
        body_fat_pct = excluded.body_fat_pct,
        note = excluded.note,
+       -- Come per i passi: reinserire un peso riporta in vita il giorno.
+       deleted_at = NULL,
        updated_at = excluded.updated_at`,
     [newId(), date, weightKg, bodyFatPct, note, now, now],
   );
@@ -92,7 +109,8 @@ export async function listWeights(
 ): Promise<WeightLogRow[]> {
   const db = await getDb();
   return db.getAllAsync<WeightLogRow>(
-    "SELECT * FROM weight_logs WHERE date BETWEEN ? AND ? ORDER BY date ASC",
+    `SELECT * FROM weight_logs WHERE date BETWEEN ? AND ?
+       AND deleted_at IS NULL ORDER BY date ASC`,
     [fromDate, toDate],
   );
 }
@@ -100,11 +118,16 @@ export async function listWeights(
 export async function latestWeight(): Promise<WeightLogRow | null> {
   const db = await getDb();
   return db.getFirstAsync<WeightLogRow>(
-    "SELECT * FROM weight_logs ORDER BY date DESC LIMIT 1",
+    "SELECT * FROM weight_logs WHERE deleted_at IS NULL ORDER BY date DESC LIMIT 1",
   );
 }
 
+/** Come deleteSteps: logica, o il peso cancellato torna dal server. */
 export async function deleteWeight(date: string): Promise<void> {
   const db = await getDb();
-  await db.runAsync("DELETE FROM weight_logs WHERE date = ?", [date]);
+  const now = nowIso();
+  await db.runAsync(
+    "UPDATE weight_logs SET deleted_at = ?, updated_at = ? WHERE date = ? AND deleted_at IS NULL",
+    [now, now, date],
+  );
 }

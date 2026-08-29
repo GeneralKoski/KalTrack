@@ -78,7 +78,14 @@ export async function removeLastWater(date: string): Promise<void> {
     [date],
   );
   if (!last) return;
-  await db.runAsync("DELETE FROM water_logs WHERE id = ?", [last.id]);
+  // Cancellazione LOGICA, non fisica: una riga tolta dal database non ha piu'
+  // modo di dire all'altro dispositivo che e' stata tolta, e alla prima
+  // sincronizzazione tornerebbe indietro dal server. Il bicchiere annullato
+  // si ripresenterebbe da solo.
+  await db.runAsync(
+    "UPDATE water_logs SET deleted_at = ?, updated_at = ? WHERE id = ?",
+    [nowIso(), nowIso(), last.id],
+  );
 }
 
 // ─── Misure corporee ─────────────────────────────────────────────────────────
@@ -98,6 +105,7 @@ export async function setMeasurement(
      ON CONFLICT(date, site) DO UPDATE SET
        value_cm = excluded.value_cm,
        note = excluded.note,
+       deleted_at = NULL,
        updated_at = excluded.updated_at`,
     [newId(), date, site, valueCm, note, now, now],
   );

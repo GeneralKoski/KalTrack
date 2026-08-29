@@ -3,7 +3,13 @@ import { __setDbForTesting, getDb } from "@/src/db/index";
 import { runMigrations } from "@/src/db/migrations";
 import { createFood, getFood, searchFoods } from "@/src/db/queries/foods";
 import { getSetting, setSetting } from "@/src/db/queries/settings";
-import { setSteps } from "@/src/db/queries/tracking";
+import {
+  deleteSteps,
+  deleteWeight,
+  setSteps,
+  setWeight,
+} from "@/src/db/queries/tracking";
+import { removeLastWater } from "@/src/db/queries/wellbeing";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 import {
@@ -522,5 +528,61 @@ describe("passaggio al segnaposto numerico", () => {
     const salvato = await getSetting("sync.cursor");
     expect(/^\d+$/.test(salvato ?? "")).toBe(true);
     expect(Number(salvato)).toBe(1234);
+  });
+});
+
+describe("cancellazioni e resurrezione", () => {
+  /**
+   * IL CASO PEGGIORE PER L'ALLINEAMENTO: se una riga viene cancellata
+   * FISICAMENTE, il server non lo viene mai a sapere - non c'e' piu' niente
+   * da mandargli. Al giro dopo il server rimanda indietro la sua copia, che
+   * il telefono non ha piu', e la riga RESUSCITA.
+   *
+   * Chi toglie un bicchiere d'acqua se lo ritrova.
+   */
+  it("un bicchiere annullato non deve tornare dal server", async () => {
+    const database = await getDb();
+    await database.runAsync(
+      `INSERT INTO water_logs (id, date, ml, created_at, updated_at)
+       VALUES ('w-tolto', '2026-08-29', 250, '2026-08-29T10:00:00.000Z', '2026-08-29T10:00:00.000Z')`,
+    );
+
+    // L'utente lo annulla: la riga deve restare, marcata come cancellata.
+    await removeLastWater("2026-08-29");
+
+    const row = await database.getFirstAsync<{ deleted_at: string | null }>(
+      "SELECT deleted_at FROM water_logs WHERE id = 'w-tolto'",
+    );
+    expect(row).not.toBeNull();
+    expect(row?.deleted_at).not.toBeNull();
+
+    // E la cancellazione deve poter viaggiare.
+    const changes = await collectChanges(null);
+    const mine = changes.find((c) => c.id === "w-tolto");
+    expect(mine?.deletedAt).not.toBeNull();
+  });
+
+  it("un peso cancellato non deve tornare dal server", async () => {
+    await setWeight("2026-08-25", 80);
+    await deleteWeight("2026-08-25");
+
+    const database = await getDb();
+    const row = await database.getFirstAsync<{ deleted_at: string | null }>(
+      "SELECT deleted_at FROM weight_logs WHERE date = '2026-08-25'",
+    );
+    expect(row).not.toBeNull();
+    expect(row?.deleted_at).not.toBeNull();
+  });
+
+  it("dei passi cancellati non devono tornare dal server", async () => {
+    await setSteps("2026-08-24", 5000);
+    await deleteSteps("2026-08-24");
+
+    const database = await getDb();
+    const row = await database.getFirstAsync<{ deleted_at: string | null }>(
+      "SELECT deleted_at FROM step_logs WHERE date = '2026-08-24'",
+    );
+    expect(row).not.toBeNull();
+    expect(row?.deleted_at).not.toBeNull();
   });
 });
