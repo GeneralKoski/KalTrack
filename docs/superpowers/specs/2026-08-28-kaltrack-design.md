@@ -435,21 +435,41 @@ screenshot di verifica, commit.
 22. Achievement e streak
 23. Rifinitura UI, stati vuoti, accessibilita'
 
-## 9. Fuori scope (previsto, non sviluppato)
+## 9. Fuori scope iniziale
 
-### 9.1 Social
-Ricerca amici, profilo pubblico con storico, confronto di alimentazione, passi e
-allenamenti. Lo schema sync-ready e' il presupposto tecnico.
+Questa sezione elencava cio' che non sarebbe stato sviluppato subito. Quasi tutto e'
+stato poi costruito; quel che resta fuori e' rimasto fuori per una ragione, scritta qui
+accanto. Un elenco di intenzioni che non distingue tra "non ancora" e "non si puo'" non
+serve a nessuno.
 
-### 9.2 Funzionalita'
-Health Connect (Android) e HealthKit (iOS) per i passi automatici; notifiche promemoria e
-timer di recupero in notifica; widget home con calorie residue; OCR dell'etichetta
-nutrizionale; tracking acqua; digiuno intermittente; misure corporee e foto progressi;
-progressione carichi e deload suggeriti; piano pasti settimanale con lista della spesa;
-coach AI settimanale che analizza i trend; export CSV e PDF; backup su cloud;
-integrazione con l'assistente di sistema Android per lanciare KalTrack a voce da fuori app.
+### 9.1 Costruito dopo la stesura della spec
+Health Connect per i passi automatici; promemoria con notifiche; timer di recupero;
+tracking acqua; digiuno intermittente; misure corporee e foto progressi; progressione
+carichi; piano pasti settimanale con lista della spesa; coach AI settimanale; traguardi;
+export CSV; OCR dell'etichetta nutrizionale; widget della home con calorie e passi;
+scorciatoia sull'icona che apre l'assistente in ascolto.
 
-### 9.3 Infrastruttura
+### 9.2 Non costruibile senza un backend
+Ricerca amici, profilo pubblico con storico, confronto con altre persone, e backup su
+cloud. Non e' una questione di tempo: tutte e quattro richiedono un server che tenga i
+dati di piu' persone e ne autentichi l'accesso. Costruirne una finta - un elenco di amici
+salvato solo su questo telefono, un "backup cloud" che scrive in locale - darebbe
+all'utente la sensazione di avere qualcosa che non ha, e la scoperta arriverebbe nel
+momento peggiore: quando serve davvero. Lo schema sync-ready (ogni tabella con `id` UUID,
+`created_at`, `updated_at`, `deleted_at`) e' il presupposto tecnico gia' pronto.
+
+### 9.3 Non costruibile senza codice nativo dedicato
+Assistente predefinito di Android (`ACTION_ASSIST`): quell'intent non porta dati, quindi
+senza un modulo nativo che legga l'intent di partenza l'app non saprebbe di essere stata
+invocata cosi' e si aprirebbe sul diario invece che in ascolto - peggio del non esserci.
+Al suo posto c'e' la scorciatoia sull'icona dell'app, che copre lo stesso gesto partendo
+dal launcher.
+
+HealthKit su iOS: e' un'altra libreria e un altro provider. L'interfaccia `HealthProvider`
+in `src/services/healthConnect.ts` e' il punto in cui si innesterebbe, ma il file non
+finge di coprirlo.
+
+### 9.4 Infrastruttura
 Backend Laravel per sync multi-device e per fare da proxy alle chiamate AI, eliminando la
 chiave nel bundle.
 

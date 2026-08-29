@@ -3920,3 +3920,33 @@ La fase è chiusa quando, su un telefono reale:
   e puo' dare import `undefined`. Regola: tutto cio' che `db/index` importa deve
   **ricevere** la connessione come parametro, non chiamare `getDb()`.
 - I `CHECK` nella migrazione 001 non sono verificati da un test dedicato: se un `INSERT` viene rifiutato in modo inatteso durante il Task 6 o 7, la causa è quasi certamente lì.
+
+### Scostamenti emersi nel lotto "per il futuro"
+
+- **Il codice nativo va nei config plugin, non in `android/`.** La cartella `android/`
+  viene rigenerata a ogni `expo prebuild`: un file Kotlin o XML messo lì a mano
+  sparisce al primo rebuild. I sorgenti veri stanno in `plugins/widget/` e vengono
+  copiati dal plugin, che sostituisce anche il segnaposto `PACKAGE_NAME` leggendo il
+  package da `app.json`. Vale per il widget e per la scorciatoia dell'assistente.
+- **`AndroidConfig.Strings.withStringsXml` non esiste.** Il modificatore si importa
+  dal livello superiore (`withStringsXml` da `expo/config-plugins`); sotto
+  `AndroidConfig.Strings` ci sono solo `setStringItem` e `removeStringItem`.
+- **Il nome del pacchetto è `com.koski.kaltrack`.** Alcuni comandi `adb` erano stati
+  scritti con un package inventato e fallivano con "Activity class does not exist":
+  il valore è in `app.json`, non va indovinato.
+- **Il database sta in `files/SQLite/kaltrack.db`**, non in `databases/`. È il percorso
+  che usa `expo-sqlite`, ed è quello che il widget apre.
+- **Un `useEffect` non deve dipendere da una callback che cambia identità.**
+  `session.startListening` cambia a ogni cambio di stato della registrazione:
+  metterla tra le dipendenze ha prodotto un loop di render infinito reale, che a sua
+  volta ha esaurito il registratore audio generando un secondo errore fuorviante.
+  La funzione va tenuta in un ref, con un contatore delle richieste già servite.
+- **Il microfono dell'assistente copriva l'ultima riga di ogni schermata scorrevole.**
+  Non si vedeva in nessun test: solo aprendo l'app. La misura vive ora accanto al
+  bottone che la determina (`ASSISTANT_FAB_CLEARANCE`), non copiata nelle schermate.
+- **Health Connect esiste davvero sull'emulatore API 36.** L'integrazione è stata
+  verificata contro il provider di sistema, non contro un mock: il dialogo di
+  permesso chiede esattamente "Steps" e la sincronizzazione registra l'orario.
+- **La build di sviluppo intercetta i deep link.** Con `expo-dev-client` un
+  `kaltrack://` lanciato ad app chiusa apre il DevLauncher, non l'app: per provare il
+  link bisogna prima entrare nell'app e poi lanciarlo. In release non succede.

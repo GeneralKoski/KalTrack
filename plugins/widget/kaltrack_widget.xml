@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:id="@+id/widget_root"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:orientation="vertical"
+  android:gravity="center"
+  android:padding="12dp"
+  android:background="@drawable/kaltrack_widget_bg">
+
+  <TextView
+    android:id="@+id/widget_kcal"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:textSize="30sp"
+    android:textStyle="bold"
+    android:maxLines="1"
+    android:textColor="@color/kaltrack_widget_text"
+    android:text="—" />
+
+  <TextView
+    android:id="@+id/widget_kcal_caption"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:textSize="11sp"
+    android:maxLines="1"
+    android:textColor="@color/kaltrack_widget_muted"
+    android:text="kcal rimaste" />
+
+  <TextView
+    android:id="@+id/widget_steps"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="6dp"
+    android:textSize="13sp"
+    android:maxLines="1"
+    android:textColor="@color/kaltrack_widget_muted"
+    android:text="— passi" />
+</LinearLayout>

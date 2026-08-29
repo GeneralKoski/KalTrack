@@ -98,7 +98,8 @@
         }
       ],
       "react-native-health-connect",
-      "./plugins/withAssistantShortcut"
+      "./plugins/withAssistantShortcut",
+      "./plugins/withHomeWidget"
     ],
     "experiments": {
       "reactCompiler": true
