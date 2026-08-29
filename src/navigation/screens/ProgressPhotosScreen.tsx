@@ -22,6 +22,7 @@ import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
+import { PHOTO_POSES } from "@/src/types/wellbeing";
 import { formatDate } from "@/src/utils/dateUtils";
 import { logger } from "@/src/utils/logger";
 import { Image } from "expo-image";
@@ -38,9 +39,6 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 const COLUMNS = 3;
-
-// Pose in italiano minuscolo: sono la chiave scritta a DB, come i siti delle misure.
-const POSES = ["fronte", "lato", "retro"];
 
 /** Spezza in righe di lunghezza fissa: una griglia senza flexWrap e senza celle vuote. */
 function chunk<T>(items: T[], size: number): T[][] {
@@ -165,7 +163,7 @@ export function ProgressPhotosScreen() {
                     keyboardShouldPersistTaps="handled"
                     contentContainerStyle={styles.poses}
                   >
-                    {POSES.map((value) => (
+                    {PHOTO_POSES.map((value) => (
                       <Chip
                         key={value}
                         label={poseLabel(value)}

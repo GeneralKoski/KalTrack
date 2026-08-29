@@ -1,16 +1,20 @@
-export type MuscleGroup =
-  | "petto"
-  | "schiena"
-  | "spalle"
-  | "bicipiti"
-  | "tricipiti"
-  | "quadricipiti"
-  | "femorali"
-  | "glutei"
-  | "polpacci"
-  | "addome"
-  | "avambracci"
-  | "full_body";
+/** I gruppi muscolari, in un array cosi' da poterli mostrare e verificare. */
+export const MUSCLE_GROUPS = [
+  "petto",
+  "schiena",
+  "spalle",
+  "bicipiti",
+  "tricipiti",
+  "quadricipiti",
+  "femorali",
+  "glutei",
+  "polpacci",
+  "addome",
+  "avambracci",
+  "full_body",
+] as const;
+
+export type MuscleGroup = (typeof MUSCLE_GROUPS)[number];
 
 /** L'elenco chiuso degli attrezzi, in un array per poterli mostrare tutti. */
 export const EQUIPMENT = [
@@ -30,7 +34,14 @@ export const EQUIPMENT = [
 export type Equipment = (typeof EQUIPMENT)[number];
 
 /** Blocchi: è il livello che rende esprimibili superset, circuiti e dropset. */
-export type BlockKind = "single" | "superset" | "circuit" | "dropset";
+export const BLOCK_KINDS = [
+  "single",
+  "superset",
+  "circuit",
+  "dropset",
+] as const;
+
+export type BlockKind = (typeof BLOCK_KINDS)[number];
 
 export interface ExerciseRow {
   id: string;

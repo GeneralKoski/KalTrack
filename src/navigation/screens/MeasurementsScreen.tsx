@@ -26,6 +26,7 @@ import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
+import { MEASUREMENT_SITES } from "@/src/types/wellbeing";
 import { formatDate } from "@/src/utils/dateUtils";
 import { logger } from "@/src/utils/logger";
 import { ChevronLeft, Ruler } from "lucide-react-native";
@@ -40,18 +41,6 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
-// Siti in italiano minuscolo: sono la chiave scritta a DB, non un'etichetta.
-// L'app è monolingua e le misure già registrate usano questa forma, quindi una
-// chiave inglese tradotta a video romperebbe la continuità dello storico.
-const SITES = [
-  "vita",
-  "fianchi",
-  "petto",
-  "braccio",
-  "coscia",
-  "polpaccio",
-  "collo",
-];
 
 interface MeasurementsData {
   /** Siti noti più quelli già registrati che non stanno nell'elenco. */
@@ -66,7 +55,9 @@ export function MeasurementsScreen() {
   const { goBack } = useAppNav();
   const insets = useSafeAreaInsets();
 
-  const [site, setSite] = useState(SITES[0]);
+  // string e non l'unione dei siti noti: l'utente puo' averne registrato uno
+  // che non e' nell'elenco, e quello deve restare selezionabile.
+  const [site, setSite] = useState<string>(MEASUREMENT_SITES[0]);
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -75,8 +66,9 @@ export function MeasurementsScreen() {
       listMeasurementSites(),
       listMeasurements(site),
     ]);
-    const extra = stored.filter((s) => !SITES.includes(s));
-    return { sites: [...SITES, ...extra], rows };
+    const known: readonly string[] = MEASUREMENT_SITES;
+    const extra = stored.filter((s) => !known.includes(s));
+    return { sites: [...MEASUREMENT_SITES, ...extra], rows };
   }, [site]);
 
   const { data, loading, reload } = useFocusData<MeasurementsData>(loader);
@@ -132,7 +124,7 @@ export function MeasurementsScreen() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.sites}
         >
-          {(data?.sites ?? SITES).map((value) => (
+          {(data?.sites ?? MEASUREMENT_SITES).map((value) => (
             <Chip
               key={value}
               label={siteLabel(value)}

@@ -661,5 +661,10 @@
     "nothing_read": "Nessun valore leggibile nella foto",
     "failed": "Lettura dell'etichetta non riuscita",
     "no_key": "La lettura dell'etichetta richiede la configurazione dell'AI."
-  }
+  },
+  "exit_app_title": "Uscire da KalTrack?",
+  "exit_app_message": "Tocca di nuovo indietro per uscire.",
+  "password": "Password",
+  "reset": "Azzera",
+  "apply": "Applica"
 }
