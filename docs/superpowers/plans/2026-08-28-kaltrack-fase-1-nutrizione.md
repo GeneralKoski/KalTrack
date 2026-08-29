@@ -3950,3 +3950,43 @@ La fase è chiusa quando, su un telefono reale:
 - **La build di sviluppo intercetta i deep link.** Con `expo-dev-client` un
   `kaltrack://` lanciato ad app chiusa apre il DevLauncher, non l'app: per provare il
   link bisogna prima entrare nell'app e poi lanciarlo. In release non succede.
+
+### Scostamenti emersi aprendo le schermate una per una
+
+Questa serie di difetti ha una cosa in comune: nessuno era visibile nei test, e
+nessuno e' stato trovato leggendo il codice. Sono venuti fuori usando l'app.
+
+- **La tab Palestra era rimasta il segnaposto del template.** Una delle quattro
+  tab, meta' di quello che l'app doveva fare, mostrava la parola "Palestra" al
+  centro di uno schermo vuoto. Tutto il resto della fase 3 esisteva ed era
+  testato: mancava solo la porta d'ingresso. Regola: una funzionalita' non e'
+  finita finche' non e' raggiungibile dal posto in cui l'utente la cerca.
+- **`user_equipment` aveva uno scrittore e nessun chiamante.** La tabella
+  restava vuota per sempre, e con lei erano inerti sia "proponi alternativa con
+  la mia attrezzatura" sia la generazione della scheda.
+- **Il backup esportava 11 tabelle su 27.** Ripristinarlo restituiva il diario e
+  buttava via palestra, misure, acqua, digiuni, piano pasti, traguardi e
+  promemoria - senza errori, quindi senza che nessuno se ne accorgesse. Il test
+  che confronta l'elenco con `sqlite_master` ora lo impedisce.
+- **Un `useEffect` che dipende da una callback instabile e' un loop.**
+  `session.startListening` cambia identita' a ogni cambio di stato della
+  registrazione: elencarlo tra le dipendenze ha prodotto un loop di render
+  reale, che ha poi esaurito il registratore audio generando un secondo errore
+  che sembrava tutt'altro.
+- **Il doppio parsing dei numeri.** `DfNumberInput` normalizza gia' il valore
+  prima di metterlo nel form ("3,2" diventa "3.2"): chi lo rinormalizzava
+  leggeva 32. Il contratto vive ora in `numberFormat.ts` con i suoi test.
+- **`corpo_libero` e' un valore, non l'assenza di valori.** Controllare
+  `needed.length === 0` scartava ogni esercizio a corpo libero.
+- **Una riga di chip dentro un contenitore flessibile si stira.** Senza
+  `alignItems` e senza `flexGrow: 0` sulla ScrollView, "Aggiungi giorno"
+  diventava un ovale alto mezzo schermo.
+- **Il doppio padding sui bottoni.** Lo `style` passato a `DfButton` finisce sul
+  TouchableOpacity esterno, che ha gia' il suo padding sulla View interna: i due
+  si sommano, e in un dialogo a due bottoni "Annulla" diventava "Annull" / "a".
+- **Il microfono globale copre l'ultima riga.** Vale per ogni schermata
+  scorrevole: la misura sta in `ASSISTANT_FAB_CLEARANCE`, accanto al bottone che
+  la determina, e va sommata a `insets.bottom` dove la SafeAreaView non include
+  il bordo inferiore.
+- **I plurali.** "1 giorni", "1 allenamenti": le chiavi con `%{count}` vogliono
+  le forme `one`/`other`, che il progetto usava gia' altrove.
