@@ -419,4 +419,24 @@ class SyncTest extends TestCase
         $risposta->assertJsonPath('changes.0.payload.name', 'Riso integrale');
     }
 
+    /**
+     * La busta usciva arrotondata al secondo mentre il payload aveva i
+     * millesimi. Il telefono decide chi vince guardando queste ore: un
+     * dispositivo che si fida della busta non distingue due scritture dello
+     * stesso secondo.
+     */
+    public function test_le_ore_che_tornano_hanno_i_millesimi(): void
+    {
+        $anna = $this->user();
+
+        $this->actingAs($anna)->postJson('/api/sync', ['changes' => [
+            $this->change(['updatedAt' => '2026-08-29T10:00:00.250+00:00']),
+        ]])->assertOk();
+
+        // Un secondo dispositivo, che non ha mandato niente, se la prende.
+        $this->actingAs($anna)->postJson('/api/sync', ['since' => 0, 'changes' => []])
+            ->assertOk()
+            ->assertJsonPath('changes.0.updatedAt', '2026-08-29T10:00:00.250+00:00');
+    }
+
 }

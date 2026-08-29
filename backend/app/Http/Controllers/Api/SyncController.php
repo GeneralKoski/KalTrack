@@ -152,9 +152,9 @@ class SyncController extends Controller
                 'table' => $r->table_name,
                 'id' => $r->record_id,
                 'payload' => $r->payload,
-                'updatedAt' => $r->updated_at->toIso8601String(),
-                'deletedAt' => $r->deleted_at?->toIso8601String(),
-                'createdAt' => $r->created_at->toIso8601String(),
+                'updatedAt' => self::instant($r->updated_at),
+                'deletedAt' => $r->deleted_at !== null ? self::instant($r->deleted_at) : null,
+                'createdAt' => self::instant($r->created_at),
             ])
             ->values()
             ->all();
@@ -168,5 +168,20 @@ class SyncController extends Controller
         $cursor = $records->isNotEmpty() ? $records->last()->sequence : $since;
 
         return [$changes, $cursor];
+    }
+
+    /**
+     * Un istante scritto con i millesimi.
+     *
+     * `toIso8601String()` li lascia fuori. Il telefono decide chi vince un
+     * conflitto su queste ore, e una busta arrotondata al secondo rende
+     * indistinguibili due scritture dello stesso secondo. Il payload i
+     * millesimi ce li ha sempre - e' il testo scritto dal telefono d'origine -
+     * quindi il difetto restava nascosto finche' qualcuno non si fidava della
+     * busta.
+     */
+    private static function instant(Carbon $moment): string
+    {
+        return $moment->format('Y-m-d\TH:i:s.vP');
     }
 }
