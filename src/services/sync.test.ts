@@ -604,7 +604,6 @@ describe("modifica di un pasto", () => {
       name: "Pranzo",
       servings: 1,
       notes: null,
-      imageUri: null,
       items: [{ foodId: riso, quantityG: 100 }],
     });
 
@@ -613,7 +612,6 @@ describe("modifica di un pasto", () => {
       name: "Pranzo",
       servings: 1,
       notes: null,
-      imageUri: null,
       items: [{ foodId: pollo, quantityG: 150 }],
     });
 
@@ -632,5 +630,142 @@ describe("modifica di un pasto", () => {
       [recipeId],
     );
     expect(attivi).toHaveLength(1);
+  });
+});
+
+describe("confronto delle ore", () => {
+  /**
+   * Il difetto: `updated_at` veniva confrontato come STRINGA. La stessa ora
+   * qui e' scritta "...T10:00:00.000Z" e torna dal server "...T10:00:00+00:00",
+   * e a parita' di secondo il "." viene dopo il "+": la riga locale vinceva
+   * sempre, e la modifica fatta sull'altro telefono spariva in silenzio.
+   */
+  it("una riga piu' recente dal server vince anche col fuso scritto diverso", async () => {
+    const db = await getDb();
+    const id = "food-riso";
+    await db.runAsync(
+      `INSERT INTO foods (id, name, kcal, protein, carbs, fat,
+         created_at, updated_at)
+       VALUES (?, 'Riso bianco', 130, 2, 28, 0, ?, ?)`,
+      [id, "2026-08-29T10:00:00.000Z", "2026-08-29T10:00:00.000Z"],
+    );
+
+    await applyChanges([
+      {
+        table: "foods",
+        id,
+        payload: {
+          id,
+          name: "Riso integrale",
+          kcal: 111,
+          protein: 2,
+          carbs: 23,
+          fat: 1,
+          created_at: "2026-08-29T10:00:00.000Z",
+          updated_at: "2026-08-29T10:00:00.500Z",
+        },
+        // Il server rimanda l'ora troncata al secondo e con "+00:00".
+        updatedAt: "2026-08-29T10:00:00+00:00",
+        deletedAt: null,
+        createdAt: "2026-08-29T10:00:00+00:00",
+      },
+    ]);
+
+    const row = await db.getFirstAsync<{ name: string }>(
+      "SELECT name FROM foods WHERE id = ?",
+      [id],
+    );
+    expect(row?.name).toBe("Riso integrale");
+  });
+
+  it("una riga piu' vecchia dal server non sovrascrive quella locale", async () => {
+    const db = await getDb();
+    const id = "food-pane";
+    await db.runAsync(
+      `INSERT INTO foods (id, name, kcal, protein, carbs, fat,
+         created_at, updated_at)
+       VALUES (?, 'Pane fresco', 265, 9, 49, 3, ?, ?)`,
+      [id, "2026-08-29T10:00:00.000Z", "2026-08-29T10:00:00.900Z"],
+    );
+
+    await applyChanges([
+      {
+        table: "foods",
+        id,
+        payload: {
+          id,
+          name: "Pane vecchio",
+          kcal: 265,
+          protein: 9,
+          carbs: 49,
+          fat: 3,
+          created_at: "2026-08-29T10:00:00.000Z",
+          updated_at: "2026-08-29T10:00:00.100Z",
+        },
+        updatedAt: "2026-08-29T10:00:00+00:00",
+        deletedAt: null,
+        createdAt: "2026-08-29T10:00:00+00:00",
+      },
+    ]);
+
+    const row = await db.getFirstAsync<{ name: string }>(
+      "SELECT name FROM foods WHERE id = ?",
+      [id],
+    );
+    expect(row?.name).toBe("Pane fresco");
+  });
+});
+
+describe("lotti e righe con la stessa ora", () => {
+  /**
+   * Il difetto: il punto di ripresa e' `updated_at`, e il lotto si chiudeva
+   * anche a meta' di un gruppo di righe scritte nello stesso istante. Il giro
+   * dopo chiedeva "piu' recenti dell'ultima inviata" e le sorelle rimaste
+   * indietro non partivano MAI. Non e' un caso di scuola: gli ingredienti di
+   * una ricetta e il catalogo iniziale si scrivono in un ciclo solo.
+   */
+  it("nessuna riga resta indietro quando il taglio cade dentro un gruppo", async () => {
+    const db = await getDb();
+    // Un'ora in avanti nel tempo, cosi' il lotto contiene queste righe e
+    // nient'altro di quel che il database si porta dietro.
+    const stessaOra = "2099-06-01T10:00:00.000Z";
+    const prima = "2099-01-01T00:00:00.000Z";
+    for (let i = 0; i < 12; i++) {
+      await db.runAsync(
+        `INSERT INTO foods (id, name, kcal, protein, carbs, fat,
+           created_at, updated_at)
+         VALUES (?, ?, 100, 1, 1, 1, ?, ?)`,
+        [`gruppo-${i}`, `Alimento ${i}`, stessaOra, stessaOra],
+      );
+    }
+
+    // Un lotto da 5 cadrebbe in mezzo al gruppo da 12.
+    const primo = await collectChanges(prima, 5);
+    const inviati = primo.filter((c) => c.table === "foods");
+    expect(inviati.length).toBe(12);
+
+    // E il giro successivo, che riparte dall'ora dell'ultima inviata, non ne
+    // trova piu' nessuna: sono partite tutte.
+    const massimo = inviati.reduce(
+      (max, c) => (c.updatedAt > max ? c.updatedAt : max),
+      "",
+    );
+    const secondo = await collectChanges(massimo, 5);
+    expect(secondo.filter((c) => c.table === "foods")).toHaveLength(0);
+  });
+
+  it("il payload non porta con se' la colonna usata per ordinare", async () => {
+    const db = await getDb();
+    await db.runAsync(
+      `INSERT INTO foods (id, name, kcal, protein, carbs, fat,
+         created_at, updated_at)
+       VALUES ('solo', 'Uovo', 155, 13, 1, 11, ?, ?)`,
+      ["2026-08-29T10:00:00.000Z", "2026-08-29T10:00:00.000Z"],
+    );
+
+    const changes = await collectChanges(null);
+    const uovo = changes.find((c) => c.id === "solo");
+    expect(uovo).toBeDefined();
+    expect(uovo?.payload).not.toHaveProperty("__rowid");
   });
 });

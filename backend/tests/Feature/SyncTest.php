@@ -382,4 +382,41 @@ class SyncTest extends TestCase
             ->assertJsonCount(1, 'changes')
             ->assertJsonPath('changes.0.payload.name', 'Cambiata');
     }
+    /**
+     * Il difetto: le ore si salvavano troncate al secondo. Due modifiche fatte
+     * nello stesso secondo su due telefoni diventavano pari, e a quel punto
+     * passava l'ultima ARRIVATA invece dell'ultima scritta.
+     */
+    public function test_due_scritture_nello_stesso_secondo_le_distingue_il_millesimo(): void
+    {
+        $anna = $this->user();
+        $id = (string) Str::uuid();
+
+        // Il telefono A scrive a fine secondo.
+        $this->actingAs($anna)->postJson('/api/sync', ['changes' => [
+            $this->change([
+                'id' => $id,
+                'payload' => ['name' => 'Riso integrale'],
+                'updatedAt' => '2026-08-29T10:00:00.900+00:00',
+            ]),
+        ]])->assertOk();
+
+        // Il telefono B, con una copia PIU' VECCHIA dello stesso secondo,
+        // arriva dopo. Non deve vincere.
+        $risposta = $this->actingAs($anna)->postJson('/api/sync', ['changes' => [
+            $this->change([
+                'id' => $id,
+                'payload' => ['name' => 'Riso bianco'],
+                'updatedAt' => '2026-08-29T10:00:00.100+00:00',
+            ]),
+        ]])->assertOk();
+
+        $risposta->assertJsonPath('applied', 0);
+        $this->assertSame('Riso integrale', SyncRecord::firstOrFail()->payload['name']);
+
+        // E la copia buona torna indietro a chi ha perso, altrimenti i due
+        // telefoni resterebbero diversi per sempre.
+        $risposta->assertJsonPath('changes.0.payload.name', 'Riso integrale');
+    }
+
 }

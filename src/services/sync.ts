@@ -153,14 +153,44 @@ export async function collectChanges(
   for (const table of SYNCED_TABLES) {
     if (changes.length >= limit) break;
 
+    const room = limit - changes.length;
     const rows = await db.getAllAsync<Record<string, unknown>>(
       since === null
-        ? `SELECT * FROM ${table} ORDER BY updated_at LIMIT ?`
-        : `SELECT * FROM ${table} WHERE updated_at > ? ORDER BY updated_at LIMIT ?`,
-      since === null ? [limit - changes.length] : [since, limit - changes.length],
+        ? `SELECT rowid AS __rowid, * FROM ${table}
+           ORDER BY updated_at, rowid LIMIT ?`
+        : `SELECT rowid AS __rowid, * FROM ${table} WHERE updated_at > ?
+           ORDER BY updated_at, rowid LIMIT ?`,
+      since === null ? [room] : [since, room],
     );
 
+    /*
+     * Il punto di ripresa e' `updated_at`, quindi il lotto non puo' chiudersi
+     * a meta' di un gruppo di righe che hanno la STESSA ora.
+     *
+     * Il giro dopo riparte da `updated_at > ultima_inviata` ed escluderebbe
+     * per sempre le sorelle rimaste indietro. Righe con l'ora identica non
+     * sono un caso di scuola: gli ingredienti di una ricetta si scrivono in
+     * un ciclo solo, il catalogo iniziale pure, e bastano 500 righe nello
+     * stesso millisecondo perche' il taglio cada li' in mezzo.
+     *
+     * Il limite e' quindi morbido: si prende anche la coda del gruppo. Un
+     * gruppo piu' grande del lotto fa un lotto piu' grande, che e' comunque
+     * meglio di righe che non partono mai.
+     */
+    if (rows.length === room && room > 0) {
+      const last = rows[rows.length - 1];
+      const tail = await db.getAllAsync<Record<string, unknown>>(
+        `SELECT rowid AS __rowid, * FROM ${table}
+         WHERE updated_at = ? AND rowid > ? ORDER BY rowid`,
+        [String(last.updated_at ?? ""), Number(last.__rowid)],
+      );
+      rows.push(...tail);
+    }
+
     for (const row of rows) {
+      // Serviva solo a ordinare: non e' una colonna dell'app e non deve
+      // finire nel payload che l'altro dispositivo si riscrive.
+      delete row.__rowid;
       const id = row.id;
       // `settings` ha `key` come chiave primaria e non un id: e' l'unica
       // tabella cosi'.
@@ -181,6 +211,41 @@ export async function collectChanges(
 
   return changes;
 }
+
+/**
+ * Due istanti scritti come testo, confrontati come istanti.
+ *
+ * Non si possono confrontare come stringhe. La stessa ora qui e' scritta
+ * "2026-08-29T18:00:00.000Z" e torna dal server "2026-08-29T18:00:00+00:00":
+ * a parita' di secondo il "." viene DOPO il "+", quindi la copia locale
+ * vinceva sempre il confronto anche quando quella in arrivo era piu' recente,
+ * e la modifica fatta sull'altro telefono spariva senza un errore.
+ *
+ * Un testo che non e' una data vale zero, cioe' perde: se l'ora locale e'
+ * illeggibile e' meglio accettare quel che arriva che tenersi una riga di cui
+ * non si sa piu' niente.
+ */
+const millis = (value: string): number => {
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
+
+/**
+ * L'ora della riga in arrivo.
+ *
+ * Si preferisce quella dentro il payload, che e' il testo scritto dal telefono
+ * d'origine con i suoi millesimi. Quella nella busta e' passata da una colonna
+ * del server che tronca al secondo: usarla renderebbe indistinguibili due
+ * scritture dello stesso secondo, e a quel punto chi vince e' il caso.
+ */
+const incomingMillis = (change: SyncChange): number => {
+  const fromPayload = change.payload.updated_at;
+  return millis(
+    typeof fromPayload === "string" && fromPayload !== ""
+      ? fromPayload
+      : change.updatedAt,
+  );
+};
 
 /**
  * Vincoli UNIQUE che NON sono la chiave primaria.
@@ -249,14 +314,15 @@ export async function applyChanges(changes: SyncChange[]): Promise<number> {
         `SELECT updated_at FROM ${change.table} WHERE ${key} = ?`,
         [change.id],
       );
-      if (existing && existing.updated_at >= change.updatedAt) continue;
+      const incoming = incomingMillis(change);
+      if (existing && millis(existing.updated_at) >= incoming) continue;
 
       // La riga locale che occupa lo stesso posto con un id diverso: se la
       // nostra e' piu' recente teniamo la nostra e scartiamo quella in
       // arrivo, altrimenti le facciamo posto.
       const conflict = await findUniqueConflict(db, change, columns);
       if (conflict !== null) {
-        if (conflict.updated_at >= change.updatedAt) continue;
+        if (millis(conflict.updated_at) >= incoming) continue;
         await db.runAsync(`DELETE FROM ${change.table} WHERE ${key} = ?`, [
           conflict.key,
         ]);
