@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FriendshipController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\SharedStatController;
+use App\Http\Controllers\Api\SyncController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -27,6 +28,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('me', [ProfileController::class, 'me']);
     Route::patch('me', [ProfileController::class, 'update']);
     Route::put('me/stats', [SharedStatController::class, 'sync']);
+
+    // La copia del database del telefono: push e pull in una sola andata.
+    Route::post('sync', [SyncController::class, 'sync']);
 
     Route::get('users', [ProfileController::class, 'search']);
     Route::get('users/{handle}', [ProfileController::class, 'show']);

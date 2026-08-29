@@ -9,8 +9,13 @@ services:
       - "127.0.0.1:8003:80"
     env_file: .env
     volumes:
-      # Il database sopravvive al container: e' l'unica copia dei dati social.
-      - kaltrack-db:/var/www/html/database
+      # Il database sopravvive al container: e' l'unica copia dei dati.
+      #
+      # Su /data e NON su /var/www/html/database: montare un volume li'
+      # nasconderebbe database/migrations/ dell'immagine, e ogni migrazione
+      # nuova sparirebbe senza un errore. L'entrypoint direbbe "Nothing to
+      # migrate" e il deploy sembrerebbe riuscito.
+      - kaltrack-db:/data
       - kaltrack-storage:/var/www/html/storage
     healthcheck:
       test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1/up') ? 0 : 1);"]

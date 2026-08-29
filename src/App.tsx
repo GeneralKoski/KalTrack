@@ -15,6 +15,7 @@ import { AssistantButton } from "@/src/containers/assistant/AssistantButton";
 import { Navigation } from "@/src/navigation";
 import { syncStepsOnStartup } from "@/src/services/healthConnect";
 import { syncSharedStats } from "@/src/services/shareSync";
+import { runSync } from "@/src/services/sync";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { configureNotificationHandler } from "@/src/services/reminders";
 import { useThemeStore } from "@/src/stores/themeStore";
@@ -74,7 +75,13 @@ export function App() {
       void useAccountStore
         .getState()
         .restore()
-        .then(() => syncSharedStats());
+        .then(async () => {
+          // Prima la copia del database, poi i totali per gli amici: i
+          // secondi si calcolano dai primi, e invertirli pubblicherebbe i
+          // numeri di ieri.
+          await runSync();
+          await syncSharedStats();
+        });
     })();
     return () => {
       active = false;
