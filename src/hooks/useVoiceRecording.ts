@@ -23,9 +23,12 @@ export interface VoiceRecording {
    * zero fisso la farebbe disegnare un silenzio che non è stato misurato.
    */
   level: number | null;
-  start: () => Promise<void>;
+  /** Ritorna true solo se sta davvero registrando. */
+  start: () => Promise<boolean>;
   /** Ritorna l'uri del file appena registrato, o null se non c'è. */
   stop: () => Promise<string | null>;
+  /** Ferma e butta via la registrazione in corso; non fa nulla se non c'è. */
+  cancel: () => Promise<void>;
 }
 
 /**
@@ -91,21 +94,49 @@ export function useVoiceRecording(): VoiceRecording {
     };
   }, [recorder]);
 
+  /**
+   * Torna `true` solo se sta davvero registrando.
+   *
+   * L'esito va restituito e non solo messo in `error`: chi chiama legge lo
+   * stato nella closure precedente e vedrebbe ancora `null`, restando in
+   * ascolto di un microfono che non e' mai partito.
+   */
   const start = useCallback(async () => {
     setError(null);
     try {
       if (!(await ensureMicrophonePermission())) {
         if (mounted.current) setError("permission-denied");
-        return;
+        return false;
       }
       await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
       await recorder.prepareToRecordAsync();
-      if (!mounted.current) return;
+      if (!mounted.current) return false;
       setUri(null);
       recorder.record();
+      return true;
     } catch (cause) {
       logger.error("[voice] avvio registrazione fallito", cause);
       if (mounted.current) setError("recording-failed");
+      return false;
+    }
+  }, [recorder]);
+
+  /**
+   * Ferma e butta via la registrazione in corso, senza esito.
+   *
+   * Serve a chi chiude l'assistente mentre il microfono e' acceso: senza
+   * questo il registratore restava avviato, e il tentativo successivo falliva
+   * in silenzio su un oggetto gia' occupato.
+   */
+  const cancel = useCallback(async () => {
+    if (!recorder.isRecording) return;
+    try {
+      await recorder.stop();
+    } catch (cause) {
+      logger.warn("[voice] annullamento registrazione fallito", cause);
+    } finally {
+      if (mounted.current) setUri(null);
+      await setAudioModeAsync({ allowsRecording: false }).catch(() => {});
     }
   }, [recorder]);
 
@@ -133,5 +164,6 @@ export function useVoiceRecording(): VoiceRecording {
     level: state.isRecording ? normalizeLevel(state.metering) : null,
     start,
     stop,
+    cancel,
   };
 }

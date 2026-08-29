@@ -95,13 +95,29 @@ const readNumber = (value: unknown): number | null => {
   }
   // Il modello a volte risponde "12,5" o "12.5 g" nonostante il prompt.
   if (typeof value === "string") {
-    const cleaned = value.replace(",", ".").replace(/[^0-9.]/g, "");
-    if (cleaned === "") return null;
-    const parsed = Number(cleaned);
+    // Un numero solo, non tutte le cifre della stringa: togliendo i caratteri
+    // non numerici da "560 kJ / 133 kcal" restava "560133", cioe' un valore
+    // inventato dalla concatenazione di due numeri veri.
+    // Se la stringa nomina le kcal si prende QUEL numero, non il primo: sulle
+    // etichette europee i kJ sono stampati per primi.
+    const kcalMatch = /(\d+(?:[.,]\d+)?)\s*kcal/i.exec(value);
+    const anyMatch = /\d+(?:[.,]\d+)?/.exec(value);
+    const picked = kcalMatch?.[1] ?? anyMatch?.[0];
+    if (picked === undefined) return null;
+    const parsed = Number(picked.replace(",", "."));
     return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
   }
   return null;
 };
+
+/**
+ * Tetto assoluto delle kcal per 100 g. Cento grammi di grasso puro sono 900
+ * kcal: sopra non esiste alimento, esiste un errore di lettura. Serve perche'
+ * il confronto coi macro piu' sotto si disarma appena uno dei tre manca o
+ * viene scartato, e senza questo un valore letto dalla colonna dei kJ passava
+ * indisturbato.
+ */
+const MAX_KCAL_PER_100G = 900;
 
 /**
  * Quanto una lettura può discostarsi dalle kcal implicate dai macro prima di
@@ -133,6 +149,11 @@ export const sanitizeReading = (
       logger.warn(`[etichetta] ${key}=${value} per 100 g: scartato`);
       delete clean[key];
     }
+  }
+
+  if (clean.kcal !== undefined && clean.kcal > MAX_KCAL_PER_100G) {
+    logger.warn(`[etichetta] ${clean.kcal} kcal per 100 g: scartate`);
+    delete clean.kcal;
   }
 
   // Nemmeno la somma dei macro può superare i 100 g.

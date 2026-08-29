@@ -8,11 +8,15 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import { useWatch } from "react-hook-form";
 
+/**
+ * Il valore nel form e' gia' normalizzato da DfNumberInput ("3.2", non "3,2"):
+ * rinormalizzarlo qui leggeva 32 al posto di 3,2, e l'avviso sulle kcal
+ * calcolate dai macro confermava il numero sbagliato invece di smascherarlo.
+ */
 const toNumber = (value: unknown): number => {
   if (typeof value === "number") return value;
   if (typeof value === "string") {
-    // DfNumberInput usa il formato italiano: migliaia con ".", decimali con ",".
-    const parsed = Number(value.replace(/\./g, "").replace(",", "."));
+    const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : 0;
   }
   return 0;

@@ -11,10 +11,14 @@ import { theme } from "@/src/styles";
 import { ChevronLeft } from "lucide-react-native";
 import React from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 export function SettingsScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { goBack } = useAppNav();
   const { colors } = useAppTheme();
 
@@ -34,7 +38,12 @@ export function SettingsScreen() {
           </Text>
         </View>
 
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
+          ]}
+        >
           <SectionLabel>{t("settings.theme")}</SectionLabel>
           <ThemePicker />
 
@@ -70,7 +79,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: theme.spacing.md,
-    paddingBottom: ASSISTANT_FAB_CLEARANCE,
     gap: theme.spacing.sm,
   },
   section: {

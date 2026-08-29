@@ -13,7 +13,10 @@ import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import React, { useCallback } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 /** Finestra dei grafici: due settimane bastano a vedere una tendenza. */
 const WINDOW_DAYS = 14;
@@ -29,6 +32,7 @@ interface ProgressData {
 
 export function ProgressScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { colors } = useAppTheme();
 
   const loader = useCallback(async (): Promise<ProgressData> => {
@@ -90,7 +94,12 @@ export function ProgressScreen() {
         {loading && !data ? (
           <ActivityIndicator style={styles.loader} color={colors.accent} />
         ) : (
-          <ScrollView contentContainerStyle={styles.content}>
+          <ScrollView
+            contentContainerStyle={[
+              styles.content,
+              { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
+            ]}
+          >
             <WeeklyCoachCard />
 
             <SectionLabel style={styles.section}>
@@ -147,7 +156,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: theme.spacing.md,
-    paddingBottom: ASSISTANT_FAB_CLEARANCE,
     gap: theme.spacing.sm,
   },
   card: {

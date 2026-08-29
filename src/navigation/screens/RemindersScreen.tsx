@@ -100,7 +100,12 @@ export function RemindersScreen() {
   const loader = useCallback(() => listReminders(), []);
   const { data, loading, reload } = useFocusData<Reminder[]>(loader);
 
-  const [busyKind, setBusyKind] = useState<ReminderKind | null>(null);
+  /**
+   * QUALI promemoria stanno salvando, non uno solo: con un valore singolo il
+   * primo salvataggio che finiva sbloccava anche l'interruttore di un altro
+   * ancora in volo, che tornava toccabile mentre stava ancora lavorando.
+   */
+  const [busyKinds, setBusyKinds] = useState<ReminderKind[]>([]);
   // Il picker iOS vive in una modale: serve sapere quale riga la sta usando e
   // su che ora si sta scorrendo, perché la conferma arriva dopo.
   const [pickingKind, setPickingKind] = useState<ReminderKind | null>(null);
@@ -112,7 +117,9 @@ export function RemindersScreen() {
     item: ReminderItem,
     next: { time: string; weekdays: number[]; enabled: boolean },
   ) => {
-    setBusyKind(item.kind);
+    setBusyKinds((current) =>
+      current.includes(item.kind) ? current : [...current, item.kind],
+    );
     try {
       const saved = await saveReminder({ kind: item.kind, ...next });
       const result = await applyReminder(saved);
@@ -139,7 +146,7 @@ export function RemindersScreen() {
       logger.error("[RemindersScreen] salvataggio promemoria fallito", error);
       showToast.error({ title: t("general_error") });
     } finally {
-      setBusyKind(null);
+      setBusyKinds((current) => current.filter((kind) => kind !== item.kind));
       reload();
     }
   };
@@ -223,7 +230,7 @@ export function RemindersScreen() {
 
             {items.map((item) => {
               const Icon = ICONS[item.kind];
-              const busy = busyKind === item.kind;
+              const busy = busyKinds.includes(item.kind);
               return (
                 <Card key={item.kind} style={styles.card}>
                   <View style={styles.row}>

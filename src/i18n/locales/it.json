@@ -608,7 +608,7 @@
     "gallery": "Da galleria",
     "hint": "Inquadra la tabella nutrizionale: i campi qui sotto si riempiono da soli e restano modificabili.",
     "filled": "Letti %{count} valori",
-    "check_missing": "%{count} campi non letti: controllali prima di salvare.",
+    "check_missing": "Non letti dall'etichetta: %{fields}. Restano a zero finche' non li scrivi.",
     "nothing_read": "Nessun valore leggibile nella foto",
     "failed": "Lettura dell'etichetta non riuscita",
     "no_key": "La lettura dell'etichetta richiede la configurazione dell'AI."

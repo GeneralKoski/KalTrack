@@ -21,12 +21,16 @@ import * as DocumentPicker from "expo-document-picker";
 import { ChevronLeft, Download, Upload } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 const LAST_EXPORT_KEY = "last_backup_export";
 
 export function BackupScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { colors } = useAppTheme();
   const { goBack } = useAppNav();
 
@@ -127,7 +131,12 @@ export function BackupScreen() {
           </Text>
         </View>
 
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
+          ]}
+        >
           <Card style={styles.card}>
             <Text style={[styles.explain, { color: colors.textSecondary }]}>
               {t("backup.explain")}
@@ -242,7 +251,6 @@ const styles = StyleSheet.create({
   title: { flex: 1, fontSize: 18, fontWeight: "700" },
   content: {
     padding: theme.spacing.md,
-    paddingBottom: ASSISTANT_FAB_CLEARANCE,
     gap: theme.spacing.sm,
   },
   card: { gap: theme.spacing.xs },

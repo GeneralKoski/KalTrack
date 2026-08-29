@@ -170,6 +170,27 @@ describe("coerenza dei valori letti", () => {
     expect(clean.protein).toBe(3);
   });
 
+  /**
+   * Il caso che apriva la falla: la colonna dei carboidrati letta male fa
+   * scartare i carboidrati, il confronto coi macro si disarma, e senza un
+   * tetto assoluto le kcal prese dai kJ passavano indisturbate.
+   */
+  it("scarta kcal impossibili anche quando un macro e' stato scartato", () => {
+    const clean = sanitizeReading({
+      kcal: 1050,
+      protein: 6,
+      carbs: 340,
+      fat: 12,
+    });
+    expect(clean.carbs).toBeUndefined();
+    expect(clean.kcal).toBeUndefined();
+    expect(clean.protein).toBe(6);
+  });
+
+  it("tiene le 900 kcal dell'olio, che sono il massimo possibile", () => {
+    expect(sanitizeReading({ kcal: 900, fat: 100 }).kcal).toBe(900);
+  });
+
   it("scarta un nutriente che supera i 100 g dentro 100 g", () => {
     const clean = sanitizeReading({ carbs: 340, protein: 5 });
     expect(clean.carbs).toBeUndefined();

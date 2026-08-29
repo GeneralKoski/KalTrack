@@ -72,10 +72,20 @@ const toValues = (row: FoodRow): FoodFormValues => ({
   servingLabel: row.serving_label ?? "",
 });
 
+/**
+ * DfNumberInput NON tiene nel form il testo che si vede a schermo: la sua
+ * `parseToNumber` toglie gia' i punti delle migliaia e converte la virgola in
+ * punto, quindi digitando "3,2" nel form finisce la stringa "3.2".
+ *
+ * Riapplicare qui la normalizzazione italiana toglieva quel punto e leggeva 32
+ * al posto di 3,2: ogni valore decimale scritto a mano finiva a database
+ * moltiplicato per dieci, mentre il campo continuava a mostrare "3,2". Qui
+ * serve solo la conversione a numero.
+ */
 const num = (value: unknown): number => {
   if (typeof value === "number") return value;
   if (typeof value === "string") {
-    const parsed = Number(value.replace(/\./g, "").replace(",", "."));
+    const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : 0;
   }
   return 0;

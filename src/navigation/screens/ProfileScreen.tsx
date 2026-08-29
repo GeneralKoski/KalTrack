@@ -20,10 +20,14 @@ import {
 } from "lucide-react-native";
 import React from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 export function ProfileScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { navigate } = useAppNav();
   const { colors } = useAppTheme();
 
@@ -35,7 +39,12 @@ export function ProfileScreen() {
           {t("tabs.profile")}
         </Text>
 
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
+          ]}
+        >
           <Card onPress={() => navigate("Targets")} style={styles.row}>
             <Target size={22} color={colors.text} />
             <Text
@@ -151,7 +160,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: theme.spacing.md,
-    paddingBottom: ASSISTANT_FAB_CLEARANCE,
     gap: theme.spacing.sm,
   },
   row: {

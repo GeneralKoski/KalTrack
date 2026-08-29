@@ -367,7 +367,7 @@ describe("smontaggio", () => {
         }),
     );
 
-    let pending: Promise<void> | undefined;
+    let pending: Promise<boolean> | undefined;
     await act(async () => {
       pending = current().start();
       // Svuota la coda dei microtask: permesso e sessione audio sono risolti,

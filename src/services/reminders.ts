@@ -156,9 +156,13 @@ export function applyReminder(
     .catch(() => null)
     .then(() => applyReminderNow(reminder));
   applyQueues.set(reminder.id, next);
-  void next.finally(() => {
+  // `then` con entrambi i rami e non `finally`: quello avrebbe ripropagato un
+  // eventuale rifiuto su una promise che nessuno osserva, cioe' una
+  // unhandled rejection accanto a quella che il chiamante gestisce.
+  const forget = () => {
     if (applyQueues.get(reminder.id) === next) applyQueues.delete(reminder.id);
-  });
+  };
+  next.then(forget, forget);
   return next;
 }
 

@@ -119,8 +119,13 @@ export const AssistantButton: React.FC = () => {
     };
   }, [open]);
 
+  const resolvePending = session.resolvePending;
+
   const runIntent = useCallback(
     async (intent: ToolIntent) => {
+      // Tolto dalla lista PRIMA di eseguire: l'intento e' stato deciso, e
+      // lasciarcelo mentre parte significa mostrarne ancora il tasto Conferma.
+      resolvePending(intent);
       try {
         const result = await intent.execute();
         showToast.success({ title: result.message });
@@ -129,18 +134,29 @@ export const AssistantButton: React.FC = () => {
         showToast.error({ title: t("assistant.execute_failed") });
       }
     },
-    [t],
+    [resolvePending, t],
   );
 
-  // Le azioni già auto-confermate partono da sole appena arrivano.
+  /**
+   * Le azioni gia' auto-confermate partono da sole appena arrivano.
+   *
+   * Il registro di quelle avviate serve perche' `runIntent` cambia `pending`,
+   * l'effetto rigira, e senza guardia una seconda azione automatica dello
+   * stesso gruppo verrebbe lanciata due volte.
+   */
+  const startedRef = useRef(new Set<ToolIntent>());
   useEffect(() => {
-    const automatic = session.pending.filter((i) => isAutoConfirmed(i.toolName));
-    if (automatic.length === 0) return;
-    automatic.forEach(runIntent);
+    for (const intent of session.pending) {
+      if (!isAutoConfirmed(intent.toolName)) continue;
+      if (startedRef.current.has(intent)) continue;
+      startedRef.current.add(intent);
+      void runIntent(intent);
+    }
   }, [session.pending, isAutoConfirmed, runIntent]);
 
   const close = () => {
     setOpen(false);
+    startedRef.current = new Set();
     session.reset();
   };
 
@@ -166,10 +182,18 @@ export const AssistantButton: React.FC = () => {
         onClose={close}
         onConfirm={(intent, rememberChoice) => {
           if (rememberChoice) allowAutoConfirm(intent.toolName);
+          // Si chiude solo quando non resta piu' niente da decidere: con tre
+          // azioni proposte, confermarne una faceva sparire le altre due
+          // senza che nessuno le avesse viste.
+          const last = session.pending.length <= 1;
           void runIntent(intent);
-          close();
+          if (last) close();
         }}
-        onDiscard={close}
+        onDiscard={(intent) => {
+          const last = session.pending.length <= 1;
+          resolvePending(intent);
+          if (last) close();
+        }}
       />
     </>
   );

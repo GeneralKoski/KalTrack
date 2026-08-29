@@ -27,7 +27,10 @@ import { showToast } from "@/src/utils/toast";
 import { ChevronLeft, Flame } from "lucide-react-native";
 import React, { useCallback } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 /** Ordine di lettura delle famiglie: dal gesto quotidiano al risultato. */
 const FAMILIES: AchievementMetric[] = [
@@ -88,6 +91,7 @@ function toView(
 
 export function AchievementsScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { colors } = useAppTheme();
   const { goBack } = useAppNav();
 
@@ -143,7 +147,12 @@ export function AchievementsScreen() {
         {loading && !data ? (
           <ActivityIndicator style={styles.loader} color={colors.accent} />
         ) : (
-          <ScrollView contentContainerStyle={styles.content}>
+          <ScrollView
+            contentContainerStyle={[
+              styles.content,
+              { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
+            ]}
+          >
             <MetalPanel radius={theme.radius.xl} style={styles.streak}>
               <Flame size={26} color={colors.text} />
               <View style={styles.streakBody}>
@@ -211,7 +220,6 @@ const styles = StyleSheet.create({
   title: { flex: 1, fontSize: 18, fontWeight: "700" },
   content: {
     padding: theme.spacing.md,
-    paddingBottom: ASSISTANT_FAB_CLEARANCE,
   },
   streak: {
     flexDirection: "row",

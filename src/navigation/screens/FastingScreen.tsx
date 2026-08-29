@@ -41,7 +41,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 /** Un digiuno dura ore: il secondo sarebbe rumore e sveglierebbe il render 60 volte di più. */
 const TICK_MS = 60_000;
@@ -58,6 +61,7 @@ const timeOf = (iso: string): string =>
 
 export function FastingScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { colors } = useAppTheme();
   const { goBack } = useAppNav();
 
@@ -132,7 +136,10 @@ export function FastingScreen() {
           <ActivityIndicator style={styles.loader} color={colors.accent} />
         ) : (
           <ScrollView
-            contentContainerStyle={styles.content}
+            contentContainerStyle={[
+              styles.content,
+              { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
+            ]}
             keyboardShouldPersistTaps="handled"
           >
             {open && progress ? (
@@ -299,7 +306,6 @@ const styles = StyleSheet.create({
   title: { flex: 1, fontSize: 18, fontWeight: "700" },
   content: {
     padding: theme.spacing.md,
-    paddingBottom: ASSISTANT_FAB_CLEARANCE,
   },
   loader: { marginTop: theme.spacing.xl },
   current: { alignItems: "center", gap: theme.spacing.sm },

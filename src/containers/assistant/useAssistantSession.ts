@@ -40,6 +40,8 @@ export interface AssistantSession {
   spokenReplyUnavailable: boolean;
   startListening: () => Promise<void>;
   stopListening: () => Promise<void>;
+  /** Toglie un intento da `pending`, dopo averlo eseguito o scartato. */
+  resolvePending: (intent: ToolIntent) => void;
   reset: () => void;
 }
 
@@ -74,6 +76,14 @@ export function useAssistantSession(
     [],
   );
 
+  // Consumato l'ultimo intento in attesa, non c'e' piu' niente da confermare:
+  // restare in "confirming" mostrerebbe una schermata di conferma vuota.
+  useEffect(() => {
+    setPhase((current) =>
+      current === "confirming" && pending.length === 0 ? "done" : current,
+    );
+  }, [pending]);
+
   const fail = useCallback((reason: AssistantFailure) => {
     setFailure(reason);
     setPhase("error");
@@ -81,6 +91,10 @@ export function useAssistantSession(
 
   const reset = useCallback(() => {
     stopSpeaking();
+    // Il microfono va spento QUI: chiudendo l'assistente mentre registrava, il
+    // registratore restava avviato e il tentativo successivo falliva in
+    // silenzio, lasciando l'utente in ascolto di un microfono spento.
+    void recording.cancel();
     setPhase("idle");
     setTranscript("");
     setReply("");
@@ -88,7 +102,7 @@ export function useAssistantSession(
     setExecuted([]);
     setFailure(null);
     setSpokenReplyUnavailable(false);
-  }, []);
+  }, [recording]);
 
   const startListening = useCallback(async () => {
     reset();
@@ -97,8 +111,23 @@ export function useAssistantSession(
     if (!online) return fail("offline");
 
     setPhase("listening");
-    await recording.start();
+    // Se il microfono non parte - permesso negato, registratore occupato - va
+    // detto: senza questo la schermata restava in ascolto per sempre di
+    // qualcosa che non stava registrando.
+    if (!(await recording.start())) return fail("permission");
   }, [fail, online, recording, reset]);
+
+  /**
+   * Toglie un intento dalla lista di quelli in attesa, eseguito o scartato.
+   *
+   * Senza questo, confermare una delle azioni proposte chiudeva tutto e le
+   * altre sparivano senza che nessuno le avesse decise; e un'azione gia'
+   * partita da sola perche' auto-confermata restava a schermo col suo tasto
+   * Conferma, che la eseguiva una seconda volta.
+   */
+  const resolvePending = useCallback((intent: ToolIntent) => {
+    setPending((current) => current.filter((item) => item !== intent));
+  }, []);
 
   const stopListening = useCallback(async () => {
     const uri = await recording.stop();
@@ -148,6 +177,7 @@ export function useAssistantSession(
     spokenReplyUnavailable,
     startListening,
     stopListening,
+    resolvePending,
     reset,
   };
 }

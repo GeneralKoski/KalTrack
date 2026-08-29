@@ -30,6 +30,18 @@ import { useFormContext } from "react-hook-form";
  * un valore che l'utente aveva già digitato a mano.
  */
 
+/** Chiavi i18n dei campi, per dire all'utente quali non sono stati letti. */
+const FIELD_LABEL: Record<keyof Nutrients, string> = {
+  kcal: "kcal",
+  protein: "protein",
+  carbs: "carbs",
+  sugars: "sugars",
+  fat: "fat",
+  saturatedFat: "saturated_fat",
+  fiber: "fiber",
+  salt: "salt",
+};
+
 /** Nomi dei campi nel form alimenti; l'etichetta usa gli stessi nutrienti. */
 const FIELD_OF: Record<keyof Nutrients, string> = {
   kcal: "kcal",
@@ -76,11 +88,16 @@ export const LabelScanner: React.FC = () => {
     }
     showToast.success({
       title: t("label_scan.filled", { count: filled }),
-      // Dire cosa manca è metà del lavoro: senza, l'utente salverebbe
-      // credendo che i campi rimasti a zero siano stati letti davvero.
+      // I campi mancanti si NOMINANO, non si contano: restano a zero come
+      // qualunque campo vuoto, e "3 campi non letti" non dice all'utente
+      // quali numeri sta per salvare senza averli mai visti sull'etichetta.
       message:
         updates.missing.length > 0
-          ? t("label_scan.check_missing", { count: updates.missing.length })
+          ? t("label_scan.check_missing", {
+              fields: updates.missing
+                .map((key) => t(`foods.${FIELD_LABEL[key]}`))
+                .join(", "),
+            })
           : undefined,
     });
   };
