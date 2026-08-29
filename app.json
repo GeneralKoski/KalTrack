@@ -97,7 +97,8 @@
           "color": "#18181b"
         }
       ],
-      "react-native-health-connect"
+      "react-native-health-connect",
+      "./plugins/withAssistantShortcut"
     ],
     "experiments": {
       "reactCompiler": true

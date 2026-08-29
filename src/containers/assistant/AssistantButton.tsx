@@ -10,6 +10,7 @@ import { searchRecipes } from "@/src/db/queries/recipes";
 import { getTargetsFor } from "@/src/db/queries/settings";
 import { todayIso } from "@/src/domain/date";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { useAssistantLaunch } from "@/src/services/assistantLaunch";
 import { useAssistantStore } from "@/src/stores/assistantStore";
 import { theme } from "@/src/styles";
 import { logger } from "@/src/utils/logger";
@@ -36,10 +37,32 @@ export const AssistantButton: React.FC = () => {
   const [open, setOpen] = useState(false);
   const isAutoConfirmed = useAssistantStore((s) => s.isAutoConfirmed);
   const allowAutoConfirm = useAssistantStore((s) => s.allowAutoConfirm);
+  const launchRequests = useAssistantLaunch();
 
   const buildContext = useCallback((): AssistantContext => contextRef.current, []);
   const contextRef = useRef<AssistantContext>({});
   const session = useAssistantSession(buildContext);
+
+  /**
+   * `startListening` cambia identità a ogni cambio di stato della
+   * registrazione: metterlo tra le dipendenze farebbe rigirare l'effetto, che
+   * riavvierebbe l'ascolto, che cambierebbe di nuovo lo stato. Un loop
+   * infinito, non un'ipotesi: l'app lo ha fatto davvero. Il ref tiene la
+   * funzione fuori dalle dipendenze, e il contatore delle richieste già
+   * servite fa il resto.
+   */
+  const startListeningRef = useRef(session.startListening);
+  startListeningRef.current = session.startListening;
+  const servedLaunch = useRef(0);
+
+  // Aperto da fuori (la scorciatoia sull'icona dell'app): chi arriva da lì ha
+  // già in testa la frase da dire, quindi si parte ad ascoltare subito.
+  useEffect(() => {
+    if (launchRequests === 0 || launchRequests === servedLaunch.current) return;
+    servedLaunch.current = launchRequests;
+    setOpen(true);
+    void startListeningRef.current();
+  }, [launchRequests]);
 
   // Il contesto si prepara PRIMA di parlare, non dopo: raccoglierlo mentre il
   // modello aspetta aggiungerebbe latenza proprio nel momento più visibile.
