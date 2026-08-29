@@ -1,4 +1,5 @@
 import { i18n } from "@/src/i18n";
+import { useSyncStore } from "@/src/stores/syncStore";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
 import { useFocusEffect } from "@react-navigation/native";
@@ -25,6 +26,13 @@ export function useFocusData<T>(loader: () => Promise<T>): FocusData<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const dataRef = useRef<T | null>(null);
+  /*
+   * Quando la sincronizzazione porta righe nuove, la schermata aperta le ha
+   * gia' lette e mostrerebbe i valori di prima finche' non si naviga via e si
+   * torna. Entrando fra le dipendenze di `run`, la revisione fa ripartire il
+   * caricamento con il suo cleanup, come qualunque altro cambio di loader.
+   */
+  const syncRevision = useSyncStore((s) => s.revision);
 
   const run = useCallback(() => {
     let active = true;
@@ -51,7 +59,7 @@ export function useFocusData<T>(loader: () => Promise<T>): FocusData<T> {
     return () => {
       active = false;
     };
-  }, [loader]);
+  }, [loader, syncRevision]);
 
   useFocusEffect(run);
 

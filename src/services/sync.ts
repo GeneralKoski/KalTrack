@@ -3,6 +3,7 @@ import { apiRequest } from "@/src/api/client";
 import { getDb } from "@/src/db/index";
 import { getSetting, setSetting } from "@/src/db/queries/settings";
 import { useAccountStore } from "@/src/stores/accountStore";
+import { useSyncStore } from "@/src/stores/syncStore";
 import { logger } from "@/src/utils/logger";
 
 /**
@@ -64,6 +65,18 @@ export type SyncedTable = (typeof SYNCED_TABLES)[number];
 const CURSOR_KEY = "sync.cursor";
 
 /**
+ * Impostazioni che NON viaggiano: sono stato di questo dispositivo, non dati
+ * dell'utente.
+ *
+ * Il cursore e' il caso grave. Sincronizzandolo, ogni giro ne scriveva uno
+ * nuovo da mandare al giro dopo - un ciclo che non si esaurisce mai - e
+ * soprattutto il cursore di un telefono sarebbe finito sull'altro, che
+ * avrebbe saltato tutte le righe arrivate prima di quel punto senza averle
+ * mai ricevute.
+ */
+const LOCAL_ONLY_SETTINGS = new Set([CURSOR_KEY]);
+
+/**
  * Quante righe per volta. Il server ne accetta 2000: restare sotto lascia
  * margine e tiene corta la singola richiesta su una rete lenta.
  */
@@ -119,11 +132,11 @@ export async function collectChanges(
 
     for (const row of rows) {
       const id = row.id;
-      // `settings` ha `key` come chiave primaria e non un UUID: e' l'unica
-      // tabella cosi', e senza questo la sua riga verrebbe scartata dal
-      // server, che si aspetta un uuid.
+      // `settings` ha `key` come chiave primaria e non un id: e' l'unica
+      // tabella cosi'.
       const recordId = typeof id === "string" ? id : String(row.key ?? "");
       if (recordId === "") continue;
+      if (table === "settings" && LOCAL_ONLY_SETTINGS.has(recordId)) continue;
 
       changes.push({
         table,
@@ -155,6 +168,16 @@ export async function applyChanges(changes: SyncChange[]): Promise<number> {
 
   await db.withTransactionAsync(async () => {
     for (const change of changes) {
+      if (
+        change.table === "settings" &&
+        LOCAL_ONLY_SETTINGS.has(change.id)
+      ) {
+        // Anche in entrata: un cursore arrivato da un altro telefono
+        // sposterebbe il nostro punto di ripresa in avanti, e le righe in
+        // mezzo non arriverebbero mai.
+        continue;
+      }
+
       if (!(SYNCED_TABLES as readonly string[]).includes(change.table)) {
         // Una tabella che questa versione dell'app non conosce: la si salta
         // invece di rompere tutta la sincronizzazione. Tornera' utile quando
@@ -198,12 +221,24 @@ export async function applyChanges(changes: SyncChange[]): Promise<number> {
 }
 
 /**
- * Un giro di sincronizzazione: manda quel che e' cambiato, applica quel che
- * torna, e ricorda da dove riprendere.
+ * Quanti giri consecutivi al massimo.
  *
- * Non solleva mai. Senza rete, senza account o senza server configurato
- * l'app deve continuare a funzionare come se la sincronizzazione non
- * esistesse, perche' e' esattamente cosi' che e' nata.
+ * La prima sincronizzazione di un database gia' pieno non entra in una
+ * richiesta sola: con lotti da 500 righe, un catalogo di alimenti ed esercizi
+ * ne richiede diverse. Senza continuare, il primo giro ne manderebbe 500 e le
+ * altre aspetterebbero un quarto d'ora ciascuna.
+ *
+ * Il tetto e' una rete di sicurezza contro un ciclo che non converge, non una
+ * misura del lavoro: un database normale finisce in pochi giri.
+ */
+const MAX_ROUNDS = 20;
+
+/**
+ * Sincronizza finche' c'e' qualcosa da sincronizzare.
+ *
+ * Non solleva mai. Senza rete, senza account o senza server configurato l'app
+ * deve continuare a funzionare come se la sincronizzazione non esistesse,
+ * perche' e' esattamente cosi' che e' nata.
  */
 export async function runSync(): Promise<{
   pushed: number;
@@ -213,23 +248,41 @@ export async function runSync(): Promise<{
     if (!hasBackend()) return null;
     if (!useAccountStore.getState().token) return null;
 
-    const cursor = await getSetting(CURSOR_KEY);
-    const changes = await collectChanges(cursor);
+    let pushed = 0;
+    let pulled = 0;
 
-    const response = await apiRequest<SyncResponse>({
-      method: "post",
-      path: "/sync",
-      body: { since: cursor, changes },
-    });
+    for (let round = 0; round < MAX_ROUNDS; round++) {
+      const cursor = await getSetting(CURSOR_KEY);
+      const changes = await collectChanges(cursor);
 
-    const pulled = await applyChanges(response.changes);
-    // Il segnaposto si salva DOPO aver applicato: se la scrittura locale
-    // fallisce a meta', il giro successivo riprende dallo stesso punto invece
-    // di dare per ricevute righe che non sono mai entrate.
-    await setSetting(CURSOR_KEY, response.cursor);
+      const response = await apiRequest<SyncResponse>({
+        method: "post",
+        path: "/sync",
+        body: { since: cursor, changes },
+      });
 
-    logger.info(`[sync] inviate ${response.applied}, ricevute ${pulled}`);
-    return { pushed: response.applied, pulled };
+      const applied = await applyChanges(response.changes);
+      // Il segnaposto si salva DOPO aver applicato: se la scrittura locale
+      // fallisce a meta', il giro successivo riprende dallo stesso punto
+      // invece di dare per ricevute righe che non sono mai entrate.
+      await setSetting(CURSOR_KEY, response.cursor);
+
+      pushed += response.applied;
+      pulled += applied;
+
+      // Un lotto pieno da una parte o dall'altra vuol dire che ce n'e'
+      // ancora: si continua subito invece di aspettare il giro dopo.
+      const piu = changes.length >= BATCH || response.changes.length > 0;
+      if (!piu) break;
+    }
+
+    if (pushed > 0 || pulled > 0) {
+      logger.info(`[sync] inviate ${pushed}, ricevute ${pulled}`);
+    }
+    // Solo se sono ENTRATE righe: quel che e' partito lo conoscono gia' le
+    // schermate, e ricaricarle a ogni invio sarebbe lavoro per niente.
+    if (pulled > 0) useSyncStore.getState().bumpRevision();
+    return { pushed, pulled };
   } catch (error) {
     logger.warn("[sync] giro non riuscito", error);
     return null;

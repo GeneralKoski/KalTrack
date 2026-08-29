@@ -227,10 +227,30 @@ class SyncTest extends TestCase
     {
         $anna = $this->user();
 
+        // Manca tutto tranne la tabella: senza payload e senza date non c'e'
+        // niente da scrivere.
         $this->actingAs($anna)->postJson('/api/sync', [
-            'changes' => [['table' => 'foods', 'id' => 'non-un-uuid']],
+            'changes' => [['table' => 'foods', 'id' => 'qualcosa']],
         ])->assertUnprocessable();
 
         $this->assertSame(0, SyncRecord::count());
+    }
+
+    /**
+     * Il difetto che questo test blocca: la validazione voleva un uuid, ma i
+     * tipi di pasto hanno id parlanti ("mt-lunch") e le impostazioni usano la
+     * loro chiave. Bastava una di quelle righe perche' l'INTERA
+     * sincronizzazione venisse rifiutata con un 422.
+     */
+    public function test_accetta_gli_id_che_non_sono_uuid(): void
+    {
+        $anna = $this->user();
+
+        $this->actingAs($anna)->postJson('/api/sync', [
+            'changes' => [
+                $this->change(['table' => 'meal_types', 'id' => 'mt-lunch']),
+                $this->change(['table' => 'settings', 'id' => 'sync.cursor']),
+            ],
+        ])->assertOk()->assertJsonPath('applied', 2);
     }
 }

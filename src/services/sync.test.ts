@@ -2,6 +2,7 @@ import { createTestDb } from "@/src/db/__testing__/betterSqliteAdapter";
 import { __setDbForTesting, getDb } from "@/src/db/index";
 import { runMigrations } from "@/src/db/migrations";
 import { createFood, getFood, searchFoods } from "@/src/db/queries/foods";
+import { getSetting, setSetting } from "@/src/db/queries/settings";
 import { setSteps } from "@/src/db/queries/tracking";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
@@ -80,6 +81,44 @@ describe("cosa parte dal telefono", () => {
     const mine = changes.find((c) => c.id === id);
 
     expect(mine?.deletedAt).toBe("2026-08-29T12:00:00.000Z");
+  });
+
+  /**
+   * Il difetto che questo test blocca, visto in produzione: il cursore sta
+   * in `settings`, che e' una tabella sincronizzata. Ogni giro ne scriveva
+   * uno nuovo da mandare al giro dopo, e soprattutto il cursore di un
+   * telefono sarebbe finito sull'altro, che avrebbe saltato tutte le righe
+   * precedenti a quel punto senza averle mai ricevute.
+   */
+  it("non manda il proprio segnaposto di sincronizzazione", async () => {
+    await setSetting("sync.cursor", "2026-08-29T18:00:00.000Z");
+    await setSetting("theme", "dark");
+
+    const changes = await collectChanges(null);
+    const chiavi = changes
+      .filter((c) => c.table === "settings")
+      .map((c) => c.id);
+
+    expect(chiavi).not.toContain("sync.cursor");
+    // Le altre impostazioni viaggiano: e' solo il cursore a restare qui.
+    expect(chiavi).toContain("theme");
+  });
+
+  it("non accetta un segnaposto arrivato da un altro telefono", async () => {
+    await setSetting("sync.cursor", "2026-08-29T18:00:00.000Z");
+
+    await applyChanges([
+      {
+        table: "settings",
+        id: "sync.cursor",
+        payload: { key: "sync.cursor", value: "2027-01-01T00:00:00.000Z" },
+        updatedAt: "2027-01-01T00:00:00.000Z",
+        deletedAt: null,
+        createdAt: "2027-01-01T00:00:00.000Z",
+      },
+    ]);
+
+    expect(await getSetting("sync.cursor")).toBe("2026-08-29T18:00:00.000Z");
   });
 
   it("non manda i registri che restano sul telefono", () => {

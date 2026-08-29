@@ -4,6 +4,7 @@ import { DfButton } from "@/src/components/form/DfButton";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text, TextInput } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { runSync } from "@/src/services/sync";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { theme } from "@/src/styles";
 import { logger } from "@/src/utils/logger";
@@ -43,6 +44,9 @@ export const AccountForm: React.FC = () => {
         ? await social.register({ email, password, handle, displayName })
         : await social.login({ email, password });
       await signIn(result.token);
+      // Subito, non al prossimo giro: chi entra su un telefono nuovo si
+      // aspetta di ritrovare i suoi dati adesso, non fra un quarto d'ora.
+      void runSync();
     } catch (error) {
       logger.warn("[account] accesso non riuscito", error);
       if (error instanceof ApiError) {

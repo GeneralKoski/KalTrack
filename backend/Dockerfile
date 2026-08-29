@@ -7,6 +7,12 @@ FROM php:8.4-fpm-alpine
 
 RUN apk add --no-cache nginx supervisor sqlite-libs \
     && docker-php-ext-install pdo_mysql opcache \
+    # nginx gira come www-data, ma i suoi percorsi temporanei nascono di
+    # proprieta' dell'utente `nginx` di Alpine. Una richiesta con un corpo piu'
+    # grande del buffer viene scritta su disco, e senza questo fallisce con
+    # "Permission denied" e un 500: le GET passano, le POST grandi no.
+    && mkdir -p /var/lib/nginx/tmp /var/lib/nginx/logs /run/nginx \
+    && chown -R www-data:www-data /var/lib/nginx /run/nginx \
     && rm -rf /var/cache/apk/*
 
 # Composer arriva dalla sua immagine ufficiale: nessuna installazione a mano
