@@ -1,3 +1,4 @@
+import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { DfAlert } from "@/src/components/DfAlert";
 import { FormScreen } from "@/src/components/FormScreen";
 import { DfButton } from "@/src/components/form/DfButton";
@@ -8,6 +9,7 @@ import { DfSwitch } from "@/src/components/form/DfSwitch";
 import { PhotoField, ScreenBackground } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
+import { LabelScanner } from "@/src/containers/foods/LabelScanner";
 import { NutrientFields } from "@/src/containers/foods/NutrientFields";
 import { createFood, deleteFood, getFood, updateFood } from "@/src/db/queries/foods";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
@@ -163,7 +165,7 @@ export function FoodFormScreen() {
         {!initial ? (
           <ActivityIndicator style={styles.loader} color={colors.accent} />
         ) : (
-          <FormScreen contentContainerStyle={styles.content} bottomSpacing={40}>
+          <FormScreen contentContainerStyle={styles.content} bottomSpacing={ASSISTANT_FAB_CLEARANCE}>
             <DfForm<FoodFormValues>
               initialValues={initial}
               onSubmit={onSubmit}
@@ -184,6 +186,7 @@ export function FoodFormScreen() {
               <Text style={[styles.section, { color: colors.textMuted }]}>
                 {t("foods.values_per_100")}
               </Text>
+              <LabelScanner />
               <NutrientFields />
 
               <Text style={[styles.section, { color: colors.textMuted }]}>

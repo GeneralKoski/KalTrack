@@ -1,3 +1,4 @@
+import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { DfAlert } from "@/src/components/DfAlert";
 import { DfButton } from "@/src/components/form/DfButton";
 import {
@@ -296,7 +297,10 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   title: { flex: 1, fontSize: 18, fontWeight: "700" },
-  content: { padding: theme.spacing.md, paddingBottom: theme.spacing.xl * 2 },
+  content: {
+    padding: theme.spacing.md,
+    paddingBottom: ASSISTANT_FAB_CLEARANCE,
+  },
   loader: { marginTop: theme.spacing.xl },
   current: { alignItems: "center", gap: theme.spacing.sm },
   elapsed: { fontSize: 30, fontWeight: "700" },

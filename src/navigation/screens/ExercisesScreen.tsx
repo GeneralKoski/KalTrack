@@ -1,3 +1,4 @@
+import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { DfAlert } from "@/src/components/DfAlert";
 import { EmptyState, ScreenBackground, SearchBar } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
@@ -90,7 +91,7 @@ export function ExercisesScreen() {
             )}
             contentContainerStyle={[
               styles.list,
-              { paddingBottom: insets.bottom + theme.spacing.lg },
+              { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
             ]}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
             keyboardShouldPersistTaps="handled"

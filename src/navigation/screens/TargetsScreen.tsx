@@ -1,3 +1,4 @@
+import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { FormScreen } from "@/src/components/FormScreen";
 import { DfButton } from "@/src/components/form/DfButton";
 import { MetalPanel, ScreenBackground, SectionLabel } from "@/src/components/kal";
@@ -224,7 +225,7 @@ export function TargetsScreen() {
         {loading ? (
           <ActivityIndicator style={styles.loader} color={colors.accent} />
         ) : (
-          <FormScreen contentContainerStyle={styles.content} bottomSpacing={40}>
+          <FormScreen contentContainerStyle={styles.content} bottomSpacing={ASSISTANT_FAB_CLEARANCE}>
             <SectionLabel>{t("targets.profile")}</SectionLabel>
 
             <Text style={[styles.label, { color: colors.textMuted }]}>

@@ -1,3 +1,4 @@
+import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { MetalPanel, ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
@@ -210,7 +211,7 @@ const styles = StyleSheet.create({
   title: { flex: 1, fontSize: 18, fontWeight: "700" },
   content: {
     padding: theme.spacing.md,
-    paddingBottom: theme.spacing.xl,
+    paddingBottom: ASSISTANT_FAB_CLEARANCE,
   },
   streak: {
     flexDirection: "row",

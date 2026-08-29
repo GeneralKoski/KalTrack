@@ -1,3 +1,4 @@
+import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import {
   EmptyState,
   MetalSurface,
@@ -109,7 +110,7 @@ export function RecipesScreen() {
             )}
             contentContainerStyle={[
               styles.list,
-              { paddingBottom: insets.bottom + 96 },
+              { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
             ]}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
             keyboardShouldPersistTaps="handled"

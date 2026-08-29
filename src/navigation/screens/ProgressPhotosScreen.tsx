@@ -1,3 +1,4 @@
+import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { DfAlert } from "@/src/components/DfAlert";
 import { DfButton } from "@/src/components/form/DfButton";
 import {
@@ -149,7 +150,7 @@ export function ProgressPhotosScreen() {
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={[
               styles.content,
-              { paddingBottom: insets.bottom + theme.spacing.lg },
+              { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
             ]}
           >
             <SectionLabel>{t("progress_photos.add")}</SectionLabel>

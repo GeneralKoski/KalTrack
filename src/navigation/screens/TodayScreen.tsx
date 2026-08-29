@@ -1,3 +1,4 @@
+import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import {
   Card,
   EmptyState,
@@ -225,7 +226,7 @@ export function TodayScreen() {
           <ScrollView
             contentContainerStyle={[
               styles.content,
-              { paddingBottom: insets.bottom + 96 },
+              { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
             ]}
           >
             <Card style={styles.summary}>

@@ -1,3 +1,4 @@
+import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { DfAlert } from "@/src/components/DfAlert";
 import { DfButton } from "@/src/components/form/DfButton";
 import { Card, ScreenBackground, SectionLabel } from "@/src/components/kal";
@@ -31,7 +32,14 @@ export function BackupScreen() {
 
   const [lastExport, setLastExport] = useState<string | null>(null);
   const [pending, setPending] = useState<BackupPayload | null>(null);
-  const [busy, setBusy] = useState(false);
+  /**
+   * QUALE operazione è in corso, non solo se ce n'è una: con un booleano
+   * condiviso tutti e cinque i bottoni giravano insieme e nessuno capiva
+   * cosa stesse davvero succedendo.
+   */
+  const [busy, setBusy] = useState<"backup" | "restore" | CsvDataset | null>(
+    null,
+  );
 
   useEffect(() => {
     let active = true;
@@ -44,7 +52,7 @@ export function BackupScreen() {
   }, []);
 
   const onExport = async () => {
-    setBusy(true);
+    setBusy("backup");
     try {
       await shareBackup();
       const now = new Date().toISOString();
@@ -54,19 +62,19 @@ export function BackupScreen() {
       logger.error("[backup] export fallito", error);
       showToast.error({ title: t("backup.export_failed") });
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   };
 
   const onExportCsv = async (dataset: CsvDataset) => {
-    setBusy(true);
+    setBusy(dataset);
     try {
       await shareCsv(dataset);
     } catch (error) {
       logger.error("[backup] export CSV fallito", error);
       showToast.error({ title: t("backup.csv_failed") });
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   };
 
@@ -87,7 +95,7 @@ export function BackupScreen() {
 
   const onConfirmRestore = async () => {
     if (!pending) return;
-    setBusy(true);
+    setBusy("restore");
     try {
       await restoreBackup(pending);
       setPending(null);
@@ -97,7 +105,7 @@ export function BackupScreen() {
       logger.error("[backup] ripristino fallito", error);
       showToast.error({ title: t("backup.restore_failed") });
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   };
 
@@ -140,7 +148,7 @@ export function BackupScreen() {
           <DfButton
             label={t("backup.export")}
             icon={<Download size={18} color={colors.text} />}
-            loading={busy}
+            loading={busy === "backup"}
             onPress={onExport}
           />
 
@@ -162,7 +170,7 @@ export function BackupScreen() {
                 label={t(`backup.csv_${dataset}`)}
                 variant="outlined"
                 fullWidth={false}
-                loading={busy}
+                loading={busy === dataset}
                 onPress={() => onExportCsv(dataset)}
                 style={styles.csvButton}
               />
@@ -187,7 +195,7 @@ export function BackupScreen() {
         title={t("backup.confirm_title")}
         confirmLabel={t("backup.confirm_restore")}
         confirmColor={theme.colors.error}
-        loading={busy}
+        loading={busy === "restore"}
         onConfirm={onConfirmRestore}
         onClose={() => setPending(null)}
       >
@@ -232,7 +240,11 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   title: { flex: 1, fontSize: 18, fontWeight: "700" },
-  content: { padding: theme.spacing.md, gap: theme.spacing.sm },
+  content: {
+    padding: theme.spacing.md,
+    paddingBottom: ASSISTANT_FAB_CLEARANCE,
+    gap: theme.spacing.sm,
+  },
   card: { gap: theme.spacing.xs },
   explain: { fontSize: 14, lineHeight: 20 },
   meta: { fontSize: 12 },
@@ -242,7 +254,9 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: theme.spacing.sm,
   },
-  csvButton: { flexGrow: 1 },
+  // Due per riga a larghezza uguale: con flexGrow il quarto bottone si
+  // allargava da solo su tutta la seconda riga, sbilanciando la griglia.
+  csvButton: { flexGrow: 1, flexBasis: "45%" },
   summary: { gap: 4 },
   warning: { fontSize: 14, fontWeight: "600", marginBottom: theme.spacing.xs },
   summaryRow: { flexDirection: "row", justifyContent: "space-between" },

@@ -1,3 +1,4 @@
+import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { Text } from "@/src/components/ui";
@@ -69,6 +70,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: theme.spacing.md,
+    paddingBottom: ASSISTANT_FAB_CLEARANCE,
     gap: theme.spacing.sm,
   },
   section: {

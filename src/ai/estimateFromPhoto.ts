@@ -93,7 +93,10 @@ Every number must be zero or positive, and quantityG must be greater than zero.`
  * Ridimensiona e comprime prima dell'invio: una foto da telefono pesa 3-5 MB e
  * spedirla intera costa latenza e token senza migliorare la stima.
  */
-async function toCompressedDataUrl(uri: string): Promise<string> {
+export async function toCompressedDataUrl(
+  uri: string,
+  maxSidePx = MAX_SIDE_PX,
+): Promise<string> {
   const context = ImageManipulator.manipulate(uri);
   const source = await context.renderAsync();
 
@@ -101,12 +104,12 @@ async function toCompressedDataUrl(uri: string): Promise<string> {
   // arriva in un secondo passaggio e solo se serve davvero.
   const longSide = Math.max(source.width, source.height);
   const image =
-    longSide > MAX_SIDE_PX
+    longSide > maxSidePx
       ? await context
           .resize(
             source.width >= source.height
-              ? { width: MAX_SIDE_PX }
-              : { height: MAX_SIDE_PX },
+              ? { width: maxSidePx }
+              : { height: maxSidePx },
           )
           .renderAsync()
       : source;

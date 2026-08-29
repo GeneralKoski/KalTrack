@@ -73,9 +73,6 @@ const DfSwitchWithForm = ({
 
   return (
     <View ref={fieldRef} style={styles.wrapper}>
-      {label && (
-        <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
-      )}
       <Controller
         control={control}
         name={name}
@@ -83,14 +80,23 @@ const DfSwitchWithForm = ({
         rules={rules}
         render={({ field: { onChange, value }, fieldState: { error } }) => (
           <>
-            <BasicDfSwitch
-              initialValue={value}
-              onValueChange={(newValue) => {
-                onChange(newValue);
-                onValueChange?.(newValue);
-              }}
-              {...props}
-            />
+            {/* Etichetta e interruttore sulla stessa riga: impilati
+                lasciavano una riga quasi vuota con lo switch solo a destra. */}
+            <View style={styles.row}>
+              {label && (
+                <Text style={[styles.label, { color: colors.text }]}>
+                  {label}
+                </Text>
+              )}
+              <BasicDfSwitch
+                initialValue={value}
+                onValueChange={(newValue) => {
+                  onChange(newValue);
+                  onValueChange?.(newValue);
+                }}
+                {...props}
+              />
+            </View>
             {error && (
               <Text style={styles.errorText}>{error.message?.toString()}</Text>
             )}
@@ -105,10 +111,15 @@ const styles = StyleSheet.create({
   wrapper: {
     marginBottom: theme.spacing.md,
   },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
   label: {
+    flex: 1,
     fontWeight: "500",
     fontSize: 14,
-    marginBottom: 6,
   },
   errorText: {
     fontSize: 12,

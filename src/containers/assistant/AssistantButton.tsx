@@ -152,6 +152,17 @@ export const AssistantButton: React.FC = () => {
   );
 };
 
+/**
+ * Spazio che ogni schermata scorrevole deve lasciarsi in fondo perché il
+ * microfono dell'assistente non copra l'ultima riga di contenuto.
+ *
+ * È la somma delle misure qui sotto: il bottone sta a 88 dal fondo ed è alto
+ * 52, più un margine. Vive accanto al bottone e non nelle schermate perché è
+ * il bottone a deciderla: spostarlo senza aggiornare questo numero
+ * rimetterebbe il difetto in tutte e dodici le schermate insieme.
+ */
+export const ASSISTANT_FAB_CLEARANCE = 88 + 52 + 16;
+
 const styles = StyleSheet.create({
   button: {
     position: "absolute",
