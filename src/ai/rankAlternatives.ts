@@ -153,13 +153,14 @@ function mergeRanking(
  */
 export async function rankAlternatives(args: {
   exerciseId: string;
+  onlyAvailableEquipment?: boolean;
   limit?: number;
 }): Promise<RankedAlternative[]> {
   const source = await getExercise(args.exerciseId);
   if (!source) return [];
 
   const candidates = await suggestAlternatives(args.exerciseId, {
-    onlyAvailableEquipment: true,
+    onlyAvailableEquipment: args.onlyAvailableEquipment ?? true,
     limit: args.limit ?? DEFAULT_LIMIT,
   });
   if (candidates.length === 0) return [];

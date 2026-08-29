@@ -41,19 +41,28 @@ export function bestSet(sets: PerformedSet[]): PerformedSet | null {
 }
 
 /**
- * Carico proposto per la prossima volta: si sale solo se l'ultima volta il
- * target di ripetizioni è stato centrato su TUTTE le serie. Salire dopo una
- * seduta incompleta è il modo più rapido per impantanarsi.
+ * Carico proposto per la prossima volta.
+ *
+ * Si sale solo se l'ultima volta il target è stato centrato su tutte le serie
+ * PREVISTE, non solo su quelle registrate: una seduta mollata a metà con due
+ * serie buone su quattro non è una seduta riuscita, e salire lì sopra è il modo
+ * più rapido per impantanarsi. Senza `targetSets` si valuta solo ciò che è
+ * stato fatto, che è il massimo che si può sapere.
  */
 export function suggestNextWeight(args: {
   lastSets: PerformedSet[];
   targetReps: number;
   increment: number;
+  /** Serie previste dalla scheda. Omesso, si giudica sulle sole registrate. */
+  targetSets?: number;
 }): number | null {
   const working = args.lastSets.filter((s) => s.weight > 0);
   if (working.length === 0) return null;
 
   const heaviest = Math.max(...working.map((s) => s.weight));
+  const completedAll =
+    args.targetSets === undefined || working.length >= args.targetSets;
   const allHitTarget = working.every((s) => s.reps >= args.targetReps);
-  return allHitTarget ? heaviest + args.increment : heaviest;
+
+  return completedAll && allHitTarget ? heaviest + args.increment : heaviest;
 }

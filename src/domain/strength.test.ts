@@ -77,3 +77,48 @@ describe("suggestNextWeight", () => {
     ).toBeNull();
   });
 });
+
+describe("suggestNextWeight con le serie previste", () => {
+  const set = (weight: number, reps: number) => ({ weight, reps });
+
+  it("non sale se la seduta è stata interrotta a metà", () => {
+    // Due serie da 10 su quattro previste: il target NON è stato centrato,
+    // anche se le due fatte erano perfette.
+    const next = suggestNextWeight({
+      lastSets: [set(60, 10), set(60, 10)],
+      targetReps: 10,
+      targetSets: 4,
+      increment: 2.5,
+    });
+    expect(next).toBe(60);
+  });
+
+  it("sale se tutte le serie previste sono state completate", () => {
+    const next = suggestNextWeight({
+      lastSets: [set(60, 10), set(60, 10), set(60, 10), set(60, 10)],
+      targetReps: 10,
+      targetSets: 4,
+      increment: 2.5,
+    });
+    expect(next).toBe(62.5);
+  });
+
+  it("una serie in più del previsto non impedisce di salire", () => {
+    const next = suggestNextWeight({
+      lastSets: [set(60, 10), set(60, 10), set(60, 10)],
+      targetReps: 10,
+      targetSets: 2,
+      increment: 2.5,
+    });
+    expect(next).toBe(62.5);
+  });
+
+  it("senza serie previste giudica solo quello che è stato fatto", () => {
+    const next = suggestNextWeight({
+      lastSets: [set(60, 10)],
+      targetReps: 10,
+      increment: 2.5,
+    });
+    expect(next).toBe(62.5);
+  });
+});

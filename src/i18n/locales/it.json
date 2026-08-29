@@ -318,5 +318,183 @@
       "navigate": "Spostarsi tra le schermate",
       "query_summary": "Rispondere a una domanda"
     }
+  },
+  "achievements": {
+    "title": "Traguardi",
+    "streak_days": {
+      "one": "giorno di fila",
+      "other": "giorni di fila"
+    },
+    "streak_none": "Nessuna serie in corso: registra un pasto per ripartire",
+    "counter": "%{done} di %{total} traguardi raggiunti",
+    "new": "NUOVO",
+    "new_unlocked": {
+      "one": "Nuovo traguardo raggiunto!",
+      "other": "%{count} nuovi traguardi raggiunti!"
+    },
+    "unlocked_on": "Raggiunto il %{date}",
+    "locked": "Non ancora raggiunto",
+    "no_weight": "Nessuna pesata registrata",
+    "family": {
+      "loggedDays": "Giorni registrati",
+      "workoutDays": "Allenamenti",
+      "totalSteps": "Passi totali",
+      "bestDaySteps": "Passi in un giorno",
+      "bestWeightKg": "Peso"
+    },
+    "value": {
+      "loggedDays": "%{value} giorni",
+      "workoutDays": "%{value} allenamenti",
+      "totalSteps": "%{value} passi",
+      "bestDaySteps": "%{value} passi",
+      "bestWeightKg": "%{value} kg"
+    },
+    "remaining": {
+      "loggedDays": {
+        "one": "Ti manca %{value} giorno",
+        "other": "Ti mancano %{value} giorni"
+      },
+      "workoutDays": {
+        "one": "Ti manca %{value} allenamento",
+        "other": "Ti mancano %{value} allenamenti"
+      },
+      "totalSteps": {
+        "one": "Ti manca %{value} passo",
+        "other": "Ti mancano %{value} passi"
+      },
+      "bestDaySteps": {
+        "one": "Ti manca %{value} passo dal tuo record",
+        "other": "Ti mancano %{value} passi dal tuo record"
+      },
+      "bestWeightKg": {
+        "one": "Ti manca %{value} kg",
+        "other": "Ti mancano %{value} kg"
+      }
+    },
+    "goal": {
+      "logged_days_1": "Primo giorno registrato",
+      "logged_days_7": "7 giorni registrati",
+      "logged_days_30": "30 giorni registrati",
+      "logged_days_100": "100 giorni registrati",
+      "logged_days_365": "365 giorni registrati",
+      "workout_days_1": "Primo allenamento",
+      "workout_days_10": "10 allenamenti",
+      "workout_days_50": "50 allenamenti",
+      "workout_days_100": "100 allenamenti",
+      "total_steps_100k": "100.000 passi in totale",
+      "total_steps_1m": "1 milione di passi",
+      "total_steps_5m": "5 milioni di passi",
+      "day_steps_10k": "10.000 passi in un giorno",
+      "day_steps_15k": "15.000 passi in un giorno",
+      "day_steps_20k": "20.000 passi in un giorno",
+      "weight_under_90": "Sotto i 90 kg",
+      "weight_under_80": "Sotto gli 80 kg",
+      "weight_under_70": "Sotto i 70 kg"
+    }
+  },
+  "water": {
+    "title": "Acqua",
+    "unknown": "-",
+    "ml": "ml",
+    "liters": "L",
+    "add_ml": "+%{ml} ml",
+    "undo": "Annulla l'ultimo bicchiere"
+  },
+  "fasting": {
+    "title": "Digiuno",
+    "none_open": "Nessun digiuno in corso",
+    "start": "Inizia un digiuno",
+    "start_now": "Inizia",
+    "choose_protocol": "Scegli il protocollo",
+    "protocol_explain": "%{fasting} di digiuno, poi %{eating} di finestra alimentare.",
+    "percent": "%{value}%",
+    "of_target": "su %{target}",
+    "no_target": "Senza obiettivo",
+    "reached": "Obiettivo raggiunto",
+    "started_at": "Iniziato il %{date} alle %{time}",
+    "end": "Termina digiuno",
+    "end_confirm": "La finestra si chiude adesso e passa nello storico.",
+    "history": "Storico",
+    "history_empty": "Nessun digiuno concluso",
+    "window": "%{from} - %{to}"
+  },
+  "measurements": {
+    "title": "Misure",
+    "unit": "cm",
+    "placeholder": "cm",
+    "sites": {
+      "vita": "Vita",
+      "fianchi": "Fianchi",
+      "petto": "Petto",
+      "braccio": "Braccio",
+      "coscia": "Coscia",
+      "polpaccio": "Polpaccio",
+      "collo": "Collo"
+    },
+    "empty": "Nessuna misura per %{site}: la prima è il punto di partenza",
+    "chart_empty": "Serve più di una misura per vedere l'andamento",
+    "since_first": "%{delta} cm dalla prima misura del %{date}",
+    "only_one": "Una sola misura: la differenza si vede dalla prossima",
+    "new": "Nuova misura di oggi",
+    "today_replace": "Oggi hai già registrato %{value} cm: salvando la sostituisci",
+    "history": "Storico",
+    "first": "prima"
+  },
+  "progress_photos": {
+    "title": "Foto dei progressi",
+    "add": "Nuova foto",
+    "save": "Salva foto",
+    "poses": {
+      "fronte": "Fronte",
+      "lato": "Lato",
+      "retro": "Retro"
+    },
+    "empty": "Nessuna foto: la prima è il punto di partenza",
+    "compare": "Confronto",
+    "compare_first": "Prima",
+    "compare_last": "Ultima",
+    "compare_day": "%{count} giorno di distanza",
+    "compare_days": "%{count} giorni di distanza"
+  },
+  "plan": {
+    "title": "Piano pasti",
+    "week_of": "Settimana del %{date}",
+    "empty_day": "Niente in programma",
+    "add": "Aggiungi",
+    "add_title": "Aggiungi al piano",
+    "day_kcal": "%{kcal} kcal previste",
+    "day_kcal_partial": "%{kcal} kcal previste, più le voci senza valori",
+    "kcal_unknown": "kcal non note",
+    "servings_short": "%{count} porz.",
+    "grams_unit": "g",
+    "shopping_list": "Lista della spesa",
+    "copy_week": "Copia sulla prossima",
+    "copy_week_title": "Copiare la settimana?",
+    "copy_week_message": "Il piano della prossima settimana viene sostituito da questo.",
+    "copy_week_done": "Settimana copiata",
+    "copy_week_empty": "Questa settimana non ha un piano da copiare",
+    "apply": "Porta nel diario",
+    "apply_title": "Portare il giorno nel diario?",
+    "apply_message": "Le voci diventano voci di diario. Il piano resta dov'è, così puoi confrontarlo con quello che hai mangiato davvero.",
+    "apply_done": "%{count} voci portate nel diario",
+    "apply_skipped": "%{count} voci senza valori sono rimaste fuori",
+    "apply_already": "Questo giorno è già nel diario",
+    "apply_empty": "Questo giorno non ha un piano",
+    "applied_badge": "Già nel diario",
+    "label_title": "Voce libera",
+    "label_placeholder": "Es. cena fuori",
+    "label_required": "Serve un nome",
+    "delete_title": "Togliere dal piano?",
+    "deleted": "Tolto dal piano"
+  },
+  "shopping": {
+    "title": "Lista della spesa",
+    "empty": "Nel piano di questi giorni non c'è niente da comprare",
+    "range_this_week": "Questa settimana",
+    "range_next_week": "Prossima settimana",
+    "range_next_days": "Prossimi 7 giorni",
+    "taken": "%{done} di %{total} presi",
+    "session_hint": "Le spunte valgono solo per questa spesa: non vengono salvate.",
+    "reset": "Azzera le spunte"
   }
 }

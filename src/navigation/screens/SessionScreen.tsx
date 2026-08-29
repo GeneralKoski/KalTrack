@@ -23,6 +23,7 @@ import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import type { ExerciseRow, SessionSetRow } from "@/src/types/gym";
+import { rankAlternatives } from "@/src/ai/rankAlternatives";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -69,6 +70,13 @@ interface PlannedSet {
   exercise: ExerciseRow;
   setIndex: number;
   round: number;
+  /**
+   * Vero quando questa serie chiude il giro.
+   *
+   * In un superset il recupero va DOPO il giro, non fra i due esercizi:
+   * riposare fra A e B è esattamente ciò che il superset serve a evitare.
+   */
+  closesRound: boolean;
 }
 
 const formatNumber = (value: number): string =>
@@ -124,6 +132,8 @@ function planBlock(
       exercise: entry.exercise,
       setIndex,
       round,
+      // Riempito sotto: dipende da quali altre serie compongono il giro.
+      closesRound: true,
     });
   };
 
@@ -131,9 +141,13 @@ function planBlock(
   if (interleaved) {
     const rounds = Math.max(...entries.map((entry) => entry.sets), 0);
     for (let round = 0; round < rounds; round++) {
-      for (const entry of entries) {
-        if (round < entry.sets) push(entry, round, round);
-      }
+      const inRound = entries.filter((entry) => round < entry.sets);
+      inRound.forEach((entry, index) => {
+        push(entry, round, round);
+        // Solo l'ultima serie del giro fa scattare il recupero: fra gli
+        // esercizi di un superset non si riposa, è il senso del blocco.
+        planned[planned.length - 1].closesRound = index === inRound.length - 1;
+      });
     }
     return planned;
   }
@@ -160,6 +174,20 @@ export function SessionScreen() {
   const [infos, setInfos] = useState<Record<string, ExerciseInfo>>({});
   const [values, setValues] = useState<Record<string, SetValues>>({});
   const [done, setDone] = useState<Record<string, boolean>>({});
+  /** Serie in corso di scrittura: impedisce il doppio invio da doppio tocco. */
+  const inFlight = useRef<Set<string>>(new Set());
+
+  /**
+   * Riordino AI delle alternative. Memoizzato: `rank` è nelle dipendenze
+   * dell'effetto dello sheet, e una callback ricreata a ogni render farebbe
+   * partire una chiamata al modello ogni volta che la schermata si aggiorna,
+   * cioè a ogni serie spuntata.
+   */
+  const rankWithAi = useCallback(
+    (args: { exerciseId: string; onlyAvailableEquipment: boolean }) =>
+      rankAlternatives(args),
+    [],
+  );
   const [substitutions, setSubstitutions] = useState<Record<string, ExerciseRow>>({});
   const [rest, setRest] = useState<{ key: string; seconds: number } | null>(null);
   const [confirmFinish, setConfirmFinish] = useState(false);
@@ -244,6 +272,7 @@ export function SessionScreen() {
   const suggestedWeight = (
     exerciseId: string,
     targetReps: string | null,
+    targetSets: number | null,
   ): number | null => {
     const target = parseFirstInt(targetReps);
     if (target === null) return null;
@@ -254,6 +283,9 @@ export function SessionScreen() {
     return suggestNextWeight({
       lastSets,
       targetReps: target,
+      // Senza le serie previste il carico salirebbe anche dopo una seduta
+      // mollata a metà, che è il caso che la regola esiste per evitare.
+      targetSets: targetSets ?? undefined,
       increment: WEIGHT_INCREMENT_KG,
     });
   };
@@ -268,6 +300,11 @@ export function SessionScreen() {
     restSeconds: number,
   ) => {
     if (!sessionId) return;
+    // In palestra si spunta di fretta e spesso due volte. `done` si aggiorna
+    // solo dopo la scrittura, quindi senza questa guardia due tocchi ravvicinati
+    // registrano due serie e contano doppio l'utilizzo dell'esercizio.
+    if (inFlight.current.has(planned.key)) return;
+    inFlight.current.add(planned.key);
     try {
       await logSet({
         sessionId,
@@ -278,12 +315,16 @@ export function SessionScreen() {
         blockRef: planned.blockId,
       });
       setDone((prev) => ({ ...prev, [planned.key]: true }));
-      // Chiave nuova a ogni serie: il timer riparte da capo invece di riprendere
-      // il conteggio della serie precedente.
-      setRest({ key: `${planned.key}:${Date.now()}`, seconds: restSeconds });
+      if (planned.closesRound) {
+        // Chiave nuova a ogni serie: il timer riparte da capo invece di
+        // riprendere il conteggio della serie precedente.
+        setRest({ key: `${planned.key}:${Date.now()}`, seconds: restSeconds });
+      }
     } catch (error) {
       logger.error("[SessionScreen] errore salvataggio serie", error);
       showToast.error({ message: t("general_error") });
+    } finally {
+      inFlight.current.delete(planned.key);
     }
   };
 
@@ -377,6 +418,7 @@ export function SessionScreen() {
                     const suggested = suggestedWeight(
                       exercise.id,
                       item.row.target_reps,
+                      item.row.target_sets,
                     );
                     // La serie più pesante dell'ultima volta, non la prima:
                     // è quella che dice davvero a che punto si era.
@@ -523,6 +565,7 @@ export function SessionScreen() {
         ref={sheetRef}
         exercise={replacing?.exercise ?? null}
         onPick={pickAlternative}
+        rank={rankWithAi}
       />
 
       <DfAlert

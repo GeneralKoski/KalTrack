@@ -20,7 +20,17 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
+import { AchievementsScreen } from "@/src/navigation/screens/AchievementsScreen";
 import { BackupScreen } from "@/src/navigation/screens/BackupScreen";
+import { ExercisesScreen } from "@/src/navigation/screens/ExercisesScreen";
+import { FastingScreen } from "@/src/navigation/screens/FastingScreen";
+import { MealPlanScreen } from "@/src/navigation/screens/MealPlanScreen";
+import { MeasurementsScreen } from "@/src/navigation/screens/MeasurementsScreen";
+import { ProgressPhotosScreen } from "@/src/navigation/screens/ProgressPhotosScreen";
+import { RoutineFormScreen } from "@/src/navigation/screens/RoutineFormScreen";
+import { RoutinesScreen } from "@/src/navigation/screens/RoutinesScreen";
+import { SessionScreen } from "@/src/navigation/screens/SessionScreen";
+import { ShoppingListScreen } from "@/src/navigation/screens/ShoppingListScreen";
 import { FoodFormScreen } from "@/src/navigation/screens/FoodFormScreen";
 import { FoodsScreen } from "@/src/navigation/screens/FoodsScreen";
 import { GymScreen } from "@/src/navigation/screens/GymScreen";
@@ -167,6 +177,46 @@ const RootStack = createNativeStackNavigator({
       screen: BackupScreen,
       linking: { path: "backup" },
     },
+    Exercises: {
+      screen: ExercisesScreen,
+      linking: { path: "esercizi" },
+    },
+    Routines: {
+      screen: RoutinesScreen,
+      linking: { path: "schede" },
+    },
+    RoutineForm: {
+      screen: RoutineFormScreen,
+      linking: { path: "schede/modifica" },
+    },
+    Session: {
+      screen: SessionScreen,
+      linking: { path: "allenamento" },
+    },
+    Achievements: {
+      screen: AchievementsScreen,
+      linking: { path: "traguardi" },
+    },
+    Fasting: {
+      screen: FastingScreen,
+      linking: { path: "digiuno" },
+    },
+    Measurements: {
+      screen: MeasurementsScreen,
+      linking: { path: "misure" },
+    },
+    ProgressPhotos: {
+      screen: ProgressPhotosScreen,
+      linking: { path: "foto" },
+    },
+    MealPlan: {
+      screen: MealPlanScreen,
+      linking: { path: "piano" },
+    },
+    ShoppingList: {
+      screen: ShoppingListScreen,
+      linking: { path: "spesa" },
+    },
   },
 });
 
@@ -222,6 +272,8 @@ declare global {
     interface RootParamList extends RootStackParamList {
       FoodForm: { id?: string };
       RecipeForm: { id?: string };
+      RoutineForm: { id?: string };
+      Session: { routineId: string; dayIndex: number };
     }
   }
 }

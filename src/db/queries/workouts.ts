@@ -159,9 +159,14 @@ export async function createRoutine(input: RoutineInput): Promise<string> {
 }
 
 /**
- * Riscrive la scheda per intero. Giorni e blocchi sono un dettaglio interno
- * alla scheda: niente li referenzia dall'esterno, quindi sostituirli è più
- * semplice e più prevedibile di un diff.
+ * Riscrive la scheda per intero: giorni e blocchi sono un dettaglio interno,
+ * e sostituirli è più prevedibile di un diff.
+ *
+ * La sostituzione è però LOGICA e non fisica, perché una cosa dall'esterno li
+ * referenzia: `workout_sessions.routine_day_id` ricorda in quale giorno di
+ * scheda è stato fatto un allenamento. Cancellarli davvero fa fallire la
+ * foreign key, quindi dopo il primo allenamento la scheda non sarebbe più
+ * modificabile; e riuscendoci si perderebbe comunque il legame con lo storico.
  */
 export async function updateRoutine(
   id: string,
@@ -177,24 +182,29 @@ export async function updateRoutine(
     );
 
     const days = await db.getAllAsync<{ id: string }>(
-      "SELECT id FROM routine_days WHERE routine_id = ?",
+      "SELECT id FROM routine_days WHERE routine_id = ? AND deleted_at IS NULL",
       [id],
     );
     for (const day of days) {
       const blocks = await db.getAllAsync<{ id: string }>(
-        "SELECT id FROM routine_blocks WHERE routine_day_id = ?",
+        "SELECT id FROM routine_blocks WHERE routine_day_id = ? AND deleted_at IS NULL",
         [day.id],
       );
       for (const block of blocks) {
-        await db.runAsync("DELETE FROM block_exercises WHERE routine_block_id = ?", [
-          block.id,
-        ]);
+        await db.runAsync(
+          "UPDATE block_exercises SET deleted_at = ?, updated_at = ? WHERE routine_block_id = ?",
+          [now, now, block.id],
+        );
       }
-      await db.runAsync("DELETE FROM routine_blocks WHERE routine_day_id = ?", [
-        day.id,
-      ]);
+      await db.runAsync(
+        "UPDATE routine_blocks SET deleted_at = ?, updated_at = ? WHERE routine_day_id = ?",
+        [now, now, day.id],
+      );
     }
-    await db.runAsync("DELETE FROM routine_days WHERE routine_id = ?", [id]);
+    await db.runAsync(
+      "UPDATE routine_days SET deleted_at = ?, updated_at = ? WHERE routine_id = ? AND deleted_at IS NULL",
+      [now, now, id],
+    );
 
     await insertDays(db, id, input.days, now);
   });

@@ -14,18 +14,25 @@ import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-nat
 
 const LIMIT = 12;
 
+export interface AlternativeOption {
+  exercise: ExerciseRow;
+  /** Una riga sul perché sostituisce bene. Null quando l'ordine è quello locale. */
+  reason: string | null;
+}
+
 /**
- * Riordino opzionale delle alternative.
+ * PUNTO DI INNESTO per il riordino AI (`src/ai/rankAlternatives.ts`).
  *
- * PUNTO DI INNESTO per `src/ai/rankAlternatives.ts`: il modulo non viene
- * importato qui di proposito, così lo sheet resta usabile senza campo e senza
- * AI. Chi monta lo sheet passa la funzione, e se non la passa vale l'ordine
- * locale di `suggestAlternatives`.
+ * Il modulo non viene importato qui di proposito: lo sheet deve restare
+ * utilizzabile senza campo, senza chiave e senza AI. Chi monta lo sheet passa
+ * la funzione; se non la passa, o se questa fallisce, vale l'ordine locale di
+ * `suggestAlternatives`.
  */
-export type RankAlternatives = (
-  source: ExerciseRow,
-  candidates: ExerciseRow[],
-) => Promise<ExerciseRow[]>;
+export type RankAlternatives = (args: {
+  exerciseId: string;
+  /** Lo stesso filtro scelto a schermo: l'AI non deve ignorarlo. */
+  onlyAvailableEquipment: boolean;
+}) => Promise<AlternativeOption[]>;
 
 interface AlternativesSheetProps {
   /** Esercizio da sostituire. Null mentre lo sheet è chiuso. */
@@ -41,7 +48,7 @@ export const AlternativesSheet = forwardRef<
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const [onlyAvailable, setOnlyAvailable] = useState(false);
-  const [rows, setRows] = useState<ExerciseRow[]>([]);
+  const [options, setOptions] = useState<AlternativeOption[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -51,22 +58,33 @@ export const AlternativesSheet = forwardRef<
 
     (async () => {
       try {
-        const candidates = await suggestAlternatives(exercise.id, {
+        const local = await suggestAlternatives(exercise.id, {
           onlyAvailableEquipment: onlyAvailable,
           limit: LIMIT,
         });
-        // Se il riordino AI fallisce resta l'ordine locale: senza campo o senza
-        // chiave l'elenco deve comunque comparire.
-        const ordered = rank
-          ? await rank(exercise, candidates).catch((error: unknown) => {
-              logger.warn("[AlternativesSheet] riordino non riuscito", error);
-              return candidates;
-            })
-          : candidates;
-        if (active) setRows(ordered);
+        const fallback: AlternativeOption[] = local.map((row) => ({
+          exercise: row,
+          reason: null,
+        }));
+
+        // Il riordino è un miglioramento, non un requisito: se non risponde o
+        // torna vuoto resta l'elenco locale, che è già una risposta valida.
+        let result = fallback;
+        if (rank) {
+          try {
+            const ranked = await rank({
+              exerciseId: exercise.id,
+              onlyAvailableEquipment: onlyAvailable,
+            });
+            if (ranked.length > 0) result = ranked;
+          } catch (error) {
+            logger.warn("[AlternativesSheet] riordino non riuscito", error);
+          }
+        }
+        if (active) setOptions(result);
       } catch (error) {
         logger.error("[AlternativesSheet] errore caricamento", error);
-        if (active) setRows([]);
+        if (active) setOptions([]);
       } finally {
         if (active) setLoading(false);
       }
@@ -99,7 +117,7 @@ export const AlternativesSheet = forwardRef<
 
       {loading ? (
         <ActivityIndicator style={styles.loader} color={colors.accent} />
-      ) : rows.length === 0 ? (
+      ) : options.length === 0 ? (
         <EmptyState
           message={t("gym.no_alternatives")}
           icon={<Repeat2 size={40} color={colors.textFaint} />}
@@ -108,12 +126,12 @@ export const AlternativesSheet = forwardRef<
         // map() e non FlatList: una lista virtualizzata dentro lo scroll dello
         // sheet annida due scroll e smette di ricevere gli eventi di tocco.
         <View style={styles.list}>
-          {rows.map((row) => {
-            const equipment = exerciseEquipment(row);
+          {options.map((option) => {
+            const equipment = exerciseEquipment(option.exercise);
             return (
               <TouchableOpacity
-                key={row.id}
-                onPress={() => onPick(row)}
+                key={option.exercise.id}
+                onPress={() => onPick(option.exercise)}
                 activeOpacity={0.6}
                 style={[styles.item, { borderColor: colors.border }]}
               >
@@ -122,17 +140,25 @@ export const AlternativesSheet = forwardRef<
                     style={[styles.name, { color: colors.text }]}
                     numberOfLines={1}
                   >
-                    {row.name}
+                    {option.exercise.name}
                   </Text>
                   <Text
                     style={[styles.meta, { color: colors.textMuted }]}
                     numberOfLines={1}
                   >
-                    {t(`gym.muscle.${row.muscle_group}`)}
+                    {t(`gym.muscle.${option.exercise.muscle_group}`)}
                     {equipment.length > 0
                       ? ` · ${equipment.map((item) => t(`gym.equipment.${item}`)).join(", ")}`
                       : ""}
                   </Text>
+                  {option.reason ? (
+                    <Text
+                      style={[styles.reason, { color: colors.textSecondary }]}
+                      numberOfLines={2}
+                    >
+                      {option.reason}
+                    </Text>
+                  ) : null}
                 </View>
                 <Repeat2 size={18} color={colors.textFaint} />
               </TouchableOpacity>
@@ -161,6 +187,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
   },
   itemBody: { flex: 1 },
-  name: { fontSize: 15, fontWeight: "600" },
-  meta: { fontSize: 12, marginTop: 1, textTransform: "capitalize" },
+  name: { flexShrink: 1, fontSize: 15, fontWeight: "600" },
+  meta: { flexShrink: 1, fontSize: 12, marginTop: 1, textTransform: "capitalize" },
+  reason: { flexShrink: 1, fontSize: 12, marginTop: 4, lineHeight: 16 },
 });

@@ -8,6 +8,7 @@ import {
   getActiveRoutine,
   getRoutineDay,
   lastSetsFor,
+  listRoutineDays,
   listRoutines,
   logSet,
   personalBest,
@@ -199,5 +200,55 @@ describe("personalBest", () => {
     await logSet({ sessionId, exerciseId: benchId, setIndex: 1, reps: 5, weight: 60 });
 
     expect((await personalBest(benchId))?.weight).toBe(60);
+  });
+});
+
+describe("updateRoutine con storico", () => {
+  it("una scheda già allenata resta modificabile", async () => {
+    // routine_days è referenziata da workout_sessions: una cancellazione fisica
+    // farebbe fallire la foreign key e la scheda non si salverebbe più.
+    const id = await createRoutine(pushDay());
+    const days = await listRoutineDays(id);
+    const session = await startSession({
+      date: "2026-08-28",
+      routineDayId: days[0].id,
+    });
+    await logSet({ sessionId: session, exerciseId: benchId, setIndex: 0, reps: 8, weight: 60 });
+
+    await expect(
+      updateRoutine(id, {
+        name: "Modificata dopo l'allenamento",
+        days: [
+          {
+            name: "Nuovo giorno",
+            blocks: [
+              {
+                kind: "single",
+                restSeconds: 60,
+                exercises: [{ exerciseId: squatId, targetSets: 3, targetReps: "10" }],
+              },
+            ],
+          },
+        ],
+      }),
+    ).resolves.toBeUndefined();
+
+    const day = await getRoutineDay(id, 0);
+    expect(day?.name).toBe("Nuovo giorno");
+  });
+
+  it("lo storico dell'allenamento sopravvive alla modifica della scheda", async () => {
+    const id = await createRoutine(pushDay());
+    const days = await listRoutineDays(id);
+    const session = await startSession({
+      date: "2026-08-28",
+      routineDayId: days[0].id,
+    });
+    await logSet({ sessionId: session, exerciseId: benchId, setIndex: 0, reps: 8, weight: 60 });
+
+    await updateRoutine(id, { name: "Rifatta", days: [] });
+
+    // Le serie restano: cosa è stato fatto non dipende da come è fatta la scheda oggi.
+    expect(await lastSetsFor(benchId)).toHaveLength(1);
   });
 });

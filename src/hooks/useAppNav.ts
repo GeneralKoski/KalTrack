@@ -16,6 +16,16 @@ export interface NavParams {
   Settings: undefined;
   Targets: undefined;
   Backup: undefined;
+  Exercises: undefined;
+  Routines: undefined;
+  RoutineForm: { id?: string };
+  Session: { routineId: string; dayIndex: number };
+  Achievements: undefined;
+  Fasting: undefined;
+  Measurements: undefined;
+  ProgressPhotos: undefined;
+  MealPlan: undefined;
+  ShoppingList: undefined;
 }
 
 type NavigateFn = (name: string, params?: object) => void;
