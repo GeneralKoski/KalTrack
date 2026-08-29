@@ -325,8 +325,32 @@ const isUsableCall = (call: ToolCall): boolean =>
   typeof call.function.arguments === "string";
 
 /** Chiave di deduplica di un intento: stesso tool, stessi argomenti. */
+/**
+ * Chiave di un intento, per riconoscere la stessa scrittura richiesta due
+ * volte nello stesso giro.
+ *
+ * Le chiavi degli oggetti vanno ORDINATE: `JSON.stringify` conserva l'ordine
+ * di inserimento, e lo stesso identico intento riscritto dal modello con i
+ * campi in un altro ordine produceva una chiave diversa e passava il
+ * controllo, scrivendo la voce di diario due volte.
+ */
+const stableJson = (value: unknown): string => {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+  const entries = Object.entries(value as Record<string, unknown>)
+    // Un campo assente e uno esplicitamente `undefined` sono la stessa cosa.
+    .filter(([, v]) => v !== undefined)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([k, v]) => `${JSON.stringify(k)}:${stableJson(v)}`);
+  return `{${entries.join(",")}}`;
+};
+
+/** Esportata per i test: e' la regola che impedisce la doppia scrittura. */
+export const intentKeyForTesting = (toolName: string, args: unknown): string =>
+  intentKey(toolName, args);
+
 const intentKey = (toolName: string, args: unknown): string =>
-  `${toolName}:${JSON.stringify(args)}`;
+  `${toolName}:${stableJson(args)}`;
 
 /**
  * Risposta quando il modello non ne ha prodotta una.

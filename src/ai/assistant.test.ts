@@ -1,5 +1,6 @@
 import {
   buildSystemPrompt,
+  intentKeyForTesting,
   MAX_TOOL_ROUNDS,
   normalizeQuantities,
   runAssistant,
@@ -341,5 +342,33 @@ describe("normalizeQuantities e il peso corporeo", () => {
         "il peso non lo ricordo, comunque ho mangiato due etti di pasta",
       ),
     ).toContain("200 g");
+  });
+});
+
+describe("chiave di un intento", () => {
+  /**
+   * Il difetto che questo test blocca: la chiave usava JSON.stringify, che
+   * conserva l'ordine di inserimento. Lo stesso intento riscritto dal modello
+   * con i campi in un altro ordine passava il controllo dei duplicati e
+   * scriveva la voce due volte.
+   */
+  it("non cambia se i campi arrivano in un altro ordine", () => {
+    const a = { date: "2026-08-29", mealTypeId: "mt-lunch", entries: [] };
+    const b = { entries: [], mealTypeId: "mt-lunch", date: "2026-08-29" };
+    expect(intentKeyForTesting("add_meal_entries", a)).toBe(
+      intentKeyForTesting("add_meal_entries", b),
+    );
+  });
+
+  it("resta diversa quando i valori sono diversi", () => {
+    expect(intentKeyForTesting("log_steps", { steps: 1000 })).not.toBe(
+      intentKeyForTesting("log_steps", { steps: 2000 }),
+    );
+  });
+
+  it("ignora i campi esplicitamente indefiniti", () => {
+    expect(
+      intentKeyForTesting("log_weight", { weightKg: 80, bodyFatPct: undefined }),
+    ).toBe(intentKeyForTesting("log_weight", { weightKg: 80 }));
   });
 });
