@@ -12,6 +12,7 @@ import {
   type BackupPayload,
 } from "@/src/services/backup";
 import { readBackupFile, shareBackup } from "@/src/services/backupFile";
+import { CSV_DATASETS, shareCsv, type CsvDataset } from "@/src/services/csvExport";
 import { theme } from "@/src/styles";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
@@ -52,6 +53,18 @@ export function BackupScreen() {
     } catch (error) {
       logger.error("[backup] export fallito", error);
       showToast.error({ title: t("backup.export_failed") });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onExportCsv = async (dataset: CsvDataset) => {
+    setBusy(true);
+    try {
+      await shareCsv(dataset);
+    } catch (error) {
+      logger.error("[backup] export CSV fallito", error);
+      showToast.error({ title: t("backup.csv_failed") });
     } finally {
       setBusy(false);
     }
@@ -131,6 +144,31 @@ export function BackupScreen() {
             onPress={onExport}
           />
 
+          {/*
+            Il CSV è una cosa diversa dal backup: quello serve a ripristinare,
+            questo ad aprire i propri dati in un foglio di calcolo. Tenerli
+            separati evita che si scambi l'uno per l'altro.
+          */}
+          <SectionLabel style={styles.section}>
+            {t("backup.csv_section")}
+          </SectionLabel>
+          <Text style={[styles.explain, { color: colors.textMuted }]}>
+            {t("backup.csv_explain")}
+          </Text>
+          <View style={styles.csvRow}>
+            {CSV_DATASETS.map((dataset: CsvDataset) => (
+              <DfButton
+                key={dataset}
+                label={t(`backup.csv_${dataset}`)}
+                variant="outlined"
+                fullWidth={false}
+                loading={busy}
+                onPress={() => onExportCsv(dataset)}
+                style={styles.csvButton}
+              />
+            ))}
+          </View>
+
           <SectionLabel style={styles.section}>
             {t("backup.restore_section")}
           </SectionLabel>
@@ -199,6 +237,12 @@ const styles = StyleSheet.create({
   explain: { fontSize: 14, lineHeight: 20 },
   meta: { fontSize: 12 },
   section: { marginTop: theme.spacing.md },
+  csvRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing.sm,
+  },
+  csvButton: { flexGrow: 1 },
   summary: { gap: 4 },
   warning: { fontSize: 14, fontWeight: "600", marginBottom: theme.spacing.xs },
   summaryRow: { flexDirection: "row", justifyContent: "space-between" },

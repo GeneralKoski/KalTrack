@@ -21,7 +21,11 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.koski.kaltrack",
-      "versionCode": 1
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.health.READ_STEPS",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
     },
     "plugins": [
       [
@@ -59,7 +63,7 @@
           "android": {
             "compileSdkVersion": 36,
             "targetSdkVersion": 36,
-            "minSdkVersion": 24
+            "minSdkVersion": 26
           }
         }
       ],
@@ -86,7 +90,14 @@
         {
           "microphonePermission": "KalTrack usa il microfono per registrare quello che dici e trascriverlo nel diario."
         }
-      ]
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#18181b"
+        }
+      ],
+      "react-native-health-connect"
     ],
     "experiments": {
       "reactCompiler": true

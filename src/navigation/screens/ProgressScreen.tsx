@@ -2,6 +2,7 @@ import { Card, ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { Sparkline } from "@/src/containers/progress/Sparkline";
+import { WeeklyCoachCard } from "@/src/containers/progress/WeeklyCoachCard";
 import { getDayDiary } from "@/src/db/queries/diary";
 import { listSteps, listWeights } from "@/src/db/queries/tracking";
 import { addDays, todayIso } from "@/src/domain/date";
@@ -89,7 +90,11 @@ export function ProgressScreen() {
           <ActivityIndicator style={styles.loader} color={colors.accent} />
         ) : (
           <ScrollView contentContainerStyle={styles.content}>
-            <SectionLabel>{t("progress.weight")}</SectionLabel>
+            <WeeklyCoachCard />
+
+            <SectionLabel style={styles.section}>
+              {t("progress.weight")}
+            </SectionLabel>
             <Card style={styles.card}>
               {stat(data?.latestWeight ?? null, "kg")}
               <Sparkline

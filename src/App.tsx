@@ -13,6 +13,8 @@ import { toastConfig } from "@/src/components/toastConfig";
 import { initDatabase } from "@/src/db";
 import { AssistantButton } from "@/src/containers/assistant/AssistantButton";
 import { Navigation } from "@/src/navigation";
+import { syncStepsOnStartup } from "@/src/services/healthConnect";
+import { configureNotificationHandler } from "@/src/services/reminders";
 import { useThemeStore } from "@/src/stores/themeStore";
 import { logger } from "@/src/utils/logger";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
@@ -43,6 +45,12 @@ export function App() {
     "Poppins-BoldItalic": require("@/assets/fonts/Poppins-BoldItalic.ttf"),
   });
 
+  // I promemoria devono comparire anche con l'app in primo piano: senza
+  // questo handler Android li consegna in silenzio e sembrano non partiti.
+  useEffect(() => {
+    configureNotificationHandler();
+  }, []);
+
   // Gate d'avvio: font caricati + schema del database migrato.
   useEffect(() => {
     let active = true;
@@ -56,6 +64,9 @@ export function App() {
       } finally {
         if (active) setDbReady(true);
       }
+      // Dopo il gate, non dentro: i passi di Health Connect sono un extra e
+      // non devono trattenere la splash se il provider è lento a rispondere.
+      void syncStepsOnStartup();
     })();
     return () => {
       active = false;

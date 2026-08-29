@@ -59,7 +59,11 @@
     "my_recipes": "I miei pasti",
     "settings": "Impostazioni",
     "targets": "Obiettivi",
-    "backup": "Backup"
+    "backup": "Backup",
+    "achievements": "Traguardi",
+    "meal_plan": "Piano pasti",
+    "measurements": "Misure",
+    "reminders": "Promemoria"
   },
   "recipes": {
     "title": "I miei pasti",
@@ -99,7 +103,8 @@
     "theme_system": "Come il sistema",
     "theme_light": "Chiaro",
     "theme_dark": "Scuro",
-    "assistant": "Assistente"
+    "assistant": "Assistente",
+    "health": "Salute"
   },
   "diary": {
     "day_today": "Oggi",
@@ -175,6 +180,30 @@
     "kcal_empty": "Nessun pasto registrato",
     "no_data": "Nessun dato"
   },
+  "weekly_coach": {
+    "title": "Coach settimanale",
+    "period": "Ultimi 7 giorni",
+    "logged_days": "Giorni registrati",
+    "days_value": "%{done} su %{total}",
+    "kcal": "Calorie medie",
+    "protein": "Proteine medie",
+    "steps": "Passi medi",
+    "workouts": "Allenamenti",
+    "weight": "Peso",
+    "weight_change": "%{value} kg nella settimana",
+    "deviation": "%{value} sull'obiettivo",
+    "no_target": "Nessun obiettivo impostato",
+    "not_recorded": "Non registrato",
+    "ask": "Chiedi un commento",
+    "regenerate": "Rigenera il commento",
+    "suggestion": "Da provare",
+    "disclaimer": "Commento generato dall'AI sui numeri qui sopra. Non è un parere medico.",
+    "status": {
+      "not_enough_data": "Servono almeno 3 giorni registrati: su meno dati un commento sarebbe una frase generica.",
+      "no_key": "Il commento AI non è configurato. Le statistiche restano quelle qui sopra.",
+      "unavailable": "Commento non disponibile adesso. Le statistiche restano valide."
+    }
+  },
   "backup": {
     "title": "Backup",
     "explain": "I dati vivono solo su questo telefono. Esporta ogni tanto un backup: è l'unico modo per non perdere tutto se il telefono si rompe o lo cambi.",
@@ -190,7 +219,14 @@
     "confirm_restore": "Sostituisci i dati",
     "file_date": "Backup del %{date}",
     "restored": "Backup ripristinato",
-    "restore_failed": "Ripristino non riuscito"
+    "restore_failed": "Ripristino non riuscito",
+    "csv_section": "Esporta in CSV",
+    "csv_explain": "Per aprire i tuoi dati in un foglio di calcolo. Diverso dal backup, che serve a ripristinare.",
+    "csv_diary": "Diario",
+    "csv_weight": "Peso",
+    "csv_steps": "Passi",
+    "csv_workouts": "Allenamenti",
+    "csv_failed": "Export CSV non riuscito"
   },
   "gym": {
     "routine_name": "Nome scheda",
@@ -499,5 +535,72 @@
     "taken": "%{done} di %{total} presi",
     "session_hint": "Le spunte valgono solo per questa spesa: non vengono salvate.",
     "reset": "Azzera le spunte"
+  },
+  "reminders": {
+    "title": "Promemoria",
+    "intro": "Una notifica all'ora che scegli, nei giorni che scegli.",
+    "channel_name": "Promemoria",
+    "time": "Ora",
+    "days": "Giorni",
+    "every_day": "Tutti i giorni",
+    "off": "Spento",
+    "weekdays": {
+      "0": "Dom",
+      "1": "Lun",
+      "2": "Mar",
+      "3": "Mer",
+      "4": "Gio",
+      "5": "Ven",
+      "6": "Sab"
+    },
+    "kinds": {
+      "meals": {
+        "label": "Pasti",
+        "title": "È ora di mangiare",
+        "body": "Segna il pasto nel diario."
+      },
+      "water": {
+        "label": "Acqua",
+        "title": "Bevi un bicchiere",
+        "body": "Aggiungi l'acqua di oggi."
+      },
+      "weight": {
+        "label": "Peso",
+        "title": "Pesati",
+        "body": "Registra il peso di oggi."
+      },
+      "workout": {
+        "label": "Allenamento",
+        "title": "Allenamento",
+        "body": "È il momento di allenarti."
+      }
+    },
+    "enabled_at": "Attivo alle %{time}",
+    "scheduled": "Promemoria attivo",
+    "turned_off": "Promemoria spento",
+    "permission_denied": "Senza il permesso alle notifiche il promemoria resta spento: concedilo dalle impostazioni del telefono.",
+    "no_days": "Scegli almeno un giorno: il promemoria è rimasto spento.",
+    "last_day": "Serve almeno un giorno attivo.",
+    "failed": "Non sono riuscito a programmare la notifica: il promemoria è rimasto spento."
+  },
+  "health_connect": {
+    "section": "Passi automatici",
+    "import_steps": "Importa i passi da Health Connect",
+    "manual_wins": "I passi che scrivi tu restano come li hai scritti: l'importazione riempie solo i giorni scoperti.",
+    "last_sync": "Ultima sincronizzazione",
+    "never_synced": "Mai sincronizzato",
+    "sync_now": "Sincronizza ora",
+    "grant": "Consenti l'accesso",
+    "permission_needed": "Serve il permesso di leggere i passi in Health Connect.",
+    "permission_denied": "Permesso negato: senza, i passi non possono essere importati.",
+    "open_provider": "Apri Health Connect",
+    "unavailable_platform": "Health Connect esiste solo su Android. Qui i passi si inseriscono a mano.",
+    "unavailable_module": "Health Connect non è incluso in questa versione dell'app: serve una nuova build.",
+    "unavailable_provider_missing": "Health Connect non è installato su questo dispositivo.",
+    "unavailable_provider_outdated": "Health Connect è troppo vecchio: aggiornalo dal Play Store.",
+    "sync_imported": "%{count} giorni importati",
+    "sync_kept_manual": "%{count} giorni lasciati come li hai scritti",
+    "sync_nothing": "Nessun dato nuovo da importare",
+    "sync_failed": "Importazione dei passi non riuscita"
   }
 }

@@ -217,7 +217,9 @@ export interface WeightLogRow {
   deleted_at: string | null;
 }
 
-export type StepSource = "manual" | "voice";
+/** `health` marca i passi importati da Health Connect: la sincronizzazione
+ * può sovrascrivere solo quelli, mai un valore dichiarato dall'utente. */
+export type StepSource = "manual" | "voice" | "health";
 
 export interface StepLogRow {
   id: string;

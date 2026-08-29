@@ -27,6 +27,7 @@ import { FastingScreen } from "@/src/navigation/screens/FastingScreen";
 import { MealPlanScreen } from "@/src/navigation/screens/MealPlanScreen";
 import { MeasurementsScreen } from "@/src/navigation/screens/MeasurementsScreen";
 import { ProgressPhotosScreen } from "@/src/navigation/screens/ProgressPhotosScreen";
+import { RemindersScreen } from "@/src/navigation/screens/RemindersScreen";
 import { RoutineFormScreen } from "@/src/navigation/screens/RoutineFormScreen";
 import { RoutinesScreen } from "@/src/navigation/screens/RoutinesScreen";
 import { SessionScreen } from "@/src/navigation/screens/SessionScreen";
@@ -216,6 +217,10 @@ const RootStack = createNativeStackNavigator({
     ShoppingList: {
       screen: ShoppingListScreen,
       linking: { path: "spesa" },
+    },
+    Reminders: {
+      screen: RemindersScreen,
+      linking: { path: "promemoria" },
     },
   },
 });

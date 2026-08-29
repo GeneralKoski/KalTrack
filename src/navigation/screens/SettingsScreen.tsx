@@ -2,6 +2,7 @@ import { useAppTheme } from "@/src/components/ThemeContext";
 import { ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { Text } from "@/src/components/ui";
 import { AssistantSettings } from "@/src/containers/settings/AssistantSettings";
+import { HealthConnectSettings } from "@/src/containers/settings/HealthConnectSettings";
 import { ThemePicker } from "@/src/containers/settings/ThemePicker";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
@@ -40,6 +41,11 @@ export function SettingsScreen() {
             {t("settings.assistant")}
           </SectionLabel>
           <AssistantSettings />
+
+          <SectionLabel style={styles.section}>
+            {t("settings.health")}
+          </SectionLabel>
+          <HealthConnectSettings />
         </ScrollView>
       </SafeAreaView>
     </View>

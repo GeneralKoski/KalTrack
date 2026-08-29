@@ -26,6 +26,7 @@ export interface NavParams {
   ProgressPhotos: undefined;
   MealPlan: undefined;
   ShoppingList: undefined;
+  Reminders: undefined;
 }
 
 type NavigateFn = (name: string, params?: object) => void;
