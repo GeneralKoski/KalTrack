@@ -432,6 +432,7 @@ export async function runAssistant(args: {
         preview,
         executed: false,
         result: null,
+        execute: () => tool.execute(toolArgs),
       };
 
       if (tool.riskLevel === "read") {

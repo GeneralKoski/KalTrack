@@ -98,7 +98,10 @@ export function BackupScreen() {
           <TouchableOpacity onPress={goBack} activeOpacity={0.6} hitSlop={10}>
             <ChevronLeft size={26} color={colors.textSecondary} />
           </TouchableOpacity>
-          <Text style={[styles.title, { color: colors.text }]}>
+          <Text
+            style={[styles.title, { color: colors.text }]}
+            numberOfLines={1}
+          >
             {t("backup.title")}
           </Text>
         </View>
@@ -163,7 +166,10 @@ export function BackupScreen() {
           ) : null}
           {summary.map((entry) => (
             <View key={entry.table} style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, { color: colors.textMuted }]}>
+              <Text
+                style={[styles.summaryLabel, { color: colors.textMuted }]}
+                numberOfLines={1}
+              >
                 {entry.table}
               </Text>
               <Text style={[styles.summaryValue, { color: colors.text }]}>
@@ -196,6 +202,6 @@ const styles = StyleSheet.create({
   summary: { gap: 4 },
   warning: { fontSize: 14, fontWeight: "600", marginBottom: theme.spacing.xs },
   summaryRow: { flexDirection: "row", justifyContent: "space-between" },
-  summaryLabel: { fontSize: 13 },
+  summaryLabel: { flexShrink: 1, fontSize: 13 },
   summaryValue: { fontSize: 13, fontWeight: "600" },
 });

@@ -35,7 +35,12 @@ export const DayStatCard: React.FC<DayStatCardProps> = ({
     <Card onPress={onPress} style={styles.card}>
       <View style={styles.header}>
         <Icon size={18} color={colors.textMuted} />
-        <Text style={[styles.label, { color: colors.textMuted }]}>{label}</Text>
+        <Text
+          style={[styles.label, { color: colors.textMuted }]}
+          numberOfLines={1}
+        >
+          {label}
+        </Text>
       </View>
 
       {value === null ? (
@@ -43,12 +48,20 @@ export const DayStatCard: React.FC<DayStatCardProps> = ({
           {emptyLabel}
         </Text>
       ) : (
-        <Text style={[styles.value, { color: colors.text }]}>
-          {value.toLocaleString("it-IT")}
-          <Text style={[styles.unit, { color: colors.textMuted }]}>
-            {` ${unit}`}
+        <View style={styles.valueRow}>
+          <Text
+            style={[styles.value, { color: colors.text }]}
+            numberOfLines={1}
+          >
+            {value.toLocaleString("it-IT")}
           </Text>
-        </Text>
+          <Text
+            style={[styles.unit, { color: colors.textMuted }]}
+            numberOfLines={1}
+          >
+            {unit}
+          </Text>
+        </View>
       )}
 
       {target && target > 0 ? (
@@ -76,16 +89,23 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   label: {
+    flexShrink: 1,
     fontSize: 11,
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.5,
+  },
+  valueRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 4,
   },
   value: {
     fontSize: 22,
     fontWeight: "700",
   },
   unit: {
+    flexShrink: 1,
     fontSize: 13,
     fontWeight: "500",
   },

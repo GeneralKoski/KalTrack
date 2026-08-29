@@ -19,6 +19,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -203,7 +204,18 @@ export const FilterChipGroup: React.FC<{
   return (
     <View style={styles.group}>
       <SectionLabel>{label}</SectionLabel>
-      <View style={styles.chips}>
+      {/*
+        Scorrevole e non a capo: il numero di opzioni dipende dai dati, e con
+        flexWrap l'altezza del gruppo cambierebbe spostando il contenuto sotto.
+        keyboardShouldPersistTaps perché il gruppo vive in un foglio con
+        ricerca: senza, col tastierino aperto il primo tocco andrebbe perso.
+      */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.chips}
+      >
         {options.map((opt) => (
           <Chip
             key={opt.code}
@@ -214,7 +226,7 @@ export const FilterChipGroup: React.FC<{
             onPress={() => onToggle(opt.code)}
           />
         ))}
-      </View>
+      </ScrollView>
     </View>
   );
 };
@@ -359,7 +371,6 @@ const styles = StyleSheet.create({
   group: { marginBottom: theme.spacing.sm },
   chips: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: theme.spacing.sm,
   },
   actions: {

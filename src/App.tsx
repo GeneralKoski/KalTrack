@@ -11,6 +11,7 @@ import "@/global.css";
 import { ThemeProvider, useAppTheme } from "@/src/components/ThemeContext";
 import { toastConfig } from "@/src/components/toastConfig";
 import { initDatabase } from "@/src/db";
+import { AssistantButton } from "@/src/containers/assistant/AssistantButton";
 import { Navigation } from "@/src/navigation";
 import { useThemeStore } from "@/src/stores/themeStore";
 import { logger } from "@/src/utils/logger";
@@ -75,6 +76,9 @@ export function App() {
             <ThemedStatusBar />
             <BottomSheetModalProvider>
               <Navigation />
+              {/* Sopra la navigazione: l'assistente è uno strato dell'app,
+                  raggiungibile ovunque senza che ogni schermata lo monti. */}
+              <AssistantButton />
               <Toast config={toastConfig} />
             </BottomSheetModalProvider>
           </ThemeProvider>

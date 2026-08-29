@@ -55,11 +55,17 @@ export const DayHeader: React.FC<DayHeaderProps> = ({
       </TouchableOpacity>
 
       <View style={styles.center}>
-        <Text style={[styles.label, { color: colors.text }]}>
+        <Text
+          style={[styles.label, { color: colors.text }]}
+          numberOfLines={1}
+        >
           {kind === "other" ? formatLong(date) : t(`diary.day_${kind}`)}
         </Text>
         {kind !== "other" ? (
-          <Text style={[styles.sub, { color: colors.textMuted }]}>
+          <Text
+            style={[styles.sub, { color: colors.textMuted }]}
+            numberOfLines={1}
+          >
             {formatLong(date)}
           </Text>
         ) : null}
@@ -90,6 +96,9 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
   },
   center: {
+    // Si restringe: con una data estesa ("13 settembre 2025") su schermo
+    // stretto il blocco spingerebbe fuori le frecce.
+    flexShrink: 1,
     alignItems: "center",
   },
   label: {

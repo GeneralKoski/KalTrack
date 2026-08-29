@@ -264,7 +264,10 @@ export function RecipeFormScreen() {
           <TouchableOpacity onPress={goBack} activeOpacity={0.6} hitSlop={10}>
             <ChevronLeft size={26} color={colors.textSecondary} />
           </TouchableOpacity>
-          <Text style={[styles.title, { color: colors.text }]}>
+          <Text
+            style={[styles.title, { color: colors.text }]}
+            numberOfLines={1}
+          >
             {id ? t("recipes.edit_title") : t("recipes.new_title")}
           </Text>
         </View>

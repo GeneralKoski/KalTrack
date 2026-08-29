@@ -60,6 +60,7 @@ export const AddEntrySheet = forwardRef<BottomSheetModal, AddEntrySheetProps>(
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.mealTypes}
         >
           {mealTypes.map((type) => {

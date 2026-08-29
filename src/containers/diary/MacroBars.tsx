@@ -55,8 +55,16 @@ const Bar: React.FC<{
   return (
     <View style={styles.bar}>
       <View style={styles.labelRow}>
-        <Text style={[styles.label, { color: colors.textMuted }]}>{label}</Text>
-        <Text style={[styles.value, { color: colors.text }]}>
+        <Text
+          style={[styles.label, { color: colors.textMuted }]}
+          numberOfLines={1}
+        >
+          {label}
+        </Text>
+        <Text
+          style={[styles.value, { color: colors.text }]}
+          numberOfLines={1}
+        >
           {Math.round(value)}
           {target ? (
             <Text style={[styles.target, { color: colors.textFaint }]}>
@@ -93,6 +101,7 @@ const styles = StyleSheet.create({
     alignItems: "baseline",
   },
   label: {
+    flexShrink: 1,
     fontSize: 12,
     fontWeight: "600",
     textTransform: "uppercase",

@@ -152,10 +152,12 @@ export function FoodFormScreen() {
           <TouchableOpacity onPress={goBack} activeOpacity={0.6} hitSlop={10}>
             <ChevronLeft size={26} color={colors.textSecondary} />
           </TouchableOpacity>
-          <Text style={[styles.title, { color: colors.text }]}>
+          <Text
+            style={[styles.title, { color: colors.text }]}
+            numberOfLines={1}
+          >
             {id ? t("foods.edit_title") : t("foods.new_title")}
           </Text>
-          <View style={styles.headerSpacer} />
         </View>
 
         {!initial ? (
@@ -245,9 +247,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: "700",
-  },
-  headerSpacer: {
-    width: 26,
   },
   content: {
     flexGrow: 1,

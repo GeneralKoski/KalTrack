@@ -1,6 +1,7 @@
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { Text } from "@/src/components/ui";
+import { AssistantSettings } from "@/src/containers/settings/AssistantSettings";
 import { ThemePicker } from "@/src/containers/settings/ThemePicker";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
@@ -23,7 +24,10 @@ export function SettingsScreen() {
           <TouchableOpacity onPress={goBack} activeOpacity={0.6} hitSlop={10}>
             <ChevronLeft size={26} color={colors.textSecondary} />
           </TouchableOpacity>
-          <Text style={[styles.title, { color: colors.text }]}>
+          <Text
+            style={[styles.title, { color: colors.text }]}
+            numberOfLines={1}
+          >
             {t("settings.title")}
           </Text>
         </View>
@@ -31,6 +35,11 @@ export function SettingsScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <SectionLabel>{t("settings.theme")}</SectionLabel>
           <ThemePicker />
+
+          <SectionLabel style={styles.section}>
+            {t("settings.assistant")}
+          </SectionLabel>
+          <AssistantSettings />
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -55,5 +64,8 @@ const styles = StyleSheet.create({
   content: {
     padding: theme.spacing.md,
     gap: theme.spacing.sm,
+  },
+  section: {
+    marginTop: theme.spacing.md,
   },
 });

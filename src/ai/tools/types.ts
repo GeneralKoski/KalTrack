@@ -93,4 +93,12 @@ export interface ToolIntent {
   preview: ToolPreview;
   executed: boolean;
   result: ToolResult | null;
+  /**
+   * Esegue l'intento restando nell'interazione che lo ha prodotto.
+   *
+   * È legato al tool di QUELLA interazione, non ricreato al volo: ricrearlo
+   * perderebbe la memoria delle risoluzioni, e una stima AI verrebbe tirata
+   * di nuovo dopo che l'utente ha già confermato numeri diversi.
+   */
+  execute: () => Promise<ToolResult>;
 }

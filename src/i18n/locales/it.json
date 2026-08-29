@@ -98,7 +98,8 @@
     "theme": "Aspetto",
     "theme_system": "Come il sistema",
     "theme_light": "Chiaro",
-    "theme_dark": "Scuro"
+    "theme_dark": "Scuro",
+    "assistant": "Assistente"
   },
   "diary": {
     "day_today": "Oggi",
@@ -192,6 +193,36 @@
     "restore_failed": "Ripristino non riuscito"
   },
   "gym": {
+    "routine_name": "Nome scheda",
+    "routine_name_placeholder": "Push Pull Legs",
+    "routine_name_required": "Dai un nome alla scheda",
+    "new_routine_title": "Nuova scheda",
+    "edit_routine_title": "Modifica scheda",
+    "routine_saved": "Scheda salvata",
+    "routine_deleted": "Scheda eliminata",
+    "delete_routine_title": "Eliminare la scheda?",
+    "delete_routine_message": "Gli allenamenti già registrati restano nello storico.",
+    "no_routines_hint": "Nessuna scheda. Creane una per programmare i tuoi allenamenti.",
+    "days": "Giorni",
+    "add_day": "Aggiungi giorno",
+    "day_name": "Nome del giorno",
+    "day_default_name": "Giorno %{index}",
+    "rename_day": "Rinomina il giorno",
+    "delete_day_title": "Eliminare il giorno?",
+    "delete_day_message": "Il giorno e i blocchi che contiene vengono tolti dalla scheda.",
+    "no_days": "Nessun giorno: aggiungine uno per iniziare.",
+    "no_blocks": "Nessun esercizio in questo giorno",
+    "add_block": "Aggiungi blocco",
+    "add_exercise": "Aggiungi esercizio",
+    "pick_exercise": "Scegli un esercizio",
+    "all_muscles": "Tutti",
+    "block_single": "Singolo",
+    "superset_hint": "Un esercizio dopo l'altro senza fermarsi, poi il recupero.",
+    "circuit_hint": "Tutti gli esercizi in sequenza, un giro dopo l'altro.",
+    "dropset_hint": "Stesso esercizio a scalare: cali il carico e continui subito.",
+    "then_immediately": "Subito dopo",
+    "reps_placeholder": "8-10",
+    "rest_seconds": "Recupero (s)",
     "exercises": "Esercizi",
     "search_exercise": "Cerca un esercizio",
     "no_exercises": "Nessun esercizio trovato",
@@ -221,6 +252,15 @@
     "block_superset": "Superset",
     "block_circuit": "Circuito",
     "block_dropset": "Dropset",
+    "round": "Giro %{n}",
+    "suggested_weight": "Proposto %{weight} kg",
+    "skip_rest": "Salta",
+    "add_rest": "+%{seconds}s",
+    "finish_title": "Terminare l'allenamento?",
+    "finish_message": "Le serie che hai spuntato restano salvate.",
+    "day_not_found": "Giorno non trovato",
+    "only_my_equipment": "Solo con la mia attrezzatura",
+    "replaces": "Al posto di %{name}",
     "muscle": {
       "petto": "petto",
       "schiena": "schiena",
@@ -247,6 +287,36 @@
       "elastici": "elastici",
       "trx": "TRX",
       "cardio": "cardio"
+    }
+  },
+  "assistant": {
+    "open": "Parla con l'assistente",
+    "hint": "Tocca il microfono e dimmi cosa hai mangiato",
+    "listening": "Ti ascolto...",
+    "transcribing": "Sto trascrivendo",
+    "thinking": "Ci sto pensando",
+    "dont_ask_again": "Non chiedere più per questa azione",
+    "execute_failed": "Non sono riuscito a eseguire l'azione",
+    "no_italian_voice": "Voce italiana non disponibile su questo telefono: risposta solo scritta",
+    "voice_reply": "Risposte parlate",
+    "auto_confirmed": "Azioni senza conferma",
+    "auto_confirmed_empty": "Nessuna: chiedo sempre conferma",
+    "revoke": "Revoca",
+    "error": {
+      "no-key": "Manca la chiave API: aggiungila in .env per usare l'assistente",
+      "offline": "Serve una connessione per l'assistente",
+      "no-speech": "Non ho sentito niente, riprova",
+      "permission": "Serve il permesso del microfono",
+      "failed": "Qualcosa è andato storto, riprova"
+    },
+    "tool": {
+      "log_steps": "Registrare i passi",
+      "log_weight": "Registrare il peso",
+      "add_meal_entries": "Aggiungere al diario",
+      "set_target": "Cambiare gli obiettivi",
+      "delete_entry": "Eliminare una voce",
+      "navigate": "Spostarsi tra le schermate",
+      "query_summary": "Rispondere a una domanda"
     }
   }
 }

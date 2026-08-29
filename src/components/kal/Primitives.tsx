@@ -19,7 +19,10 @@ export const SectionLabel: React.FC<{
   const { colors } = useAppTheme();
   return (
     <View style={[styles.sectionRow, style]}>
-      <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
+      <Text
+        style={[styles.sectionLabel, { color: colors.textMuted }]}
+        numberOfLines={1}
+      >
         {children}
       </Text>
       {right}
@@ -182,6 +185,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
   sectionLabel: {
+    flexShrink: 1,
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 1,

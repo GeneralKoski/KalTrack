@@ -25,7 +25,10 @@ export function ProfileScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <Card onPress={() => navigate("Targets")} style={styles.row}>
             <Target size={22} color={colors.text} />
-            <Text style={[styles.rowLabel, { color: colors.text }]}>
+            <Text
+              style={[styles.rowLabel, { color: colors.text }]}
+              numberOfLines={1}
+            >
               {t("profile.targets")}
             </Text>
             <ChevronRight size={20} color={colors.textFaint} />
@@ -33,7 +36,10 @@ export function ProfileScreen() {
 
           <Card onPress={() => navigate("Foods")} style={styles.row}>
             <Salad size={22} color={colors.text} />
-            <Text style={[styles.rowLabel, { color: colors.text }]}>
+            <Text
+              style={[styles.rowLabel, { color: colors.text }]}
+              numberOfLines={1}
+            >
               {t("profile.my_foods")}
             </Text>
             <ChevronRight size={20} color={colors.textFaint} />
@@ -41,7 +47,10 @@ export function ProfileScreen() {
 
           <Card onPress={() => navigate("Recipes")} style={styles.row}>
             <CookingPot size={22} color={colors.text} />
-            <Text style={[styles.rowLabel, { color: colors.text }]}>
+            <Text
+              style={[styles.rowLabel, { color: colors.text }]}
+              numberOfLines={1}
+            >
               {t("profile.my_recipes")}
             </Text>
             <ChevronRight size={20} color={colors.textFaint} />
@@ -49,7 +58,10 @@ export function ProfileScreen() {
 
           <Card onPress={() => navigate("Backup")} style={styles.row}>
             <DatabaseBackup size={22} color={colors.text} />
-            <Text style={[styles.rowLabel, { color: colors.text }]}>
+            <Text
+              style={[styles.rowLabel, { color: colors.text }]}
+              numberOfLines={1}
+            >
               {t("profile.backup")}
             </Text>
             <ChevronRight size={20} color={colors.textFaint} />
@@ -57,7 +69,10 @@ export function ProfileScreen() {
 
           <Card onPress={() => navigate("Settings")} style={styles.row}>
             <Settings size={22} color={colors.text} />
-            <Text style={[styles.rowLabel, { color: colors.text }]}>
+            <Text
+              style={[styles.rowLabel, { color: colors.text }]}
+              numberOfLines={1}
+            >
               {t("profile.settings")}
             </Text>
             <ChevronRight size={20} color={colors.textFaint} />

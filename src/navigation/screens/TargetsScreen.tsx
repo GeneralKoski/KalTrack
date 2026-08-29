@@ -22,7 +22,13 @@ import { theme } from "@/src/styles";
 import { showToast } from "@/src/utils/toast";
 import { ChevronLeft, Sparkles } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const SEXES: Sex[] = ["male", "female"];
@@ -165,7 +171,14 @@ export function TargetsScreen() {
     onSelect: (v: T) => void,
     labelKey: string,
   ) => (
-    <View style={styles.options}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      // Non si eredita dalla ScrollView esterna: senza, col tastierino aperto
+      // il primo tocco su un chip viene consumato per chiudere la tastiera.
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={styles.options}
+    >
       {values.map((value) => {
         const active = value === selected;
         return (
@@ -189,7 +202,7 @@ export function TargetsScreen() {
           </TouchableOpacity>
         );
       })}
-    </View>
+    </ScrollView>
   );
 
   return (
@@ -200,7 +213,10 @@ export function TargetsScreen() {
           <TouchableOpacity onPress={goBack} activeOpacity={0.6} hitSlop={10}>
             <ChevronLeft size={26} color={colors.textSecondary} />
           </TouchableOpacity>
-          <Text style={[styles.title, { color: colors.text }]}>
+          <Text
+            style={[styles.title, { color: colors.text }]}
+            numberOfLines={1}
+          >
             {t("targets.title")}
           </Text>
         </View>
@@ -333,7 +349,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
     fontSize: 15,
   },
-  options: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.xs },
+  options: { flexDirection: "row", gap: theme.spacing.xs },
   option: {
     paddingHorizontal: theme.spacing.md,
     paddingVertical: 7,

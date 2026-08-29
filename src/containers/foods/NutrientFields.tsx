@@ -87,12 +87,7 @@ export const NutrientFields: React.FC = () => {
         </View>
       </View>
 
-      <View style={styles.row}>
-        <View style={styles.col}>
-          <DfNumberInput name="salt" label={t("foods.salt")} decimals={2} />
-        </View>
-        <View style={styles.col} />
-      </View>
+      <DfNumberInput name="salt" label={t("foods.salt")} decimals={2} />
     </View>
   );
 };

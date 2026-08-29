@@ -31,7 +31,10 @@ export const MealSection: React.FC<MealSectionProps> = ({
   return (
     <Card style={styles.card}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>
+        <Text
+          style={[styles.title, { color: colors.text }]}
+          numberOfLines={1}
+        >
           {meal.type.name}
         </Text>
         <Text style={[styles.kcal, { color: colors.textMuted }]}>
@@ -78,6 +81,7 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.xs,
   },
   title: {
+    flexShrink: 1,
     fontSize: 16,
     fontWeight: "700",
     textTransform: "capitalize",
