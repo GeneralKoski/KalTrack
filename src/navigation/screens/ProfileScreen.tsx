@@ -7,6 +7,7 @@ import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import {
   Bell,
+  Camera,
   CalendarRange,
   ChevronRight,
   CookingPot,
@@ -16,6 +17,7 @@ import {
   Salad,
   Settings,
   Target,
+  Timer,
   Trophy,
 } from "lucide-react-native";
 import React from "react";
@@ -102,10 +104,26 @@ export function ProfileScreen() {
             <ChevronRight size={20} color={colors.textFaint} />
           </Card>
 
+          <Card onPress={() => navigate("Fasting")} style={styles.row}>
+            <Timer size={22} color={colors.text} />
+            <Text style={[styles.rowLabel, { color: colors.text }]}>
+              {t("profile.fasting")}
+            </Text>
+            <ChevronRight size={20} color={colors.textFaint} />
+          </Card>
+
           <Card onPress={() => navigate("Measurements")} style={styles.row}>
             <Ruler size={22} color={colors.text} />
             <Text style={[styles.rowLabel, { color: colors.text }]}>
               {t("profile.measurements")}
+            </Text>
+            <ChevronRight size={20} color={colors.textFaint} />
+          </Card>
+
+          <Card onPress={() => navigate("ProgressPhotos")} style={styles.row}>
+            <Camera size={22} color={colors.text} />
+            <Text style={[styles.rowLabel, { color: colors.text }]}>
+              {t("profile.progress_photos")}
             </Text>
             <ChevronRight size={20} color={colors.textFaint} />
           </Card>

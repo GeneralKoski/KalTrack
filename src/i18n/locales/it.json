@@ -63,7 +63,9 @@
     "achievements": "Traguardi",
     "meal_plan": "Piano pasti",
     "measurements": "Misure",
-    "reminders": "Promemoria"
+    "reminders": "Promemoria",
+    "fasting": "Digiuno",
+    "progress_photos": "Foto progressi"
   },
   "recipes": {
     "title": "I miei pasti",

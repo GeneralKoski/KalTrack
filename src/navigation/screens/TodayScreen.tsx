@@ -11,6 +11,7 @@ import { AddEntrySheet, type DiaryPick } from "@/src/containers/diary/AddEntrySh
 import { CalorieRing } from "@/src/containers/diary/CalorieRing";
 import { DayStatCard } from "@/src/containers/tracking/DayStatCard";
 import { QuickLogSheet } from "@/src/containers/tracking/QuickLogSheet";
+import { WaterCard } from "@/src/containers/wellbeing/WaterCard";
 import { DayHeader } from "@/src/containers/diary/DayHeader";
 import { FreeEntrySheet } from "@/src/containers/diary/FreeEntrySheet";
 import { MacroBars } from "@/src/containers/diary/MacroBars";
@@ -269,6 +270,10 @@ export function TodayScreen() {
                 onPress={() => setWeightOpen(true)}
               />
             </View>
+
+            {/* L'acqua e' un dato del giorno come i passi: sta qui, dove si
+                guarda ogni volta, non dietro una voce di menu. */}
+            <WaterCard date={date} />
 
             {data && data.diary.meals.length === 0 ? (
               <EmptyState

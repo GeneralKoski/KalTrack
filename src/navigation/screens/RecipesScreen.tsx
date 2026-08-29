@@ -20,7 +20,7 @@ import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import type { RecipeRow } from "@/src/types/nutrition";
-import { CookingPot, Plus } from "lucide-react-native";
+import { ChevronLeft, CookingPot, Plus } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -41,7 +41,7 @@ interface RecipeListEntry {
 
 export function RecipesScreen() {
   const { t } = useTranslation();
-  const { navigate } = useAppNav();
+  const { navigate, goBack } = useAppNav();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const [term, setTerm] = useState("");
@@ -81,9 +81,23 @@ export function RecipesScreen() {
     <View style={styles.root}>
       <ScreenBackground />
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
-        <Text style={[styles.title, { color: colors.text }]}>
-          {t("recipes.title")}
-        </Text>
+        {/* Il tasto indietro c'e' in tutte le altre schermate di secondo
+            livello: senza, l'unica via d'uscita era il gesto di sistema. */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={goBack}
+            activeOpacity={0.6}
+            hitSlop={10}
+          >
+            <ChevronLeft size={26} color={colors.textSecondary} />
+          </TouchableOpacity>
+          <Text
+            style={[styles.title, { color: colors.text }]}
+            numberOfLines={1}
+          >
+            {t("recipes.title")}
+          </Text>
+        </View>
 
         <View style={styles.searchWrap}>
           <SearchBar
@@ -140,10 +154,16 @@ export function RecipesScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: theme.spacing.md,
+    gap: theme.spacing.sm,
+  },
   title: {
+    flex: 1,
     fontSize: 24,
     fontWeight: "700",
-    paddingHorizontal: theme.spacing.md,
     paddingTop: theme.spacing.sm,
   },
   searchWrap: {
