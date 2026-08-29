@@ -174,9 +174,21 @@ export async function updateRecipe(
         id,
       ],
     );
-    // Gli ingredienti si riscrivono per intero: sono un dettaglio interno alla
-    // ricetta, niente li referenzia dall'esterno.
-    await db.runAsync("DELETE FROM recipe_items WHERE recipe_id = ?", [id]);
+    /*
+     * Gli ingredienti si riscrivono per intero: sono un dettaglio interno alla
+     * ricetta, niente li referenzia dall'esterno.
+     *
+     * Cancellazione LOGICA e non fisica, pero'. Togliendoli davvero, la
+     * sincronizzazione non avrebbe piu' modo di dire all'altro dispositivo che
+     * quelle righe non ci sono piu': gli arriverebbero solo i nuovi
+     * ingredienti, con id nuovi, e la ricetta si ritroverebbe con i vecchi E i
+     * nuovi. Ogni modifica ne aggiungerebbe una copia.
+     */
+    await db.runAsync(
+      `UPDATE recipe_items SET deleted_at = ?, updated_at = ?
+       WHERE recipe_id = ? AND deleted_at IS NULL`,
+      [now, now, id],
+    );
     await insertItems(db, id, input.items, now);
   });
 }

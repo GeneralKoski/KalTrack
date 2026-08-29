@@ -2,6 +2,7 @@ import { createTestDb } from "@/src/db/__testing__/betterSqliteAdapter";
 import { __setDbForTesting, getDb } from "@/src/db/index";
 import { runMigrations } from "@/src/db/migrations";
 import { createFood, getFood, searchFoods } from "@/src/db/queries/foods";
+import { createRecipe, updateRecipe } from "@/src/db/queries/recipes";
 import { getSetting, setSetting } from "@/src/db/queries/settings";
 import {
   deleteSteps,
@@ -584,5 +585,52 @@ describe("cancellazioni e resurrezione", () => {
     );
     expect(row).not.toBeNull();
     expect(row?.deleted_at).not.toBeNull();
+  });
+});
+
+describe("modifica di un pasto", () => {
+  /**
+   * Il difetto che questo test blocca: modificando un pasto gli ingredienti
+   * venivano cancellati FISICAMENTE e reinseriti con id nuovi. All'altro
+   * dispositivo arrivavano solo i nuovi, senza nessuna notizia dei vecchi, e
+   * la ricetta si ritrovava con gli uni E gli altri. Ogni modifica ne
+   * aggiungeva una copia.
+   */
+  it("gli ingredienti sostituiti viaggiano come cancellati", async () => {
+    const riso = await food({ name: "Riso" });
+    const pollo = await food({ name: "Pollo" });
+
+    const recipeId = await createRecipe({
+      name: "Pranzo",
+      servings: 1,
+      notes: null,
+      imageUri: null,
+      items: [{ foodId: riso, quantityG: 100 }],
+    });
+
+    // La modifica sostituisce l'ingrediente.
+    await updateRecipe(recipeId, {
+      name: "Pranzo",
+      servings: 1,
+      notes: null,
+      imageUri: null,
+      items: [{ foodId: pollo, quantityG: 150 }],
+    });
+
+    const changes = await collectChanges(null);
+    const items = changes.filter((c) => c.table === "recipe_items");
+
+    // Devono viaggiare entrambi: il nuovo, e il vecchio marcato cancellato.
+    expect(items.length).toBeGreaterThanOrEqual(2);
+    expect(items.some((c) => c.deletedAt !== null)).toBe(true);
+    expect(items.some((c) => c.deletedAt === null)).toBe(true);
+
+    // E la ricetta locale ne ha uno solo attivo.
+    const database = await getDb();
+    const attivi = await database.getAllAsync<{ id: string }>(
+      "SELECT id FROM recipe_items WHERE recipe_id = ? AND deleted_at IS NULL",
+      [recipeId],
+    );
+    expect(attivi).toHaveLength(1);
   });
 });
