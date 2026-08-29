@@ -23,7 +23,13 @@ class SyncRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'since' => ['nullable', 'date'],
+            /*
+             * Un numero, non una data: il segnaposto e' il contatore
+             * `sequence`. Restava una data quando dipendeva da `synced_at`, e
+             * con quello due dispositivi che sincronizzavano nello stesso
+             * secondo si perdevano le righe a vicenda.
+             */
+            'since' => ['nullable', 'integer', 'min:0'],
             'changes' => ['present', 'array', 'max:'.self::MAX_CHANGES],
             'changes.*.table' => ['required', 'string', 'max:40'],
             /*

@@ -29,22 +29,18 @@ class SyncController extends Controller
     {
         $user = $request->user();
         $data = $request->validated();
-        $since = isset($data['since']) ? Carbon::parse($data['since']) : null;
+        // Il segnaposto e' un numero, non un'ora: vedi `sequence`.
+        $since = (int) ($data['since'] ?? 0);
 
-        $applied = $this->push($user->id, $data['changes']);
+        [$applied, $accepted] = $this->push($user->id, $data['changes']);
 
-        // La pull legge DOPO la push, nella stessa richiesta: quel che il
-        // telefono ha appena mandato non gli torna indietro, perche' e' gia'
-        // suo e riconoscerlo costerebbe un confronto riga per riga.
-        [$changes, $cursor] = $this->pull($user->id, $since, $data['changes']);
+        // La pull legge DOPO la push, nella stessa richiesta.
+        [$changes, $cursor] = $this->pull($user->id, $since, $accepted);
 
         return response()->json([
             'applied' => $applied,
             'changes' => $changes,
-            // Il segnaposto da rimandare la prossima volta. E' l'ora del
-            // SERVER: quella del telefono puo' essere sbagliata, e basterebbe
-            // un orologio indietro di un minuto per non ricevere piu' niente.
-            'cursor' => $cursor->toIso8601String(),
+            'cursor' => (string) $cursor,
         ]);
     }
 
@@ -55,16 +51,34 @@ class SyncController extends Controller
      * dispositivo. Con un solo utente su piu' dispositivi i conflitti veri
      * sono rari, e una regola semplice che si puo' spiegare vale piu' di una
      * fusione automatica che nessuno sa prevedere.
+     *
+     * Torna anche l'elenco di cio' che e' stato DAVVERO accettato: la pull ne
+     * ha bisogno per sapere cosa non rimandare indietro. Sopprimere l'intero
+     * lotto inviato nascondeva al telefono la copia piu' recente delle righe
+     * che aveva perso il confronto, e quelle divergevano per sempre.
+     *
+     * @return array{0: int, 1: array<int, string>}
      */
-    private function push(int $userId, array $changes): int
+    private function push(int $userId, array $changes): array
     {
         if ($changes === []) {
-            return 0;
+            return [0, []];
         }
 
         $applied = 0;
+        $accepted = [];
 
-        DB::transaction(function () use ($userId, $changes, &$applied) {
+        DB::transaction(function () use ($userId, $changes, &$applied, &$accepted) {
+            /*
+             * Il prossimo numero della sequenza, preso una volta e fatto
+             * avanzare in memoria.
+             *
+             * Dentro la transazione: due sincronizzazioni contemporanee dello
+             * stesso utente si serializzano, e nessuna delle due puo' leggere
+             * un massimo gia' vecchio.
+             */
+            $next = (int) SyncRecord::where('user_id', $userId)->max('sequence') + 1;
+
             foreach ($changes as $change) {
                 $incoming = Carbon::parse($change['updatedAt']);
 
@@ -74,9 +88,9 @@ class SyncController extends Controller
                     ->where('record_id', $change['id'])
                     ->first();
 
-                // Piu' vecchia di quel che c'e': si scarta senza rumore. E'
-                // il caso normale di un dispositivo che rimanda righe gia'
-                // note, non un errore da segnalare.
+                // Piu' vecchia di quel che c'e': si scarta senza rumore, e
+                // NON si conta fra le accettate, cosi' la pull rimandera'
+                // indietro la versione buona.
                 if ($existing !== null && $existing->updated_at >= $incoming) {
                     continue;
                 }
@@ -94,44 +108,43 @@ class SyncController extends Controller
                             ? Carbon::parse($change['deletedAt'])
                             : null,
                         'created_at' => Carbon::parse($change['createdAt']),
-                        'synced_at' => now(),
+                        // Un numero nuovo anche sugli aggiornamenti: e' cosi'
+                        // che una riga modificata torna visibile agli altri
+                        // dispositivi.
+                        'sequence' => $next++,
                     ]
                 );
                 $applied++;
+                $accepted[] = $change['table'].':'.$change['id'];
             }
         });
 
-        return $applied;
+        return [$applied, $accepted];
     }
 
     /**
      * Restituisce quel che e' cambiato dopo `since`.
      *
-     * Si filtra su `synced_at`, l'ora in cui il server ha ricevuto la riga, e
-     * non su `updated_at`: un dispositivo con l'orologio indietro
-     * scriverebbe righe con una data passata, che con un filtro su
-     * `updated_at` nessun altro vedrebbe mai piu'.
+     * Il segnaposto e' un CONTATORE, non un'ora. Con `synced_at` due
+     * dispositivi che sincronizzavano nello stesso secondo si perdevano le
+     * righe a vicenda: la colonna ha precisione al secondo e il cursore
+     * veniva serializzato senza sub-secondi, quindi il secondo dispositivo
+     * chiedeva "dopo le 12:00:00" e le righe scritte alle 12:00:00.400 non
+     * comparivano mai piu'.
      *
-     * @return array{0: array<int, array<string, mixed>>, 1: Carbon}
+     * @param  array<int, string>  $accepted  Solo cio' che la push ha davvero scritto.
+     * @return array{0: array<int, array<string, mixed>>, 1: int}
      */
-    private function pull(int $userId, ?Carbon $since, array $justPushed): array
+    private function pull(int $userId, int $since, array $accepted): array
     {
-        $query = SyncRecord::query()
+        $records = SyncRecord::query()
             ->where('user_id', $userId)
-            ->orderBy('synced_at')
-            ->limit(self::PULL_LIMIT);
+            ->where('sequence', '>', $since)
+            ->orderBy('sequence')
+            ->limit(self::PULL_LIMIT)
+            ->get();
 
-        if ($since !== null) {
-            $query->where('synced_at', '>', $since);
-        }
-
-        $records = $query->get();
-
-        // Le righe appena arrivate da questo telefono non gli tornano
-        // indietro: le ha gia'.
-        $mine = collect($justPushed)
-            ->map(fn (array $c) => $c['table'].':'.$c['id'])
-            ->flip();
+        $mine = collect($accepted)->flip();
 
         $changes = $records
             ->reject(fn (SyncRecord $r) => $mine->has($r->table_name.':'.$r->record_id))
@@ -146,12 +159,13 @@ class SyncController extends Controller
             ->values()
             ->all();
 
-        // Il segnaposto e' l'ultima riga LETTA, non l'ora corrente: se la
-        // pagina era piena, la prossima chiamata riparte da li' invece di
-        // saltare quel che non ci stava.
-        $cursor = $records->count() === self::PULL_LIMIT && $records->isNotEmpty()
-            ? $records->last()->synced_at
-            : now();
+        /*
+         * Il segnaposto e' l'ultima riga LETTA, non il massimo assoluto: se la
+         * pagina era piena, la prossima chiamata riparte esattamente da li'.
+         * Con un contatore non esistono pareggi, quindi nessuna riga puo'
+         * cadere fra una pagina e l'altra.
+         */
+        $cursor = $records->isNotEmpty() ? $records->last()->sequence : $since;
 
         return [$changes, $cursor];
     }

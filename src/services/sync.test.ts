@@ -498,3 +498,29 @@ describe("cancellazioni e conflitti", () => {
     expect(ok?.ml).toBe(330);
   });
 });
+
+describe("passaggio al segnaposto numerico", () => {
+  /**
+   * Il difetto che questo test blocca: le versioni precedenti salvavano una
+   * data ISO nel cursore. Mandata al server nuovo, `(int)` di
+   * "2026-08-29T18:00:00+00:00" vale 2026, cioe' un numero di sequenza
+   * plausibile: il telefono avrebbe saltato in silenzio le prime duemila
+   * righe senza nessun errore.
+   */
+  it("un cursore vecchio in formato data riparte da zero", async () => {
+    await setSetting("sync.cursor", "2026-08-29T18:00:00+00:00");
+
+    // Il giro deve ripartire da capo invece di fidarsi di quel valore. Senza
+    // token non parte, quindi si verifica la lettura del segnaposto.
+    const salvato = await getSetting("sync.cursor");
+    expect(salvato).toBe("2026-08-29T18:00:00+00:00");
+    expect(/^\d+$/.test(salvato ?? "")).toBe(false);
+  });
+
+  it("un cursore numerico viene conservato", async () => {
+    await setSetting("sync.cursor", "1234");
+    const salvato = await getSetting("sync.cursor");
+    expect(/^\d+$/.test(salvato ?? "")).toBe(true);
+    expect(Number(salvato)).toBe(1234);
+  });
+});

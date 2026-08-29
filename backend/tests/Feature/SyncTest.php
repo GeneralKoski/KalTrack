@@ -253,4 +253,133 @@ class SyncTest extends TestCase
             ],
         ])->assertOk()->assertJsonPath('applied', 2);
     }
+
+    /**
+     * IL DIFETTO PIU' GRAVE TROVATO. Prima: la pull sopprimeva TUTTE le righe
+     * inviate, anche quelle che il server aveva rifiutato perche' piu'
+     * vecchie. Il telefono non riceveva mai la versione buona, il cursore
+     * avanzava oltre, e quella riga divergeva per sempre - proprio la riga che
+     * aveva avuto un conflitto, cioe' il caso che la regola "chi scrive per
+     * ultimo vince" doveva risolvere.
+     */
+    public function test_chi_perde_il_confronto_riceve_indietro_la_versione_buona(): void
+    {
+        $anna = $this->user();
+        $id = (string) Str::uuid();
+
+        // Il telefono B ha gia' mandato la versione delle 10:05.
+        $this->actingAs($anna)->postJson('/api/sync', [
+            'changes' => [$this->change([
+                'id' => $id,
+                'payload' => ['name' => 'Versione di B'],
+                'updatedAt' => '2026-08-29T10:05:00+00:00',
+            ])],
+        ]);
+
+        // Il telefono A manda la sua, piu' vecchia: viene rifiutata, ma nella
+        // stessa risposta deve tornargli indietro quella di B.
+        $response = $this->actingAs($anna)->postJson('/api/sync', [
+            'changes' => [$this->change([
+                'id' => $id,
+                'payload' => ['name' => 'Versione di A'],
+                'updatedAt' => '2026-08-29T10:00:00+00:00',
+            ])],
+        ]);
+
+        $response->assertOk()->assertJsonPath('applied', 0);
+        $response->assertJsonCount(1, 'changes');
+        $response->assertJsonPath('changes.0.payload.name', 'Versione di B');
+    }
+
+    /**
+     * Il pareggio: stesso `updated_at`, contenuti diversi. Il server tiene
+     * quel che ha, e chi ha perso deve comunque ricevere indietro la copia
+     * buona invece di restare con la propria.
+     */
+    public function test_anche_a_parita_di_ora_la_copia_del_server_torna_indietro(): void
+    {
+        $anna = $this->user();
+        $id = (string) Str::uuid();
+        $ora = '2026-08-29T10:00:00+00:00';
+
+        $this->actingAs($anna)->postJson('/api/sync', [
+            'changes' => [$this->change([
+                'id' => $id,
+                'payload' => ['name' => 'Primo arrivato'],
+                'updatedAt' => $ora,
+            ])],
+        ]);
+
+        $this->actingAs($anna)->postJson('/api/sync', [
+            'changes' => [$this->change([
+                'id' => $id,
+                'payload' => ['name' => 'Secondo arrivato'],
+                'updatedAt' => $ora,
+            ])],
+        ])->assertJsonPath('changes.0.payload.name', 'Primo arrivato');
+    }
+
+    /**
+     * Il secondo blocker: due dispositivi che sincronizzano nello STESSO
+     * secondo. Con un cursore basato su `synced_at`, che ha precisione al
+     * secondo, le righe del secondo dispositivo cadevano fuori dalla finestra
+     * e nessuna pull successiva le avrebbe piu' viste.
+     */
+    public function test_due_sincronizzazioni_nello_stesso_secondo_non_perdono_righe(): void
+    {
+        $anna = $this->user();
+
+        // A sincronizza a vuoto e memorizza il cursore.
+        $cursore = $this->actingAs($anna)
+            ->postJson('/api/sync', ['changes' => []])
+            ->json('cursor');
+
+        // B scrive nello stesso identico secondo.
+        $this->actingAs($anna)->postJson('/api/sync', [
+            'changes' => [$this->change(['payload' => ['name' => 'Scritta da B']])],
+        ]);
+
+        // A riprende dal suo cursore: la riga di B deve esserci.
+        $this->actingAs($anna)
+            ->postJson('/api/sync', ['changes' => [], 'since' => $cursore])
+            ->assertOk()
+            ->assertJsonCount(1, 'changes')
+            ->assertJsonPath('changes.0.payload.name', 'Scritta da B');
+    }
+
+    /**
+     * Una riga MODIFICATA deve ripropagarsi. Con `synced_at`, che non veniva
+     * riscritto sugli aggiornamenti, restava ferma al suo primo arrivo e gli
+     * altri dispositivi non vedevano mai la modifica.
+     */
+    public function test_una_riga_modificata_torna_visibile_agli_altri(): void
+    {
+        $anna = $this->user();
+        $id = (string) Str::uuid();
+
+        $this->actingAs($anna)->postJson('/api/sync', [
+            'changes' => [$this->change([
+                'id' => $id,
+                'updatedAt' => '2026-08-29T09:00:00+00:00',
+            ])],
+        ]);
+
+        $cursore = $this->actingAs($anna)
+            ->postJson('/api/sync', ['changes' => []])
+            ->json('cursor');
+
+        // La stessa riga cambia.
+        $this->actingAs($anna)->postJson('/api/sync', [
+            'changes' => [$this->change([
+                'id' => $id,
+                'payload' => ['name' => 'Cambiata'],
+                'updatedAt' => '2026-08-29T12:00:00+00:00',
+            ])],
+        ]);
+
+        $this->actingAs($anna)
+            ->postJson('/api/sync', ['changes' => [], 'since' => $cursore])
+            ->assertJsonCount(1, 'changes')
+            ->assertJsonPath('changes.0.payload.name', 'Cambiata');
+    }
 }

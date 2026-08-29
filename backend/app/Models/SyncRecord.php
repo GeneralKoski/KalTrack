@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'updated_at',
     'deleted_at',
     'created_at',
+    'sequence',
 ])]
 class SyncRecord extends Model
 {
@@ -31,6 +32,7 @@ class SyncRecord extends Model
             'deleted_at' => 'datetime',
             'created_at' => 'datetime',
             'synced_at' => 'datetime',
+            'sequence' => 'integer',
         ];
     }
 

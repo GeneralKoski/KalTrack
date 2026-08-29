@@ -64,7 +64,10 @@ export type SyncedTable = (typeof SYNCED_TABLES)[number];
 /**
  * DUE segnaposti, perche' ci sono due orologi.
  *
- * `sync.cursor` e' l'ora del SERVER e dice da dove riprendere a scaricare.
+ * `sync.cursor` e' un CONTATORE del server e dice da dove riprendere a
+ * scaricare. Non un'ora: con un orario due dispositivi che sincronizzavano
+ * nello stesso secondo si perdevano le righe a vicenda, perche' la colonna ha
+ * precisione al secondo e il cursore arrivava senza sub-secondi.
  * `sync.pushed_at` e' l'ora di QUESTO telefono e dice cosa e' gia' stato
  * mandato.
  *
@@ -106,8 +109,23 @@ export interface SyncChange {
 interface SyncResponse {
   applied: number;
   changes: SyncChange[];
+  /** Il contatore da rimandare la prossima volta. Arriva come stringa. */
   cursor: string;
 }
+
+/**
+ * Il segnaposto salvato, letto come numero.
+ *
+ * Le versioni precedenti ci scrivevano una data ISO. Passata al server nuovo,
+ * `(int) "2026-08-29T18:00:00+00:00"` vale 2026: un numero di sequenza
+ * plausibile, con cui il telefono salterebbe in silenzio le prime duemila
+ * righe. Un valore che non e' un numero riparte da zero, che al massimo costa
+ * una sincronizzazione completa.
+ */
+const readCursor = (stored: string | null): number => {
+  if (stored === null) return 0;
+  return /^\d+$/.test(stored) ? Number(stored) : 0;
+};
 
 /** Le colonne di una tabella, lette dallo schema invece che elencate a mano. */
 const columnsOf = async (table: string): Promise<string[]> => {
@@ -333,7 +351,7 @@ export async function runSync(): Promise<{
     let pulled = 0;
 
     for (let round = 0; round < MAX_ROUNDS; round++) {
-      const cursor = await getSetting(CURSOR_KEY);
+      const cursor = readCursor(await getSetting(CURSOR_KEY));
       const pushedAt = await getSetting(PUSHED_KEY);
       const changes = await collectChanges(pushedAt);
 
