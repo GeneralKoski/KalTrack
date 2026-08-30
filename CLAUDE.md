@@ -295,3 +295,45 @@ bundle e non e' nel database.
 Non va salvata in `settings`: quella tabella si sincronizza, e la chiave
 finirebbe sul server in chiaro dentro `sync_records`. E' la scorciatoia ovvia
 ed e' esattamente il danno che questa scelta toglie.
+
+### I model id scadono
+
+I tre id in `src/ai/config.ts` **hanno una data di scadenza**, e Groq la
+rispetta senza avvisare l'app: un modello ritirato non peggiora, sparisce, e la
+chiamata torna 404 `model_not_found`. La capability muore di colpo mentre tutto
+il resto - chiave, rete, audio - funziona.
+
+E' gia' successo due volte lo stesso giorno: l'assistente spento il 16 agosto
+2026, e il vision il 17 luglio, rimasto rotto **un mese e mezzo** senza che
+nessuno se ne accorgesse. Quando una funzione AI smette di funzionare da sola,
+il primo posto da guardare e' la lista dei ritiri di Groq.
+
+Il vincolo del modello vision e' piu' stretto degli altri: deve accettare
+**immagini e JSON object mode** insieme, e su Groq oggi lo fanno solo i due
+qwen, entrambi in preview.
+
+## La diagnostica
+
+`app_logs` (migrazione 9) tiene gli ultimi trecento guasti: `logger.warn` e
+`logger.error` ci finiscono da soli, senza toccare le chiamate esistenti, e la
+convenzione `[scope] messaggio` diventa una colonna.
+
+Si legge da **Impostazioni > Diagnostica**, che mostra anche le chiamate AI non
+riuscite di `ai_calls` - registrate dalla migrazione 4 e mai lette da nessuno.
+
+Tre cose da non rompere:
+
+- **Scrive anche a console spenta.** `EXPO_PUBLIC_CONSOLE_LOGGING=false` vale
+  nelle build di release, cioe' proprio quelle sul telefono.
+- **`recordLog` non lancia e non registra i propri errori.** E' chiamata da
+  `logger.error`: un guasto che ripassasse di li' si richiamerebbe all'infinito.
+- **Si toglie quel che somiglia a una credenziale** prima di scrivere. Il
+  registro si condivide ed e' dentro il backup: e' la stessa chiave che
+  `aiKeyStore` tiene apposta fuori dal database.
+
+Il collegamento passa da `setLogSink`, installato da `initDatabase()`, e non da
+un import: `src/db` importa gia' `logger`, il verso opposto sarebbe un ciclo.
+
+`clearLogs` usa un `DELETE` vero, ed e' l'eccezione consentita alla regola "mai
+`DELETE FROM`": quella protegge le tabelle che si sincronizzano, dove una riga
+tolta risorge al giro dopo. `app_logs` non viaggia.

@@ -10,16 +10,19 @@ L'app e' completa e in uso (Fasi 1-5), con un backend Laravel in produzione
 gia' aggiornato all'ultimo lavoro. Non resta niente di aperto sul codice: quel
 che manca e' **provarla davvero**, e per una parte serve un secondo account.
 
+Il 31 agosto sono venuti fuori due modelli Groq ritirati che tenevano ferme
+tre funzioni AI. Sistemati, ma **il telefono ha ancora l'APK vecchio**.
+
 ## Stato
 
 | | |
 |---|---|
-| Test app | 852 su 51 suite |
+| Test app | 864 su 53 suite |
 | Test backend | 123 |
 | Typecheck / lint | puliti, 0 errori |
-| Ramo | `main`. **Due commit non ancora pushati** al 31/08 |
+| Ramo | `main`. **Sette commit non ancora pushati** al 31/08 |
 | Server | `kaltrack.martin-trajkovski.it`, healthy, 16 migrazioni applicate, allineato al codice |
-| APK | firmato, `./scripts/build-apk.sh`. Quello installato sul telefono e' anteriore all'icona nuova |
+| APK | firmato, `./scripts/build-apk.sh`. Quello sul telefono e' anteriore all'icona **e all'assistente riparato** |
 
 ## Cosa gira dove
 
@@ -50,9 +53,10 @@ Serve un secondo account per vedere quelle schermate con dei numeri dentro.
 Passa i test, ma la lezione di questo progetto e' che i difetti seri escono
 aprendo l'app, non dalla suite.
 
-**2. Rifare l'APK.** Quello sul telefono e' anteriore all'icona: l'icona entra
-nel bundle al prebuild, quindi finche' non si ricostruisce si vede ancora la
-freccia azzurra di Expo.
+**2. Rifare l'APK.** Ora e' la cosa piu' urgente delle tre: quello installato
+e' anteriore ai modelli AI riparati, quindi **sul telefono l'assistente vocale
+e la stima da foto sono ancora rotti**. Si porta dietro anche l'icona, che
+entra nel bundle al prebuild.
 
 **3. Ripulire l'emulatore.** Ci sono dati di prova lasciati apposta durante le
 verifiche: obiettivo 2000 kcal, 100 g di anacardi, 10.000 passi, un esercizio
@@ -108,6 +112,33 @@ Fuori dal piano, negli stessi due giorni:
   Connect, che qui non ci sono.
 - **L'icona non e' piu' quella di Expo**: una K bianca con un punto verde su
   fondo quasi nero, rigenerabile con `scripts/genera-icone.py`.
+
+## I due modelli morti (31 agosto)
+
+L'inserimento vocale rispondeva "qualcosa e' andato storto" a ogni tentativo.
+La ragione era gia' scritta in `ai_calls`, e non la leggeva nessuno:
+
+```
+Groq ha risposto 404: The model `llama-3.3-70b-versatile` does not exist
+or you do not have access to it. (model_not_found)
+```
+
+Groq l'ha spento il **16 agosto 2026** per i piani free e developer. La
+trascrizione era riuscita 75 ms prima, quindi chiave, rete e audio stavano
+bene: era morto solo l'assistente.
+
+Controllando la lista dei ritiri e' saltato fuori un **secondo guasto che
+nessuno aveva segnalato**: il modello vision, spento il **17 luglio**, cioe'
+sei settimane di stima da foto e lettura etichette rotte in silenzio.
+
+Sostituti: `openai/gpt-oss-120b` per l'assistente, `qwen/qwen3.6-27b` per le
+foto. Quest'ultimo e' in preview e non e' una scelta: su Groq nient'altro
+accetta immagini e JSON object mode insieme.
+
+Da qui vengono `app_logs` e **Impostazioni > Diagnostica**. Il messaggio
+generico dell'assistente ora dice dove guardare: "qualcosa e' andato storto,
+riprova" e' esattamente cio' che ha lasciato un modello morto in giro per sei
+settimane.
 
 ## Il deploy del 31 agosto
 
