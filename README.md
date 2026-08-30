@@ -33,6 +33,7 @@ npm test           # Jest
 - Design: [`docs/superpowers/specs/2026-08-28-kaltrack-design.md`](docs/superpowers/specs/2026-08-28-kaltrack-design.md)
 - Piano Fase 1: [`docs/superpowers/plans/2026-08-28-kaltrack-fase-1-nutrizione.md`](docs/superpowers/plans/2026-08-28-kaltrack-fase-1-nutrizione.md)
 - Convenzioni di sviluppo: [`CLAUDE.md`](CLAUDE.md)
+- Stato del progetto e lavoro aperto: [`HANDOFF.md`](HANDOFF.md)
 - Server, privacy e sincronizzazione: [`backend/README.md`](backend/README.md)
 
 ## Da fare
