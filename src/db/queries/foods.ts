@@ -153,3 +153,11 @@ export async function incrementFoodUsage(id: string): Promise<void> {
     [nowIso(), id],
   );
 }
+
+/** Un alimento esistente con lo stesso nome, a meno di maiuscole e accenti. */
+export async function findFoodByName(name: string): Promise<FoodRow | null> {
+  const db = await getDb();
+  return db.getFirstAsync<FoodRow>(`${SELECT_FOOD} AND name_norm = ?`, [
+    normalizeText(name),
+  ]);
+}

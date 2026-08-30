@@ -12,6 +12,13 @@ import { Text } from "@/src/components/ui";
 import { LabelScanner } from "@/src/containers/foods/LabelScanner";
 import { NutrientFields } from "@/src/containers/foods/NutrientFields";
 import { createFood, deleteFood, getFood, updateFood } from "@/src/db/queries/foods";
+import {
+  publishFood,
+  unpublishFood,
+  updatePublishedFood,
+} from "@/src/services/foodCatalog";
+import { hasBackend } from "@/src/api/config";
+import { useAccountStore } from "@/src/stores/accountStore";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
@@ -103,6 +110,7 @@ export function FoodFormScreen() {
   );
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const token = useAccountStore((state) => state.token);
 
   useEffect(() => {
     if (!id) return;
@@ -117,6 +125,8 @@ export function FoodFormScreen() {
       active = false;
     };
   }, [id]);
+
+  const condiviso = hasBackend() && token !== null;
 
   const onSubmit = async (values: FoodFormValues) => {
     const input = {
@@ -140,9 +150,15 @@ export function FoodFormScreen() {
     };
 
     if (id) {
+      // Il nome di PRIMA serve a ritrovare la voce in catalogo: e' quello con
+      // cui era stata pubblicata, e cercarla col nome nuovo lascerebbe in giro
+      // la vecchia col nome sbagliato.
+      const nomePrecedente = initial?.name ?? input.name;
       await updateFood(id, input);
+      void updatePublishedFood(nomePrecedente, input);
     } else {
       await createFood(input);
+      void publishFood(input);
     }
     showToast.success({ title: t("foods.saved") });
     goBack();
@@ -150,7 +166,11 @@ export function FoodFormScreen() {
 
   const onDelete = async () => {
     if (!id) return;
+    const nome = initial?.name;
     await deleteFood(id);
+    // Toglie anche dal catalogo comune, ma solo se la voce e' propria: il
+    // servizio non prova nemmeno a toccare quella di un altro.
+    if (nome) void unpublishFood(nome);
     setConfirmDelete(false);
     showToast.success({ title: t("foods.deleted") });
     goBack();
@@ -176,6 +196,18 @@ export function FoodFormScreen() {
           <ActivityIndicator style={styles.loader} color={colors.accent} />
         ) : (
           <FormScreen contentContainerStyle={styles.content} bottomSpacing={ASSISTANT_FAB_CLEARANCE}>
+            {/*
+              Prima del modulo e non dopo il salvataggio: quel che si scrive
+              qui entra nell'elenco alimenti di tutti gli iscritti, e un
+              alimento sbagliato in catalogo falsa il diario di chiunque lo
+              usi. Senza account non esce niente e il testo non compare.
+            */}
+            {condiviso ? (
+              <Text style={[styles.notice, { color: colors.textMuted }]}>
+                {t("foods.catalog_notice")}
+              </Text>
+            ) : null}
+
             <DfForm<FoodFormValues>
               initialValues={initial}
               onSubmit={onSubmit}
@@ -243,6 +275,11 @@ export function FoodFormScreen() {
 }
 
 const styles = StyleSheet.create({
+  notice: {
+    fontSize: 13,
+    lineHeight: 18,
+    paddingBottom: theme.spacing.sm,
+  },
   root: {
     flex: 1,
   },

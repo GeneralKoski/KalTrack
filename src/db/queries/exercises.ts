@@ -211,3 +211,63 @@ export async function suggestAlternatives(
     )
     .slice(0, options.limit ?? 10);
 }
+
+/** Un esercizio esistente con lo stesso nome, a meno di maiuscole e accenti. */
+export async function findExerciseByName(
+  name: string,
+): Promise<ExerciseRow | null> {
+  const db = await getDb();
+  return db.getFirstAsync<ExerciseRow>(`${SELECT} AND name_norm = ?`, [
+    normalizeText(name),
+  ]);
+}
+
+/**
+ * Aggiorna un esercizio.
+ *
+ * Solo i campi che si possono correggere da fuori: `is_banned`,
+ * `dislike_level` e `usage_count` sono lo storico di come lo si usa, e non
+ * hanno niente a che vedere con la sua descrizione.
+ */
+export async function updateExercise(
+  id: string,
+  input: ExerciseInput,
+): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    `UPDATE exercises
+        SET name = ?, name_norm = ?, muscle_group = ?, secondary_muscles = ?,
+            equipment = ?, notes = ?, instructions = ?, updated_at = ?
+      WHERE id = ?`,
+    [
+      input.name,
+      normalizeText(input.name),
+      input.muscleGroup,
+      JSON.stringify(input.secondaryMuscles),
+      JSON.stringify(input.equipment),
+      input.notes ?? null,
+      input.instructions ?? null,
+      nowIso(),
+      id,
+    ],
+  );
+}
+
+/**
+ * Toglie un esercizio.
+ *
+ * `deleted_at` e mai `DELETE FROM`: e' una tabella sincronizzata, e una riga
+ * tolta davvero non avrebbe modo di dire all'altro dispositivo che e' stata
+ * tolta - il server rimanderebbe la sua copia e l'esercizio risorgerebbe.
+ *
+ * Le serie gia' registrate NON si toccano: puntano a questo id, e cancellarle
+ * vorrebbe dire riscrivere la storia di un allenamento che e' stato fatto.
+ */
+export async function deleteExercise(id: string): Promise<void> {
+  const db = await getDb();
+  const now = nowIso();
+  await db.runAsync(
+    "UPDATE exercises SET deleted_at = ?, updated_at = ? WHERE id = ?",
+    [now, now, id],
+  );
+}
