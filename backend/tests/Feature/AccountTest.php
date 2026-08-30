@@ -209,4 +209,44 @@ class AccountTest extends TestCase
             ->assertJsonPath('handle', 'GeneralKoski');
     }
 
+    /**
+     * La ricerca segue la stessa regola dell'unicita': se "A" e "a" sono lo
+     * stesso nome quando si registra, devono esserlo anche quando si cerca.
+     * Altrimenti un profilo esistente non si trova, e chi cerca conclude che
+     * la persona non e' iscritta.
+     */
+    public function test_la_ricerca_ignora_le_maiuscole(): void
+    {
+        $this->postJson('/api/register', [...$this->valid, 'handle' => 'GeneralKoski'])
+            ->assertCreated();
+        $chiCerca = User::create([
+            'name' => 'bruno', 'display_name' => 'Bruno',
+            'email' => 'bruno@example.test', 'password' => 'password123',
+            'handle' => 'bruno',
+        ]);
+
+        foreach (['Generalkoski', 'generalkoski', 'GENERALKOSKI'] as $termine) {
+            $this->actingAs($chiCerca)
+                ->getJson("/api/users?q={$termine}")
+                ->assertOk()
+                ->assertJsonPath('data.0.handle', 'GeneralKoski');
+        }
+    }
+
+    public function test_il_profilo_si_apre_con_qualsiasi_maiuscola(): void
+    {
+        $this->postJson('/api/register', [...$this->valid, 'handle' => 'GeneralKoski'])
+            ->assertCreated();
+        $chiGuarda = User::create([
+            'name' => 'bruno', 'display_name' => 'Bruno',
+            'email' => 'bruno@example.test', 'password' => 'password123',
+            'handle' => 'bruno',
+        ]);
+
+        $this->actingAs($chiGuarda)
+            ->getJson('/api/users/generalkoski')
+            ->assertOk()
+            ->assertJsonPath('data.handle', 'GeneralKoski');
+    }
+
 }
