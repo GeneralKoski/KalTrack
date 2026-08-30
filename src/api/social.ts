@@ -71,8 +71,22 @@ export interface CatalogExercise {
   name: string;
   nameNorm: string;
   muscleGroup: string;
+  /** Elenco separato da virgole, come `equipment`. */
+  secondaryMuscles: string | null;
   equipment: string | null;
   mine: boolean;
+}
+
+/**
+ * Una pagina di catalogo.
+ *
+ * `next` e' il nome normalizzato da cui riprendere, null quando non c'e'
+ * altro: il catalogo cresce con gli iscritti e non esiste un numero di voci
+ * che basti per sempre.
+ */
+export interface CatalogPage<T> {
+  data: T[];
+  next: string | null;
 }
 
 /** Un alimento del catalogo comune, con i valori per 100 g / 100 ml. */
@@ -316,16 +330,17 @@ export const fetchComparison = (
  * E' l'unica cosa dell'app che esce verso chi non e' amico: quel che si
  * aggiunge qui lo vedono tutti gli iscritti.
  */
-export const searchCatalogExercises = (term: string) =>
-  apiRequest<{ data: CatalogExercise[] }>({
+export const searchCatalogExercises = (term: string, after?: string) =>
+  apiRequest<CatalogPage<CatalogExercise>>({
     method: "get",
     path: "/exercises",
-    params: { q: term },
-  }).then((r) => r.data);
+    params: { q: term, ...(after ? { after } : {}) },
+  });
 
 export interface CatalogExerciseInput {
   name: string;
   muscleGroup: string;
+  secondaryMuscles?: string | null;
   equipment?: string | null;
 }
 
@@ -357,12 +372,12 @@ export const deleteCatalogExercise = (id: number) =>
   });
 
 /** Il catalogo degli alimenti: stesse regole di quello degli esercizi. */
-export const searchCatalogFoods = (term: string) =>
-  apiRequest<{ data: CatalogFood[] }>({
+export const searchCatalogFoods = (term: string, after?: string) =>
+  apiRequest<CatalogPage<CatalogFood>>({
     method: "get",
     path: "/foods",
-    params: { q: term },
-  }).then((r) => r.data);
+    params: { q: term, ...(after ? { after } : {}) },
+  });
 
 export const addCatalogFood = (input: CatalogFoodInput) =>
   apiRequest<{ data: CatalogFood }>({

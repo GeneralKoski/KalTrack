@@ -60,6 +60,7 @@ export const ExerciseFormSheet = forwardRef<
 
   const [name, setName] = useState("");
   const [muscleGroup, setMuscleGroup] = useState<MuscleGroup>("petto");
+  const [secondary, setSecondary] = useState<MuscleGroup[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -68,10 +69,18 @@ export const ExerciseFormSheet = forwardRef<
   useEffect(() => {
     setName(editing?.name ?? "");
     setMuscleGroup((editing?.muscle_group as MuscleGroup) ?? "petto");
+    setSecondary(editing ? exerciseSecondary(editing) : []);
     setEquipment(editing ? exerciseEquipment(editing) : []);
   }, [editing]);
 
   const condiviso = hasBackend() && token !== null;
+
+  const toggleSecondary = (value: MuscleGroup) =>
+    setSecondary((prima) =>
+      prima.includes(value)
+        ? prima.filter((m) => m !== value)
+        : [...prima, value],
+    );
 
   const toggleEquipment = (value: Equipment) =>
     setEquipment((prima) =>
@@ -100,9 +109,7 @@ export const ExerciseFormSheet = forwardRef<
         await updateExercise(editing.id, {
           name: nome,
           muscleGroup,
-          // I muscoli secondari non si toccano da qui: il modulo non li
-          // chiede, e riscriverli con una lista vuota li perderebbe.
-          secondaryMuscles: exerciseSecondary(editing),
+          secondaryMuscles: secondary,
           equipment,
           notes: editing.notes,
           instructions: editing.instructions,
@@ -110,22 +117,29 @@ export const ExerciseFormSheet = forwardRef<
         void updatePublishedExercise(editing.name, {
           name: nome,
           muscleGroup,
+          secondaryMuscles: secondary,
           equipment,
         });
       } else {
         await createExercise({
           name: nome,
           muscleGroup,
-          secondaryMuscles: [],
+          secondaryMuscles: secondary,
           equipment,
         });
 
         // Il catalogo e' un di piu' e non blocca: l'esercizio e' gia' salvato
         // qui, e senza rete resta comunque utilizzabile.
-        void publishToCatalog({ name: nome, muscleGroup, equipment });
+        void publishToCatalog({
+          name: nome,
+          muscleGroup,
+          secondaryMuscles: secondary,
+          equipment,
+        });
       }
 
       setName("");
+      setSecondary([]);
       setEquipment([]);
       onSaved();
       showToast.success({ title: t("gym.exercise_saved") });
@@ -176,10 +190,31 @@ export const ExerciseFormSheet = forwardRef<
             key={gruppo}
             label={t(`gym.muscle.${gruppo}`)}
             active={muscleGroup === gruppo}
-            onPress={() => setMuscleGroup(gruppo)}
+            onPress={() => {
+              setMuscleGroup(gruppo);
+              // Il principale non e' anche secondario: comparirebbe due volte
+              // nella stessa scheda e falserebbe le alternative.
+              setSecondary((prima) => prima.filter((m) => m !== gruppo));
+            }}
           />
         ))}
       </ScrollView>
+
+      <Text style={[styles.label, { color: colors.text }]}>
+        {t("gym.secondary_muscles_label")}
+      </Text>
+      <View style={styles.chipsWrap}>
+        {MUSCLE_GROUPS.filter((gruppo) => gruppo !== muscleGroup).map(
+          (gruppo) => (
+            <Chip
+              key={gruppo}
+              label={t(`gym.muscle.${gruppo}`)}
+              active={secondary.includes(gruppo)}
+              onPress={() => toggleSecondary(gruppo)}
+            />
+          ),
+        )}
+      </View>
 
       <Text style={[styles.label, { color: colors.text }]}>
         {t("gym.equipment_label")}

@@ -57,8 +57,8 @@ async function miaInCatalogo(
   const norm = normalizeText(name);
   if (norm === "") return null;
 
-  const voci = await social.searchCatalogFoods(norm);
-  return voci.find((v) => v.nameNorm === norm && v.mine) ?? null;
+  const { data } = await social.searchCatalogFoods(norm);
+  return data.find((v) => v.nameNorm === norm && v.mine) ?? null;
 }
 
 /**
@@ -127,32 +127,40 @@ export async function importFoodCatalog(term = ""): Promise<number> {
   try {
     if (!attivo()) return 0;
 
-    const voci = await social.searchCatalogFoods(term);
-
     let aggiunti = 0;
-    for (const voce of voci) {
-      if (await findFoodByName(voce.name)) continue;
+    let after: string | undefined;
 
-      await createFood({
-        name: voce.name,
-        brand: voce.brand,
-        nutrients: {
-          ...EMPTY_NUTRIENTS,
-          kcal: voce.kcal,
-          protein: voce.protein,
-          carbs: voce.carbs,
-          sugars: voce.sugars,
-          fat: voce.fat,
-          saturatedFat: voce.saturatedFat,
-          fiber: voce.fiber,
-          salt: voce.salt,
-        },
-        isLiquid: voce.isLiquid,
-        defaultServingG: voce.defaultServingG,
-        servingLabel: voce.servingLabel,
-      });
-      aggiunti++;
-    }
+    // Come per gli esercizi: si continua finche' il server dice che c'e'
+    // altro, altrimenti il catalogo si ferma alla prima pagina.
+    do {
+      const pagina = await social.searchCatalogFoods(term, after);
+
+      for (const voce of pagina.data) {
+        if (await findFoodByName(voce.name)) continue;
+
+        await createFood({
+          name: voce.name,
+          brand: voce.brand,
+          nutrients: {
+            ...EMPTY_NUTRIENTS,
+            kcal: voce.kcal,
+            protein: voce.protein,
+            carbs: voce.carbs,
+            sugars: voce.sugars,
+            fat: voce.fat,
+            saturatedFat: voce.saturatedFat,
+            fiber: voce.fiber,
+            salt: voce.salt,
+          },
+          isLiquid: voce.isLiquid,
+          defaultServingG: voce.defaultServingG,
+          servingLabel: voce.servingLabel,
+        });
+        aggiunti++;
+      }
+
+      after = pagina.next ?? undefined;
+    } while (after);
 
     return aggiunti;
   } catch (error) {

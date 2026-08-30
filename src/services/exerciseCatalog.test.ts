@@ -33,16 +33,22 @@ beforeEach(async () => {
 afterEach(() => __setDbForTesting(null));
 
 const voce = (over: Record<string, unknown> = {}) => ({
+  id: 1,
   name: "Panca piana",
   nameNorm: "panca piana",
   muscleGroup: "petto",
+  secondaryMuscles: "tricipiti,spalle",
   equipment: "bilanciere,panca",
+  mine: false,
   ...over,
 });
 
+/** Una pagina sola, senza seguito: e' il caso normale. */
+const pagina = (voci: unknown[]) => ({ data: voci, next: null });
+
 describe("importCatalog", () => {
   it("porta nel telefono gli esercizi che qui non ci sono", async () => {
-    mockApiRequest.mockResolvedValue({ data: [voce()] });
+    mockApiRequest.mockResolvedValue(pagina([voce()]));
 
     expect(await importCatalog()).toBe(1);
 
@@ -68,7 +74,7 @@ describe("importCatalog", () => {
       secondaryMuscles: [],
       equipment: ["bilanciere"],
     });
-    mockApiRequest.mockResolvedValue({ data: [voce()] });
+    mockApiRequest.mockResolvedValue(pagina([voce()]));
 
     expect(await importCatalog()).toBe(0);
     expect(await searchExercises({ term: "panca" })).toHaveLength(1);
@@ -80,18 +86,18 @@ describe("importCatalog", () => {
    * girare per l'app come se fosse buono.
    */
   it("scarta un gruppo muscolare che non esiste", async () => {
-    mockApiRequest.mockResolvedValue({
-      data: [voce({ muscleGroup: "branchie" })],
-    });
+    mockApiRequest.mockResolvedValue(
+      pagina([voce({ muscleGroup: "branchie" })]),
+    );
 
     expect(await importCatalog()).toBe(0);
     expect(await searchExercises({ term: "panca" })).toHaveLength(0);
   });
 
   it("tiene solo gli attrezzi che conosce", async () => {
-    mockApiRequest.mockResolvedValue({
-      data: [voce({ equipment: "bilanciere,astronave" })],
-    });
+    mockApiRequest.mockResolvedValue(
+      pagina([voce({ equipment: "bilanciere,astronave" })]),
+    );
 
     await importCatalog();
 
@@ -121,6 +127,7 @@ describe("publishToCatalog", () => {
     await publishToCatalog({
       name: "Panca piana",
       muscleGroup: "petto",
+      secondaryMuscles: ["tricipiti", "spalle"],
       equipment: ["bilanciere", "panca"],
     });
 
@@ -131,6 +138,7 @@ describe("publishToCatalog", () => {
         body: {
           name: "Panca piana",
           muscleGroup: "petto",
+          secondaryMuscles: "tricipiti,spalle",
           equipment: "bilanciere,panca",
         },
       }),
@@ -143,6 +151,7 @@ describe("publishToCatalog", () => {
     await publishToCatalog({
       name: "Panca piana",
       muscleGroup: "petto",
+      secondaryMuscles: [],
       equipment: [],
     });
 
@@ -160,8 +169,61 @@ describe("publishToCatalog", () => {
       publishToCatalog({
         name: "Panca piana",
         muscleGroup: "petto",
+        secondaryMuscles: [],
         equipment: [],
       }),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe("importCatalog, quel che porta e quel che scarta", () => {
+  it("porta anche i muscoli secondari", async () => {
+    mockApiRequest.mockResolvedValue(pagina([voce()]));
+
+    await importCatalog();
+
+    const [trovato] = await searchExercises({ term: "panca" });
+    // Senza questi, `suggestAlternatives` lavora peggio proprio sugli
+    // esercizi che non si sono inseriti a mano.
+    expect(JSON.parse(trovato.secondary_muscles ?? "[]")).toEqual([
+      "tricipiti",
+      "spalle",
+    ]);
+  });
+
+  it("tiene solo i muscoli che conosce", async () => {
+    mockApiRequest.mockResolvedValue(
+      pagina([voce({ secondaryMuscles: "tricipiti,branchie" })]),
+    );
+
+    await importCatalog();
+
+    const [trovato] = await searchExercises({ term: "panca" });
+    expect(JSON.parse(trovato.secondary_muscles ?? "[]")).toEqual(["tricipiti"]);
+  });
+
+  /**
+   * Senza il ciclo il catalogo si fermava alla prima pagina, e le voci oltre
+   * non erano raggiungibili in nessun modo.
+   */
+  it("continua finche' il server dice che c'e' altro", async () => {
+    mockApiRequest
+      .mockResolvedValueOnce({
+        data: [voce({ name: "Panca piana", nameNorm: "panca piana" })],
+        next: "panca piana",
+      })
+      .mockResolvedValueOnce({
+        data: [voce({ name: "Squat", nameNorm: "squat" })],
+        next: null,
+      });
+
+    expect(await importCatalog()).toBe(2);
+    expect(mockApiRequest).toHaveBeenCalledTimes(2);
+    // La seconda chiamata riprende da dove si era fermata.
+    expect(mockApiRequest).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        params: expect.objectContaining({ after: "panca piana" }),
+      }),
+    );
   });
 });

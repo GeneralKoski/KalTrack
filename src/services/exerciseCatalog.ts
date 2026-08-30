@@ -48,6 +48,13 @@ const parseEquipment = (value: string | null): Equipment[] =>
 const isMuscleGroup = (value: string): value is MuscleGroup =>
   (MUSCLE_GROUPS as readonly string[]).includes(value);
 
+/** Come `parseEquipment`: quel che non conosciamo si butta invece di salvarlo. */
+const parseMuscles = (value: string | null): MuscleGroup[] =>
+  (value ?? "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter(isMuscleGroup);
+
 /**
  * La voce di catalogo con quel nome, se e' mia.
  *
@@ -61,8 +68,8 @@ async function miaInCatalogo(
   const norm = normalizeText(name);
   if (norm === "") return null;
 
-  const voci = await social.searchCatalogExercises(norm);
-  return voci.find((v) => v.nameNorm === norm && v.mine) ?? null;
+  const { data } = await social.searchCatalogExercises(norm);
+  return data.find((v) => v.nameNorm === norm && v.mine) ?? null;
 }
 
 /**
@@ -75,6 +82,7 @@ async function miaInCatalogo(
 export async function publishToCatalog(input: {
   name: string;
   muscleGroup: MuscleGroup;
+  secondaryMuscles: MuscleGroup[];
   equipment: Equipment[];
 }): Promise<void> {
   try {
@@ -84,6 +92,7 @@ export async function publishToCatalog(input: {
     await social.addCatalogExercise({
       name: input.name,
       muscleGroup: input.muscleGroup,
+      secondaryMuscles: input.secondaryMuscles.join(","),
       equipment: equipmentToString(input.equipment),
     });
   } catch (error) {
@@ -103,6 +112,7 @@ export async function updatePublishedExercise(
   input: {
     name: string;
     muscleGroup: MuscleGroup;
+    secondaryMuscles: MuscleGroup[];
     equipment: Equipment[];
   },
 ): Promise<void> {
@@ -113,6 +123,7 @@ export async function updatePublishedExercise(
     const payload = {
       name: input.name,
       muscleGroup: input.muscleGroup,
+      secondaryMuscles: input.secondaryMuscles.join(","),
       equipment: equipmentToString(input.equipment),
     };
 
@@ -160,22 +171,31 @@ export async function importCatalog(term = ""): Promise<number> {
     if (!hasBackend()) return 0;
     if (!useAccountStore.getState().token) return 0;
 
-    const voci = await social.searchCatalogExercises(term);
-
     let aggiunti = 0;
-    for (const voce of voci) {
-      if (!isMuscleGroup(voce.muscleGroup)) continue;
-      if (await findExerciseByName(voce.name)) continue;
+    let after: string | undefined;
 
-      await createExercise({
-        name: voce.name,
-        muscleGroup: voce.muscleGroup,
-        secondaryMuscles: [],
-        equipment: parseEquipment(voce.equipment),
-        isCustom: false,
-      });
-      aggiunti++;
-    }
+    // Si continua finche' il server dice che c'e' altro: senza il ciclo, il
+    // catalogo si fermava alla prima pagina e le voci oltre non erano
+    // raggiungibili in nessun modo.
+    do {
+      const pagina = await social.searchCatalogExercises(term, after);
+
+      for (const voce of pagina.data) {
+        if (!isMuscleGroup(voce.muscleGroup)) continue;
+        if (await findExerciseByName(voce.name)) continue;
+
+        await createExercise({
+          name: voce.name,
+          muscleGroup: voce.muscleGroup,
+          secondaryMuscles: parseMuscles(voce.secondaryMuscles),
+          equipment: parseEquipment(voce.equipment),
+          isCustom: false,
+        });
+        aggiunti++;
+      }
+
+      after = pagina.next ?? undefined;
+    } while (after);
 
     return aggiunti;
   } catch (error) {
