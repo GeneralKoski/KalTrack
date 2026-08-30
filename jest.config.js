@@ -2,6 +2,7 @@
 module.exports = {
   preset: "jest-expo",
   testEnvironment: "node",
+  setupFilesAfterEnv: ["<rootDir>/jest/setup.js"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
     "^expo-crypto$": "<rootDir>/jest/mocks/expo-crypto.js",

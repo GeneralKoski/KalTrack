@@ -2,6 +2,7 @@ import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantBut
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { Text } from "@/src/components/ui";
+import { AiKeySettings } from "@/src/containers/settings/AiKeySettings";
 import { AssistantSettings } from "@/src/containers/settings/AssistantSettings";
 import { HealthConnectSettings } from "@/src/containers/settings/HealthConnectSettings";
 import { ThemePicker } from "@/src/containers/settings/ThemePicker";
@@ -46,6 +47,11 @@ export function SettingsScreen() {
         >
           <SectionLabel>{t("settings.theme")}</SectionLabel>
           <ThemePicker />
+
+          <SectionLabel style={styles.section}>
+            {t("ai_key.title")}
+          </SectionLabel>
+          <AiKeySettings />
 
           <SectionLabel style={styles.section}>
             {t("settings.assistant")}

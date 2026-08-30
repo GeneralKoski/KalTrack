@@ -167,6 +167,10 @@ Tutte le capability passano da Groq: Whisper per la trascrizione, un modello con
 function calling per l'assistente, un modello vision per la stima da foto.
 `expo-speech` per le risposte parlate (on-device).
 
-La chiave sta in `EXPO_PUBLIC_GROQ_API_KEY` e **finisce nel bundle in chiaro**:
-accettabile finché l'APK resta personale, da spostare dietro un proxy se l'app
-viene condivisa.
+La chiave **la porta chi usa l'app**: si inserisce in Profilo > Impostazioni e
+vive in SecureStore su quel telefono (`src/stores/aiKeyStore.ts`). Non e' nel
+bundle e non e' nel database.
+
+Non va salvata in `settings`: quella tabella si sincronizza, e la chiave
+finirebbe sul server in chiaro dentro `sync_records`. E' la scorciatoia ovvia
+ed e' esattamente il danno che questa scelta toglie.

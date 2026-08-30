@@ -1,3 +1,4 @@
+import { useAiKeyStore } from "@/src/stores/aiKeyStore";
 /**
  * Configurazione dei modelli AI, in un solo posto.
  *
@@ -27,12 +28,16 @@ export const TRANSCRIPTION_LANGUAGE = "it";
 export const AI_TIMEOUT_MS = 45_000;
 
 /**
- * La chiave finisce nel bundle in chiaro: accettabile finché l'APK resta
- * personale. Vedi la sezione 9.3 della spec.
+ * La chiave la porta chi usa l'app, e sta sul suo telefono.
+ *
+ * Non arriva piu' da `EXPO_PUBLIC_GROQ_API_KEY`: quella finiva nel bundle in
+ * chiaro ed era la stessa per tutti, quindi chiunque avesse l'APK poteva
+ * estrarla e spendere la quota di chi l'aveva messa. Vedi
+ * `src/stores/aiKeyStore.ts`.
  */
-export const GROQ_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY ?? "";
+export const groqKey = (): string => useAiKeyStore.getState().key ?? "";
 
-export const hasGroqKey = (): boolean => GROQ_API_KEY.trim().length > 0;
+export const hasGroqKey = (): boolean => groqKey().trim().length > 0;
 
 export type AiCapability =
   | "transcription"

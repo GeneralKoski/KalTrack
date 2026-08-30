@@ -4,7 +4,7 @@ import { getDb } from "@/src/db/index";
 import { newId, nowIso } from "@/src/db/ids";
 import {
   AI_TIMEOUT_MS,
-  GROQ_API_KEY,
+  groqKey,
   GROQ_BASE_URL,
   hasGroqKey,
   type AiCapability,
@@ -196,7 +196,7 @@ export async function chat(args: {
     const response = await withTimeout(`${GROQ_BASE_URL}/chat/completions`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${GROQ_API_KEY}`,
+        Authorization: `Bearer ${groqKey()}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -284,7 +284,7 @@ export async function transcribeAudio(args: {
   try {
     const response = await withTimeout(`${GROQ_BASE_URL}/audio/transcriptions`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${GROQ_API_KEY}` },
+      headers: { Authorization: `Bearer ${groqKey()}` },
       body: form,
     });
 
