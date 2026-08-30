@@ -1,5 +1,12 @@
 # KalTrack Fase 1 - Nutrizione manuale - Implementation Plan
 
+> **Questo piano e' stato eseguito per intero.** Le caselle sono rimaste vuote
+> perche' il lavoro e' andato avanti senza spuntarle, non perche' ci siano
+> novantotto passi da fare: la Fase 1 e' in produzione da tempo, e con lei le
+> Fasi 2, 3, 4 e 5. Resta come documento storico - il ragionamento dietro il
+> layer DB e le convenzioni vale ancora - non come lista di cose da fare. Lo
+> stato reale dell'app e' in `CLAUDE.md`; quello del progetto nella spec.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Un'app KalTrack installabile e usabile ogni giorno per tracciare pasti, alimenti, ricette, obiettivi calorici, peso e passi, interamente offline e senza AI.
