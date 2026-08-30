@@ -7,6 +7,7 @@ import { Text } from "@/src/components/ui";
 import { getSetting, setSetting } from "@/src/db/queries/settings";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { useAccountStore } from "@/src/stores/accountStore";
 import {
   backupSummary,
   restoreBackup,
@@ -33,6 +34,14 @@ export function BackupScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useAppTheme();
   const { goBack } = useAppNav();
+  /*
+   * Chi ha fatto l'accesso ha gia' una copia sul server, e dirgli che
+   * "i dati vivono solo su questo telefono" e' falso. Ma il backup non diventa
+   * inutile: le foto dei progressi non si sincronizzano - le loro righe
+   * puntano a file che sull'altro telefono non esistono - e sono l'unica cosa
+   * che un telefono rotto si porterebbe via davvero.
+   */
+  const signedIn = useAccountStore((s) => s.token !== null);
 
   const [lastExport, setLastExport] = useState<string | null>(null);
   const [pending, setPending] = useState<BackupPayload | null>(null);
@@ -139,7 +148,7 @@ export function BackupScreen() {
         >
           <Card style={styles.card}>
             <Text style={[styles.explain, { color: colors.textSecondary }]}>
-              {t("backup.explain")}
+              {t(signedIn ? "backup.explain_signed_in" : "backup.explain")}
             </Text>
             {lastExport ? (
               <Text style={[styles.meta, { color: colors.textMuted }]}>

@@ -237,7 +237,8 @@
     "csv_weight": "Peso",
     "csv_steps": "Passi",
     "csv_workouts": "Allenamenti",
-    "csv_failed": "Export CSV non riuscito"
+    "csv_failed": "Export CSV non riuscito",
+    "explain_signed_in": "I tuoi dati sono già copiati sul server, quindi un telefono rotto non se li porta via. Il backup resta utile per due cose: le foto dei progressi, che non lasciano mai questo telefono, e avere i tuoi dati in un file tuo."
   },
   "gym": {
     "routine_name": "Nome scheda",
