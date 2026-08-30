@@ -389,7 +389,7 @@
       "offline": "Serve una connessione per l'assistente",
       "no-speech": "Non ho sentito niente, riprova",
       "permission": "Serve il permesso del microfono",
-      "failed": "Qualcosa è andato storto, riprova"
+      "failed": "Qualcosa è andato storto. Il dettaglio è in Impostazioni > Diagnostica"
     },
     "tool": {
       "log_steps": "Registrare i passi",

@@ -5,6 +5,19 @@ import { useAiKeyStore } from "@/src/stores/aiKeyStore";
  * I model id di Groq cambiano spesso: tenerli qui significa che aggiornarli è
  * una riga, e che sostituire Groq con un altro provider (o con un proxy
  * server-side) tocca solo questo file e il client.
+ *
+ * Un modello ritirato non degrada: sparisce. Groq risponde 404
+ * `model_not_found` e la capability muore di colpo, quindi questi tre id
+ * hanno una scadenza e vanno riguardati quando qualcosa smette di funzionare
+ * senza che nessuno l'abbia toccato.
+ *
+ * `llama-3.3-70b-versatile` (assistente) è stato spento il 16 agosto 2026 e
+ * `meta-llama/llama-4-scout-17b-16e-instruct` (foto) il 17 luglio: il secondo
+ * è rimasto rotto un mese e mezzo senza che se ne accorgesse nessuno, perché
+ * l'app diceva solo "qualcosa è andato storto". Da lì viene `app_logs`.
+ *
+ * Il modello vision è in preview: su Groq le uniche alternative che accettano
+ * immagini sono i due qwen, quindi qui la preview non è una scelta.
  */
 export const GROQ_BASE_URL = "https://api.groq.com/openai/v1";
 
@@ -12,9 +25,9 @@ export const MODELS = {
   /** Trascrizione vocale. */
   transcription: "whisper-large-v3-turbo",
   /** Comprensione e function calling dell'assistente. */
-  assistant: "llama-3.3-70b-versatile",
-  /** Stima nutrizionale da foto. */
-  vision: "meta-llama/llama-4-scout-17b-16e-instruct",
+  assistant: "openai/gpt-oss-120b",
+  /** Stima nutrizionale da foto. Deve accettare immagini e JSON object mode. */
+  vision: "qwen/qwen3.6-27b",
 } as const;
 
 /**
