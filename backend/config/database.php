@@ -38,9 +38,29 @@ return [
             'database' => env('DB_DATABASE', database_path('database.sqlite')),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
-            'busy_timeout' => null,
-            'journal_mode' => null,
-            'synchronous' => null,
+            /*
+             * I tre valori che decidono quanti dispositivi puo' reggere SQLite.
+             *
+             * Senza WAL una scrittura blocca TUTTO il database, letture
+             * comprese: due telefoni che si sincronizzano nello stesso istante
+             * si mettono in fila, e il secondo prende "database is locked"
+             * invece di aspettare. Con WAL chi legge non aspetta chi scrive, e
+             * restano in fila solo le scritture fra loro.
+             *
+             * `busy_timeout` e' il resto della stessa frase: cinque secondi di
+             * attesa prima di arrendersi. Il valore di serie e' zero, cioe'
+             * "fallisci subito", che e' la scelta giusta per un test e quella
+             * sbagliata per un server.
+             *
+             * `synchronous = NORMAL` e' il compagno consigliato di WAL: si
+             * rinuncia a un fsync per transazione, e in cambio si rischia di
+             * perdere le ultime scritture solo se cade la corrente al server -
+             * non se va in crash l'applicazione. Su una macchina con un
+             * backup notturno e' uno scambio che conviene.
+             */
+            'busy_timeout' => 5000,
+            'journal_mode' => 'WAL',
+            'synchronous' => 'NORMAL',
             'transaction_mode' => 'DEFERRED',
         ],
 
