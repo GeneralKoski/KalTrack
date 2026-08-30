@@ -11,6 +11,7 @@ import {
   listWeights,
   setSteps,
   setWeight,
+  stepsInRange,
 } from "@/src/db/queries/tracking";
 
 beforeEach(async () => {
@@ -117,5 +118,23 @@ describe("latestWeight", () => {
     await setWeight("2026-08-28", 78.2);
     await deleteWeight("2026-08-28");
     expect((await latestWeight())?.weight_kg).toBe(79);
+  });
+});
+
+describe("stepsInRange", () => {
+  it("somma i passi dei giorni nell'intervallo", async () => {
+    await setSteps("2026-08-24", 8000);
+    await setSteps("2026-08-27", 4000);
+    await setSteps("2026-09-02", 99000);
+
+    expect(await stepsInRange("2026-08-24", "2026-08-30")).toBe(12000);
+  });
+
+  /**
+   * Null e non zero: "non ho registrato" e "ho fatto zero passi" restano due
+   * fatti diversi anche su una settimana intera.
+   */
+  it("senza nessuna registrazione torna null", async () => {
+    expect(await stepsInRange("2026-08-24", "2026-08-30")).toBeNull();
   });
 });

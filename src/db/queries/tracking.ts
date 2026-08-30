@@ -131,3 +131,24 @@ export async function deleteWeight(date: string): Promise<void> {
     [now, now, date],
   );
 }
+
+/**
+ * I passi di un intervallo, sommati.
+ *
+ * Null e non zero se in quei giorni non c'e' nessuna registrazione: "non ho
+ * registrato" e "ho fatto zero passi" restano due fatti diversi anche su una
+ * settimana.
+ */
+export async function stepsInRange(
+  from: string,
+  to: string,
+): Promise<number | null> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ total: number | null; giorni: number }>(
+    `SELECT SUM(steps) AS total, COUNT(*) AS giorni
+       FROM step_logs
+      WHERE date >= ? AND date <= ? AND deleted_at IS NULL`,
+    [from, to],
+  );
+  return row && row.giorni > 0 ? (row.total ?? null) : null;
+}

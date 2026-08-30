@@ -460,3 +460,103 @@ export async function recentSessions(limit = 5): Promise<RecentSession[]> {
     [limit],
   );
 }
+
+/** Un esercizio di un giorno, gia' aggregato per essere condiviso. */
+export interface DailyExerciseSummary {
+  name: string;
+  sets: number;
+  totalReps: number;
+  volumeKg: number;
+  topWeightKg: number | null;
+}
+
+/**
+ * Quel che si e' fatto in un giorno, un esercizio per riga.
+ *
+ * E' l'unica forma in cui la palestra esce dal telefono: nomi ed esercizi
+ * aggregati, mai le serie singole. Il dettaglio di un allenamento resta qui
+ * come il diario.
+ *
+ * Il NOME e non l'id, perche' gli id degli esercizi nascono su questo telefono
+ * e sull'altro non vogliono dire niente.
+ *
+ * I riscaldamenti sono esclusi come dappertutto: non raccontano nulla sui
+ * carichi di lavoro, e conterebbero come serie in piu' in un confronto.
+ */
+export async function dailyExerciseSummary(
+  date: string,
+): Promise<DailyExerciseSummary[]> {
+  const db = await getDb();
+  return db.getAllAsync<DailyExerciseSummary>(
+    `SELECT e.name AS name,
+            COUNT(s.id) AS sets,
+            COALESCE(SUM(COALESCE(s.reps, 0)), 0) AS totalReps,
+            COALESCE(SUM(COALESCE(s.weight, 0) * COALESCE(s.reps, 0)), 0) AS volumeKg,
+            MAX(s.weight) AS topWeightKg
+       FROM session_sets s
+       JOIN workout_sessions w ON w.id = s.workout_session_id
+       JOIN exercises e ON e.id = s.exercise_id
+      WHERE w.date = ?
+        AND s.is_warmup = 0
+        AND s.deleted_at IS NULL
+        AND w.deleted_at IS NULL
+        AND e.deleted_at IS NULL
+      GROUP BY e.name
+      ORDER BY MIN(s.done_at)`,
+    [date],
+  );
+}
+
+/**
+ * Gli esercizi di un intervallo, sommati per esercizio.
+ *
+ * Serie, ripetizioni e volume si sommano; il carico massimo e' il massimo del
+ * periodo e non la somma - sommare i massimali direbbe che si e' alzato il
+ * doppio di quel che si e' alzato. E' la stessa aggregazione che fa il server
+ * (`ComparisonController::esercizi`), perche' le due colonne del confronto
+ * devono voler dire la stessa cosa.
+ */
+export async function exerciseSummaryInRange(
+  from: string,
+  to: string,
+): Promise<DailyExerciseSummary[]> {
+  const db = await getDb();
+  return db.getAllAsync<DailyExerciseSummary>(
+    `SELECT e.name AS name,
+            COUNT(s.id) AS sets,
+            COALESCE(SUM(COALESCE(s.reps, 0)), 0) AS totalReps,
+            COALESCE(SUM(COALESCE(s.weight, 0) * COALESCE(s.reps, 0)), 0) AS volumeKg,
+            MAX(s.weight) AS topWeightKg
+       FROM session_sets s
+       JOIN workout_sessions w ON w.id = s.workout_session_id
+       JOIN exercises e ON e.id = s.exercise_id
+      WHERE w.date >= ? AND w.date <= ?
+        AND s.is_warmup = 0
+        AND s.deleted_at IS NULL
+        AND w.deleted_at IS NULL
+        AND e.deleted_at IS NULL
+      GROUP BY e.name
+      ORDER BY MIN(s.done_at)`,
+    [from, to],
+  );
+}
+
+/**
+ * Quanti allenamenti in un intervallo.
+ *
+ * Conta nel database e non filtrando `recentSessions`: quel limite - cinquanta
+ * sessioni, duecento - e' un numero arbitrario, e su uno storico piu' lungo il
+ * conteggio di un periodo comincerebbe a mentire senza dirlo.
+ */
+export async function sessionCountInRange(
+  from: string,
+  to: string,
+): Promise<number> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ n: number }>(
+    `SELECT COUNT(*) AS n FROM workout_sessions
+      WHERE date >= ? AND date <= ? AND deleted_at IS NULL`,
+    [from, to],
+  );
+  return row?.n ?? 0;
+}

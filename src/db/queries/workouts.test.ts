@@ -6,6 +6,9 @@ import {
   activateRoutine,
   endSession,
   createRoutine,
+  dailyExerciseSummary,
+  exerciseSummaryInRange,
+  sessionCountInRange,
   getActiveRoutine,
   getRoutineDay,
   lastSetsFor,
@@ -397,5 +400,124 @@ describe("riprendere un allenamento", () => {
     const free = await startSession({ date: "2026-08-28" });
 
     expect(free).not.toBe(planned);
+  });
+});
+
+/**
+ * L'unica forma in cui la palestra esce dal telefono. Quel che questi test
+ * fissano non e' il SQL ma cosa si pubblica: nomi ed esercizi aggregati, mai
+ * le serie singole.
+ */
+describe("dailyExerciseSummary", () => {
+  it("aggrega le serie di un esercizio in una riga sola", async () => {
+    const sessionId = await startSession({ date: "2026-08-28" });
+    await logSet({ sessionId, exerciseId: benchId, setIndex: 0, reps: 10, weight: 60 });
+    await logSet({ sessionId, exerciseId: benchId, setIndex: 1, reps: 8, weight: 70 });
+
+    const righe = await dailyExerciseSummary("2026-08-28");
+
+    expect(righe).toEqual([
+      {
+        name: "Panca piana",
+        sets: 2,
+        totalReps: 18,
+        volumeKg: 10 * 60 + 8 * 70,
+        topWeightKg: 70,
+      },
+    ]);
+  });
+
+  it("tiene gli esercizi separati", async () => {
+    const sessionId = await startSession({ date: "2026-08-28" });
+    await logSet({ sessionId, exerciseId: benchId, setIndex: 0, reps: 10, weight: 60 });
+    await logSet({ sessionId, exerciseId: squatId, setIndex: 0, reps: 5, weight: 100 });
+
+    const righe = await dailyExerciseSummary("2026-08-28");
+
+    expect(righe.map((r) => r.name)).toEqual(["Panca piana", "Squat"]);
+  });
+
+  it("non conta i riscaldamenti", async () => {
+    const sessionId = await startSession({ date: "2026-08-28" });
+    await logSet({
+      sessionId,
+      exerciseId: benchId,
+      setIndex: 0,
+      reps: 12,
+      weight: 20,
+      isWarmup: true,
+    });
+    await logSet({ sessionId, exerciseId: benchId, setIndex: 1, reps: 10, weight: 60 });
+
+    const [riga] = await dailyExerciseSummary("2026-08-28");
+
+    // Il riscaldamento non racconta nulla sui carichi di lavoro, e in un
+    // confronto conterebbe come una serie in piu'.
+    expect(riga.sets).toBe(1);
+    expect(riga.topWeightKg).toBe(60);
+  });
+
+  it("a corpo libero il volume e' zero e il carico massimo non esiste", async () => {
+    const trazioni = await createExercise({
+      name: "Trazioni",
+      muscleGroup: "schiena",
+      secondaryMuscles: [],
+      equipment: ["sbarra"],
+    });
+    const sessionId = await startSession({ date: "2026-08-28" });
+    await logSet({ sessionId, exerciseId: trazioni, setIndex: 0, reps: 8, weight: null });
+
+    const [riga] = await dailyExerciseSummary("2026-08-28");
+
+    expect(riga.totalReps).toBe(8);
+    expect(riga.volumeKg).toBe(0);
+    // Null e non zero: "non si solleva un carico" non e' "ha sollevato zero".
+    expect(riga.topWeightKg).toBeNull();
+  });
+
+  it("guarda solo il giorno chiesto", async () => {
+    const ieri = await startSession({ date: "2026-08-27" });
+    await logSet({ sessionId: ieri, exerciseId: benchId, setIndex: 0, reps: 10, weight: 60 });
+
+    expect(await dailyExerciseSummary("2026-08-28")).toEqual([]);
+  });
+});
+
+describe("exerciseSummaryInRange", () => {
+  it("somma i giorni dell'intervallo e tiene il massimo, non la somma", async () => {
+    const lunedi = await startSession({ date: "2026-08-24" });
+    await logSet({ sessionId: lunedi, exerciseId: benchId, setIndex: 0, reps: 10, weight: 60 });
+
+    const giovedi = await startSession({ date: "2026-08-27" });
+    await logSet({ sessionId: giovedi, exerciseId: benchId, setIndex: 0, reps: 5, weight: 90 });
+
+    const [riga] = await exerciseSummaryInRange("2026-08-24", "2026-08-30");
+
+    expect(riga.sets).toBe(2);
+    expect(riga.totalReps).toBe(15);
+    expect(riga.volumeKg).toBe(10 * 60 + 5 * 90);
+    // Sommare i massimali direbbe che ha alzato 150 kg.
+    expect(riga.topWeightKg).toBe(90);
+  });
+
+  it("lascia fuori quel che sta fuori dall'intervallo", async () => {
+    const prima = await startSession({ date: "2026-08-20" });
+    await logSet({ sessionId: prima, exerciseId: benchId, setIndex: 0, reps: 10, weight: 60 });
+
+    expect(await exerciseSummaryInRange("2026-08-24", "2026-08-30")).toEqual([]);
+  });
+});
+
+describe("sessionCountInRange", () => {
+  it("conta gli allenamenti dell'intervallo", async () => {
+    await startSession({ date: "2026-08-24" });
+    await startSession({ date: "2026-08-27" });
+    await startSession({ date: "2026-09-02" });
+
+    expect(await sessionCountInRange("2026-08-24", "2026-08-30")).toBe(2);
+  });
+
+  it("senza allenamenti conta zero e non null", async () => {
+    expect(await sessionCountInRange("2026-08-24", "2026-08-30")).toBe(0);
   });
 });
