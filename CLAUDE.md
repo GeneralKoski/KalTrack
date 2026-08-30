@@ -91,6 +91,43 @@ che sembrano dettagli e sono ognuna un difetto già pagato:
    `LOCAL_ONLY_SETTINGS`. Una che parla dei dati sì: `plan_applied:<data>` deve
    viaggiare, o l'altro telefono riapplica il piano e duplica i pasti.
 
+### Le foto
+
+La sincronizzazione porta le **righe**, non i file. Quattro colonne contengono
+un percorso (`foods.image_uri`, `recipes.photo_uri`, `meal_entries.photo_uri`,
+`progress_photos.uri`) e su un altro telefono quel percorso non ha niente
+dietro.
+
+I byte viaggiano a parte (`src/services/photoSync.ts`, `/api/images`), e
+l'identita' di una foto e' il suo **nome**: la cartella dell'app cambia da
+sistema a sistema, il nome no. Per questo i nomi sono UUID - due foto diverse
+che collidono su un nome diventerebbero la stessa foto sull'altro telefono.
+
+Una foto che qui non c'e' si disegna con un segnaposto e non con un rettangolo
+vuoto (`SyncedPhoto`): il rettangolo vuoto sembra un difetto dell'app, il
+segnaposto dice che la foto esiste e non e' ancora arrivata.
+
+### Il confronto con gli amici
+
+`src/domain/comparison.ts`. Le regole **non** sono uniformi, ed e' una scelta di
+prodotto scritta nei test:
+
+- passi e allenamenti hanno un vincitore;
+- le calorie si affiancano **senza** vincitore - mangiare piu' o meno di
+  un'altra persona non e' meglio ne' peggio, e una spunta sarebbe un consiglio
+  sbagliato;
+- il peso non si confronta affatto;
+- un numero mancante non e' un pareggio ne' un ultimo posto.
+
+Cambiarle deve essere deliberato: hanno test propri che le enunciano.
+
+### Nomi utente
+
+"A" e "a" sono lo stesso nome: se uno e' preso l'altro non e' disponibile. Le
+maiuscole si conservano, il confronto le ignora, e la regola vale **ovunque** -
+accesso, unicita', apertura di un profilo, ricerca. Lato server c'e' un solo
+posto che lo sa (`User::whereHandle`).
+
 ### Logica di dominio
 
 `src/domain/` contiene funzioni pure senza React né DB (calcoli nutrizionali,
@@ -161,7 +198,7 @@ Valgono le guide Dieffetech `docs/react-native/`:
 - TypeScript strict, mai `any`.
 - Logging solo via `logger`, mai `console.*`.
 
-## AI (Fase 2)
+## AI
 
 Tutte le capability passano da Groq: Whisper per la trascrizione, un modello con
 function calling per l'assistente, un modello vision per la stima da foto.

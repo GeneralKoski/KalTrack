@@ -77,6 +77,39 @@ passa da un controllo di caratteri prima di finire in un percorso su disco, altr
 cose, con un secondo account vero che chiede il file di un altro per nome esatto e si
 prende un 404.
 
+## I nomi utente
+
+**"A" e "a" sono lo stesso nome.** Se uno e' preso, l'altro non e' disponibile.
+Le maiuscole si conservano - uno si chiama come vuole - ma non distinguono.
+
+La regola vale solo se vale **dappertutto**, quindi esiste un solo posto che sa
+confrontare un handle: lo scope `User::whereHandle`. Ci passano l'accesso, il
+controllo di unicita', l'apertura di un profilo e la ricerca. Un punto che
+confronta in modo binario fa rispondere "non trovato" a chi ha scritto il nome
+giusto con le maiuscole sbagliate, ed e' successo davvero.
+
+`Rule::unique` da sola non basta: su SQLite confronta in modo binario, quindi
+"GeneralKoski" e "generalkoski" si registrerebbero entrambi. Sarebbero due
+persone che nessuna lista sa separare e due righe che l'accesso non saprebbe
+scegliere - il primo dei due si prenderebbe il login dell'altro. Per questo
+c'e' `App\Rules\UniqueHandle`.
+
+## Amministratori
+
+`users.is_admin`, spento per tutti. Chi ce l'ha puo' vedere l'elenco degli
+utenti e **reimpostare la password di chiunque**, dall'app.
+
+Serve perche' non c'e' il recupero via email: senza, chi la dimentica resta
+fuori e l'unico rimedio era un comando sul server.
+
+E' una colonna e non "l'utente numero 1". Gli id non sono un ruolo: in questo
+database l'id 1 non esiste piu' - e' stato un account di prova, cancellato - e
+SQLite non lo riassegna. Una regola scritta su quel numero sarebbe nata morta.
+
+Reimpostare una password **cancella i token di quell'utente**: una password si
+cambia anche perche' si teme che qualcuno la conosca, e lasciare aperte le
+sessioni gia' avviate renderebbe il cambio una formalita'.
+
 ## Avvio in sviluppo
 
 ```bash
@@ -142,10 +175,10 @@ non e' un backup.
 | Metodo | Percorso | Cosa fa |
 |---|---|---|
 | POST | `/api/register` | Crea l'account, torna il token |
-| POST | `/api/login` | Torna il token |
+| POST | `/api/login` | Torna il token. Campo `login`: email **o** nome utente |
 | POST | `/api/logout` | Revoca **solo** il token in uso |
 | GET | `/api/me` | Il proprio profilo, per intero |
-| PATCH | `/api/me` | Handle, nome, bio, avatar, condivisioni |
+| PATCH | `/api/me` | Handle, email, nome, bio, avatar, condivisioni |
 | PUT | `/api/me/stats` | Il telefono pubblica i totali di giornata |
 | POST | `/api/sync` | Manda le modifiche e riceve quelle degli altri dispositivi |
 | GET | `/api/images` | Quali foto ha gia', così il telefono manda solo il resto |
@@ -154,6 +187,8 @@ non e' un backup.
 | DELETE | `/api/images/{nome}` | Cancella una foto |
 | GET | `/api/users?q=` | Cerca per handle o nome (min. 2 caratteri) |
 | GET | `/api/users/{handle}` | Profilo pubblico, filtrato |
+| GET | `/api/admin/users` | L'elenco. **Solo amministratori** |
+| POST | `/api/admin/users/{id}/password` | Reimposta una password. **Solo amministratori** |
 | GET | `/api/friendships` | Amicizie e richieste, con la direzione |
 | POST | `/api/friendships` | Chiede l'amicizia (o accetta, se l'altro aveva gia' chiesto) |
 | PATCH | `/api/friendships/{id}/accept` | Accetta. Solo il destinatario |
@@ -163,5 +198,7 @@ Nessuna lettura e' pubblica: senza account non si vede niente di nessuno.
 
 ## Cosa manca
 
-- Verifica dell'email e recupero password.
+- Verifica dell'email e recupero password automatico. Al loro posto c'e' il
+  reimposta password dell'amministratore, che con pochi utenti che si conoscono
+  e' il rimedio proporzionato.
 - Un database vero al posto di SQLite, se mai gli utenti diventassero tanti.
