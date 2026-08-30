@@ -125,3 +125,20 @@ export async function setSetting(key: string, value: string): Promise<void> {
     [key, value, nowIso()],
   );
 }
+
+/**
+ * Tutti gli obiettivi in vigore fino a una data, dal piu' recente.
+ *
+ * Gli obiettivi cambiano nel tempo e ogni giorno va misurato con quello che
+ * valeva ALLORA: colorare agosto con l'obiettivo scelto a settembre direbbe
+ * che si era fuori strada quando invece si era in linea.
+ */
+export async function targetsUpTo(date: string): Promise<TargetRow[]> {
+  const db = await getDb();
+  return db.getAllAsync<TargetRow>(
+    `SELECT * FROM targets
+     WHERE deleted_at IS NULL AND valid_from <= ?
+     ORDER BY valid_from DESC`,
+    [date],
+  );
+}

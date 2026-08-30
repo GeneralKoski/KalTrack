@@ -52,3 +52,94 @@ export function isRealIsoDate(value: string): boolean {
   const lastDay = new Date(year, month, 0).getDate();
   return day <= lastDay;
 }
+
+/**
+ * Il primo giorno raggiungibile navigando.
+ *
+ * L'app e' nata nel 2026 e prima non c'e' niente da guardare: un calendario
+ * che scorre all'infinito verso il 1970 e' solo un modo per perdersi.
+ */
+export const EARLIEST_DAY = "2026-01-01";
+
+/**
+ * Quanti giorni avanti si puo' andare.
+ *
+ * Il futuro serve a pianificare - un piano dei pasti, un allenamento previsto -
+ * e un mese e' l'orizzonte in cui una pianificazione ha senso. Oltre, si
+ * starebbe scrivendo nel vuoto.
+ */
+export const FUTURE_DAYS = 30;
+
+/** L'ultimo giorno raggiungibile, dato l'oggi. */
+export const latestDay = (today: string): string => addDays(today, FUTURE_DAYS);
+
+/** Se una data e' dentro i limiti di navigazione. */
+export function isWithinRange(iso: string, today: string): boolean {
+  return iso >= EARLIEST_DAY && iso <= latestDay(today);
+}
+
+/**
+ * Riporta una data dentro i limiti.
+ *
+ * Serve a chi arriva da fuori - un link, un piano, una data salvata da una
+ * versione precedente - e non deve poter mettere la schermata su un giorno da
+ * cui non si torna indietro con le frecce.
+ */
+export function clampDay(iso: string, today: string): string {
+  if (iso < EARLIEST_DAY) return EARLIEST_DAY;
+  const ultimo = latestDay(today);
+  return iso > ultimo ? ultimo : iso;
+}
+
+/** Primo giorno del mese a cui appartiene la data. */
+export function startOfMonth(iso: string): string {
+  const [year, month] = iso.split("-").map(Number);
+  return `${year}-${pad(month)}-01`;
+}
+
+/** Sposta di N mesi restando sul primo del mese. */
+export function addMonths(iso: string, months: number): string {
+  const [year, month] = iso.split("-").map(Number);
+  const d = new Date(year, month - 1 + months, 1);
+  return toIsoDate(d);
+}
+
+/** Le settimane che ogni mese occupa nella griglia, sempre le stesse. */
+export const WEEKS_IN_GRID = 6;
+
+/**
+ * Le date di un mese disposte in settimane, da lunedi' a domenica.
+ *
+ * Le caselle prima del primo e dopo l'ultimo sono `null` e non i giorni del
+ * mese vicino: un calendario che mostra il 31 luglio dentro agosto invita a
+ * toccarlo, e toccarlo dovrebbe cambiare mese, che non e' quello che uno si
+ * aspetta da una casella nella griglia di agosto.
+ *
+ * SEMPRE SEI SETTIMANE, anche quando il mese ne riempirebbe quattro. Un mese
+ * ne occupa da quattro (febbraio non bisestile che comincia di lunedi') a sei,
+ * e una griglia che cambia numero di righe fa cambiare altezza al foglio che
+ * la contiene: scorrendo i mesi il calendario si alzerebbe e si abbasserebbe
+ * sotto il dito. Le righe in piu' sono vuote e non si vedono, ma tengono il
+ * posto.
+ */
+export function monthGrid(iso: string): (string | null)[][] {
+  const [year, month] = iso.split("-").map(Number);
+  const primo = new Date(year, month - 1, 1);
+  const giorni = new Date(year, month, 0).getDate();
+  // getDay(): 0 = domenica. Portiamo tutto su lunedi' = 0.
+  const offset = (primo.getDay() + 6) % 7;
+
+  const celle: (string | null)[] = Array(offset).fill(null);
+  for (let giorno = 1; giorno <= giorni; giorno++) {
+    celle.push(`${year}-${pad(month)}-${pad(giorno)}`);
+  }
+  while (celle.length % 7 !== 0) celle.push(null);
+
+  while (celle.length < WEEKS_IN_GRID * 7) celle.push(null);
+
+  const settimane: (string | null)[][] = [];
+  for (let i = 0; i < celle.length; i += 7) {
+    settimane.push(celle.slice(i, i + 7));
+  }
+  return settimane;
+}

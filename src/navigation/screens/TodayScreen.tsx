@@ -13,6 +13,7 @@ import { DayStatCard } from "@/src/containers/tracking/DayStatCard";
 import { QuickLogSheet } from "@/src/containers/tracking/QuickLogSheet";
 import { WaterCard } from "@/src/containers/wellbeing/WaterCard";
 import { DayHeader } from "@/src/containers/diary/DayHeader";
+import { DayPickerSheet } from "@/src/containers/diary/DayPickerSheet";
 import { FreeEntrySheet } from "@/src/containers/diary/FreeEntrySheet";
 import { MacroBars } from "@/src/containers/diary/MacroBars";
 import { MealSection } from "@/src/containers/diary/MealSection";
@@ -86,6 +87,10 @@ export function TodayScreen() {
   const [weightOpen, setWeightOpen] = useState(false);
   const [mealTypeId, setMealTypeId] = useState<string | null>(null);
   const addSheetRef = useRef<BottomSheetModal>(null);
+  const dayPickerRef = useRef<BottomSheetModal>(null);
+  // Cambia a ogni apertura del calendario: e' quel che gli fa rileggere gli
+  // anelli invece di mostrare quelli di quando e' stato montato.
+  const [dayPickerKey, setDayPickerKey] = useState(0);
 
   // L'assistente e' montato sopra la navigazione e non vede questo stato:
   // glielo passiamo, altrimenti scriverebbe sempre su oggi anche mentre si
@@ -222,7 +227,15 @@ export function TodayScreen() {
     <View style={styles.root}>
       <ScreenBackground />
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
-        <DayHeader date={date} today={today} onChange={setDate} />
+        <DayHeader
+          date={date}
+          today={today}
+          onChange={setDate}
+          onOpenPicker={() => {
+            setDayPickerKey((k) => k + 1);
+            dayPickerRef.current?.present();
+          }}
+        />
 
         {loading && !data ? (
           <ActivityIndicator style={styles.loader} color={colors.accent} />
@@ -237,6 +250,7 @@ export function TodayScreen() {
               <CalorieRing
                 consumed={totals?.kcal ?? 0}
                 target={data?.targets?.kcal ?? null}
+                nutrients={totals ?? null}
               />
 
               {data?.targets ? null : (
@@ -318,6 +332,17 @@ export function TodayScreen() {
           <Plus size={26} color={colors.text} strokeWidth={2.5} />
         </MetalSurface>
       </TouchableOpacity>
+
+      <DayPickerSheet
+        ref={dayPickerRef}
+        date={date}
+        today={today}
+        refreshKey={dayPickerKey}
+        onPick={(giorno) => {
+          setDate(giorno);
+          dayPickerRef.current?.dismiss();
+        }}
+      />
 
       <AddEntrySheet
         ref={addSheetRef}

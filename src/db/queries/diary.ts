@@ -447,3 +447,48 @@ export async function copyDay(
     }
   });
 }
+
+/** Il consumo di un giorno, per il calendario. */
+export interface DayKcal {
+  date: string;
+  kcal: number;
+  /** I macro servono a colorare l'anello, non solo a riempirlo. */
+  protein: number;
+  carbs: number;
+  fat: number;
+  /** Quante righe ci sono. Zero righe non e' "zero calorie". */
+  entries: number;
+}
+
+/**
+ * Le calorie di ogni giorno di un intervallo, in una query sola.
+ *
+ * Serve al calendario, che mostra un mese per volta: chiamare `getDayDiary`
+ * trentuno volte vorrebbe dire trentuno viaggi nel database per disegnare
+ * trentuno cerchietti.
+ *
+ * I giorni senza niente NON compaiono nel risultato, e chi legge deve
+ * distinguerli da un giorno a zero calorie: un giorno vuoto e' un giorno in
+ * cui non si e' scritto, non un digiuno.
+ */
+export async function dailyKcalRange(
+  from: string,
+  to: string,
+): Promise<DayKcal[]> {
+  const db = await getDb();
+  return db.getAllAsync<DayKcal>(
+    `SELECT m.date AS date,
+            COALESCE(SUM(e.kcal), 0) AS kcal,
+            COALESCE(SUM(e.protein), 0) AS protein,
+            COALESCE(SUM(e.carbs), 0) AS carbs,
+            COALESCE(SUM(e.fat), 0) AS fat,
+            COUNT(e.id) AS entries
+       FROM meals m
+       JOIN meal_entries e ON e.meal_id = m.id AND e.deleted_at IS NULL
+      WHERE m.date >= ? AND m.date <= ?
+        AND m.deleted_at IS NULL
+      GROUP BY m.date
+      ORDER BY m.date`,
+    [from, to],
+  );
+}

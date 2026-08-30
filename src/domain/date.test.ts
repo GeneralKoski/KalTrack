@@ -1,7 +1,13 @@
 import {
   addDays,
+  addMonths,
+  clampDay,
   dayLabelKind,
   isRealIsoDate,
+  isWithinRange,
+  latestDay,
+  monthGrid,
+  startOfMonth,
   startOfWeek,
   todayIso,
   toIsoDate,
@@ -111,5 +117,83 @@ describe("isRealIsoDate", () => {
     expect(isRealIsoDate("29/08/2026")).toBe(false);
     expect(isRealIsoDate("2026-8-9")).toBe(false);
     expect(isRealIsoDate("")).toBe(false);
+  });
+});
+
+describe("i limiti della navigazione fra i giorni", () => {
+  const OGGI = "2026-08-30";
+
+  it("non si va prima dell'inizio del 2026", () => {
+    expect(isWithinRange("2026-01-01", OGGI)).toBe(true);
+    expect(isWithinRange("2025-12-31", OGGI)).toBe(false);
+  });
+
+  it("si arriva fino a un mese avanti, e non oltre", () => {
+    expect(latestDay(OGGI)).toBe("2026-09-29");
+    expect(isWithinRange("2026-09-29", OGGI)).toBe(true);
+    expect(isWithinRange("2026-09-30", OGGI)).toBe(false);
+  });
+
+  it("una data fuori limite viene riportata dentro", () => {
+    expect(clampDay("2019-05-04", OGGI)).toBe("2026-01-01");
+    expect(clampDay("2027-01-01", OGGI)).toBe("2026-09-29");
+    // Una data buona resta com'e': il clamp non deve spostare niente.
+    expect(clampDay("2026-08-12", OGGI)).toBe("2026-08-12");
+  });
+});
+
+describe("monthGrid", () => {
+  it("dispone il mese in settimane da lunedi' a domenica", () => {
+    // Agosto 2026 comincia di sabato: cinque caselle vuote prima.
+    const griglia = monthGrid("2026-08-15");
+
+    expect(griglia[0].slice(0, 5)).toEqual([null, null, null, null, null]);
+    expect(griglia[0][5]).toBe("2026-08-01");
+    expect(griglia[0][6]).toBe("2026-08-02");
+  });
+
+  it("riempie di null e non con i giorni del mese vicino", () => {
+    const griglia = monthGrid("2026-08-15");
+    const ultima = griglia[griglia.length - 1];
+
+    // Il 31 luglio dentro agosto inviterebbe a toccarlo, e toccarlo dovrebbe
+    // cambiare mese: non e' quello che ci si aspetta da quella casella.
+    expect(griglia.flat().filter((d) => d !== null)).toHaveLength(31);
+    expect(ultima.some((d) => d === null)).toBe(true);
+  });
+
+  /**
+   * Un mese ne occupa da quattro a sei: senza un numero fisso, il foglio che
+   * contiene il calendario cambierebbe altezza scorrendo i mesi.
+   */
+  it("sono sempre sei settimane, qualunque mese sia", () => {
+    // Febbraio 2027 comincia di lunedi' e ha ventotto giorni: ne basterebbero
+    // quattro. Settembre 2026 ne riempirebbe cinque, agosto 2026 sei.
+    expect(monthGrid("2027-02-10")).toHaveLength(6);
+    expect(monthGrid("2026-09-10")).toHaveLength(6);
+    expect(monthGrid("2026-08-10")).toHaveLength(6);
+  });
+
+  it("ogni settimana ha sette caselle", () => {
+    for (const mese of ["2026-01-10", "2026-02-10", "2028-02-10"]) {
+      expect(monthGrid(mese).every((w) => w.length === 7)).toBe(true);
+    }
+  });
+
+  it("febbraio bisestile ha ventinove giorni", () => {
+    expect(monthGrid("2028-02-10").flat().filter(Boolean)).toHaveLength(29);
+  });
+});
+
+describe("addMonths e startOfMonth", () => {
+  it("resta sul primo del mese", () => {
+    expect(startOfMonth("2026-08-30")).toBe("2026-08-01");
+    expect(addMonths("2026-08-01", 1)).toBe("2026-09-01");
+    expect(addMonths("2026-01-01", -1)).toBe("2025-12-01");
+  });
+
+  it("non scivola su un mese piu' corto", () => {
+    // Il 31 gennaio + 1 mese non deve diventare il 3 marzo.
+    expect(addMonths("2026-01-31", 1)).toBe("2026-02-01");
   });
 });

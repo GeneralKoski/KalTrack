@@ -3,6 +3,7 @@ import {
   ageAt,
   bmr,
   suggestTargets,
+  targetAt,
   targetStatus,
   tdee,
 } from "@/src/domain/targets";
@@ -132,5 +133,26 @@ describe("targetStatus", () => {
 
   it("a zero consumate è sotto obiettivo", () => {
     expect(targetStatus(0, 2000)).toBe("under");
+  });
+});
+
+describe("targetAt", () => {
+  const storia = [
+    { valid_from: "2026-08-01", kcal: 2200 },
+    { valid_from: "2026-01-15", kcal: 2600 },
+  ];
+
+  it("prende l'obiettivo che valeva quel giorno, non l'ultimo", () => {
+    expect(targetAt(storia, "2026-08-30")?.kcal).toBe(2200);
+    // Luglio va misurato con l'obiettivo di gennaio, non con quello di agosto.
+    expect(targetAt(storia, "2026-07-31")?.kcal).toBe(2600);
+  });
+
+  it("prima del primo obiettivo non ce n'e' nessuno", () => {
+    expect(targetAt(storia, "2026-01-14")).toBeNull();
+  });
+
+  it("il giorno di decorrenza e' gia' compreso", () => {
+    expect(targetAt(storia, "2026-08-01")?.kcal).toBe(2200);
   });
 });

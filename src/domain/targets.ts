@@ -91,3 +91,20 @@ export function targetStatus(value: number, target: number): TargetStatus {
   if (ratio >= 1 - ON_TARGET_TOLERANCE) return "on_target";
   return "under";
 }
+
+/**
+ * L'obiettivo in vigore in un certo giorno.
+ *
+ * `history` arriva ordinata dal piu' recente (`targetsUpTo`), quindi il primo
+ * che decorre da prima di quel giorno e' quello buono.
+ *
+ * Ogni giorno va misurato con l'obiettivo che valeva ALLORA: colorare agosto
+ * con l'obiettivo scelto a settembre direbbe che si era fuori strada quando
+ * invece si era in linea.
+ */
+export function targetAt<T extends { valid_from: string }>(
+  history: T[],
+  date: string,
+): T | null {
+  return history.find((t) => t.valid_from <= date) ?? null;
+}
