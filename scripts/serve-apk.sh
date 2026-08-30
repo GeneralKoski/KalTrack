@@ -16,7 +16,48 @@ set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APK_DIR="$PROJECT_DIR/android/app/build/outputs/apk/release"
-PORT="${1:-8000}"
+
+# --- Porta ------------------------------------------------------------------
+# Senza una porta scelta a mano si prende la prima libera da 8000 in su.
+# Sulla 8000 spesso c'e' gia' `php artisan serve` del backend, e siccome qui si
+# ascolta su tutta la rete locale (0.0.0.0) il conflitto c'e' anche quando
+# quello sta solo su 127.0.0.1. Prima usciva uno stack trace di Python lungo
+# trenta righe che non diceva ne' il perche' ne' cosa fare.
+porta_libera() {
+  python3 -c '
+import socket, sys
+inizio = int(sys.argv[1])
+for porta in range(inizio, inizio + 20):
+    s = socket.socket()
+    try:
+        s.bind(("0.0.0.0", porta))
+        print(porta)
+        break
+    except OSError:
+        continue
+    finally:
+        s.close()
+' "$1"
+}
+
+if [[ $# -ge 1 ]]; then
+  # Porta chiesta esplicitamente: se e occupata si dice chi la tiene, invece di
+  # spostarsi in silenzio su un altra e stampare un indirizzo diverso da quello
+  # che ci si aspettava.
+  PORT="$1"
+  if [[ "$(porta_libera "$PORT")" != "$PORT" ]]; then
+    echo "ERRORE: la porta $PORT e gia occupata da:" >&2
+    lsof -nP -iTCP:"$PORT" -sTCP:LISTEN 2>/dev/null | tail -n +2 >&2
+    echo "        Prova con:  ./scripts/serve-apk.sh $((PORT + 1))" >&2
+    exit 1
+  fi
+else
+  PORT="$(porta_libera 8000)"
+  if [[ -z "$PORT" ]]; then
+    echo "ERRORE: nessuna porta libera fra 8000 e 8019" >&2
+    exit 1
+  fi
+fi
 
 # Il piu' recente, con ripiego sul nome che genera gradle.
 APK="$(ls -t "$APK_DIR"/kaltrack-*.apk "$APK_DIR"/app-release.apk 2>/dev/null | head -1 || true)"
