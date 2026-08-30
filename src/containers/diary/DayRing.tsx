@@ -1,7 +1,6 @@
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { macroSlices, type Nutrients } from "@/src/domain/nutrition";
-import { theme } from "@/src/styles";
 import { MacroArc } from "@/src/containers/diary/MacroArc";
 import React from "react";
 import { StyleSheet, View } from "react-native";
@@ -21,14 +20,6 @@ interface DayRingProps {
   today?: boolean;
   /** Fuori dai limiti di navigazione, o fuori dal mese mostrato. */
   disabled?: boolean;
-  /**
-   * Vero quando i passi di quel giorno hanno raggiunto l'obiettivo.
-   *
-   * Un puntino e non un secondo anello: in trentaquattro pixel due anelli
-   * concentrici diventano due righe indistinguibili, e il calendario serve a
-   * scegliere un giorno, non a leggere due misure insieme.
-   */
-  stepsHit?: boolean;
 }
 
 /**
@@ -57,7 +48,6 @@ export const DayRing: React.FC<DayRingProps> = ({
   selected = false,
   today = false,
   disabled = false,
-  stepsHit = false,
 }) => {
   const { colors } = useAppTheme();
 
@@ -72,11 +62,25 @@ export const DayRing: React.FC<DayRingProps> = ({
   return (
     <View style={styles.wrap}>
       <Svg width={SIZE} height={SIZE}>
+        {/*
+          Il giorno scelto si riconosce dal riempimento tenue e dal numero in
+          evidenza, non da un anello colorato: l'anello e' gia' occupato a dire
+          come e' andata la giornata, e sovrascriverlo con la selezione toglie
+          l'unica informazione che quel cerchio porta.
+        */}
+        {selected ? (
+          <Circle
+            cx={SIZE / 2}
+            cy={SIZE / 2}
+            r={RADIUS}
+            fill={colors.surfaceMuted}
+          />
+        ) : null}
         <Circle
           cx={SIZE / 2}
           cy={SIZE / 2}
           r={RADIUS}
-          stroke={selected ? colors.accent : colors.surfaceMuted}
+          stroke={colors.surfaceMuted}
           strokeWidth={STROKE}
           fill="none"
         />
@@ -92,11 +96,6 @@ export const DayRing: React.FC<DayRingProps> = ({
         >
           {day}
         </Text>
-        {stepsHit ? (
-          <View
-            style={[styles.stepsDot, { backgroundColor: theme.colors.success }]}
-          />
-        ) : null}
       </View>
     </View>
   );
@@ -115,5 +114,4 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   day: { fontSize: 13 },
-  stepsDot: { width: 4, height: 4, borderRadius: 2, marginTop: 1 },
 });
