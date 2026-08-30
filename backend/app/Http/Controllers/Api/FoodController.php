@@ -19,22 +19,31 @@ use Illuminate\Http\Request;
  */
 class FoodController extends Controller
 {
-    private const LIMIT = 200;
+    /** Quante voci per pagina. Oltre, si continua con `after`. */
+    private const PER_PAGE = 200;
 
     public function index(Request $request): JsonResponse
     {
         $term = Text::normalize((string) $request->query('q', ''));
+        $after = (string) $request->query('after', '');
 
+        // Cursore sul nome normalizzato e non un offset: con un offset, una
+        // voce aggiunta mentre si scorre fa slittare tutto e chi importa si
+        // perde una riga o la prende due volte.
         $foods = Food::query()
             ->when($term !== '', fn ($q) => $q->where('name_norm', 'LIKE', "%{$term}%"))
+            ->when($after !== '', fn ($q) => $q->where('name_norm', '>', $after))
             ->orderBy('name_norm')
-            ->limit(self::LIMIT)
+            ->limit(self::PER_PAGE)
             ->get();
 
         return response()->json([
             'data' => $foods->map(
                 fn (Food $f) => $this->publicShape($f, $request->user()->id)
             ),
+            'next' => $foods->count() === self::PER_PAGE
+                ? $foods->last()->name_norm
+                : null,
         ]);
     }
 

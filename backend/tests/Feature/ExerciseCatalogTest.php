@@ -113,7 +113,15 @@ class ExerciseCatalogTest extends TestCase
 
         $corpo = $risposta->json('data.0');
         $this->assertSame(
-            ['id', 'name', 'nameNorm', 'muscleGroup', 'equipment', 'mine'],
+            [
+                'id',
+                'name',
+                'nameNorm',
+                'muscleGroup',
+                'secondaryMuscles',
+                'equipment',
+                'mine',
+            ],
             array_keys($corpo),
         );
         // Bea non l'ha aggiunta lei, e da qui non ha modo di sapere chi.
@@ -263,6 +271,69 @@ class ExerciseCatalogTest extends TestCase
             ->getJson('/api/exercises?q=panca')
             ->assertOk()
             ->assertJsonCount(2, 'data');
+    }
+
+    /**
+     * I muscoli secondari viaggiano: senza, gli esercizi importati arrivavano
+     * con la lista vuota e `suggestAlternatives` - che propone il sostituto
+     * quando un attrezzo e' occupato - lavorava peggio proprio su quelli.
+     */
+    public function test_il_catalogo_porta_anche_i_muscoli_secondari(): void
+    {
+        $anna = $this->user();
+
+        $this->actingAs($anna)
+            ->postJson('/api/exercises', [
+                'name' => 'Panca piana',
+                'muscleGroup' => 'petto',
+                'secondaryMuscles' => 'tricipiti,spalle',
+                'equipment' => 'bilanciere,panca',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.secondaryMuscles', 'tricipiti,spalle');
+
+        $this->actingAs($anna)
+            ->getJson('/api/exercises')
+            ->assertOk()
+            ->assertJsonPath('data.0.secondaryMuscles', 'tricipiti,spalle');
+    }
+
+    /**
+     * Il catalogo cresce con gli iscritti: senza cursore, oltre la prima
+     * pagina le voci non erano raggiungibili in nessun modo.
+     */
+    public function test_oltre_una_pagina_si_continua_col_cursore(): void
+    {
+        $anna = $this->user();
+
+        // Duecentouno voci: una in piu' della pagina.
+        $righe = [];
+        for ($i = 1; $i <= 201; $i++) {
+            $nome = 'Esercizio '.str_pad((string) $i, 3, '0', STR_PAD_LEFT);
+            $righe[] = [
+                'name' => $nome,
+                'name_norm' => Text::normalize($nome),
+                'muscle_group' => 'petto',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+        Exercise::insert($righe);
+
+        $prima = $this->actingAs($anna)->getJson('/api/exercises')->assertOk();
+        $prima->assertJsonCount(200, 'data');
+        $cursore = $prima->json('next');
+        $this->assertNotNull($cursore);
+
+        $seconda = $this->actingAs($anna)
+            ->getJson('/api/exercises?after='.urlencode($cursore))
+            ->assertOk();
+
+        $seconda->assertJsonCount(1, 'data');
+        // Finita: chi importa sa che non c'e' altro da chiedere.
+        $this->assertNull($seconda->json('next'));
+        // E la voce non e' una di quelle gia' ricevute.
+        $this->assertSame('Esercizio 201', $seconda->json('data.0.name'));
     }
 
     public function test_senza_accesso_il_catalogo_non_si_vede(): void

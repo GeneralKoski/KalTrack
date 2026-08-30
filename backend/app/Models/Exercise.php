@@ -11,5 +11,12 @@ use Illuminate\Database\Eloquent\Model;
  * `created_by` c'e' ma non esce mai da nessuna risposta: serve a decidere chi
  * puo' correggere una voce, non a dire agli altri chi l'ha scritta.
  */
-#[Fillable(['name', 'name_norm', 'muscle_group', 'equipment', 'created_by'])]
+#[Fillable([
+    'name',
+    'name_norm',
+    'muscle_group',
+    'secondary_muscles',
+    'equipment',
+    'created_by',
+])]
 class Exercise extends Model {}

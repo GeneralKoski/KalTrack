@@ -10,8 +10,14 @@ use Illuminate\Http\Request;
 
 class ExerciseController extends Controller
 {
-    /** Quante voci torna una ricerca. Un catalogo, non un elenco infinito. */
-    private const LIMIT = 200;
+    /**
+     * Quante voci per pagina.
+     *
+     * Il catalogo cresce con gli iscritti, quindi non esiste un numero che
+     * basti per sempre: oltre questo si continua con `after`, e chi legge sa
+     * che c'e' altro perche' la risposta glielo dice.
+     */
+    private const PER_PAGE = 200;
 
     /**
      * Il catalogo comune.
@@ -23,17 +29,30 @@ class ExerciseController extends Controller
     public function index(Request $request): JsonResponse
     {
         $term = Text::normalize((string) $request->query('q', ''));
+        $after = (string) $request->query('after', '');
 
+        /*
+         * Il cursore e' il nome normalizzato dell'ultima voce ricevuta, non un
+         * numero di pagina: con un offset, una voce aggiunta mentre si scorre
+         * fa slittare tutto e chi importa si perde una riga o la prende due
+         * volte. `name_norm` e' unico, quindi "riprendi da dopo questo" e'
+         * sempre lo stesso punto.
+         */
         $exercises = Exercise::query()
             ->when($term !== '', fn ($q) => $q->where('name_norm', 'LIKE', "%{$term}%"))
+            ->when($after !== '', fn ($q) => $q->where('name_norm', '>', $after))
             ->orderBy('name_norm')
-            ->limit(self::LIMIT)
+            ->limit(self::PER_PAGE)
             ->get();
 
         return response()->json([
             'data' => $exercises->map(
                 fn (Exercise $e) => $this->publicShape($e, $request->user()->id)
             ),
+            // Null quando la pagina non e' piena: non c'e' altro da chiedere.
+            'next' => $exercises->count() === self::PER_PAGE
+                ? $exercises->last()->name_norm
+                : null,
         ]);
     }
 
@@ -62,6 +81,7 @@ class ExerciseController extends Controller
             [
                 'name' => trim($validated['name']),
                 'muscle_group' => $validated['muscleGroup'],
+                'secondary_muscles' => $validated['secondaryMuscles'] ?? null,
                 'equipment' => $validated['equipment'] ?? null,
                 'created_by' => $request->user()->id,
             ],
@@ -112,6 +132,7 @@ class ExerciseController extends Controller
             'name' => trim($validated['name']),
             'name_norm' => $norm,
             'muscle_group' => $validated['muscleGroup'],
+            'secondary_muscles' => $validated['secondaryMuscles'] ?? null,
             'equipment' => $validated['equipment'] ?? null,
         ]);
 
@@ -145,7 +166,8 @@ class ExerciseController extends Controller
         return [
             'name' => ['required', 'string', 'max:120'],
             'muscleGroup' => ['required', 'string', 'max:40'],
-            // Elenco separato da virgole, come in colonna.
+            // Elenchi separati da virgole, come in colonna.
+            'secondaryMuscles' => ['sometimes', 'nullable', 'string', 'max:200'],
             'equipment' => ['sometimes', 'nullable', 'string', 'max:120'],
         ];
     }
@@ -196,6 +218,7 @@ class ExerciseController extends Controller
             'name' => $exercise->name,
             'nameNorm' => $exercise->name_norm,
             'muscleGroup' => $exercise->muscle_group,
+            'secondaryMuscles' => $exercise->secondary_muscles,
             'equipment' => $exercise->equipment,
             'mine' => $exercise->created_by !== null
                 && $exercise->created_by === $chiGuarda,
