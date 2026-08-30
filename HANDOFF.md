@@ -14,8 +14,8 @@ stati chiusi il 30 agosto 2026: resta aperto un pezzo solo, e piccolo.
 
 | | |
 |---|---|
-| Test app | 849 su 51 suite |
-| Test backend | 121 |
+| Test app | 852 su 51 suite |
+| Test backend | 123 |
 | Typecheck / lint | puliti, 0 errori |
 | Ramo | `main`, allineato con `origin` |
 | Server | `kaltrack.martin-trajkovski.it`, healthy, ultimo deploy allineato al codice |
@@ -42,9 +42,9 @@ serve, si reimposta da Impostazioni > Reimposta password, oppure con
 ## Il lavoro aperto
 
 **Il deploy.** Il codice e' completo e verde, ma il server in produzione non ha
-ancora le cinque migrazioni nuove (`share_gym` + `share_window_days`,
-`shared_workouts`, `exercises`, `exercises.created_by`, `foods`) ne' le rotte
-nuove. Finche' non si deploya, dal
+ancora le sei migrazioni nuove (`share_gym` + `share_window_days`,
+`shared_workouts`, `exercises`, `exercises.created_by`,
+`exercises.secondary_muscles`, `foods`) ne' le rotte nuove. Finche' non si deploya, dal
 telefono la creazione di un esercizio funziona e resta locale, mentre la
 proposta al catalogo risponde 404 e fallisce in silenzio - e' il comportamento
 voluto, ma vuol dire che il catalogo comune di fatto non gira ancora.

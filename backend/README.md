@@ -250,11 +250,11 @@ non e' un backup.
 | DELETE | `/api/images/{nome}` | Cancella una foto |
 | PUT | `/api/me/workouts` | Il telefono pubblica la palestra. **403 a interruttore spento** |
 | GET | `/api/comparison?handles=&date=&days=` | Fino a 4 persone insieme, filtrate per ciascuna |
-| GET | `/api/exercises?q=` | Il catalogo esercizi, comune a tutti gli iscritti |
+| GET | `/api/exercises?q=&after=` | Il catalogo esercizi, comune a tutti gli iscritti. Paginato: `next` dice se c'e' altro |
 | POST | `/api/exercises` | Aggiunge una voce (o torna quella che c'era) |
 | PATCH | `/api/exercises/{id}` | Corregge. **Solo le proprie** |
 | DELETE | `/api/exercises/{id}` | Toglie. **Solo le proprie** |
-| GET | `/api/foods?q=` | Il catalogo alimenti, comune a tutti gli iscritti |
+| GET | `/api/foods?q=&after=` | Il catalogo alimenti, comune a tutti gli iscritti. Paginato come sopra |
 | POST | `/api/foods` | Aggiunge una voce (o torna quella che c'era) |
 | PATCH | `/api/foods/{id}` | Corregge. **Solo le proprie** |
 | DELETE | `/api/foods/{id}` | Toglie. **Solo le proprie** |
