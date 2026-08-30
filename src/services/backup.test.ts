@@ -1,4 +1,6 @@
 import { BACKUP_TABLES } from "@/src/services/backup";
+import { collectChanges } from "@/src/services/sync";
+import { CURSOR_KEY, PUSHED_KEY } from "@/src/services/syncMarkers";
 import { createTestDb } from "@/src/db/__testing__/betterSqliteAdapter";
 import { __setDbForTesting, getDb } from "@/src/db/index";
 import { MEAL_TYPE_IDS, runMigrations } from "@/src/db/migrations";
@@ -14,6 +16,7 @@ import {
   recentSessions,
   startSession,
 } from "@/src/db/queries/workouts";
+import { getSetting, setSetting } from "@/src/db/queries/settings";
 import { getSteps, setSteps } from "@/src/db/queries/tracking";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
 import {
@@ -282,3 +285,44 @@ describe("giro completo con i dati della palestra", () => {
     expect(await listPlanEntries("2026-08-29", "2026-08-29")).toHaveLength(1);
   });
 });
+
+describe("ripristino e sincronizzazione", () => {
+  /**
+   * Il difetto: `settings` sta nel backup, e i segnaposto della
+   * sincronizzazione stanno in `settings`. Ripristinando si rimettevano quelli
+   * del giorno dell'export, che dicono "tutto fino a quella data e' gia' stato
+   * mandato". Le righe ripristinate sono tutte piu' vecchie di quella data,
+   * quindi non partivano MAI: il server restava com'era e rimandava giu' la
+   * propria versione. Chi ripristina un backup si ritrovava un miscuglio fra i
+   * dati ripristinati e quelli che il ripristino doveva sostituire.
+   */
+  it("dopo un ripristino i segnaposto sono azzerati", async () => {
+    await seedData();
+    // I segnaposto esistono PRIMA dell'export, quindi finiscono nel file: e'
+    // il caso vero, un backup preso da un telefono che si sincronizzava.
+    await setSetting(CURSOR_KEY, "406");
+    await setSetting(PUSHED_KEY, "2099-01-01T00:00:00.000Z");
+    const backup = buildBackupFixture(await buildBackup());
+
+    await restoreBackup(backup);
+
+    expect(await getSetting(CURSOR_KEY)).toBeNull();
+    expect(await getSetting(PUSHED_KEY)).toBeNull();
+  });
+
+  it("dopo un ripristino tutto e' di nuovo da mandare al server", async () => {
+    await seedData();
+    // Il file porta con se' "ho gia' mandato tutto fino al 2099".
+    await setSetting(PUSHED_KEY, "2099-01-01T00:00:00.000Z");
+    const backup = buildBackupFixture(await buildBackup());
+
+    await restoreBackup(backup);
+
+    const changes = await collectChanges(await getSetting(PUSHED_KEY));
+    expect(changes.some((c) => c.table === "foods")).toBe(true);
+  });
+});
+
+/** Il backup passa da JSON prima di tornare indietro, come nell'uso vero. */
+const buildBackupFixture = (payload: unknown) =>
+  parseBackup(JSON.stringify(payload));

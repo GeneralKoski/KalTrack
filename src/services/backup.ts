@@ -1,5 +1,6 @@
 import { getDb } from "@/src/db/index";
 import { MIGRATIONS, runMigrations } from "@/src/db/migrations";
+import { resetSyncMarkers } from "@/src/services/syncMarkers";
 import { logger } from "@/src/utils/logger";
 
 export const BACKUP_FORMAT_VERSION = 1;
@@ -136,6 +137,21 @@ export async function restoreBackup(payload: BackupPayload): Promise<void> {
   if (payload.schemaVersion < latestSchemaVersion()) {
     await runMigrations(db);
   }
+
+  /*
+   * I segnaposto della sincronizzazione NON si ripristinano.
+   *
+   * Stanno in `settings`, che è nel backup, quindi il ripristino rimetterebbe
+   * quelli del giorno dell'export: "tutto fino a quella data è già stato
+   * mandato". Ma le righe appena ripristinate sono tutte più vecchie di quella
+   * data, quindi non partirebbero mai. Il server resterebbe com'era e
+   * rimanderebbe giù la propria versione: chi ripristina un backup si
+   * ritroverebbe un miscuglio fra i dati ripristinati e quelli che il
+   * ripristino doveva sostituire.
+   *
+   * Azzerandoli, il database ripristinato si riconcilia da capo con il server.
+   */
+  await resetSyncMarkers();
 
   logger.info(`[backup] ripristinato (formato ${payload.formatVersion})`);
 }
