@@ -20,7 +20,7 @@ tre funzioni AI. Sistemati, ma **il telefono ha ancora l'APK vecchio**.
 | Test app | 864 su 53 suite |
 | Test backend | 123 |
 | Typecheck / lint | puliti, 0 errori |
-| Ramo | `main`. **Sette commit non ancora pushati** al 31/08 |
+| Ramo | `main`. Si committa sempre qui, mai su un ramo a parte |
 | Server | `kaltrack.martin-trajkovski.it`, healthy, 16 migrazioni applicate, allineato al codice |
 | APK | firmato, `./scripts/build-apk.sh`. Quello sul telefono e' anteriore all'icona **e all'assistente riparato** |
 
@@ -57,6 +57,18 @@ aprendo l'app, non dalla suite.
 e' anteriore ai modelli AI riparati, quindi **sul telefono l'assistente vocale
 e la stima da foto sono ancora rotti**. Si porta dietro anche l'icona, che
 entra nel bundle al prebuild.
+
+```bash
+./scripts/build-apk.sh 1.0.1     # 1.0.0 e' quello gia' installato
+./scripts/serve-apk.sh
+```
+
+**I due modelli nuovi non sono ancora stati provati contro Groq**: sono presi
+dalla tabella dei ritiri e dalle schede dei modelli, e le capability che
+servono - tool use per l'assistente, immagini piu' JSON object mode per le
+foto - risultano dichiarate. La chiave pero' vive sul telefono, quindi la
+prima chiamata vera sara' quella dell'APK. Se sbaglia, adesso il motivo si
+legge in Impostazioni > Diagnostica invece di sparire.
 
 **3. Ripulire l'emulatore.** Ci sono dati di prova lasciati apposta durante le
 verifiche: obiettivo 2000 kcal, 100 g di anacardi, 10.000 passi, un esercizio
