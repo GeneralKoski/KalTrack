@@ -674,7 +674,7 @@
   "load_failed": "Non sono riuscito a leggere i dati",
   "social": {
     "title": "Amici",
-    "account_intro": "L'account serve solo agli amici. Il diario, la palestra e tutto il resto restano sul telefono e non vengono inviati.",
+    "account_intro": "Con l'account i tuoi dati vengono copiati sul server, così un telefono rotto non se li porta via e su un secondo dispositivo li ritrovi. Agli altri utenti non arriva niente di tutto questo: vedono solo i totali di giornata che scegli tu di condividere.",
     "email": "Email",
     "password": "Password",
     "handle": "Nome utente",
