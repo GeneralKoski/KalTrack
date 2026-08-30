@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FriendshipController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\SharedStatController;
+use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\ImageController;
 use App\Http\Controllers\Api\SyncController;
 use Illuminate\Support\Facades\Route;
@@ -38,6 +39,13 @@ Route::middleware('auth:sanctum')->group(function () {
      * file a cui le righe puntano. Senza, una ricetta con foto arriva
      * sull'altro telefono con un rettangolo vuoto al posto dell'immagine.
      */
+    /*
+     * Amministrazione: solo per chi ha `is_admin`. Il controllo e' dentro il
+     * controller e non qui, cosi' vive accanto a cio' che protegge.
+     */
+    Route::get('admin/users', [AdminController::class, 'users']);
+    Route::post('admin/users/{user}/password', [AdminController::class, 'resetPassword']);
+
     Route::get('images', [ImageController::class, 'index']);
     Route::post('images', [ImageController::class, 'store']);
     Route::get('images/{name}', [ImageController::class, 'show']);

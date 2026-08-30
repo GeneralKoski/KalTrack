@@ -24,6 +24,7 @@ use Laravel\Sanctum\HasApiTokens;
     'share_steps',
     'share_weight',
     'share_workouts',
+    'is_admin',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
@@ -41,6 +42,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_admin' => 'boolean',
             'share_calories' => 'boolean',
             'share_steps' => 'boolean',
             'share_weight' => 'boolean',

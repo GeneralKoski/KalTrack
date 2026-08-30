@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\UniqueHandle;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -17,16 +18,20 @@ class RegisterRequest extends FormRequest
         return [
             'email' => ['required', 'email', 'max:255', Rule::unique('users')],
             'password' => ['required', 'string', 'min:8', 'max:72'],
-            // Minuscole, cifre e underscore: un handle e' un indirizzo, e due
-            // handle che differiscono solo per maiuscole sarebbero due persone
-            // indistinguibili in una lista.
+            /*
+             * Lettere, cifre e underscore. Le maiuscole si possono scrivere e
+             * si conservano - uno si chiama come vuole - ma non distinguono:
+             * l'unicita' e' insensibile alle maiuscole, o "GeneralKoski" e
+             * "generalkoski" sarebbero due persone che nessuna lista sa
+             * separare e che l'accesso non saprebbe distinguere.
+             */
             'handle' => [
                 'required',
                 'string',
                 'min:3',
                 'max:30',
-                'regex:/^[a-z0-9_]+$/',
-                Rule::unique('users'),
+                'regex:/^[A-Za-z0-9_]+$/',
+                new UniqueHandle,
             ],
             'displayName' => ['required', 'string', 'max:60'],
         ];

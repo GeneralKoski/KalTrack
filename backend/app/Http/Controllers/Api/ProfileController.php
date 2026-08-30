@@ -25,6 +25,7 @@ class ProfileController extends Controller
             'avatarUrl' => $user->avatar_url,
             'bio' => $user->bio,
             'email' => $user->email,
+            'isAdmin' => $user->is_admin,
             'shares' => [
                 'calories' => $user->share_calories,
                 'steps' => $user->share_steps,
@@ -44,6 +45,7 @@ class ProfileController extends Controller
         // chiave passasse la validazione.
         $map = [
             'handle' => 'handle',
+            'email' => 'email',
             'displayName' => 'display_name',
             'avatarUrl' => 'avatar_url',
             'bio' => 'bio',

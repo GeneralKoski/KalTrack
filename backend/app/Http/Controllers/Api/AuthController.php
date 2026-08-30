@@ -42,13 +42,28 @@ class AuthController extends Controller
     public function login(LoginRequest $request): JsonResponse
     {
         $data = $request->validated();
-        $user = User::where('email', $data['email'])->first();
+
+        /*
+         * Email oppure nome utente, con lo stesso campo.
+         *
+         * Il confronto sull'handle e' case-insensitive: un nome utente e'
+         * qualcosa che si scrive a mano su una tastiera del telefono, che
+         * mette la maiuscola per conto suo. Rifiutare "GeneralKoski" a chi si
+         * e' registrato come "generalkoski" sarebbe stato un errore
+         * incomprensibile.
+         */
+        $login = $data['login'];
+        $user = User::query()
+            ->where('email', $login)
+            ->orWhereRaw('LOWER(handle) = ?', [mb_strtolower($login)])
+            ->first();
 
         // Un messaggio solo per credenziali sbagliate e utente inesistente:
-        // distinguerli direbbe a chiunque quali email sono registrate.
+        // distinguerli direbbe a chiunque quali email e quali nomi utente sono
+        // registrati.
         if (! $user || ! Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['Email o password non corretti.'],
+                'login' => ['Credenziali non corrette.'],
             ]);
         }
 
