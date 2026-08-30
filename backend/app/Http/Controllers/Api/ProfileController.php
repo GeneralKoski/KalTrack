@@ -84,8 +84,13 @@ class ProfileController extends Controller
             ->whereNotNull('handle')
             ->whereKeyNot($me->id)
             ->where(function ($q) use ($term) {
-                $q->where('handle', 'like', "%{$term}%")
-                    ->orWhere('display_name', 'like', "%{$term}%");
+                // LOWER esplicito: il LIKE di SQLite ignora le maiuscole
+                // solo per l'ASCII e solo per come e' compilato. Affidarsi a
+                // quello vuol dire che la ricerca cambia comportamento se un
+                // giorno il database cambia.
+                $termine = mb_strtolower($term);
+                $q->whereRaw('LOWER(handle) LIKE ?', ["%{$termine}%"])
+                    ->orWhereRaw('LOWER(display_name) LIKE ?', ["%{$termine}%"]);
             })
             ->orderBy('handle')
             ->limit(20)
@@ -113,7 +118,10 @@ class ProfileController extends Controller
      */
     public function show(Request $request, string $handle): PublicProfileResource
     {
-        $user = User::where('handle', $handle)->firstOrFail();
+        // Insensibile alle maiuscole, come ovunque si cerchi un nome utente:
+        // un profilo esistente non deve rispondere "non trovato" a chi l'ha
+        // scritto giusto con le maiuscole sbagliate.
+        $user = User::whereHandle($handle)->firstOrFail();
         $isFriend = $request->user()->isFriendWith($user);
 
         if ($isFriend) {

@@ -4,7 +4,7 @@ namespace App\Rules;
 
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
-use Illuminate\Support\Facades\DB;
+use App\Models\User;
 
 /**
  * Un nome utente libero, senza guardare le maiuscole.
@@ -21,8 +21,7 @@ class UniqueHandle implements ValidationRule
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        $query = DB::table('users')
-            ->whereRaw('LOWER(handle) = ?', [mb_strtolower((string) $value)]);
+        $query = User::whereHandle((string) $value);
 
         if ($this->ignoreUserId !== null) {
             $query->where('id', '!=', $this->ignoreUserId);

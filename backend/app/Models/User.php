@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -48,6 +49,24 @@ class User extends Authenticatable
             'share_weight' => 'boolean',
             'share_workouts' => 'boolean',
         ];
+    }
+
+    /**
+     * Cerca per nome utente, senza guardare le maiuscole.
+     *
+     * UN SOLO POSTO che sa come si confrontano i nomi utente. La regola e' che
+     * "A" e "a" sono lo stesso nome - se uno e' preso, l'altro non e'
+     * disponibile - e una regola del genere vale solo se vale dappertutto:
+     * basta un punto che confronta in modo binario perche' un profilo
+     * esistente risponda "non trovato" a chi ha scritto il nome giusto con le
+     * maiuscole sbagliate.
+     *
+     * Le maiuscole si CONSERVANO comunque: uno si chiama come vuole, e' il
+     * confronto a ignorarle.
+     */
+    public function scopeWhereHandle(Builder $query, string $handle): Builder
+    {
+        return $query->whereRaw('LOWER(handle) = ?', [mb_strtolower($handle)]);
     }
 
     public function sharedStats(): HasMany

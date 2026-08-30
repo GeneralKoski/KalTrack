@@ -55,7 +55,7 @@ class AuthController extends Controller
         $login = $data['login'];
         $user = User::query()
             ->where('email', $login)
-            ->orWhereRaw('LOWER(handle) = ?', [mb_strtolower($login)])
+            ->orWhere(fn ($q) => $q->whereHandle($login))
             ->first();
 
         // Un messaggio solo per credenziali sbagliate e utente inesistente:
