@@ -1,8 +1,13 @@
 # KalTrack
 
 App mobile personale per il tracking di alimentazione, peso, passi e
-allenamento, con assistente vocale AI. React Native + Expo, local-first: tutti i
-dati vivono in SQLite sul telefono, senza backend e senza account.
+allenamento, con assistente vocale AI. React Native + Expo, local-first: i dati
+vivono in SQLite sul telefono e l'app funziona senza rete.
+
+Un account è **facoltativo**. Chi lo fa ottiene due cose: una copia dei propri
+dati sul server (`backend/`), così un telefono rotto non porta via tutto e un
+secondo dispositivo li ritrova, e la parte amici. Chi non lo fa non se ne
+accorge: l'app resta quella di sempre.
 
 ## Avvio
 
@@ -28,7 +33,11 @@ npm test           # Jest
 - Design: [`docs/superpowers/specs/2026-08-28-kaltrack-design.md`](docs/superpowers/specs/2026-08-28-kaltrack-design.md)
 - Piano Fase 1: [`docs/superpowers/plans/2026-08-28-kaltrack-fase-1-nutrizione.md`](docs/superpowers/plans/2026-08-28-kaltrack-fase-1-nutrizione.md)
 - Convenzioni di sviluppo: [`CLAUDE.md`](CLAUDE.md)
+- Server, privacy e sincronizzazione: [`backend/README.md`](backend/README.md)
 
 ## Configurazione
 
-Copiare `.env.example` in `.env`. La chiave Groq serve solo dalla Fase 2.
+Copiare `.env.example` in `.env`. Due variabili, entrambe facoltative: la
+chiave Groq accende l'assistente vocale, `EXPO_PUBLIC_API_URL` accende account
+e sincronizzazione. Senza nessuna delle due l'app funziona comunque, con meno
+cose.

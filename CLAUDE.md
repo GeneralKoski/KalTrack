@@ -47,11 +47,16 @@ Android SDK 24+. **Nessun target web**: niente `react-native-web`, niente branch
 
 ### Local-first
 
-Non esiste un backend. Tutti i dati vivono in SQLite sul telefono
+**Il telefono è la fonte di verità.** Tutti i dati vivono in SQLite sul telefono
 (`expo-sqlite`), lo schema è creato da migrazioni numerate tracciate in
 `PRAGMA user_version`. Ogni tabella ha `id` (UUID), `created_at`, `updated_at`,
-`deleted_at`: lo schema è sync-ready, così un backend Laravel si può innestare
-in futuro senza rifare il modello dati.
+`deleted_at`.
+
+Dalla Fase 3 esiste anche un backend Laravel (`backend/`), ma non cambia questa
+regola: l'app scrive su SQLite come ha sempre fatto e continua a funzionare
+senza rete e senza account. Il server tiene una **copia**. Non è un'app che
+parla con un'API, è un'app locale che tiene una copia altrove: la differenza si
+sente in palestra, dove il segnale non c'è e una serie va registrata lo stesso.
 
 Il layer `src/db/` è l'unico che conosce SQL:
 
@@ -62,6 +67,29 @@ Il layer `src/db/` è l'unico che conosce SQL:
 - `migrations/` — runner e migrazioni numerate.
 - `queries/` — funzioni tipizzate per dominio. **Le schermate non contengono
   SQL.**
+
+### Sincronizzazione
+
+`src/services/sync.ts`, `backend/README.md` per il lato server. Quattro regole
+che sembrano dettagli e sono ognuna un difetto già pagato:
+
+1. **Mai `DELETE FROM` su una tabella sincronizzata.** Una riga tolta davvero
+   non ha più modo di dire all'altro dispositivo che è stata tolta: il server
+   rimanda la sua copia e la riga risorge. Si scrive `deleted_at`, e le letture
+   filtrano `deleted_at IS NULL`. Vale anche per le riscritture in blocco (gli
+   ingredienti di una ricetta): cancellare e reinserire con id nuovi fa
+   accumulare duplicati sull'altro telefono.
+2. **Le ore non si confrontano come stringhe.** La stessa ora è
+   `...T10:00:00.000Z` qui e `...T10:00:00+00:00` dal server. Si passa da
+   `Date.parse`, e si legge il timestamp dentro il payload (quello del telefono
+   d'origine, con i millesimi) e non quello della busta.
+3. **Due segnaposto, non uno** (`src/services/syncMarkers.ts`). `sync.cursor` è
+   il contatore del server, `sync.pushed_at` l'ora di questo telefono. Sono
+   locali, non viaggiano, e si azzerano a ogni accesso perché valgono per un
+   account solo.
+4. **Un'impostazione che parla del dispositivo non si sincronizza.** Va in
+   `LOCAL_ONLY_SETTINGS`. Una che parla dei dati sì: `plan_applied:<data>` deve
+   viaggiare, o l'altro telefono riapplica il piano e duplica i pasti.
 
 ### Logica di dominio
 
