@@ -512,8 +512,10 @@ estrarre dal proprio telefono una chiave sua non e' un problema, e la quota che 
 la sua. In piu' l'assistente continua a funzionare senza account e senza un giro in piu'
 sulla rete, che con il proxy si sarebbe perso.
 
-Resta aperta solo la sincronizzazione dei file delle foto verso iOS, che non e' un
-problema di infrastruttura ma di provider (vedi 9.3).
+Di infrastruttura non resta aperto niente. I file delle foto viaggiano
+(`src/services/photoSync.ts`), su iOS come su Android: `expo-file-system` non fa
+differenza fra i due, e l'identita' di una foto e' il nome proprio perche' la cartella
+dell'app cambia da sistema a sistema.
 
 ## 9-bis. Nota sulle migrazioni
 
