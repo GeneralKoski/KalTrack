@@ -94,3 +94,70 @@ function scalePortions(perServing: Nutrients, servings: number): Nutrients {
   for (const key of KEYS) result[key] = perServing[key] * servings;
   return result;
 }
+
+/** Un pezzo dell'anello delle calorie: chi lo occupa e quanta parte ne prende. */
+export interface MacroSlice {
+  kind: "protein" | "carbs" | "fat" | "other";
+  /** Frazione dell'intero anello, da 0 a 1. */
+  fraction: number;
+}
+
+/**
+ * L'anello delle calorie diviso per macronutriente.
+ *
+ * Le calorie sono la somma di tre cose, e l'anello lo dice: quanta parte di
+ * quel che hai mangiato viene dalle proteine, quanta dai carboidrati, quanta
+ * dai grassi. Ogni pezzo e' lungo quanto le calorie che quel macro porta - un
+ * grammo di grasso ne vale nove, uno di proteine quattro - percio' i tre pezzi
+ * non sono i tre numeri in grammi, sono il loro peso energetico.
+ *
+ * IL PEZZO "other" NON E' UN ERRORE DA NASCONDERE. Le calorie di una riga sono
+ * uno snapshot a se' e non sempre tornano esatte con i macro: alimenti
+ * incompleti, alcol, fibra, arrotondamenti. Colorare quella differenza come se
+ * fosse carboidrati direbbe una cosa che non e' scritta da nessuna parte, e
+ * ridistribuirla in proporzione la farebbe sparire pur essendoci.
+ *
+ * Il totale dei pezzi non supera mai 1: oltre l'obiettivo l'anello e' pieno, e
+ * quanto si e' andati oltre lo dice il numero al centro.
+ */
+export function macroSlices(
+  consumed: Nutrients,
+  targetKcal: number | null,
+): MacroSlice[] {
+  if (!targetKcal || targetKcal <= 0 || consumed.kcal <= 0) return [];
+
+  const daiMacro = {
+    protein: Math.max(consumed.protein, 0) * KCAL_PER_G.protein,
+    carbs: Math.max(consumed.carbs, 0) * KCAL_PER_G.carbs,
+    fat: Math.max(consumed.fat, 0) * KCAL_PER_G.fat,
+  };
+  const sommaMacro = daiMacro.protein + daiMacro.carbs + daiMacro.fat;
+
+  /*
+   * Se i macro dichiarano piu' calorie del totale della giornata si scala
+   * tutto invece di sforare: e' la stessa giornata vista in due modi, e quello
+   * che comanda e' il numero di calorie mostrato al centro.
+   */
+  const scala = sommaMacro > consumed.kcal ? consumed.kcal / sommaMacro : 1;
+
+  const pieno = Math.min(consumed.kcal / targetKcal, 1);
+  // Quanto vale una caloria in frazione d'anello, gia' tenendo conto del
+  // taglio quando si e' oltre l'obiettivo.
+  const perKcal = pieno / consumed.kcal;
+
+  const slices: MacroSlice[] = [
+    { kind: "protein", fraction: daiMacro.protein * scala * perKcal },
+    { kind: "carbs", fraction: daiMacro.carbs * scala * perKcal },
+    { kind: "fat", fraction: daiMacro.fat * scala * perKcal },
+  ];
+
+  const restante = pieno - slices.reduce((sum, s) => sum + s.fraction, 0);
+  // Sotto il mezzo punto percentuale non e' una differenza, e' un
+  // arrotondamento: disegnarla farebbe comparire una scheggia grigia in ogni
+  // giornata normale.
+  if (restante > 0.005) {
+    slices.push({ kind: "other", fraction: restante });
+  }
+
+  return slices.filter((s) => s.fraction > 0);
+}

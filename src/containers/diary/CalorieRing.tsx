@@ -1,7 +1,9 @@
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { targetColor } from "@/src/components/kal";
 import { Text } from "@/src/components/ui";
+import { macroSlices, type Nutrients } from "@/src/domain/nutrition";
 import { targetStatus } from "@/src/domain/targets";
+import { MacroArc } from "@/src/containers/diary/MacroArc";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import React, { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
@@ -23,16 +25,31 @@ interface CalorieRingProps {
   consumed: number;
   /** Obiettivo del giorno. Null quando non è ancora stato impostato. */
   target: number | null;
+  /**
+   * I macro della giornata, per dividere l'anello in tre.
+   *
+   * Assenti, l'anello resta di un colore solo: è quel che serve quando i
+   * macro non ci sono ancora o non si sanno.
+   */
+  nutrients?: Nutrients | null;
 }
 
 /**
- * Anello del consumo calorico. Il colore distingue sotto / in linea / oltre
- * l'obiettivo, ma il numero al centro è sempre stampato: il colore da solo non
- * porta mai l'informazione.
+ * Anello del consumo calorico, diviso per macronutriente.
+ *
+ * Le calorie sono la somma di tre cose e l'anello lo dice: quanta parte viene
+ * dalle proteine, quanta dai carboidrati, quanta dai grassi, ognuna lunga
+ * quanto le calorie che porta. Il grigio in coda è la parte che i macro non
+ * spiegano (alcol, fibra, alimenti incompleti) e non è un errore da nascondere.
+ *
+ * Senza macro l'anello resta di un colore solo, e quel colore distingue sotto
+ * / in linea / oltre l'obiettivo. In entrambi i casi il numero al centro è
+ * sempre stampato: il colore da solo non porta mai l'informazione.
  */
 export const CalorieRing: React.FC<CalorieRingProps> = ({
   consumed,
   target,
+  nutrients,
 }) => {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
@@ -52,6 +69,8 @@ export const CalorieRing: React.FC<CalorieRingProps> = ({
   const stroke = target ? targetColor(status, colors) : colors.textFaint;
   const remaining = target ? Math.round(target - consumed) : null;
 
+  const slices = nutrients ? macroSlices(nutrients, target) : [];
+
   return (
     <View style={styles.wrap}>
       <Svg width={SIZE} height={SIZE}>
@@ -63,19 +82,28 @@ export const CalorieRing: React.FC<CalorieRingProps> = ({
           strokeWidth={STROKE}
           fill="none"
         />
-        <AnimatedCircle
-          cx={SIZE / 2}
-          cy={SIZE / 2}
-          r={RADIUS}
-          stroke={stroke}
-          strokeWidth={STROKE}
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={CIRCUMFERENCE}
-          animatedProps={animatedProps}
-          // Parte da ore 12 invece che da ore 3.
-          transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
-        />
+        {slices.length > 0 ? (
+          <MacroArc
+            slices={slices}
+            size={SIZE}
+            stroke={STROKE}
+            progress={progress}
+          />
+        ) : (
+          <AnimatedCircle
+            cx={SIZE / 2}
+            cy={SIZE / 2}
+            r={RADIUS}
+            stroke={stroke}
+            strokeWidth={STROKE}
+            fill="none"
+            strokeLinecap="round"
+            strokeDasharray={CIRCUMFERENCE}
+            animatedProps={animatedProps}
+            // Parte da ore 12 invece che da ore 3.
+            transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
+          />
+        )}
       </Svg>
 
       <View style={styles.center} pointerEvents="none">

@@ -1,6 +1,7 @@
 import {
   EMPTY_NUTRIENTS,
   kcalFromMacros,
+  macroSlices,
   recipePerServing,
   recipeTotals,
   roundNutrients,
@@ -163,5 +164,90 @@ describe("recipePerServing", () => {
       items: [{ kind: "food", per100: RICE, grams: 250 }],
     };
     expect(recipePerServing(recipe).kcal).toBeCloseTo(358);
+  });
+});
+
+describe("macroSlices", () => {
+  const giornata = (over: Partial<Nutrients>): Nutrients => ({
+    ...EMPTY_NUTRIENTS,
+    ...over,
+  });
+
+  it("divide l'anello per il peso energetico dei macro, non per i grammi", () => {
+    // 100 g di proteine (400 kcal) e 100 g di grassi (900 kcal): in grammi
+    // sono uguali, in calorie il grasso pesa piu' del doppio.
+    const slices = macroSlices(
+      giornata({ kcal: 1300, protein: 100, carbs: 0, fat: 100 }),
+      1300,
+    );
+
+    const per = (kind: string) =>
+      slices.find((s) => s.kind === kind)?.fraction ?? 0;
+
+    expect(per("protein")).toBeCloseTo(400 / 1300, 5);
+    expect(per("fat")).toBeCloseTo(900 / 1300, 5);
+    expect(per("carbs")).toBe(0);
+  });
+
+  it("i pezzi riempiono esattamente la parte consumata", () => {
+    const slices = macroSlices(
+      giornata({ kcal: 1000, protein: 50, carbs: 100, fat: 44.4 }),
+      2000,
+    );
+    const totale = slices.reduce((sum, s) => sum + s.fraction, 0);
+
+    // Mille su duemila: mezzo anello, diviso fra i macro.
+    expect(totale).toBeCloseTo(0.5, 3);
+  });
+
+  /**
+   * Le calorie di una riga sono uno snapshot a se': alcol, fibra, alimenti
+   * incompleti e arrotondamenti fanno si' che i macro non tornino sempre.
+   * Quella differenza si mostra grigia, non si ridistribuisce sui macro.
+   */
+  it("quel che i macro non spiegano resta un pezzo a parte", () => {
+    const slices = macroSlices(
+      giornata({ kcal: 1000, protein: 0, carbs: 100, fat: 0 }),
+      1000,
+    );
+
+    const other = slices.find((s) => s.kind === "other");
+    expect(other?.fraction).toBeCloseTo(0.6, 5);
+  });
+
+  it("non inventa un pezzo grigio per un arrotondamento", () => {
+    const slices = macroSlices(
+      giornata({ kcal: 1002, protein: 50, carbs: 100, fat: 44.4 }),
+      2000,
+    );
+
+    expect(slices.some((s) => s.kind === "other")).toBe(false);
+  });
+
+  it("oltre l'obiettivo l'anello e' pieno e non di piu'", () => {
+    const slices = macroSlices(
+      giornata({ kcal: 3000, protein: 150, carbs: 300, fat: 133.3 }),
+      2000,
+    );
+    const totale = slices.reduce((sum, s) => sum + s.fraction, 0);
+
+    expect(totale).toBeCloseTo(1, 3);
+  });
+
+  it("senza obiettivo o senza calorie non c'e' niente da dividere", () => {
+    expect(macroSlices(giornata({ kcal: 1500, protein: 100 }), null)).toEqual([]);
+    expect(macroSlices(giornata({ kcal: 0 }), 2000)).toEqual([]);
+  });
+
+  it("se i macro dicono piu' calorie del totale, comanda il totale", () => {
+    // Un caso che capita con dati sporchi: i grammi sommano piu' del kcal.
+    const slices = macroSlices(
+      giornata({ kcal: 500, protein: 100, carbs: 100, fat: 100 }),
+      1000,
+    );
+    const totale = slices.reduce((sum, s) => sum + s.fraction, 0);
+
+    expect(totale).toBeCloseTo(0.5, 5);
+    expect(slices.some((s) => s.kind === "other")).toBe(false);
   });
 });
