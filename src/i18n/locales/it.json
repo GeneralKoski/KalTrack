@@ -777,5 +777,18 @@
     "logs_out": "%{handle} verrà disconnesso su tutti i dispositivi e dovrà rientrare.",
     "confirm": "Cambia la password",
     "done": "Password di %{handle} cambiata"
+  },
+  "diagnostics": {
+    "title": "Diagnostica",
+    "open": "Registro dei guasti",
+    "open_hint": "Cosa è andato storto, e quando",
+    "explain": "Quando qualcosa non funziona l'app se lo segna qui, così non serve riprodurlo per capire cosa è successo. Resta su questo telefono.",
+    "empty": "Nessun guasto registrato",
+    "ai_section": "Chiamate AI non riuscite",
+    "log_section": "Guasti",
+    "no_message": "Senza messaggio",
+    "share": "Condividi il registro",
+    "share_failed": "Condivisione non riuscita",
+    "clear": "Svuota il registro"
   }
 }

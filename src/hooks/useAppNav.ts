@@ -16,6 +16,7 @@ export interface NavParams {
   Settings: undefined;
   Targets: undefined;
   Backup: undefined;
+  Diagnostics: undefined;
   Exercises: undefined;
   Routines: undefined;
   RoutineForm: { id?: string };
