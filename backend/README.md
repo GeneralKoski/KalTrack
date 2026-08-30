@@ -19,10 +19,63 @@ Questa e' la domanda che conta, ed e' diversa da "cosa arriva al server".
 Esce: handle, nome, avatar, bio, e **un riepilogo per giorno** con kcal, passi,
 peso e numero di allenamenti — e solo quelli che si e' scelto di condividere.
 
+Da agosto 2026 esce anche, **per chi accende `share_gym`**, il contenuto degli
+allenamenti: per ogni giorno, quali esercizi si sono fatti, con quante serie,
+quante ripetizioni, quanto volume e quale carico massimo (`shared_workouts`).
+E' l'unica cosa che pubblica un contenuto e non un totale, e per questo ha un
+interruttore suo, spento di serie e indipendente da quello del **conteggio**
+degli allenamenti: chi condivideva "tre allenamenti questa settimana" non si e'
+ritrovato a condividere "panca a 92,5". Le note, i commenti e le serie singole
+non escono: il dettaglio resta sul telefono come il diario.
+
+Quanto passato esce lo decide l'utente (`share_window_days`, sette giorni di
+default, da uno a trecentosessantacinque). Restringere la finestra **cancella**
+dal server i giorni che ne restano fuori, come spegnere un interruttore.
+
 Non esce **niente** del resto. Il diario, gli alimenti, le ricette, le schede,
 le serie, le foto, le misure, i digiuni stanno in `sync_records`, che e' legato
 all'utente e non ha nessun endpoint che lo esponga a terzi. Il dettaglio di
 cosa si e' mangiato non e' visibile a nessuno.
+
+## L'eccezione dichiarata: i cataloghi comuni
+
+Tutto quel che c'e' scritto sopra vale **fra amici accettati**. C'e' una sola
+eccezione, ed e' meglio trovarla scritta qui che scoprirla leggendo il codice:
+le tabelle `exercises` e `foods` sono cataloghi **comuni a tutti gli
+iscritti**. Un esercizio o un alimento creato a mano da qualcuno entra
+nell'elenco di chiunque abbia un account, amico o no.
+
+Dal 30 agosto 2026 i cataloghi sono **due**: `exercises` e `foods`, con le
+stesse identiche regole. Gli alimenti servono anche alle ricette: una ricetta
+che si voglia condividere e' fatta di alimenti, e senza un elenco comune i suoi
+ingredienti sull'altro telefono sarebbero riferimenti a niente.
+
+**Ogni voce ha un autore, e ciascuno corregge o toglie solo le proprie.**
+E' un cambio rispetto a com'erano nati i cataloghi, che apposta non
+registravano nulla dell'autore: senza proprietario non esiste "il mio", e una
+voce scritta male restava nell'app di tutti per sempre perche' nessuno aveva il
+diritto di correggerla.
+
+**Quel che non e' cambiato e' cosa esce**: `created_by` non compare in nessuna
+risposta. Al suo posto c'e' `mine`, cioe' "questa la puoi correggere tu". Sapere
+che un esercizio l'ha inventato Tizio resta un fatto su Tizio che non serve a
+nessuno per allenarsi; sapere che l'hai inventato tu serve a te per correggerlo.
+Una voce senza autore - vecchia, o di un account cancellato - resta in elenco e
+non la modifica piu' nessuno: sparire dal servizio non deve poter svuotare il
+catalogo di tutti.
+
+La cancellazione e' vera e non `deleted_at`: questi due elenchi non si
+sincronizzano con nessun telefono, quindi non esiste il difetto per cui una
+riga tolta risorge al giro dopo. Il telefono che l'aveva importata se la tiene.
+
+Quel che i cataloghi NON contengono e' altrettanto deliberato: niente note,
+niente istruzioni, niente "quanto ti sta antipatico", niente preferiti. Sono
+giudizi personali su un esercizio o su un alimento, non la loro descrizione.
+
+I doppioni li impedisce `name_norm` (minuscolo, senza accenti, spazi
+compressi), con la stessa normalizzazione del telefono - `App\Support\Text` di
+qua, `src/domain/text.ts` di la', e i test di `ExerciseCatalogTest` ripetono
+apposta i casi di `src/domain/text.test.ts`.
 
 ## Le due regole della privacy
 
@@ -37,6 +90,16 @@ niente: si sceglie cosa mostrare, non si scopre cosa si stava gia' mostrando.
 
 `tests/Feature/PrivacyTest.php` verifica entrambe le regole. Un campo aggiunto
 al profilo senza passare da li' esce per tutti, e solo quel test lo direbbe.
+
+Il confronto con piu' persone (`GET /api/comparison`) applica le stesse due
+regole **per ciascuno** dei partecipanti, dentro
+`ComparisonParticipantResource`, che e' un confine di privacy come l'altro. Chi
+non e' amico esce senza numeri e senza esercizi, e non fa fallire la richiesta
+degli altri: bastava togliere un'amicizia perche' il confronto smettesse di
+funzionare per tutti.
+
+`tests/Feature/GymSharingTest.php` e `tests/Feature/ComparisonTest.php`
+verificano l'interruttore della palestra e il confronto a piu' persone.
 
 ## La sincronizzazione
 
@@ -185,6 +248,16 @@ non e' un backup.
 | POST | `/api/images` | Carica il file di una foto (max 5 MB) |
 | GET | `/api/images/{nome}` | Scarica una foto. **Solo le proprie** |
 | DELETE | `/api/images/{nome}` | Cancella una foto |
+| PUT | `/api/me/workouts` | Il telefono pubblica la palestra. **403 a interruttore spento** |
+| GET | `/api/comparison?handles=&date=&days=` | Fino a 4 persone insieme, filtrate per ciascuna |
+| GET | `/api/exercises?q=` | Il catalogo esercizi, comune a tutti gli iscritti |
+| POST | `/api/exercises` | Aggiunge una voce (o torna quella che c'era) |
+| PATCH | `/api/exercises/{id}` | Corregge. **Solo le proprie** |
+| DELETE | `/api/exercises/{id}` | Toglie. **Solo le proprie** |
+| GET | `/api/foods?q=` | Il catalogo alimenti, comune a tutti gli iscritti |
+| POST | `/api/foods` | Aggiunge una voce (o torna quella che c'era) |
+| PATCH | `/api/foods/{id}` | Corregge. **Solo le proprie** |
+| DELETE | `/api/foods/{id}` | Toglie. **Solo le proprie** |
 | GET | `/api/users?q=` | Cerca per handle o nome (min. 2 caratteri) |
 | GET | `/api/users/{handle}` | Profilo pubblico, filtrato |
 | GET | `/api/admin/users` | L'elenco. **Solo amministratori** |

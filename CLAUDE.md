@@ -117,9 +117,47 @@ prodotto scritta nei test:
   un'altra persona non e' meglio ne' peggio, e una spunta sarebbe un consiglio
   sbagliato;
 - il peso non si confronta affatto;
-- un numero mancante non e' un pareggio ne' un ultimo posto.
+- un numero mancante non e' un pareggio ne' un ultimo posto;
+- **in palestra il confronto e' legittimo**: volume e carico massimo hanno un
+  vincitore. La differenza con le calorie non e' arbitraria - un carico si
+  allena, un fabbisogno no.
 
 Cambiarle deve essere deliberato: hanno test propri che le enunciano.
+
+Il confronto va da due a cinque persone (`buildMultiComparison`,
+`buildGymComparison`, `GET /api/comparison`). Una metrica compare se **almeno
+uno** la condivide, e per gli altri e' un trattino: nascondere la riga perche'
+uno solo non condivide punirebbe gli altri.
+
+### La palestra che esce dal telefono
+
+`share_gym` e' il quinto interruttore ed e' l'unico che pubblica **contenuto**
+e non un totale: quali esercizi, con che carico. Spento di serie e
+**indipendente** da `share_workouts`, che e' solo il conteggio. Chi lo accende
+lo legge scritto accanto all'interruttore.
+
+Quanto passato esce lo sceglie l'utente (`share_window_days`, default 7):
+restringere la finestra cancella dal server i giorni che ne restano fuori,
+esattamente come spegnere un interruttore.
+
+### L'unica cosa che esce verso i non amici
+
+Le tabelle `exercises` e `foods` sul server sono cataloghi **comuni a tutti
+gli iscritti**: un esercizio o un alimento creato a mano entra nell'elenco di
+chiunque abbia un account. E' l'unica eccezione alla regola "solo fra amici
+accettati", ed e' dichiarata in `backend/README.md`.
+
+**Ogni voce ha un autore e ciascuno corregge o toglie solo le proprie**, ma
+`created_by` non esce da nessuna risposta: al suo posto viaggia `mine`. Il
+catalogo dice a te che quella voce e' tua, non dice a nessun altro di chi e'.
+
+Il testo che lo spiega sta **sopra** il campo del nome (`ExerciseFormSheet`,
+`FoodFormScreen`): va letto prima di scrivere, non dopo aver salvato. Senza
+account non compare, perche' senza account non esce niente.
+
+Lato app la voce remota si ritrova **dal nome normalizzato** e non da un id
+salvato in colonna: un id del server, sincronizzato su un secondo dispositivo o
+dopo un cambio di account, punterebbe alla riga di un altro catalogo.
 
 ### Nomi utente
 
@@ -181,7 +219,11 @@ text). NativeWind disponibile ma non prevalente. I componenti `Text` e
 fontWeight: **usare sempre quelli**, mai le primitive RN nude.
 
 `theme.colors.macro` (proteine, carboidrati, grassi) sono token: grafici, barre
-e legende devono usarli per non divergere.
+e legende devono usarli per non divergere. L'anello delle calorie e' diviso per
+macro con quegli stessi token (`macroSlices` in `src/domain/nutrition.ts`,
+disegnato da `MacroArc`), e lo usano sia la home sia i cerchietti del
+calendario: il grigio in coda e' la parte di calorie che i macro non spiegano,
+non un quarto macro.
 
 ### Convenzioni non negoziabili
 

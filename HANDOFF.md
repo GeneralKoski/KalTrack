@@ -7,15 +7,15 @@ sostituisce `CLAUDE.md`, che resta il documento delle convenzioni: qui c'e' lo
 ## In una riga
 
 L'app e' completa e in uso (Fasi 1-5). C'e' un backend Laravel in produzione con
-sincronizzazione, amici e foto. Il lavoro aperto e' uno solo, e ha gia' un piano
-scritto.
+sincronizzazione, amici e foto. Il confronto a piu' persone e la palestra sono
+stati chiusi il 30 agosto 2026: resta aperto un pezzo solo, e piccolo.
 
 ## Stato
 
 | | |
 |---|---|
-| Test app | 797 su 50 suite |
-| Test backend | 68 |
+| Test app | 849 su 51 suite |
+| Test backend | 121 |
 | Typecheck / lint | puliti, 0 errori |
 | Ramo | `main`, allineato con `origin` |
 | Server | `kaltrack.martin-trajkovski.it`, healthy, ultimo deploy allineato al codice |
@@ -39,17 +39,43 @@ serve, si reimposta da Impostazioni > Reimposta password, oppure con
 `php artisan tinker` sul server assegnando `$u->password = '...'` (il cast
 `hashed` fa l'hash da solo - **non** scrivere un hash a mano nella colonna).
 
-## L'unico lavoro aperto
+## Il lavoro aperto
 
-**Confronto con piu' persone e confronto in palestra.**
-Piano completo: `docs/superpowers/plans/2026-08-30-confronto-multiplo-e-palestra.md`.
+**Il deploy.** Il codice e' completo e verde, ma il server in produzione non ha
+ancora le cinque migrazioni nuove (`share_gym` + `share_window_days`,
+`shared_workouts`, `exercises`, `exercises.created_by`, `foods`) ne' le rotte
+nuove. Finche' non si deploya, dal
+telefono la creazione di un esercizio funziona e resta locale, mentre la
+proposta al catalogo risponde 404 e fallisce in silenzio - e' il comportamento
+voluto, ma vuol dire che il catalogo comune di fatto non gira ancora.
 
-Da leggere prima di iniziare, perche' la decisione difficile non e' tecnica:
-confrontare il volume in palestra significa **pubblicare quali esercizi si fanno
-e con che carico**. Oggi al server arrivano quattro numeri di giornata e
-"allenamenti" e' un conteggio, non un contenuto. Quella funzione cambia la
-promessa dell'app, quindi il primo task del piano e' l'interruttore dedicato,
-spento di serie.
+Procedura in `backend/README.md` § In produzione.
+
+## Chiuso il 30 agosto 2026
+
+**Confronto con piu' persone e confronto in palestra**, secondo
+`docs/superpowers/plans/2026-08-30-confronto-multiplo-e-palestra.md`, con le
+decisioni di privacy prese esplicitamente prima di scrivere codice (sezione
+"Decisioni prese" nel piano).
+
+Cosa e' cambiato nella promessa dell'app, in tre righe:
+
+- `share_gym`, quinto interruttore, spento di serie e **indipendente** da
+  `share_workouts`. Acceso, pubblica quali esercizi si fanno e con che carico.
+- `share_window_days`: quanto passato esce lo sceglie l'utente, sette di
+  default. Restringerla cancella dal server quel che ne resta fuori.
+- il catalogo degli esercizi (`exercises` sul server) e' comune a **tutti gli
+  iscritti**, ed e' la prima eccezione a "solo fra amici accettati". Non
+  registra chi ha aggiunto cosa. Si alimenta dalla schermata Esercizi: il "+"
+  crea un esercizio e lo propone, l'icona della nuvola importa quelli che qui
+  non ci sono. Dal 30 agosto i cataloghi sono **due** - esercizi e alimenti -
+  e ogni voce ha un autore: ciascuno corregge o toglie solo le proprie, ma
+  `created_by` non esce da nessuna risposta (viaggia `mine`).
+
+Nella stessa giornata, fuori dal piano: l'anello delle calorie e' diviso per
+macronutriente (`macroSlices`, `MacroArc`) sia nella home sia nel calendario
+nuovo del diario, e la barra della data del diario ha altezza fissa, si sposta
+da inizio 2026 a un mese avanti e si apre in un calendario.
 
 ## Rimandato di proposito
 
@@ -72,7 +98,12 @@ spento di serie.
 4. **Mai `DELETE FROM` su una tabella sincronizzata.** Le quattro regole della
    sincronizzazione sono in `CLAUDE.md`, ognuna e' costata un difetto.
 5. Le regole del confronto (`src/domain/comparison.ts`) sono decisioni di
-   prodotto con test propri, non logica da rifattorizzare.
+   prodotto con test propri, non logica da rifattorizzare. Da oggi valgono da
+   due a cinque persone, e in palestra - a differenza delle calorie - un
+   vincitore c'e'.
+6. **Il catalogo esercizi e' l'unica cosa che esce verso i non amici.** Prima
+   di questo lavoro la frase "non esce niente verso chi non e' amico" era vera
+   senza eccezioni: ora ce n'e' una, ed e' scritta in `backend/README.md`.
 
 ## Come si verifica una modifica
 
