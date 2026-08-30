@@ -32,11 +32,41 @@ adb logcat -d -s ReactNativeJS:V | tail -50
 
 ## Deploy
 
-`deploy.sh` automatizza i prebuild di produzione per Android e iOS. È
-project-agnostic: nessun nome app o percorso di config hardcodato.
+### L'APK sul telefono
 
 ```bash
-./deploy.sh          # Deploy interattivo (chiede ambiente e target)
+./scripts/build-apk.sh          # APK release firmato, versione da app.json
+./scripts/build-apk.sh 1.1.0    # e imposta anche la versione
+./scripts/serve-apk.sh          # lo serve sulla Wi-Fi: apri l'URL dal telefono
+```
+
+**Solo Android**, e non è una dimenticanza: per iOS servirebbero le API key di
+App Store Connect, che questo progetto non ha. Per iPhone resta `deploy.sh`,
+che fa il prebuild e apre Xcode.
+
+La firma sta in `credentials.json` e `credentials/android/kaltrack.keystore`,
+**gitignorati**. Perdere quel keystore vuol dire non poter più aggiornare
+un'app già installata: Android rifiuta un aggiornamento firmato con una chiave
+diversa, e l'unica via è disinstallare (portandosi via il database, visto che
+qui il telefono è la fonte di verità). Va copiato fuori dal computer.
+
+`android/` è rigenerato da `expo prebuild --clean` a ogni build, quindi la
+configurazione di firma viene re-iniettata in `build.gradle` ogni volta: il
+marcatore `KALTRACK_SIGNING` la rende idempotente. Il `versionCode` è l'epoch
+in secondi - cresce da solo e non c'è un contatore da ricordare.
+
+L'indirizzo del server finisce **dentro** l'APK al momento del bundle: lo
+script stampa quale ha usato e avvisa se è un indirizzo locale, che dal
+telefono non sarebbe raggiungibile.
+
+### Il backend
+
+Un ambiente solo: `kaltrack.martin-trajkovski.it`. La scelta test/prod che
+`deploy.sh` propone viene dal template Dieffetech e qui non è configurata.
+Procedura in `backend/README.md` § In produzione.
+
+```bash
+./deploy.sh          # prebuild interattivo (Android Studio / Xcode)
 ```
 
 ## Architettura

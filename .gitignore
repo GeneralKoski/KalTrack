@@ -45,3 +45,10 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Firma dell'app: il keystore e le sue password non entrano nel repository.
+# Perdere questo keystore vuol dire non poter piu' aggiornare un'app gia'
+# installata - Android rifiuta un aggiornamento firmato con una chiave diversa.
+credentials.json
+credentials/
+*.keystore
