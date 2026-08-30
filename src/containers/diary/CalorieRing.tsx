@@ -8,9 +8,10 @@ import { useTranslation } from "@/src/hooks/useTranslation";
 import React, { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
+  Easing,
   useAnimatedProps,
   useSharedValue,
-  withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import Svg, { Circle } from "react-native-svg";
 
@@ -58,7 +59,19 @@ export const CalorieRing: React.FC<CalorieRingProps> = ({
   const ratio = target && target > 0 ? Math.min(consumed / target, 1) : 0;
 
   useEffect(() => {
-    progress.value = withSpring(ratio, { damping: 18, stiffness: 120 });
+    /*
+     * Riempimento e svuotamento fluidi, senza molla.
+     *
+     * Con `withSpring` l'anello superava il valore e tornava indietro, e
+     * cambiando giorno il rimbalzo si leggeva come un difetto: le fette dei
+     * macro cambiano nello stesso istante, e vederle anche oscillare faceva
+     * sembrare che il numero non fosse quello giusto. Una durata fissa con
+     * uscita morbida arriva al valore e si ferma li'.
+     */
+    progress.value = withTiming(ratio, {
+      duration: 420,
+      easing: Easing.out(Easing.cubic),
+    });
   }, [ratio, progress]);
 
   const animatedProps = useAnimatedProps(() => ({
