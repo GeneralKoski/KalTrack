@@ -27,8 +27,17 @@ async function myTotals(date: string): Promise<DayTotals> {
   const diary = await getDayDiary(date);
   const sessions = await recentSessions(50);
   return {
-    kcal: Math.round(diary.totals.kcal),
+    /*
+     * Zero calorie e nessun pasto registrato non sono la stessa cosa.
+     *
+     * Un diario vuoto totalizza zero, e mostrarlo come "0" accanto ai 2.400
+     * dell'amico e' una bugia: non e' che oggi non ho mangiato, e' che non ho
+     * ancora scritto niente. Il trattino lo dice.
+     */
+    kcal: diary.meals.length === 0 ? null : Math.round(diary.totals.kcal),
     steps: (await getSteps(date))?.steps ?? null,
+    // Gli allenamenti invece uno zero ce l'hanno davvero: zero allenamenti
+    // oggi e' un numero, non un dato mancante.
     workouts: sessions.filter((s) => s.date === date).length,
   };
 }
@@ -73,7 +82,10 @@ export const FriendComparison: React.FC<Props> = ({ date, theirs, shares }) => {
     workouts: t("social.share_workouts"),
   };
 
-  const numero = (v: number | null) => (v === null ? "—" : String(v));
+  // Stesso formato del riquadro sopra: 7.200 e non 7200. Due modi di scrivere
+  // lo stesso numero nella stessa schermata si notano.
+  const numero = (v: number | null) =>
+    v === null ? "—" : v.toLocaleString("it-IT");
 
   return (
     <>
