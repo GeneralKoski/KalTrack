@@ -1,9 +1,13 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ComparisonController;
+use App\Http\Controllers\Api\ExerciseController;
+use App\Http\Controllers\Api\FoodController;
 use App\Http\Controllers\Api\FriendshipController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\SharedStatController;
+use App\Http\Controllers\Api\SharedWorkoutController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\ImageController;
 use App\Http\Controllers\Api\SyncController;
@@ -30,6 +34,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('me', [ProfileController::class, 'me']);
     Route::patch('me', [ProfileController::class, 'update']);
     Route::put('me/stats', [SharedStatController::class, 'sync']);
+    /*
+     * L'unico endpoint che pubblica contenuto e non totali. Rifiuta se
+     * l'interruttore della palestra e' spento: la prima difesa e' sul
+     * telefono, che a interruttore spento non manda niente, ma una difesa sola
+     * su questo dato non basta.
+     */
+    Route::put('me/workouts', [SharedWorkoutController::class, 'sync']);
 
     // La copia del database del telefono: push e pull in una sola andata.
     Route::post('sync', [SyncController::class, 'sync']);
@@ -51,8 +62,42 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('images/{name}', [ImageController::class, 'show']);
     Route::delete('images/{name}', [ImageController::class, 'destroy']);
 
+    /*
+     * Il catalogo degli esercizi: l'unica cosa di questo server che e' comune
+     * a tutti gli iscritti invece che filtrata per amicizia. Un esercizio
+     * creato a mano da qualcuno entra nell'elenco di chiunque, e il catalogo
+     * non dice chi lo ha aggiunto.
+     */
+    Route::get('exercises', [ExerciseController::class, 'index']);
+    Route::post('exercises', [ExerciseController::class, 'store'])
+        ->middleware('throttle:30,1');
+    /*
+     * Correggere e togliere: SOLO le voci che si sono aggiunte. Senza queste
+     * due, una voce scritta male restava nell'app di tutti per sempre.
+     */
+    Route::patch('exercises/{exercise}', [ExerciseController::class, 'update']);
+    Route::delete('exercises/{exercise}', [ExerciseController::class, 'destroy']);
+
+    /*
+     * Il catalogo degli alimenti: stesse regole di quello degli esercizi.
+     * Serve anche alle ricette, che sono fatte di alimenti e senza un elenco
+     * comune sull'altro telefono sarebbero riferimenti a niente.
+     */
+    Route::get('foods', [FoodController::class, 'index']);
+    Route::post('foods', [FoodController::class, 'store'])
+        ->middleware('throttle:60,1');
+    Route::patch('foods/{food}', [FoodController::class, 'update']);
+    Route::delete('foods/{food}', [FoodController::class, 'destroy']);
+
     Route::get('users', [ProfileController::class, 'search']);
     Route::get('users/{handle}', [ProfileController::class, 'show']);
+
+    /*
+     * Il confronto con piu' persone: un endpoint solo, ma le due regole della
+     * privacy si applicano per ciascuno. Un non amico esce senza numeri invece
+     * di far fallire la richiesta degli altri.
+     */
+    Route::get('comparison', [ComparisonController::class, 'index']);
 
     Route::get('friendships', [FriendshipController::class, 'index']);
     Route::post('friendships', [FriendshipController::class, 'store']);
