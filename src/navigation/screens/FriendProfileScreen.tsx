@@ -2,6 +2,7 @@ import * as social from "@/src/api/social";
 import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { Card, EmptyState, ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { FriendComparison } from "@/src/containers/social/FriendComparison";
+import { FriendGymComparison } from "@/src/containers/social/FriendGymComparison";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useAppNav } from "@/src/hooks/useAppNav";
@@ -134,6 +135,19 @@ export function FriendProfileScreen() {
                       steps: data.shares.steps,
                       workouts: data.shares.workouts,
                     }}
+                  />
+                ) : null}
+
+                {/*
+                  La palestra sta sotto ai totali e non fra le righe: "quante
+                  calorie" e "quanto hai spinto in panca" sono due domande
+                  diverse. Il giorno e' quello degli esercizi, che puo' essere
+                  diverso dall'ultimo giorno con dei totali.
+                */}
+                {data.gym.length > 0 ? (
+                  <FriendGymComparison
+                    date={data.gym[0].date}
+                    theirs={data.gym[0].exercises}
                   />
                 ) : null}
 

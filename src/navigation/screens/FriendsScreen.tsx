@@ -290,6 +290,15 @@ export function FriendsScreen() {
           </>
         ) : null}
 
+        {token && friends.length > 0 ? (
+          <DfButton
+            label={t("social.compare")}
+            variant="outlined"
+            onPress={() => navigate("Comparison")}
+            style={styles.section}
+          />
+        ) : null}
+
         {token ? (
           <DfButton
             label={t("social.my_profile")}

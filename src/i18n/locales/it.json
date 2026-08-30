@@ -52,7 +52,11 @@
     "deleted": "Alimento eliminato",
     "delete_title": "Eliminare l'alimento?",
     "delete_message": "I pasti già registrati non cambiano: conservano i valori del momento in cui li hai inseriti.",
-    "photo": "Foto"
+    "photo": "Foto",
+    "catalog_notice": "Questo alimento entra nell'elenco di tutti gli iscritti, non solo dei tuoi amici, così lo trovano anche gli altri. Puoi correggerlo o toglierlo quando vuoi: le voci che aggiungi tu restano tue. Il catalogo non dice a nessuno chi le ha scritte.",
+    "import_catalog": "Aggiorna dal catalogo",
+    "imported_none": "Nessun alimento nuovo",
+    "imported_some": "%{count} alimenti aggiunti"
   },
   "profile": {
     "my_foods": "I miei alimenti",
@@ -140,7 +144,9 @@
     "kcal_eaten": "kcal",
     "of_target": "su %{target} kcal",
     "multiplier": "×%{count}",
-    "multiplier_unit": "× la porzione"
+    "multiplier_unit": "× la porzione",
+    "pick_day": "Scegli il giorno",
+    "pick_day_hint": "Il cerchietto dice com'è andata rispetto alle calorie del giorno. Vuoto vuol dire che non hai scritto niente."
   },
   "targets": {
     "title": "Obiettivi",
@@ -347,7 +353,22 @@
     "session_open": "Allenamento in corso",
     "free_workout": "Allenamento libero",
     "sets_count": "%{count} serie",
-    "equipment_hint": "Tocca quello che hai: serve per proporti alternative fattibili e per generare schede. Il corpo libero c'è sempre."
+    "equipment_hint": "Tocca quello che hai: serve per proporti alternative fattibili e per generare schede. Il corpo libero c'è sempre.",
+    "new_exercise": "Nuovo esercizio",
+    "exercise_name": "Nome",
+    "exercise_name_placeholder": "Es. Panca piana con bilanciere",
+    "muscle_group_label": "Gruppo muscolare",
+    "equipment_label": "Attrezzi",
+    "exercise_saved": "Esercizio salvato",
+    "exercise_exists": "C'è già un esercizio con questo nome",
+    "catalog_notice": "Questo esercizio entra nell'elenco di tutti gli iscritti, non solo dei tuoi amici, così lo trovano anche gli altri. Puoi correggerlo o toglierlo quando vuoi: le voci che aggiungi tu restano tue. Il catalogo non dice a nessuno chi le ha scritte.",
+    "import_catalog": "Aggiorna dal catalogo",
+    "imported_none": "Nessun esercizio nuovo",
+    "imported_some": "%{count} esercizi aggiunti",
+    "edit_exercise": "Modifica esercizio",
+    "delete_exercise": "Elimina esercizio",
+    "delete_exercise_message": "Sparisce da qui e dall'elenco di tutti. Gli allenamenti già registrati restano.",
+    "exercise_deleted": "Esercizio eliminato"
   },
   "assistant": {
     "open": "Parla con l'assistente",
@@ -714,7 +735,27 @@
     "you": "TU",
     "them": "LUI/LEI",
     "login_field": "Email o nome utente",
-    "login_hint": "Puoi usare l'uno o l'altro"
+    "login_hint": "Puoi usare l'uno o l'altro",
+    "share_gym": "Palestra",
+    "share_gym_hint": "Accendendolo, gli amici vedono quali esercizi fai e con che carico, non solo quante volte ti alleni. Spento, di palestra non esce niente.",
+    "share_window": "Quanto passato condividi",
+    "share_window_hint": "Vale per tutto quello che condividi. Restringendolo, i giorni che restano fuori vengono cancellati dal server.",
+    "window_days": "%{count} giorni",
+    "window_custom": "Scegli tu",
+    "window_custom_hint": "Da 1 a 365 giorni.",
+    "compare": "Confronta",
+    "compare_title": "Confronto",
+    "compare_pick": "Chi metti a confronto",
+    "compare_limit": "Fino a quattro persone: cinque colonne di numeri su un telefono non si leggono.",
+    "compare_empty": "Scegli almeno un amico da mettere accanto ai tuoi numeri.",
+    "compare_totals": "Totali del giorno",
+    "compare_gym": "In palestra",
+    "compare_no_gym": "Nessuno di voi condivide la palestra per questo giorno.",
+    "compare_volume": "Volume",
+    "compare_top_weight": "Carico max",
+    "compare_failed": "Confronto non riuscito, riprova",
+    "period_day": "Un giorno",
+    "compare_period_hint": "Su più giorni passi e allenamenti si sommano, le calorie sono la media dei giorni registrati."
   },
   "ai_key": {
     "title": "Chiave dell'assistente",

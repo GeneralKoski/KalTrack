@@ -5,7 +5,7 @@ import { getDayDiary } from "@/src/db/queries/diary";
 import { getSteps } from "@/src/db/queries/tracking";
 import { recentSessions } from "@/src/db/queries/workouts";
 import {
-  buildComparison,
+  buildMultiComparison,
   type ComparisonRow,
   type DayTotals,
 } from "@/src/domain/comparison";
@@ -60,7 +60,34 @@ export const FriendComparison: React.FC<Props> = ({ date, theirs, shares }) => {
     let attivo = true;
     myTotals(date)
       .then((miei) => {
-        if (attivo) setRighe(buildComparison(miei, theirs, shares));
+        if (attivo) {
+          /*
+           * Il confronto a due e' il confronto a N con un solo altro: una
+           * funzione sola vuol dire che le regole - niente vincitore sulle
+           * calorie, niente peso, un mancante non e' un ultimo posto - si
+           * scrivono e si correggono in un posto solo.
+           */
+          setRighe(
+            buildMultiComparison(
+              {
+                handle: "io",
+                displayName: "",
+                totals: miei,
+                shares,
+                exercises: [],
+              },
+              [
+                {
+                  handle: "loro",
+                  displayName: "",
+                  totals: theirs,
+                  shares,
+                  exercises: [],
+                },
+              ],
+            ),
+          );
+        }
       })
       .catch((error) => {
         logger.warn("[social] confronto non calcolato", error);
@@ -111,28 +138,20 @@ export const FriendComparison: React.FC<Props> = ({ date, theirs, shares }) => {
             >
               {etichetta[riga.metric]}
             </Text>
-            <Text
-              style={[
-                styles.value,
-                {
-                  color: riga.ahead === "mine" ? colors.accent : colors.text,
-                  fontWeight: riga.ahead === "mine" ? "700" : "500",
-                },
-              ]}
-            >
-              {numero(riga.mine)}
-            </Text>
-            <Text
-              style={[
-                styles.value,
-                {
-                  color: riga.ahead === "theirs" ? colors.accent : colors.text,
-                  fontWeight: riga.ahead === "theirs" ? "700" : "500",
-                },
-              ]}
-            >
-              {numero(riga.theirs)}
-            </Text>
+            {riga.cells.map((cella) => (
+              <Text
+                key={cella.handle}
+                style={[
+                  styles.value,
+                  {
+                    color: cella.leading ? colors.accent : colors.text,
+                    fontWeight: cella.leading ? "700" : "500",
+                  },
+                ]}
+              >
+                {numero(cella.value)}
+              </Text>
+            ))}
           </View>
         ))}
       </Card>

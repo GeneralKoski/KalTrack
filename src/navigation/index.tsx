@@ -23,6 +23,7 @@ import { navigationRef } from "@/src/navigation/navigationRef";
 import { Text } from "@/src/components/ui";
 import { AchievementsScreen } from "@/src/navigation/screens/AchievementsScreen";
 import { BackupScreen } from "@/src/navigation/screens/BackupScreen";
+import { ComparisonScreen } from "@/src/navigation/screens/ComparisonScreen";
 import { ExercisesScreen } from "@/src/navigation/screens/ExercisesScreen";
 import { FastingScreen } from "@/src/navigation/screens/FastingScreen";
 import { FriendProfileScreen } from "@/src/navigation/screens/FriendProfileScreen";
@@ -229,6 +230,10 @@ const RootStack = createNativeStackNavigator({
     FriendProfile: {
       screen: FriendProfileScreen,
       linking: { path: "amici/profilo" },
+    },
+    Comparison: {
+      screen: ComparisonScreen,
+      linking: { path: "amici/confronto" },
     },
     MyProfile: {
       screen: MyProfileScreen,

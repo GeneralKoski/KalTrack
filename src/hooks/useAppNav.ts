@@ -24,6 +24,7 @@ export interface NavParams {
   Fasting: undefined;
   Friends: undefined;
   FriendProfile: { handle: string };
+  Comparison: undefined;
   MyProfile: undefined;
   Measurements: undefined;
   ProgressPhotos: undefined;
