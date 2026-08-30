@@ -1,4 +1,5 @@
 import { Card } from "@/src/components/kal";
+import { SyncedPhoto } from "@/src/components/kal/SyncedPhoto";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { theme } from "@/src/styles";
@@ -25,7 +26,7 @@ export const FoodListItem: React.FC<FoodListItemProps> = ({
   return (
     <Card onPress={onPress} style={styles.card}>
       {food.image_uri ? (
-        <Image source={{ uri: food.image_uri }} style={styles.photo} />
+        <SyncedPhoto uri={food.image_uri} style={styles.photo} />
       ) : (
         <View
           style={[

@@ -9,6 +9,7 @@ import {
   ScreenBackground,
   SectionLabel,
 } from "@/src/components/kal";
+import { SyncedPhoto } from "@/src/components/kal/SyncedPhoto";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import {
@@ -192,8 +193,8 @@ export function ProgressPhotosScreen() {
                   <View style={styles.compareRow}>
                     {[comparable.first, comparable.last].map((photo, index) => (
                       <View key={photo.id} style={styles.compareItem}>
-                        <Image
-                          source={{ uri: photo.uri }}
+                        <SyncedPhoto
+                          uri={photo.uri}
                           style={[
                             styles.compareImage,
                             { backgroundColor: colors.surfaceMuted },
@@ -245,8 +246,8 @@ export function ProgressPhotosScreen() {
                           onPress={() => setSelected(photo)}
                           style={{ width: tileSize }}
                         >
-                          <Image
-                            source={{ uri: photo.uri }}
+                          <SyncedPhoto
+                            uri={photo.uri}
                             style={[
                               styles.tile,
                               {
@@ -283,8 +284,8 @@ export function ProgressPhotosScreen() {
       >
         {selected ? (
           <View style={styles.preview}>
-            <Image
-              source={{ uri: selected.uri }}
+            <SyncedPhoto
+              uri={selected.uri}
               style={[
                 styles.previewImage,
                 { backgroundColor: colors.surfaceMuted },

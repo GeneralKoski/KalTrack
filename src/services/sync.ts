@@ -10,6 +10,7 @@ import {
   PUSHED_KEY,
   readCursor,
 } from "@/src/services/syncMarkers";
+import { uploadPendingPhotos } from "@/src/services/photoSync";
 import { logger } from "@/src/utils/logger";
 
 /**
@@ -417,6 +418,20 @@ export async function runSync(): Promise<{
     if (pushed > 0 || pulled > 0) {
       logger.info(`[sync] inviate ${pushed}, ricevute ${pulled}`);
     }
+
+    /*
+     * Dopo le righe, i file.
+     *
+     * Dopo e non prima: una foto caricata prima della riga che la nomina
+     * resterebbe sul server senza nessuno a chiederla, e se la
+     * sincronizzazione si interrompesse in mezzo avremmo pagato il traffico
+     * per niente. Nell'altro ordine, al massimo, la riga arriva un giro prima
+     * dell'immagine.
+     *
+     * Non si aspetta il risultato e non puo' far fallire il giro: le foto sono
+     * un extra, i dati sono gia' al sicuro.
+     */
+    void uploadPendingPhotos();
     // Solo se sono ENTRATE righe: quel che e' partito lo conoscono gia' le
     // schermate, e ricaricarle a ogni invio sarebbe lavoro per niente.
     if (pulled > 0) useSyncStore.getState().bumpRevision();

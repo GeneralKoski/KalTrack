@@ -1,3 +1,4 @@
+import { newId } from "@/src/db/ids";
 import { logger } from "@/src/utils/logger";
 import * as FileSystem from "expo-file-system/legacy";
 
@@ -11,7 +12,7 @@ import * as FileSystem from "expo-file-system/legacy";
  * che hanno senso mesi dopo, cioè quando la cache è quasi certamente già stata
  * ripulita.
  */
-const PHOTOS_DIR = `${FileSystem.documentDirectory}photos`;
+export const PHOTOS_DIR = `${FileSystem.documentDirectory}photos`;
 
 async function ensureDir(): Promise<void> {
   const info = await FileSystem.getInfoAsync(PHOTOS_DIR);
@@ -42,7 +43,15 @@ export async function persistPhoto(
 
   try {
     await ensureDir();
-    const name = `${prefix}-${sourceUri.length}-${sourceUri.slice(-12).replace(/\W/g, "")}${extensionOf(sourceUri)}`;
+    /*
+     * Il nome e' un UUID, e non piu' una firma ricavata dall'URI di partenza.
+     *
+     * Da quando le foto viaggiano fra dispositivi, il nome E' l'identita'
+     * dell'immagine: due foto diverse che finivano per caso con lo stesso nome
+     * sarebbero diventate la stessa foto sull'altro telefono, e quella
+     * sbagliata avrebbe sostituito quella giusta.
+     */
+    const name = `${prefix}-${newId()}${extensionOf(sourceUri)}`;
     const target = `${PHOTOS_DIR}/${name}`;
 
     const existing = await FileSystem.getInfoAsync(target);

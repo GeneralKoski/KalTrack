@@ -1,4 +1,5 @@
 import { Card } from "@/src/components/kal";
+import { SyncedPhoto } from "@/src/components/kal/SyncedPhoto";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
@@ -30,7 +31,7 @@ export const RecipeListItem: React.FC<RecipeListItemProps> = ({
   return (
     <Card onPress={onPress} style={styles.card}>
       {recipe.photo_uri ? (
-        <Image source={{ uri: recipe.photo_uri }} style={styles.photo} />
+        <SyncedPhoto uri={recipe.photo_uri} style={styles.photo} />
       ) : (
         <View
           style={[
