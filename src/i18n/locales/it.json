@@ -146,7 +146,7 @@
     "multiplier": "×%{count}",
     "multiplier_unit": "× la porzione",
     "pick_day": "Scegli il giorno",
-    "pick_day_hint": "Il cerchietto dice com'è andata rispetto alle calorie del giorno. Vuoto vuol dire che non hai scritto niente."
+    "pick_day_hint": "Il cerchietto dice com'è andata con le calorie, diviso per proteine, carboidrati e grassi. Il puntino verde sotto vuol dire obiettivo passi raggiunto."
   },
   "targets": {
     "title": "Obiettivi",
@@ -368,7 +368,8 @@
     "edit_exercise": "Modifica esercizio",
     "delete_exercise": "Elimina esercizio",
     "delete_exercise_message": "Sparisce da qui e dall'elenco di tutti. Gli allenamenti già registrati restano.",
-    "exercise_deleted": "Esercizio eliminato"
+    "exercise_deleted": "Esercizio eliminato",
+    "secondary_muscles_label": "Muscoli secondari"
   },
   "assistant": {
     "open": "Parla con l'assistente",

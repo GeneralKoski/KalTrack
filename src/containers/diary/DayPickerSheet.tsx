@@ -3,6 +3,7 @@ import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { dailyKcalRange, type DayKcal } from "@/src/db/queries/diary";
 import { targetsUpTo } from "@/src/db/queries/settings";
+import { listSteps } from "@/src/db/queries/tracking";
 import {
   addMonths,
   EARLIEST_DAY,
@@ -87,6 +88,7 @@ export const DayPickerSheet = forwardRef<BottomSheetModal, DayPickerSheetProps>(
 
     const [mese, setMese] = useState(() => startOfMonth(date));
     const [kcal, setKcal] = useState<Map<string, DayKcal>>(new Map());
+    const [steps, setSteps] = useState<Map<string, number>>(new Map());
     const [targets, setTargets] = useState<TargetRow[]>([]);
 
     // Riaprendolo su un altro giorno, si riparte dal mese di quel giorno e non
@@ -101,12 +103,14 @@ export const DayPickerSheet = forwardRef<BottomSheetModal, DayPickerSheetProps>(
       const ultimo = giorni[giorni.length - 1];
 
       (async () => {
-        const [righe, storia] = await Promise.all([
+        const [righe, passi, storia] = await Promise.all([
           dailyKcalRange(primo, ultimo),
+          listSteps(primo, ultimo),
           targetsUpTo(ultimo),
         ]);
         if (!attivo) return;
         setKcal(new Map(righe.map((r) => [r.date, r])));
+        setSteps(new Map(passi.map((p) => [p.date, p.steps])));
         setTargets(storia);
       })().catch((error) => {
         // Il calendario deve aprirsi comunque: senza gli anelli si sceglie
@@ -208,6 +212,12 @@ export const DayPickerSheet = forwardRef<BottomSheetModal, DayPickerSheetProps>(
                     selected={giorno === date}
                     today={giorno === today}
                     disabled={!dentro}
+                    // Il puntino compare solo a obiettivo raggiunto: "quanti
+                    // passi" non ci sta in questo spazio, "ce l'hai fatta" si.
+                    stepsHit={
+                      !!obiettivo?.steps &&
+                      (steps.get(giorno) ?? 0) >= obiettivo.steps
+                    }
                   />
                 </TouchableOpacity>
               );
