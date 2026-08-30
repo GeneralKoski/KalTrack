@@ -1,4 +1,4 @@
-# Handoff - 30 agosto 2026
+# Handoff - 31 agosto 2026
 
 Punto della situazione per riprendere lo sviluppo da una sessione nuova. Non
 sostituisce `CLAUDE.md`, che resta il documento delle convenzioni: qui c'e' lo
@@ -6,9 +6,9 @@ sostituisce `CLAUDE.md`, che resta il documento delle convenzioni: qui c'e' lo
 
 ## In una riga
 
-L'app e' completa e in uso (Fasi 1-5). C'e' un backend Laravel in produzione con
-sincronizzazione, amici e foto. Il confronto a piu' persone e la palestra sono
-stati chiusi il 30 agosto 2026: resta aperto un pezzo solo, e piccolo.
+L'app e' completa e in uso (Fasi 1-5), con un backend Laravel in produzione
+gia' aggiornato all'ultimo lavoro. Non resta niente di aperto sul codice: quel
+che manca e' **provarla davvero**, e per una parte serve un secondo account.
 
 ## Stato
 
@@ -17,8 +17,9 @@ stati chiusi il 30 agosto 2026: resta aperto un pezzo solo, e piccolo.
 | Test app | 852 su 51 suite |
 | Test backend | 123 |
 | Typecheck / lint | puliti, 0 errori |
-| Ramo | `main`, allineato con `origin` |
-| Server | `kaltrack.martin-trajkovski.it`, healthy, ultimo deploy allineato al codice |
+| Ramo | `main`. **Due commit non ancora pushati** al 31/08 |
+| Server | `kaltrack.martin-trajkovski.it`, healthy, 16 migrazioni applicate, allineato al codice |
+| APK | firmato, `./scripts/build-apk.sh`. Quello installato sul telefono e' anteriore all'icona nuova |
 
 ## Cosa gira dove
 
@@ -41,17 +42,37 @@ serve, si reimposta da Impostazioni > Reimposta password, oppure con
 
 ## Il lavoro aperto
 
-**Il deploy.** Il codice e' completo e verde, ma il server in produzione non ha
-ancora le sei migrazioni nuove (`share_gym` + `share_window_days`,
-`shared_workouts`, `exercises`, `exercises.created_by`,
-`exercises.secondary_muscles`, `foods`) ne' le rotte nuove. Finche' non si deploya, dal
-telefono la creazione di un esercizio funziona e resta locale, mentre la
-proposta al catalogo risponde 404 e fallisce in silenzio - e' il comportamento
-voluto, ma vuol dire che il catalogo comune di fatto non gira ancora.
+Nessuno sul codice. Restano tre cose da fare con le mani, in ordine di peso.
 
-Procedura in `backend/README.md` § In produzione.
+**1. Provare il confronto con dati veri.** Non e' mai stato visto rispondere:
+sul server c'e' **un solo utente**, quindi non c'e' nessuno da mettere accanto.
+Serve un secondo account per vedere quelle schermate con dei numeri dentro.
+Passa i test, ma la lezione di questo progetto e' che i difetti seri escono
+aprendo l'app, non dalla suite.
 
-## Chiuso il 30 agosto 2026
+**2. Rifare l'APK.** Quello sul telefono e' anteriore all'icona: l'icona entra
+nel bundle al prebuild, quindi finche' non si ricostruisce si vede ancora la
+freccia azzurra di Expo.
+
+**3. Ripulire l'emulatore.** Ci sono dati di prova lasciati apposta durante le
+verifiche: obiettivo 2000 kcal, 100 g di anacardi, 10.000 passi, un esercizio
+`Pancainc test` gia' cancellato. Vivono solo li' e non sono mai arrivati al
+server, perche' quella sessione era scaduta.
+
+### Rimandato per scelta, non dimenticato
+
+- **Un secondo ambiente (test).** Oggi il backend e' **uno solo**: la scelta
+  test/prod che `deploy.sh` propone viene dal template Dieffetech e qui non e'
+  mai stata configurata (`.env.test` e `.env.prod` non esistono). Le migrazioni
+  del 31 agosto sono andate dritte in produzione, con un backup prima ma senza
+  una prova a vuoto. Se i dati sul server iniziano a contare, questo e' il
+  primo debito da pagare.
+- **Il catalogo non ha moderazione.** Chiunque puo' aggiungere voci
+  all'elenco di tutti, e ciascuno corregge solo le proprie: non esiste un modo
+  per un amministratore di togliere una voce altrui scritta male. Con un utente
+  solo non e' un problema; con dieci lo diventa.
+
+## Chiuso il 30-31 agosto 2026
 
 **Confronto con piu' persone e confronto in palestra**, secondo
 `docs/superpowers/plans/2026-08-30-confronto-multiplo-e-palestra.md`, con le
@@ -72,10 +93,35 @@ Cosa e' cambiato nella promessa dell'app, in tre righe:
   e ogni voce ha un autore: ciascuno corregge o toglie solo le proprie, ma
   `created_by` non esce da nessuna risposta (viaggia `mine`).
 
-Nella stessa giornata, fuori dal piano: l'anello delle calorie e' diviso per
-macronutriente (`macroSlices`, `MacroArc`) sia nella home sia nel calendario
-nuovo del diario, e la barra della data del diario ha altezza fissa, si sposta
-da inizio 2026 a un mese avanti e si apre in un calendario.
+Fuori dal piano, negli stessi due giorni:
+
+- **L'anello delle calorie e' diviso per macronutriente** (`macroSlices`,
+  `MacroArc`), sia nella home sia nei cerchietti del calendario. Il grigio in
+  coda e' la parte che i macro non spiegano, non un quarto macro.
+- **La barra della data del diario ha altezza fissa**, va da inizio 2026 a un
+  mese avanti e si apre in un calendario mensile con gli anelli dei giorni.
+  La griglia e' sempre di sei settimane apposta: un mese ne occupa da quattro a
+  sei, e senza un numero fisso il foglio cambiava altezza scorrendo i mesi.
+- **L'APK si costruisce e si installa senza Android Studio**
+  (`scripts/build-apk.sh` + `scripts/serve-apk.sh`), modellati su
+  ZCC-omnia-marine. Solo Android: per iOS servirebbero le API key di App Store
+  Connect, che qui non ci sono.
+- **L'icona non e' piu' quella di Expo**: una K bianca con un punto verde su
+  fondo quasi nero, rigenerabile con `scripts/genera-icone.py`.
+
+## Il deploy del 31 agosto
+
+Le sei migrazioni nuove sono in produzione (batch 5, sedici applicate in
+tutto), il container e' healthy e le rotte nuove rispondono 401 invece di 404.
+
+Prima di migrare e' stato preso un backup a parte,
+`kaltrack-pre-deploy-2026-08-30-223739.sqlite.gz`, con `VACUUM INTO` e non con
+una copia del file: il database e' in WAL, e un `cp` avrebbe perso le
+transazioni non ancora riversate.
+
+Il deploy passa da `rsync` della cartella `backend/` e **non** da un `git
+pull`: quel che gira sul server e' il codice locale al momento del comando, non
+quello dell'ultimo push.
 
 ## Rimandato di proposito
 
@@ -101,9 +147,17 @@ da inizio 2026 a un mese avanti e si apre in un calendario.
    prodotto con test propri, non logica da rifattorizzare. Da oggi valgono da
    due a cinque persone, e in palestra - a differenza delle calorie - un
    vincitore c'e'.
-6. **Il catalogo esercizi e' l'unica cosa che esce verso i non amici.** Prima
-   di questo lavoro la frase "non esce niente verso chi non e' amico" era vera
-   senza eccezioni: ora ce n'e' una, ed e' scritta in `backend/README.md`.
+6. **I cataloghi sono l'unica cosa che esce verso i non amici.** Prima di
+   questo lavoro la frase "non esce niente verso chi non e' amico" era vera
+   senza eccezioni: ora ce ne sono due - esercizi e alimenti - ed e' scritto in
+   `backend/README.md` come eccezione dichiarata.
+7. **Il keystore di firma non e' nel repository e non e' recuperabile.** Sta in
+   `credentials/android/kaltrack.keystore` con le password in
+   `credentials.json`, entrambi gitignorati. Perderlo vuol dire non poter piu'
+   aggiornare un'app gia' installata: Android rifiuta un aggiornamento firmato
+   con una chiave diversa, e l'unica via sarebbe disinstallare - portandosi via
+   il database, visto che il telefono e' la fonte di verita'. **Va copiato
+   fuori da questo computer.**
 
 ## Come si verifica una modifica
 
@@ -116,3 +170,14 @@ sarebbe emerso da una suite verde.
 
 Screenshot con `adb exec-out screencap -p > /tmp/x.png`, log con
 `adb logcat -d -s ReactNativeJS:V`.
+
+Per guardare il database dell'app sull'emulatore senza indovinare:
+
+```bash
+adb shell "run-as com.koski.kaltrack cat files/SQLite/kaltrack.db" > /tmp/k.db
+adb shell "run-as com.koski.kaltrack cat files/SQLite/kaltrack.db-wal" > /tmp/k.db-wal
+sqlite3 /tmp/k.db "SELECT ..."
+```
+
+Il file `-wal` va copiato insieme all'altro: senza, si legge un database
+vecchio di qualche transazione e si crede a un difetto che non c'e'.

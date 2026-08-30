@@ -255,6 +255,18 @@ disegnato da `MacroArc`), e lo usano sia la home sia i cerchietti del
 calendario: il grigio in coda e' la parte di calorie che i macro non spiegano,
 non un quarto macro.
 
+### L'icona
+
+Una K bianca con un punto verde su `#18181b`. Non e' un file da ritoccare a
+mano: si rigenera con `python3 scripts/genera-icone.py`, che disegna il segno
+**una volta**, lo ritaglia al contenuto e lo scala in tutte le misure. Modificarne
+uno solo a mano fa divergere le sei immagini alla prima occasione.
+
+Su Android l'icona e' a due strati e il sistema ci ritaglia sopra la forma che
+vuole: nel primo piano il segno sta al 46% e non al 60%, perche' il punto verde
+e' in alto a destra, cioe' dove la maschera taglia. Cambiando la composizione
+va riguardata quella prova, non solo il quadrato.
+
 ### Convenzioni non negoziabili
 
 Valgono le guide Dieffetech `docs/react-native/`:

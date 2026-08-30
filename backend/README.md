@@ -275,3 +275,11 @@ Nessuna lettura e' pubblica: senza account non si vede niente di nessuno.
   reimposta password dell'amministratore, che con pochi utenti che si conoscono
   e' il rimedio proporzionato.
 - Un database vero al posto di SQLite, se mai gli utenti diventassero tanti.
+- **Moderazione dei cataloghi.** Ciascuno corregge o toglie solo le proprie
+  voci, e non c'e' modo per un amministratore di togliere quella di un altro:
+  una voce scritta male da qualcun altro resta nell'elenco di tutti. Con pochi
+  utenti che si conoscono non e' un problema, e aggiungere un potere di
+  cancellazione su roba altrui prima che serva sarebbe peggio del male.
+- **Un secondo ambiente.** Ce n'e' uno solo, e le migrazioni vanno dritte in
+  produzione con un backup prima. La scelta test/prod di `deploy.sh` viene dal
+  template e non e' configurata.

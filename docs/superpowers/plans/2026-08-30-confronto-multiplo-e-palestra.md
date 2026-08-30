@@ -1,8 +1,15 @@
 # Confronto multiplo e confronto in palestra - Piano
 
-> **Eseguito per intero il 30 agosto 2026**, compresa la schermata che crea un
-> esercizio a mano, che all'inizio non esisteva. Resta solo il deploy: le
-> migrazioni non sono ancora state applicate in produzione.
+> **Chiuso il 31 agosto 2026.** Eseguito per intero, compresa la schermata che
+> crea un esercizio a mano - che all'inizio non esisteva - e deployato in
+> produzione (sei migrazioni, batch 5).
+>
+> Strada facendo sono cresciute due cose oltre il piano: i cataloghi sono
+> diventati **due** (esercizi e alimenti, per le ricette) e ogni voce ha un
+> **autore**, perche' senza proprietario non esiste "il mio" e una voce scritta
+> male restava nell'app di tutti per sempre. Le decisioni di privacy sono nella
+> sezione qui sotto; quella sull'autore e' arrivata dopo ed e' scritta in
+> `backend/README.md`.
 
 **Obiettivo:** confrontarsi con **fino a quattro** altre persone insieme, e non
 solo su calorie/passi/allenamenti ma anche su quel che si fa in palestra -
