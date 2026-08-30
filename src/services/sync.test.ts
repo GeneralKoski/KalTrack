@@ -19,6 +19,11 @@ import {
   SYNCED_TABLES,
   type SyncChange,
 } from "@/src/services/sync";
+import {
+  CURSOR_KEY,
+  PUSHED_KEY,
+  resetSyncMarkers,
+} from "@/src/services/syncMarkers";
 
 let db: LocalDatabase;
 
@@ -767,5 +772,44 @@ describe("lotti e righe con la stessa ora", () => {
     const uovo = changes.find((c) => c.id === "solo");
     expect(uovo).toBeDefined();
     expect(uovo?.payload).not.toHaveProperty("__rowid");
+  });
+});
+
+describe("cambio di account", () => {
+  /**
+   * Il difetto: uscendo e rientrando con un ALTRO account, i due segnaposto
+   * restavano quelli di prima. Il cursore e' la posizione dentro il contatore
+   * del vecchio utente: chiedere "le righe dopo la 406" a un contatore che
+   * riparte da 1 non torna niente, e i dati del nuovo account non sarebbero
+   * arrivati mai. Sullo schermo nessun errore: per l'app non c'era niente di
+   * nuovo.
+   */
+  it("i segnaposto si azzerano", async () => {
+    await setSetting(CURSOR_KEY, "406");
+    await setSetting(PUSHED_KEY, "2026-08-29T10:00:00.000Z");
+
+    await resetSyncMarkers();
+
+    expect(await getSetting(CURSOR_KEY)).toBeNull();
+    expect(await getSetting(PUSHED_KEY)).toBeNull();
+  });
+
+  it("azzerati i segnaposto, tutto torna da mandare", async () => {
+    await createFood({
+      name: "Riso",
+      brand: null,
+      source: "user",
+      nutrients: EMPTY_NUTRIENTS,
+    });
+
+    // Come se fosse gia' stato mandato tutto al vecchio account.
+    await setSetting(PUSHED_KEY, "2099-01-01T00:00:00.000Z");
+    const prima = await collectChanges(await getSetting(PUSHED_KEY));
+    expect(prima).toHaveLength(0);
+
+    await resetSyncMarkers();
+
+    const dopo = await collectChanges(await getSetting(PUSHED_KEY));
+    expect(dopo.some((c) => c.table === "foods")).toBe(true);
   });
 });

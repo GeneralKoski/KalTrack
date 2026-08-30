@@ -1,5 +1,6 @@
 import { setAuthTokenProvider } from "@/src/api/client";
 import * as social from "@/src/api/social";
+import { resetSyncMarkers } from "@/src/services/syncMarkers";
 import { logger } from "@/src/utils/logger";
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
@@ -45,6 +46,21 @@ export const useAccountStore = create<AccountStore>()((set, get) => ({
   },
 
   signIn: async (token) => {
+    /*
+     * Prima di tutto il resto: i segnaposto della sincronizzazione valgono per
+     * UN account.
+     *
+     * Il cursore e' la posizione dentro il contatore del server per quel
+     * l'utente. Entrando con un altro account e tenendolo, il telefono
+     * chiederebbe "le righe dopo la 406" a un contatore che riparte da uno, e
+     * la risposta e' vuota: i dati del nuovo account non arriverebbero mai, e
+     * senza nessun errore a dirlo.
+     *
+     * Va fatto qui e non nell'uscita: un token revocato dal server fa cadere
+     * la sessione senza passare da signOut, e il prossimo accesso si
+     * ritroverebbe i segnaposto vecchi. Dall'accesso invece non si scappa.
+     */
+    await resetSyncMarkers();
     await SecureStore.setItemAsync(TOKEN_KEY, token);
     set({ token });
     await get().refreshProfile();

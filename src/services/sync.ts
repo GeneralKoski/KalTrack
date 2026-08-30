@@ -4,6 +4,12 @@ import { getDb } from "@/src/db/index";
 import { getSetting, setSetting } from "@/src/db/queries/settings";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { useSyncStore } from "@/src/stores/syncStore";
+import {
+  CURSOR_KEY,
+  LOCAL_ONLY_SETTINGS,
+  PUSHED_KEY,
+  readCursor,
+} from "@/src/services/syncMarkers";
 import { logger } from "@/src/utils/logger";
 
 /**
@@ -61,35 +67,6 @@ export const SYNCED_TABLES = [
 
 export type SyncedTable = (typeof SYNCED_TABLES)[number];
 
-/**
- * DUE segnaposti, perche' ci sono due orologi.
- *
- * `sync.cursor` e' un CONTATORE del server e dice da dove riprendere a
- * scaricare. Non un'ora: con un orario due dispositivi che sincronizzavano
- * nello stesso secondo si perdevano le righe a vicenda, perche' la colonna ha
- * precisione al secondo e il cursore arrivava senza sub-secondi.
- * `sync.pushed_at` e' l'ora di QUESTO telefono e dice cosa e' gia' stato
- * mandato.
- *
- * Usarne uno solo per entrambi confrontava l'ora del server con gli
- * `updated_at` locali: con il telefono anche solo un minuto indietro rispetto
- * al server, tutte le righe scritte in quel minuto risultavano gia' inviate e
- * non partivano mai piu'. Nessun giro successivo le avrebbe recuperate.
- */
-const CURSOR_KEY = "sync.cursor";
-const PUSHED_KEY = "sync.pushed_at";
-
-/**
- * Impostazioni che NON viaggiano: sono stato di questo dispositivo, non dati
- * dell'utente.
- *
- * Il cursore e' il caso grave. Sincronizzandolo, ogni giro ne scriveva uno
- * nuovo da mandare al giro dopo - un ciclo che non si esaurisce mai - e
- * soprattutto il cursore di un telefono sarebbe finito sull'altro, che
- * avrebbe saltato tutte le righe arrivate prima di quel punto senza averle
- * mai ricevute.
- */
-const LOCAL_ONLY_SETTINGS = new Set([CURSOR_KEY, PUSHED_KEY]);
 
 /**
  * Quante righe per volta. Il server ne accetta 2000: restare sotto lascia
@@ -113,19 +90,6 @@ interface SyncResponse {
   cursor: string;
 }
 
-/**
- * Il segnaposto salvato, letto come numero.
- *
- * Le versioni precedenti ci scrivevano una data ISO. Passata al server nuovo,
- * `(int) "2026-08-29T18:00:00+00:00"` vale 2026: un numero di sequenza
- * plausibile, con cui il telefono salterebbe in silenzio le prime duemila
- * righe. Un valore che non e' un numero riparte da zero, che al massimo costa
- * una sincronizzazione completa.
- */
-const readCursor = (stored: string | null): number => {
-  if (stored === null) return 0;
-  return /^\d+$/.test(stored) ? Number(stored) : 0;
-};
 
 /** Le colonne di una tabella, lette dallo schema invece che elencate a mano. */
 const columnsOf = async (table: string): Promise<string[]> => {
