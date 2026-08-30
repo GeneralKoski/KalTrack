@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FriendshipController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\SharedStatController;
+use App\Http\Controllers\Api\ImageController;
 use App\Http\Controllers\Api\SyncController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,6 +32,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // La copia del database del telefono: push e pull in una sola andata.
     Route::post('sync', [SyncController::class, 'sync']);
+
+    /*
+     * I byte delle foto: la sincronizzazione porta le righe, questi portano i
+     * file a cui le righe puntano. Senza, una ricetta con foto arriva
+     * sull'altro telefono con un rettangolo vuoto al posto dell'immagine.
+     */
+    Route::get('images', [ImageController::class, 'index']);
+    Route::post('images', [ImageController::class, 'store']);
+    Route::get('images/{name}', [ImageController::class, 'show']);
+    Route::delete('images/{name}', [ImageController::class, 'destroy']);
 
     Route::get('users', [ProfileController::class, 'search']);
     Route::get('users/{handle}', [ProfileController::class, 'show']);
