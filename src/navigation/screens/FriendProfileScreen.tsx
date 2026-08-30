@@ -1,6 +1,7 @@
 import * as social from "@/src/api/social";
 import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { Card, EmptyState, ScreenBackground, SectionLabel } from "@/src/components/kal";
+import { FriendComparison } from "@/src/containers/social/FriendComparison";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useAppNav } from "@/src/hooks/useAppNav";
@@ -119,6 +120,22 @@ export function FriendProfileScreen() {
                     ))}
                   </Card>
                 )}
+
+                {last ? (
+                  <FriendComparison
+                    date={last.date}
+                    theirs={{
+                      kcal: last.kcal,
+                      steps: last.steps,
+                      workouts: last.workouts,
+                    }}
+                    shares={{
+                      calories: data.shares.calories,
+                      steps: data.shares.steps,
+                      workouts: data.shares.workouts,
+                    }}
+                  />
+                ) : null}
 
                 {data.stats.length > 1 ? (
                   <>

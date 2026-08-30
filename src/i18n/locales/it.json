@@ -709,7 +709,10 @@
     "shares_nothing": "Non condivide ancora niente.",
     "latest": "Ultimo giorno",
     "history": "Giorni precedenti",
-    "no_backend": "La sezione amici ha bisogno di un server. Imposta EXPO_PUBLIC_API_URL per attivarla."
+    "no_backend": "La sezione amici ha bisogno di un server. Imposta EXPO_PUBLIC_API_URL per attivarla.",
+    "comparison": "A confronto",
+    "you": "TU",
+    "them": "LUI/LEI"
   },
   "ai_key": {
     "title": "Chiave dell'assistente",
