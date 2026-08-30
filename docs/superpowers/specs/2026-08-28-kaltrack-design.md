@@ -472,11 +472,20 @@ Sanctum) e le tre cose sono vere.
 
 Lo schema sync-ready ha fatto il suo lavoro: il modello dati non e' stato toccato.
 
-Resta fuori il **confronto con altre persone** (classifiche, "chi ha fatto piu' passi
-questa settimana"). Il presupposto tecnico c'e', ma e' una scelta di prodotto e non di
-infrastruttura: trasformare il diario di qualcuno in una gara e' un modo noto per rendere
-il tracking alimentare un problema invece che uno strumento. Se si fara', si fara' apposta
-e non perche' ora e' possibile.
+Il **confronto con un amico** e' stato costruito dopo, e apposta: la scelta era di
+prodotto e non di infrastruttura, ed e' stata presa in quel verso. Trasformare il diario
+di qualcuno in una gara e' un modo noto per rendere il tracking alimentare un problema
+invece che uno strumento, quindi il confronto non e' uniforme (`src/domain/comparison.ts`):
+
+- **passi e allenamenti** hanno un vincitore. Sono attivita', "di piu'" vuol dire
+  qualcosa, ed e' il motivo per cui uno aggiunge un amico.
+- **le calorie** si affiancano senza dichiarare un vincitore. Mangiare piu' o meno di
+  un'altra persona non e' meglio ne' peggio: dipende da quanto pesa, da quanto si muove e
+  da cosa sta cercando di fare. Una spunta su chi ne ha mangiate meno sarebbe un
+  consiglio, e sarebbe sbagliato.
+- **il peso** non si confronta. "Pesi sei chili piu' del tuo amico" non serve a nessuno.
+
+Restano fuori le classifiche fra piu' persone, per la stessa ragione e con piu' forza.
 
 ### 9.3 Non costruibile senza codice nativo dedicato
 Assistente predefinito di Android (`ACTION_ASSIST`): quell'intent non porta dati, quindi
@@ -493,13 +502,18 @@ finge di coprirlo.
 Il backend Laravel per la sincronizzazione multi-dispositivo **e' stato costruito** in
 Fase 5.
 
-Il proxy per le chiamate AI **no**, ed e' l'unica voce di questa spec ancora aperta. Non
-e' lavoro dimenticato ma una decisione da prendere: oggi l'assistente funziona senza
-account, e farlo passare dal server significherebbe richiederne uno. Si guadagna la chiave
-fuori dal bundle, si perde la gratuita' dell'accesso a una delle funzioni principali.
-Finche' l'APK resta personale la chiave in chiaro e' un rischio accettato e scritto; il
-giorno in cui l'app viene condivisa, la decisione va presa in quel momento e in quel
-verso.
+Il proxy per le chiamate AI **non serve piu'**, ed e' il caso in cui la soluzione
+migliore ha cancellato il problema invece di gestirlo.
+
+Il proxy esisteva solo per nascondere una chiave condivisa: una sola, dentro il bundle, in
+chiaro, estraibile da chiunque avesse l'APK e a carico di chi l'aveva messa. Adesso la
+chiave la porta ciascuno per se' (`src/stores/aiKeyStore.ts`): che una persona possa
+estrarre dal proprio telefono una chiave sua non e' un problema, e la quota che consuma e'
+la sua. In piu' l'assistente continua a funzionare senza account e senza un giro in piu'
+sulla rete, che con il proxy si sarebbe perso.
+
+Resta aperta solo la sincronizzazione dei file delle foto verso iOS, che non e' un
+problema di infrastruttura ma di provider (vedi 9.3).
 
 ## 9-bis. Nota sulle migrazioni
 

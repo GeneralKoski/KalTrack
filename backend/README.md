@@ -63,6 +63,20 @@ Due dettagli che sembrano pedanteria e non lo sono, entrambi costati un difetto:
 
 `tests/Feature/SyncTest.php` copre entrambi.
 
+### I file delle foto
+
+La sincronizzazione copia le RIGHE, e una riga con foto contiene un percorso: sull'altro
+telefono quel percorso non ha niente dietro. I byte passano da `/api/images`, e
+l'identita' di una foto e' il suo **nome** - la cartella dell'app cambia da sistema a
+sistema, il nome no.
+
+Stanno in `storage/app/private/images/{utente}` e **mai** sotto `public/`: sono le foto
+dei progressi di qualcuno, non devono essere raggiungibili con un URL indovinato. Il nome
+passa da un controllo di caratteri prima di finire in un percorso su disco, altrimenti un
+`../` leggerebbe fuori dalla cartella. `tests/Feature/ImageTest.php` verifica entrambe le
+cose, con un secondo account vero che chiede il file di un altro per nome esatto e si
+prende un 404.
+
 ## Avvio in sviluppo
 
 ```bash
@@ -134,6 +148,10 @@ non e' un backup.
 | PATCH | `/api/me` | Handle, nome, bio, avatar, condivisioni |
 | PUT | `/api/me/stats` | Il telefono pubblica i totali di giornata |
 | POST | `/api/sync` | Manda le modifiche e riceve quelle degli altri dispositivi |
+| GET | `/api/images` | Quali foto ha gia', così il telefono manda solo il resto |
+| POST | `/api/images` | Carica il file di una foto (max 5 MB) |
+| GET | `/api/images/{nome}` | Scarica una foto. **Solo le proprie** |
+| DELETE | `/api/images/{nome}` | Cancella una foto |
 | GET | `/api/users?q=` | Cerca per handle o nome (min. 2 caratteri) |
 | GET | `/api/users/{handle}` | Profilo pubblico, filtrato |
 | GET | `/api/friendships` | Amicizie e richieste, con la direzione |
