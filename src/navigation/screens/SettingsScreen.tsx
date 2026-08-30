@@ -2,11 +2,13 @@ import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantBut
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { Text } from "@/src/components/ui";
+import { AdminPasswordReset } from "@/src/containers/settings/AdminPasswordReset";
 import { AiKeySettings } from "@/src/containers/settings/AiKeySettings";
 import { AssistantSettings } from "@/src/containers/settings/AssistantSettings";
 import { HealthConnectSettings } from "@/src/containers/settings/HealthConnectSettings";
 import { ThemePicker } from "@/src/containers/settings/ThemePicker";
 import { useAppNav } from "@/src/hooks/useAppNav";
+import { useAccountStore } from "@/src/stores/accountStore";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import { ChevronLeft } from "lucide-react-native";
@@ -22,6 +24,7 @@ export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { goBack } = useAppNav();
   const { colors } = useAppTheme();
+  const isAdmin = useAccountStore((s) => s.profile?.isAdmin ?? false);
 
   return (
     <View style={styles.root}>
@@ -62,6 +65,17 @@ export function SettingsScreen() {
             {t("settings.health")}
           </SectionLabel>
           <HealthConnectSettings />
+
+          {/* Solo per l'amministratore. Il server rifiuta comunque gli altri:
+              questa e' una comodita', non la difesa. */}
+          {isAdmin ? (
+            <>
+              <SectionLabel style={styles.section}>
+                {t("admin.title")}
+              </SectionLabel>
+              <AdminPasswordReset />
+            </>
+          ) : null}
         </ScrollView>
       </SafeAreaView>
     </View>

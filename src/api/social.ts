@@ -21,7 +21,17 @@ export interface MyProfile {
   avatarUrl: string | null;
   bio: string | null;
   email: string;
+  /** Puo' rimettere a posto la password degli altri. Spento per tutti. */
+  isAdmin: boolean;
   shares: AccountShares;
+}
+
+export interface AdminUser {
+  id: number;
+  handle: string;
+  displayName: string;
+  email: string;
+  isAdmin: boolean;
 }
 
 export interface FoundUser {
@@ -72,7 +82,8 @@ export const register = (input: {
     body: input,
   });
 
-export const login = (input: { email: string; password: string }) =>
+/** `login` e non `email`: si entra con l'una o con il nome utente. */
+export const login = (input: { login: string; password: string }) =>
   apiRequest<{ token: string; handle: string }>({
     method: "post",
     path: "/login",
@@ -87,6 +98,7 @@ export const fetchMyProfile = () =>
 
 export const updateMyProfile = (input: Partial<{
   handle: string;
+  email: string;
   displayName: string;
   avatarUrl: string | null;
   bio: string | null;
@@ -140,4 +152,15 @@ export const syncSharedStats = (days: SharedDay[]) =>
     method: "put",
     path: "/me/stats",
     body: { days },
+  });
+
+/** L'elenco degli utenti, per l'amministratore. Il server rifiuta gli altri. */
+export const fetchAllUsers = () =>
+  apiRequest<{ users: AdminUser[] }>({ method: "get", path: "/admin/users" });
+
+export const resetUserPassword = (id: number, password: string) =>
+  apiRequest<{ handle: string }>({
+    method: "post",
+    path: `/admin/users/${id}/password`,
+    body: { password },
   });

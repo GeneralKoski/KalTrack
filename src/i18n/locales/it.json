@@ -712,7 +712,9 @@
     "no_backend": "La sezione amici ha bisogno di un server. Imposta EXPO_PUBLIC_API_URL per attivarla.",
     "comparison": "A confronto",
     "you": "TU",
-    "them": "LUI/LEI"
+    "them": "LUI/LEI",
+    "login_field": "Email o nome utente",
+    "login_hint": "Puoi usare l'uno o l'altro"
   },
   "ai_key": {
     "title": "Chiave dell'assistente",
@@ -725,5 +727,13 @@
     "saved": "Chiave salvata",
     "removed": "Chiave rimossa",
     "where": "Dove trovo una chiave?"
+  },
+  "admin": {
+    "title": "Reimposta password",
+    "explain": "Scegli una persona e assegnale una nuova password. Serve perché non c'è il recupero via email: senza questo, chi la dimentica resta fuori.",
+    "new_password": "Nuova password (min. 8 caratteri)",
+    "logs_out": "%{handle} verrà disconnesso su tutti i dispositivi e dovrà rientrare.",
+    "confirm": "Cambia la password",
+    "done": "Password di %{handle} cambiata"
   }
 }

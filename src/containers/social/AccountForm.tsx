@@ -30,6 +30,8 @@ export const AccountForm: React.FC = () => {
 
   const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState("");
+  // In accesso questo campo accetta l'email OPPURE il nome utente.
+  const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [handle, setHandle] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -42,7 +44,7 @@ export const AccountForm: React.FC = () => {
     try {
       const result = isRegistering
         ? await social.register({ email, password, handle, displayName })
-        : await social.login({ email, password });
+        : await social.login({ login, password });
       await signIn(result.token);
       // Subito, non al prossimo giro: chi entra su un telefono nuovo si
       // aspetta di ritrovare i suoi dati adesso, non fra un quarto d'ora.
@@ -126,9 +128,13 @@ export const AccountForm: React.FC = () => {
             hint: t("social.handle_hint"),
           })
         : null}
-      {field("email", t("social.email"), email, setEmail, {
-        keyboardType: "email-address",
-      })}
+      {isRegistering
+        ? field("email", t("social.email"), email, setEmail, {
+            keyboardType: "email-address",
+          })
+        : field("login", t("social.login_field"), login, setLogin, {
+            hint: t("social.login_hint"),
+          })}
       {field("password", t("social.password"), password, setPassword, {
         secure: true,
       })}
