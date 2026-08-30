@@ -2,7 +2,8 @@ import { DB_NAME } from "@/src/consts";
 import { runMigrations } from "@/src/db/migrations";
 import { applyExerciseSeeds, applySeeds } from "@/src/db/seed";
 import { wrapDatabase, type LocalDatabase } from "@/src/db/sqliteAdapter";
-import { logger } from "@/src/utils/logger";
+import { recordLog } from "@/src/db/queries/logs";
+import { logger, setLogSink } from "@/src/utils/logger";
 import * as SQLite from "expo-sqlite";
 
 let dbPromise: Promise<LocalDatabase> | null = null;
@@ -34,6 +35,11 @@ export function getDb(): Promise<LocalDatabase> {
 export async function initDatabase(): Promise<void> {
   const db = await getDb();
   const version = await runMigrations(db);
+  // Da qui in poi i guasti finiscono anche in `app_logs`. Prima delle
+  // migrazioni no: la tabella potrebbe non esistere ancora.
+  setLogSink((level, parts) => {
+    void recordLog(level, parts);
+  });
   logger.info(`[db] schema alla versione ${version}`);
   await applySeeds(db);
   await applyExerciseSeeds(db);

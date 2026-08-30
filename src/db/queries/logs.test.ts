@@ -1,0 +1,115 @@
+import { createTestDb } from "@/src/db/__testing__/betterSqliteAdapter";
+import { __setDbForTesting } from "@/src/db/index";
+import { runMigrations } from "@/src/db/migrations";
+import {
+  clearLogs,
+  MAX_LOG_ROWS,
+  PRUNE_EVERY,
+  recentLogs,
+  recordLog,
+  redactSecrets,
+  splitScope,
+} from "@/src/db/queries/logs";
+import type { LocalDatabase } from "@/src/db/sqliteAdapter";
+
+let db: LocalDatabase;
+
+beforeEach(async () => {
+  db = createTestDb();
+  await runMigrations(db);
+  __setDbForTesting(db);
+});
+
+afterEach(async () => {
+  await clearLogs();
+  __setDbForTesting(null);
+});
+
+describe("splitScope", () => {
+  it("stacca il prefisso [scope] usato in tutto il codice", () => {
+    expect(splitScope("[assistant] ciclo fallito")).toEqual({
+      scope: "assistant",
+      message: "ciclo fallito",
+    });
+  });
+
+  it("lascia stare un messaggio senza prefisso", () => {
+    expect(splitScope("qualcosa non va")).toEqual({
+      scope: null,
+      message: "qualcosa non va",
+    });
+  });
+});
+
+describe("redactSecrets", () => {
+  it("nasconde una chiave Groq scritta da sola", () => {
+    expect(redactSecrets("chiave gsk_abcdefgh12345678 rifiutata")).toBe(
+      "chiave gsk_<nascosta> rifiutata",
+    );
+  });
+
+  it("nasconde un header Authorization intero", () => {
+    expect(redactSecrets("Authorization: Bearer qualunquecosa")).toBe(
+      "Authorization: Bearer <nascosta>",
+    );
+  });
+});
+
+describe("recordLog", () => {
+  it("registra livello, scope, messaggio e dettaglio", async () => {
+    await recordLog("error", [
+      "[assistant] ciclo fallito",
+      new Error("Groq ha risposto 400"),
+    ]);
+
+    const [riga] = await recentLogs();
+    expect(riga.level).toBe("error");
+    expect(riga.scope).toBe("assistant");
+    expect(riga.message).toBe("ciclo fallito");
+    expect(riga.detail).toContain("Groq ha risposto 400");
+  });
+
+  it("non lascia passare una chiave nemmeno nel dettaglio", async () => {
+    await recordLog("error", ["[ai] rifiutata", "Bearer gsk_segretissima1234"]);
+
+    const [riga] = await recentLogs();
+    expect(riga.detail).not.toContain("segretissima");
+  });
+
+  // Il registro e' chiamato da `logger.error`: se scrivere fallisse e l'errore
+  // uscisse, ogni guasto ne genererebbe un secondo.
+  it("resta muto se il database non risponde", async () => {
+    __setDbForTesting({
+      ...db,
+      runAsync: () => Promise.reject(new Error("disco pieno")),
+    });
+
+    await expect(recordLog("error", ["[x] boom"])).resolves.toBeUndefined();
+
+    __setDbForTesting(db);
+  });
+
+  // Si pota ogni PRUNE_EVERY scritture, non a ogni riga: il tetto e' quello
+  // piu' lo scarto fra due potature. Quel che conta e' che non cresca senza
+  // fine, non che sia esattamente trecento.
+  it("non cresce oltre il tetto piu' lo scarto fra due potature", async () => {
+    for (let i = 0; i < MAX_LOG_ROWS * 2; i++) {
+      await recordLog("warn", [`[test] riga ${i}`]);
+    }
+
+    const righe = await recentLogs(MAX_LOG_ROWS * 3);
+    expect(righe.length).toBeLessThanOrEqual(MAX_LOG_ROWS + PRUNE_EVERY);
+    expect(righe.length).toBeGreaterThan(MAX_LOG_ROWS - PRUNE_EVERY);
+  });
+});
+
+describe("recentLogs", () => {
+  it("torna dalla piu' recente", async () => {
+    await recordLog("warn", ["[a] prima"]);
+    await new Promise((r) => setTimeout(r, 5));
+    await recordLog("error", ["[b] seconda"]);
+
+    const righe = await recentLogs();
+    expect(righe[0].message).toBe("seconda");
+  });
+});

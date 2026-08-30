@@ -41,6 +41,7 @@ export const BACKUP_TABLES = [
   "achievements",
   "reminders",
   "ai_calls",
+  "app_logs",
   // Dipendenti, dai padri ai figli.
   "recipe_items",
   "meals",
