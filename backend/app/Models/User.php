@@ -25,6 +25,8 @@ use Laravel\Sanctum\HasApiTokens;
     'share_steps',
     'share_weight',
     'share_workouts',
+    'share_gym',
+    'share_window_days',
     'is_admin',
 ])]
 #[Hidden(['password', 'remember_token'])]
@@ -32,6 +34,9 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
+
+    /** La finestra di default, la stessa scritta nella migrazione. */
+    public const FINESTRA_DI_DEFAULT = 7;
 
     /**
      * Get the attributes that should be cast.
@@ -48,6 +53,8 @@ class User extends Authenticatable
             'share_steps' => 'boolean',
             'share_weight' => 'boolean',
             'share_workouts' => 'boolean',
+            'share_gym' => 'boolean',
+            'share_window_days' => 'integer',
         ];
     }
 
@@ -72,6 +79,25 @@ class User extends Authenticatable
     public function sharedStats(): HasMany
     {
         return $this->hasMany(SharedStat::class);
+    }
+
+    public function sharedWorkouts(): HasMany
+    {
+        return $this->hasMany(SharedWorkout::class);
+    }
+
+    /**
+     * Quanti giorni di passato si pubblicano.
+     *
+     * UN SOLO POSTO che sa cosa fare quando il valore non c'e'. Sembra
+     * pedanteria e non lo e': la finestra si usa per calcolare da che giorno in
+     * poi si tiene, e un null diventerebbe `subDays(-1)`, cioe' domani, cioe'
+     * cancellare anche i dati di oggi. Un'impostazione che manca non puo'
+     * voler dire "butta via tutto".
+     */
+    public function finestraInGiorni(): int
+    {
+        return $this->share_window_days ?? self::FINESTRA_DI_DEFAULT;
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\SharedWorkout;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -32,6 +33,7 @@ class PublicProfileResource extends JsonResource
     public function toArray(Request $request): array
     {
         $user = $this->resource;
+        $visible = fn (bool $flag) => $this->isFriend && $flag;
 
         return [
             'handle' => $user->handle,
@@ -49,13 +51,55 @@ class PublicProfileResource extends JsonResource
                     )
                 ),
             ),
+            /*
+             * La palestra, giorno per giorno. Vuota se l'interruttore e'
+             * spento o se chi guarda non e' un amico: gli esercizi il
+             * controller li carica solo per gli amici, e questo e' il secondo
+             * controllo, non il primo.
+             */
+            'gym' => $visible($user->share_gym)
+                ? $this->perGiorno($user->sharedWorkouts)
+                : [],
+            /*
+             * Le condivisioni escono come le vede chi guarda: a un non amico
+             * risultano tutte spente. Dire "condivide i passi ma tu non li
+             * vedi" sarebbe un'informazione su di lei data a qualcuno che non
+             * ha nessun rapporto con lei.
+             */
             'shares' => [
-                'calories' => $user->share_calories,
-                'steps' => $user->share_steps,
-                'weight' => $user->share_weight,
-                'workouts' => $user->share_workouts,
+                'calories' => $visible($user->share_calories),
+                'steps' => $visible($user->share_steps),
+                'weight' => $visible($user->share_weight),
+                'workouts' => $visible($user->share_workouts),
+                'gym' => $visible($user->share_gym),
             ],
         ];
+    }
+
+    /**
+     * Gli esercizi raggruppati per giorno.
+     *
+     * Un giorno per riga come `stats`, cosi' le due liste si leggono allo
+     * stesso modo: il client prende la piu' recente senza dover incrociare
+     * date sparse.
+     */
+    private function perGiorno(mixed $workouts): array
+    {
+        return collect($workouts)
+            ->groupBy(fn (SharedWorkout $w) => $w->date->toDateString())
+            ->map(fn ($righe, $date) => [
+                'date' => $date,
+                'exercises' => $righe->map(fn (SharedWorkout $w) => [
+                    'name' => $w->exercise_name,
+                    'sets' => $w->sets,
+                    'totalReps' => $w->total_reps,
+                    'volumeKg' => $w->volume_kg,
+                    'topWeightKg' => $w->top_weight_kg,
+                ])->values(),
+            ])
+            ->sortByDesc('date')
+            ->values()
+            ->all();
     }
 
     /**

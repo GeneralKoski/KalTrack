@@ -39,6 +39,13 @@ class UpdateProfileRequest extends FormRequest
             'shareSteps' => ['sometimes', 'boolean'],
             'shareWeight' => ['sometimes', 'boolean'],
             'shareWorkouts' => ['sometimes', 'boolean'],
+            // La palestra e' l'unica che fa uscire contenuto e non un totale,
+            // ma la regola di validazione non ha modo di dirlo: quel che la
+            // distingue e' il testo accanto all'interruttore.
+            'shareGym' => ['sometimes', 'boolean'],
+            // Un anno di tetto: oltre, "finestra" non vuol piu' dire niente e
+            // diventa "tutto lo storico" senza che nessuno l'abbia scelto.
+            'shareWindowDays' => ['sometimes', 'integer', 'min:1', 'max:365'],
         ];
     }
 }
