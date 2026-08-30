@@ -35,6 +35,16 @@ npm test           # Jest
 - Convenzioni di sviluppo: [`CLAUDE.md`](CLAUDE.md)
 - Server, privacy e sincronizzazione: [`backend/README.md`](backend/README.md)
 
+## Da fare
+
+- **Passi su iOS (HealthKit).** L'interfaccia `HealthProvider` in
+  `src/services/healthConnect.ts` e' il punto d'innesto; su iOS i passi non
+  arrivano da soli. Rimandato di proposito.
+- **Confronto con piu' persone e confronto in palestra.** Piano scritto:
+  [`docs/superpowers/plans/2026-08-30-confronto-multiplo-e-palestra.md`](docs/superpowers/plans/2026-08-30-confronto-multiplo-e-palestra.md).
+- **Verifica email e recupero password.** Al loro posto c'e' il reimposta
+  password dell'amministratore, in Impostazioni.
+
 ## Configurazione
 
 Copiare `.env.example` in `.env`. Due variabili, entrambe facoltative: la
