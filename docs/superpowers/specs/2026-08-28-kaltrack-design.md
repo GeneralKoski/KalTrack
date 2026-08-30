@@ -13,22 +13,30 @@ Utente unico: il proprietario del telefono. Nessun account, nessun login.
 
 ## 2. Decisioni architetturali
 
-### 2.1 Local-first, nessun backend
+### 2.1 Local-first
 
-Tutti i dati vivono in SQLite sul telefono. Non esiste un server applicativo.
+Tutti i dati vivono in SQLite sul telefono, e il telefono resta la fonte di verita'.
+
+> **Aggiornato in Fase 5.** Alla stesura questa sezione si intitolava "nessun backend" e
+> diceva che un server applicativo non esisteva. Ora esiste (`backend/`), ma la regola
+> non e' cambiata: l'app scrive in locale, funziona offline e funziona senza account. Il
+> server tiene una **copia**. Quel che segue resta valido, con le due note in fondo.
 
 Conseguenze accettate:
-- Zero costi di infrastruttura, funzionamento offline totale, nessuna latenza di rete
-  per l'uso quotidiano.
+- Funzionamento offline totale, nessuna latenza di rete per l'uso quotidiano.
 - La chiave API Groq sta nel bundle (`EXPO_PUBLIC_GROQ_API_KEY`), quindi in chiaro.
-  Accettabile perche' l'APK non viene distribuito. **Debito noto**: se un giorno l'app
-  viene condivisa, la chiave va spostata dietro un proxy (vedi 9.3).
+  Accettabile perche' l'APK non viene distribuito. **Debito ancora aperto**: vedi 9.4.
 - Perdere il telefono significa perdere i dati, quindi export/backup e' parte della Fase 1
   e non un extra.
 
 Lo schema e' progettato **sync-ready**: ogni tabella ha `id TEXT` (UUID), `created_at`,
-`updated_at`, `deleted_at`. Aggiungere un backend Laravel in futuro non richiede di
-rifare il modello dati.
+`updated_at`, `deleted_at`. Quella previsione ha retto: il backend si e' innestato senza
+toccare il modello dati.
+
+Le due note:
+- **Perdere il telefono non significa piu' perdere tutto**, se si e' fatto l'accesso. Il
+  backup manuale resta comunque, perche' e' l'unico che funziona senza account.
+- I costi di infrastruttura non sono piu' zero, ma il server esisteva gia' per altro.
 
 ### 2.2 Sorgenti dei dati nutrizionali
 
@@ -435,6 +443,11 @@ screenshot di verifica, commit.
 22. Achievement e streak
 23. Rifinitura UI, stati vuoti, accessibilita'
 
+**Fase 5 - Il server** (non prevista alla stesura, vedi 9.2)
+24. Backend Laravel: account, amici, profilo pubblico con le due regole di privacy
+25. Schermate di amici e profilo
+26. Sincronizzazione bidirezionale del database, deploy con HTTPS, backup notturno
+
 ## 9. Fuori scope iniziale
 
 Questa sezione elencava cio' che non sarebbe stato sviluppato subito. Quasi tutto e'
@@ -449,14 +462,21 @@ carichi; piano pasti settimanale con lista della spesa; coach AI settimanale; tr
 export CSV; OCR dell'etichetta nutrizionale; widget della home con calorie e passi;
 scorciatoia sull'icona che apre l'assistente in ascolto.
 
-### 9.2 Non costruibile senza un backend
-Ricerca amici, profilo pubblico con storico, confronto con altre persone, e backup su
-cloud. Non e' una questione di tempo: tutte e quattro richiedono un server che tenga i
-dati di piu' persone e ne autentichi l'accesso. Costruirne una finta - un elenco di amici
-salvato solo su questo telefono, un "backup cloud" che scrive in locale - darebbe
-all'utente la sensazione di avere qualcosa che non ha, e la scoperta arriverebbe nel
-momento peggiore: quando serve davvero. Lo schema sync-ready (ogni tabella con `id` UUID,
-`created_at`, `updated_at`, `deleted_at`) e' il presupposto tecnico gia' pronto.
+### 9.2 Costruito in Fase 5, con il backend
+Ricerca amici, profilo pubblico, e la copia dei dati sul server. Erano fuori scope perche'
+richiedevano un server che tenesse i dati di piu' persone e ne autenticasse l'accesso, e
+costruirne una versione finta - un elenco di amici salvato solo su questo telefono, un
+"backup cloud" che scrive in locale - avrebbe dato la sensazione di avere qualcosa che non
+c'era, con la scoperta nel momento peggiore. Il server ora c'e' (`backend/`, Laravel +
+Sanctum) e le tre cose sono vere.
+
+Lo schema sync-ready ha fatto il suo lavoro: il modello dati non e' stato toccato.
+
+Resta fuori il **confronto con altre persone** (classifiche, "chi ha fatto piu' passi
+questa settimana"). Il presupposto tecnico c'e', ma e' una scelta di prodotto e non di
+infrastruttura: trasformare il diario di qualcuno in una gara e' un modo noto per rendere
+il tracking alimentare un problema invece che uno strumento. Se si fara', si fara' apposta
+e non perche' ora e' possibile.
 
 ### 9.3 Non costruibile senza codice nativo dedicato
 Assistente predefinito di Android (`ACTION_ASSIST`): quell'intent non porta dati, quindi
@@ -470,8 +490,16 @@ in `src/services/healthConnect.ts` e' il punto in cui si innesterebbe, ma il fil
 finge di coprirlo.
 
 ### 9.4 Infrastruttura
-Backend Laravel per sync multi-device e per fare da proxy alle chiamate AI, eliminando la
-chiave nel bundle.
+Il backend Laravel per la sincronizzazione multi-dispositivo **e' stato costruito** in
+Fase 5.
+
+Il proxy per le chiamate AI **no**, ed e' l'unica voce di questa spec ancora aperta. Non
+e' lavoro dimenticato ma una decisione da prendere: oggi l'assistente funziona senza
+account, e farlo passare dal server significherebbe richiederne uno. Si guadagna la chiave
+fuori dal bundle, si perde la gratuita' dell'accesso a una delle funzioni principali.
+Finche' l'APK resta personale la chiave in chiaro e' un rischio accettato e scritto; il
+giorno in cui l'app viene condivisa, la decisione va presa in quel momento e in quel
+verso.
 
 ## 9-bis. Nota sulle migrazioni
 

@@ -52,7 +52,7 @@ Android SDK 24+. **Nessun target web**: niente `react-native-web`, niente branch
 `PRAGMA user_version`. Ogni tabella ha `id` (UUID), `created_at`, `updated_at`,
 `deleted_at`.
 
-Dalla Fase 3 esiste anche un backend Laravel (`backend/`), ma non cambia questa
+Dalla Fase 5 esiste anche un backend Laravel (`backend/`), ma non cambia questa
 regola: l'app scrive su SQLite come ha sempre fatto e continua a funzionare
 senza rete e senza account. Il server tiene una **copia**. Non è un'app che
 parla con un'API, è un'app locale che tiene una copia altrove: la differenza si
