@@ -80,8 +80,16 @@ export async function syncSharedStats(): Promise<number | null> {
     if (!token || !profile) return null;
 
     const shares = profile.shares;
-    // Con tutto spento non c'e' niente da mandare, e mandare righe di soli
-    // null riempirebbe il server di giorni vuoti.
+    /*
+     * Con tutto spento non c'e' niente da mandare, e mandare righe di soli
+     * null riempirebbe il server di giorni vuoti.
+     *
+     * Non e' una scorciatoia che lascia dati indietro: quel che era gia' stato
+     * pubblicato lo cancella il server nel momento in cui si spegne
+     * l'interruttore (`ProfileController::forgetUnsharedStats`). Deve stare
+     * di la' proprio perche' di qua, a condivisioni spente, non passa piu'
+     * niente.
+     */
     if (!shares.calories && !shares.steps && !shares.weight && !shares.workouts) {
       return null;
     }

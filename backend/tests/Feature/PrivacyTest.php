@@ -167,4 +167,49 @@ class PrivacyTest extends TestCase
             ->assertOk()
             ->assertJsonCount(0, 'data');
     }
+    /**
+     * "Nessuno li vede" e "non ci sono" non sono la stessa cosa, e chi spegne
+     * una condivisione ha chiesto la seconda. Prima il server si teneva mesi
+     * di dati di qualcuno che aveva appena detto di non volerli piu'
+     * condividere: l'app, con tutto spento, non manda piu' niente, quindi non
+     * aveva nemmeno l'occasione di dire al server di dimenticare.
+     */
+    public function test_spegnere_una_condivisione_cancella_quel_che_era_pubblicato(): void
+    {
+        $anna = $this->user('anna', [
+            'share_calories' => true,
+            'share_steps' => true,
+        ]);
+        $this->withStats($anna);
+
+        $this->actingAs($anna)
+            ->patchJson('/api/me', ['shareSteps' => false])
+            ->assertOk();
+
+        $riga = SharedStat::where('user_id', $anna->id)->firstOrFail();
+        $this->assertNull($riga->steps, 'i passi dovevano sparire');
+        $this->assertSame(2100, (int) $riga->kcal, 'le calorie erano ancora condivise');
+    }
+
+    public function test_spegnere_tutto_non_lascia_niente_sul_server(): void
+    {
+        $anna = $this->user('anna', [
+            'share_calories' => true,
+            'share_steps' => true,
+            'share_weight' => true,
+            'share_workouts' => true,
+        ]);
+        $this->withStats($anna);
+
+        $this->actingAs($anna)->patchJson('/api/me', [
+            'shareCalories' => false,
+            'shareSteps' => false,
+            'shareWeight' => false,
+            'shareWorkouts' => false,
+        ])->assertOk();
+
+        // Non una riga di quattro null: proprio niente.
+        $this->assertSame(0, SharedStat::where('user_id', $anna->id)->count());
+    }
+
 }

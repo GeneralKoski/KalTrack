@@ -59,6 +59,8 @@ class ProfileController extends Controller
         }
         $user->save();
 
+        $this->forgetUnsharedStats($user);
+
         return $this->me($request);
     }
 
@@ -121,5 +123,45 @@ class ProfileController extends Controller
         }
 
         return new PublicProfileResource($user, $isFriend);
+    }
+
+    /**
+     * Spegnere una condivisione cancella quel che era gia' stato pubblicato.
+     *
+     * Senza, il server continuava a custodire mesi di calorie e di passi di
+     * qualcuno che aveva appena detto di non volerli piu' condividere. Non
+     * erano visibili - PublicProfileResource filtra in lettura, e i test lo
+     * verificano - ma "nessuno li vede" e "non ci sono" non sono la stessa
+     * cosa, e la seconda e' quella che l'utente ha chiesto.
+     *
+     * L'app da sola non bastava: quando le condivisioni sono tutte spente non
+     * manda piu' niente, quindi non aveva nemmeno l'occasione di dire al
+     * server di dimenticare. Qui invece l'informazione c'e' nel momento esatto
+     * in cui la scelta viene fatta.
+     *
+     * Una riga rimasta senza piu' nessun dato viene tolta del tutto: un giorno
+     * fatto di quattro null non e' una cosa che valga la pena conservare.
+     */
+    private function forgetUnsharedStats(User $user): void
+    {
+        $spente = array_keys(array_filter([
+            'kcal' => ! $user->share_calories,
+            'steps' => ! $user->share_steps,
+            'weight_kg' => ! $user->share_weight,
+            'workouts' => ! $user->share_workouts,
+        ]));
+
+        if ($spente === []) {
+            return;
+        }
+
+        $user->sharedStats()->update(array_fill_keys($spente, null));
+
+        $user->sharedStats()
+            ->whereNull('kcal')
+            ->whereNull('steps')
+            ->whereNull('weight_kg')
+            ->whereNull('workouts')
+            ->delete();
     }
 }
