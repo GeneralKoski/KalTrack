@@ -42,6 +42,8 @@ export function MyProfileScreen() {
   const signOut = useAccountStore((s) => s.signOut);
 
   const [displayName, setDisplayName] = useState("");
+  const [handle, setHandle] = useState("");
+  const [email, setEmail] = useState("");
   const [bio, setBio] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
@@ -53,6 +55,8 @@ export function MyProfileScreen() {
   useEffect(() => {
     if (!profile) return;
     setDisplayName(profile.displayName);
+    setHandle(profile.handle);
+    setEmail(profile.email);
     setBio(profile.bio ?? "");
   }, [profile]);
 
@@ -62,6 +66,17 @@ export function MyProfileScreen() {
       setProfile(
         await social.updateMyProfile({
           displayName,
+          /*
+           * Nome utente ed email si mandano solo se sono cambiati.
+           *
+           * Sono gli unici due campi unici della tabella: rimandare sempre il
+           * proprio vale un controllo di unicita' contro se stessi, e basta un
+           * dettaglio sbagliato in quel controllo perche' salvare la bio
+           * fallisca con "questo nome utente e' gia' preso" - cioe' il
+           * proprio.
+           */
+          ...(handle !== profile?.handle ? { handle } : {}),
+          ...(email !== profile?.email ? { email } : {}),
           // Stringa vuota e null non sono la stessa cosa a database: una bio
           // cancellata deve tornare assente, non diventare due apici.
           bio: bio.trim() === "" ? null : bio.trim(),
@@ -100,14 +115,42 @@ export function MyProfileScreen() {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <Card style={styles.card}>
-              <Text style={[styles.handle, { color: colors.textMuted }]}>
-                @{profile.handle}
-              </Text>
-              <Text style={[styles.email, { color: colors.textFaint }]}>
-                {profile.email}
-              </Text>
-            </Card>
+            <Text style={[styles.label, { color: colors.textMuted }]}>
+              {t("social.handle")}
+            </Text>
+            <TextInput
+              value={handle}
+              onChangeText={setHandle}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  color: colors.text,
+                },
+              ]}
+            />
+
+            <Text style={[styles.label, { color: colors.textMuted }]}>
+              {t("social.email")}
+            </Text>
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  color: colors.text,
+                },
+              ]}
+            />
 
             <Text style={[styles.label, { color: colors.textMuted }]}>
               {t("social.display_name")}
