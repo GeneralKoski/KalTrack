@@ -813,3 +813,28 @@ describe("cambio di account", () => {
     expect(dopo.some((c) => c.table === "foods")).toBe(true);
   });
 });
+
+describe("impostazioni di questo telefono", () => {
+  it("non viaggiano quelle che parlano del dispositivo", async () => {
+    await setSetting("health.steps_last_sync", "2026-08-29T10:00:00.000Z");
+    await setSetting("health.steps_import_enabled", "1");
+    await setSetting("last_backup_export", "2026-08-29T10:00:00.000Z");
+
+    const changes = await collectChanges(null);
+    const chiavi = changes.filter((c) => c.table === "settings").map((c) => c.id);
+
+    expect(chiavi).not.toContain("health.steps_last_sync");
+    expect(chiavi).not.toContain("health.steps_import_enabled");
+    expect(chiavi).not.toContain("last_backup_export");
+  });
+
+  it("viaggia invece il piano gia' applicato, che parla dei dati", async () => {
+    await setSetting("plan_applied:2026-08-29", "2026-08-29T10:00:00.000Z");
+
+    const changes = await collectChanges(null);
+    const chiavi = changes.filter((c) => c.table === "settings").map((c) => c.id);
+
+    // Senza, l'altro telefono riapplicherebbe il piano e duplicherebbe i pasti.
+    expect(chiavi).toContain("plan_applied:2026-08-29");
+  });
+});

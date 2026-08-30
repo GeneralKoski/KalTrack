@@ -26,7 +26,27 @@ export const PUSHED_KEY = "sync.pushed_at";
  * avrebbe saltato tutte le righe arrivate prima di quel punto senza averle
  * mai ricevute.
  */
-export const LOCAL_ONLY_SETTINGS = new Set([CURSOR_KEY, PUSHED_KEY]);
+export const LOCAL_ONLY_SETTINGS = new Set([
+  CURSOR_KEY,
+  PUSHED_KEY,
+  /*
+   * Le altre sono frasi su QUESTO telefono, e su un altro sarebbero false.
+   *
+   * "L'ultima sincronizzazione dei passi e' andata a buon fine" dice che il
+   * collegamento a Health Connect funziona: su un telefono dove non e' nemmeno
+   * configurato e' una bugia, e l'utente non capirebbe perche' i passi non
+   * arrivano. Stesso discorso per l'interruttore dell'importazione e per la
+   * data dell'ultimo backup esportato, che e' un file su questo dispositivo.
+   *
+   * `plan_applied:<data>` invece NON e' qui, ed e' voluto: dice che il piano
+   * di quel giorno e' gia' stato trasformato in pasti. E' un fatto sui dati,
+   * non sul telefono, e senza sincronizzarlo l'altro dispositivo lo
+   * applicherebbe una seconda volta duplicando i pasti.
+   */
+  "health.steps_import_enabled",
+  "health.steps_last_sync",
+  "last_backup_export",
+]);
 
 /**
  * Il segnaposto salvato, letto come numero.
