@@ -22,7 +22,15 @@ interface VoiceOrbProps {
 
 /** Il diametro del nucleo: il bersaglio da toccare per fermarsi. */
 const CORE = 108;
-/** Quanto crescono gli aloni a volume pieno, in multipli del nucleo. */
+/**
+ * Quanto stanno larghi gli aloni a silenzio, e quanto crescono a volume pieno.
+ *
+ * La base non è 1: con gli aloni della misura esatta del nucleo, a microfono
+ * fermo si vedeva un cerchio pieno e basta - i tre cerchi erano sovrapposti e
+ * la palla sembrava un disegno, non qualcosa che sta ascoltando. Larghi di
+ * partenza, la forma si legge anche in silenzio e la voce la allarga.
+ */
+const HALO_BASE = { outer: 1.42, middle: 1.2 };
 const HALO_GROWTH = 0.55;
 /**
  * Poco più del polling del metering (100 ms): l'animazione arriva a
@@ -87,13 +95,13 @@ export const VoiceOrb: React.FC<VoiceOrbProps> = ({ level, onPress }) => {
   };
 
   const outer = useAnimatedStyle(() => ({
-    transform: [{ scale: 1 + energy() * HALO_GROWTH }],
-    opacity: 0.5 * (0.35 + energy() * 0.65),
+    transform: [{ scale: HALO_BASE.outer + energy() * HALO_GROWTH }],
+    opacity: 0.5 * (0.45 + energy() * 0.55),
   }));
 
   const middle = useAnimatedStyle(() => ({
-    transform: [{ scale: 1 + energy() * HALO_GROWTH * 0.6 }],
-    opacity: 0.8 * (0.35 + energy() * 0.65),
+    transform: [{ scale: HALO_BASE.middle + energy() * HALO_GROWTH * 0.6 }],
+    opacity: 0.8 * (0.45 + energy() * 0.55),
   }));
 
   const core = useAnimatedStyle(() => ({
