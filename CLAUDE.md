@@ -428,7 +428,6 @@ Valgono le guide Dieffetech `docs/react-native/`:
 
 Tutte le capability passano da **Google Gemini** (Google AI Studio): modello unico e performante **`gemini-3.6-flash`** per la trascrizione audio multimodale, la comprensione/function calling dell'assistente (vocale e testuale) e la stima nutrizionale da foto ed etichette (vision + JSON object mode).
 `expo-speech` per le risposte parlate (on-device).
-
 La chiave API viene configurata a livello globale nel file `.env` tramite `EXPO_PUBLIC_GEMINI_API_KEY`: in questo modo viene inclusa nel bundle al momento della compilazione e tutti gli utenti dell'app hanno l'AI attiva al primo avvio a costo zero (Free Tier di Google AI Studio con 1.500 richieste/giorno).
 
 Non va salvata in `settings`: quella tabella si sincronizza, e la chiave finirebbe sul server in chiaro dentro `sync_records`.
@@ -436,10 +435,9 @@ Non va salvata in `settings`: quella tabella si sincronizza, e la chiave finireb
 ### Modelli e Diagnostica
 
 I modelli vengono serviti da Google Gemini tramite:
+
 1. Endpoint OpenAI-compatible (`https://generativelanguage.googleapis.com/v1beta/openai`) per chat, tool calling e structured JSON vision.
 2. Endpoint nativo multimodale (`https://generativelanguage.googleapis.com/v1beta`) per trascrizione audio via base64.
-
-**Impostazioni > Diagnostica > Prova i modelli** interroga l'elenco dei modelli Google AI Studio per verificare che il model id in `src/ai/config.ts` sia regolarmente servito.
 
 ## La diagnostica
 
@@ -448,15 +446,11 @@ I modelli vengono serviti da Google Gemini tramite:
 convenzione `[scope] messaggio` diventa una colonna.
 
 Si legge da **Impostazioni > Diagnostica**, che mostra anche le chiamate AI non
-riuscite di `ai_calls` - registrate dalla migrazione 4 e mai lette da nessuno.
-
-Tre cose da non rompere:
 
 - **Scrive anche a console spenta.** `EXPO_PUBLIC_CONSOLE_LOGGING=false` vale
   nelle build di release, cioe' proprio quelle sul telefono.
 - **`recordLog` non lancia e non registra i propri errori.** E' chiamata da
   `logger.error`: un guasto che ripassasse di li' si richiamerebbe all'infinito.
-- **Si toglie quel che somiglia a una credenziale** prima di scrivere. Il
   registro si condivide ed e' dentro il backup: e' la stessa chiave che
   `aiKeyStore` tiene apposta fuori dal database.
 

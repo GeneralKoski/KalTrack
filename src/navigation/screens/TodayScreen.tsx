@@ -1,11 +1,9 @@
 import { hasGroqKey } from "@/src/ai/config";
-import { AiKeyPrompt } from "@/src/containers/settings/AiKeyPrompt";
+import { MissingApiKeyError } from "@/src/ai/errors";
 import {
-  ASSISTANT_FAB_CLEARANCE,
-  AssistantButton,
-  SCREEN_FAB_BOTTOM,
-  SCREEN_FAB_SIZE,
-} from "@/src/containers/assistant/AssistantButton";
+  estimateFromPhoto,
+  type PhotoEstimate,
+} from "@/src/ai/estimateFromPhoto";
 import {
   Card,
   EmptyState,
@@ -14,31 +12,29 @@ import {
 } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
-import { AddEntrySheet, type DiaryPick } from "@/src/containers/diary/AddEntrySheet";
+import {
+  ASSISTANT_FAB_CLEARANCE,
+  AssistantButton,
+  SCREEN_FAB_BOTTOM,
+  SCREEN_FAB_SIZE,
+} from "@/src/containers/assistant/AssistantButton";
+import {
+  AddEntrySheet,
+  type DiaryPick,
+} from "@/src/containers/diary/AddEntrySheet";
 import { CalorieRing } from "@/src/containers/diary/CalorieRing";
+import { DayHeader } from "@/src/containers/diary/DayHeader";
+import { DayPickerSheet } from "@/src/containers/diary/DayPickerSheet";
+import { EntryCompositionSheet } from "@/src/containers/diary/EntryCompositionSheet";
+import { FreeEntrySheet } from "@/src/containers/diary/FreeEntrySheet";
+import { MacroBars } from "@/src/containers/diary/MacroBars";
+import { MealSection } from "@/src/containers/diary/MealSection";
+import { PhotoEstimateSheet } from "@/src/containers/diary/PhotoEstimateSheet";
+import { QuantityPrompt } from "@/src/containers/recipes/QuantityPrompt";
+import { AiKeyPrompt } from "@/src/containers/settings/AiKeyPrompt";
 import { DayStatCard } from "@/src/containers/tracking/DayStatCard";
 import { QuickLogSheet } from "@/src/containers/tracking/QuickLogSheet";
 import { WaterCard } from "@/src/containers/wellbeing/WaterCard";
-import { DayHeader } from "@/src/containers/diary/DayHeader";
-import { DayPickerSheet } from "@/src/containers/diary/DayPickerSheet";
-import { FreeEntrySheet } from "@/src/containers/diary/FreeEntrySheet";
-import { EntryCompositionSheet } from "@/src/containers/diary/EntryCompositionSheet";
-import { PhotoEstimateSheet } from "@/src/containers/diary/PhotoEstimateSheet";
-import {
-  estimateFromPhoto,
-  type PhotoEstimate,
-} from "@/src/ai/estimateFromPhoto";
-import { MissingApiKeyError } from "@/src/ai/errors";
-import {
-  rowNutrients,
-  type EstimateRow,
-} from "@/src/domain/photoEstimate";
-import { discardPhoto, persistPhoto } from "@/src/services/photoStorage";
-import { logger } from "@/src/utils/logger";
-import * as ImagePicker from "expo-image-picker";
-import { MacroBars } from "@/src/containers/diary/MacroBars";
-import { MealSection } from "@/src/containers/diary/MealSection";
-import { QuantityPrompt } from "@/src/containers/recipes/QuantityPrompt";
 import {
   addFoodEntry,
   addFreeEntry,
@@ -50,27 +46,36 @@ import {
   updateEntryQuantity,
   type DayDiary,
 } from "@/src/db/queries/diary";
+import { getFood } from "@/src/db/queries/foods";
 import { getTargetsFor } from "@/src/db/queries/settings";
 import {
+  deleteSteps,
+  deleteWeight,
   getSteps,
   getWeight,
   setSteps,
   setWeight,
-  deleteSteps,
-  deleteWeight,
 } from "@/src/db/queries/tracking";
 import { todayIso } from "@/src/domain/date";
 import { EMPTY_NUTRIENTS, type Nutrients } from "@/src/domain/nutrition";
+import { rowNutrients, type EstimateRow } from "@/src/domain/photoEstimate";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
-import { useFocusEffect } from "@react-navigation/native";
-import { getFood } from "@/src/db/queries/foods";
+import { discardPhoto, persistPhoto } from "@/src/services/photoStorage";
 import { useDayContextStore } from "@/src/stores/dayContextStore";
 import { theme } from "@/src/styles";
-import type { FoodRow, MealEntryRow, MealTypeRow, TargetRow } from "@/src/types/nutrition";
+import type {
+  FoodRow,
+  MealEntryRow,
+  MealTypeRow,
+  TargetRow,
+} from "@/src/types/nutrition";
+import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { useFocusEffect } from "@react-navigation/native";
+import * as ImagePicker from "expo-image-picker";
 import { Footprints, Plus, Scale, UtensilsCrossed } from "lucide-react-native";
 import React, { useCallback, useRef, useState } from "react";
 import {
@@ -160,7 +165,6 @@ export function TodayScreen() {
   }, [date]);
 
   const { data, loading, reload } = useFocusData<DayData>(loader);
-
 
   const openAdd = (typeId?: string) => {
     setMealTypeId(typeId ?? data?.mealTypes[0]?.id ?? null);

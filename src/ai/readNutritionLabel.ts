@@ -71,8 +71,6 @@ Rules, in order of importance:
 4. Italian labels use a comma as the decimal separator: "1,5 g" is 1.5, not 15.
 5. "carbs" is total carbohydrates ("Carboidrati"), "sugars" is the indented
    "di cui zuccheri" underneath it. Same for fat and "di cui acidi grassi saturi".
-6. "salt" is salt in grams ("Sale"), not sodium. If only sodium is printed,
-   return null for salt rather than converting it.
 6. "salt" is salt in grams ("Sale" / "Salt"). If the label prints "Sale", transcribe that value. If the label prints "Sodio" (or "Sodium") instead of salt, convert sodium to salt in grams: salt = sodium * 2.5 (e.g. 0.70 g sodium -> 1.75 g salt, 700 mg sodium -> 1.75 g salt).
 7. All values are grams except kcal. Never return negative numbers.
 8. If the image is not a nutrition table at all, return every field as null.

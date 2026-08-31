@@ -1,13 +1,13 @@
 import { DfAlert } from "@/src/components/DfAlert";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text, TextInput } from "@/src/components/ui";
+import { FoodFacts } from "@/src/containers/foods/FoodFacts";
 import {
   activeMultiplier,
   formatGrams,
   SERVING_MULTIPLIERS,
   servingGrams,
 } from "@/src/domain/serving";
-import { FoodFacts } from "@/src/containers/foods/FoodFacts";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import type { FoodRow } from "@/src/types/nutrition";
@@ -116,7 +116,9 @@ export const QuantityPrompt: React.FC<QuantityPromptProps> = ({
             {Math.round((food.kcal * parsed) / 100)} kcal
           </Text>
           <Text style={[styles.scaledMacros, { color: colors.textMuted }]}>
-            P {formatGrams((food.protein * parsed) / 100)}g  •  C {formatGrams((food.carbs * parsed) / 100)}g  •  G {formatGrams((food.fat * parsed) / 100)}g
+            P {formatGrams((food.protein * parsed) / 100)}g • C{" "}
+            {formatGrams((food.carbs * parsed) / 100)}g • G{" "}
+            {formatGrams((food.fat * parsed) / 100)}g
           </Text>
         </View>
       ) : null}

@@ -1,7 +1,7 @@
+import type { PhotoEstimate } from "@/src/ai/estimateFromPhoto";
 import { DfAlert } from "@/src/components/DfAlert";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text, TextInput } from "@/src/components/ui";
-import type { PhotoEstimate } from "@/src/ai/estimateFromPhoto";
 import {
   includedTotals,
   rowNutrients,
@@ -132,7 +132,10 @@ export const PhotoEstimateSheet: React.FC<PhotoEstimateSheetProps> = ({
                 <TextInput
                   value={gramsText[row.key] ?? ""}
                   onChangeText={(text) => {
-                    setGramsText((current) => ({ ...current, [row.key]: text }));
+                    setGramsText((current) => ({
+                      ...current,
+                      [row.key]: text,
+                    }));
                     patch(row.key, { grams: toGrams(text) });
                   }}
                   keyboardType="decimal-pad"
