@@ -45,20 +45,24 @@ export const PhotoEstimateSheet: React.FC<PhotoEstimateSheetProps> = ({
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const [rows, setRows] = useState<EstimateRow[]>([]);
+  const [gramsText, setGramsText] = useState<Record<string, string>>({});
+
   /**
    * I grammi si tengono come TESTO mentre si digita: con un numero, cancellare
    * l'ultima cifra darebbe 0 e il campo si riscriverebbe da solo sotto le dita.
    */
-  const [gramsText, setGramsText] = useState<Record<string, string>>({});
-
   useEffect(() => {
-    if (!isOpen || !estimate) return;
+    if (!isOpen || loading || !estimate) {
+      setRows([]);
+      setGramsText({});
+      return;
+    }
     const iniziali = rowsFromEstimate(estimate.items);
     setRows(iniziali);
     setGramsText(
       Object.fromEntries(iniziali.map((row) => [row.key, int(row.grams)])),
     );
-  }, [isOpen, estimate]);
+  }, [isOpen, estimate, loading]);
 
   const patch = (key: string, change: Partial<EstimateRow>) =>
     setRows((current) =>
@@ -76,6 +80,7 @@ export const PhotoEstimateSheet: React.FC<PhotoEstimateSheetProps> = ({
       onConfirm={() => salvabili.length > 0 && onConfirm(salvabili)}
       onClose={onClose}
       loading={loading}
+      verticalFooter
       size="lg"
     >
       <View style={styles.body}>
