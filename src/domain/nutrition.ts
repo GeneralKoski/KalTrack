@@ -40,6 +40,24 @@ export function scaleNutrients(per100: Nutrients, grams: number): Nutrients {
   return result;
 }
 
+/**
+ * L'inverso di `scaleNutrients`: da valori assoluti di una porzione ai valori
+ * per 100 g.
+ *
+ * Serve alla stima da foto, che risponde con i valori ASSOLUTI del piatto e
+ * non per 100 g. Per lasciar correggere i grammi servono valori per 100 g
+ * stabili da cui riscalare ogni volta: riscalare i valori assoluti su se
+ * stessi li fa derivare a ogni modifica, e tornare da 200 g a 180 g non
+ * riporterebbe ai numeri di partenza.
+ */
+export function per100FromPortion(portion: Nutrients, grams: number): Nutrients {
+  if (grams <= 0) return { ...EMPTY_NUTRIENTS };
+  const factor = 100 / grams;
+  const result = { ...EMPTY_NUTRIENTS };
+  for (const key of KEYS) result[key] = portion[key] * factor;
+  return result;
+}
+
 export function sumNutrients(items: Nutrients[]): Nutrients {
   const result = { ...EMPTY_NUTRIENTS };
   for (const item of items) {

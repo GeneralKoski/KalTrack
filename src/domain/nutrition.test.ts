@@ -5,6 +5,7 @@ import {
   recipePerServing,
   recipeTotals,
   roundNutrients,
+  per100FromPortion,
   scaleNutrients,
   sumNutrients,
   type Nutrients,
@@ -40,6 +41,41 @@ describe("scaleNutrients", () => {
   it("non muta l'oggetto di partenza", () => {
     const source = nutrients({ kcal: 100 });
     scaleNutrients(source, 250);
+    expect(source.kcal).toBe(100);
+  });
+});
+
+describe("per100FromPortion", () => {
+  it("riporta a 100 g i valori assoluti di una porzione", () => {
+    const porzione = scaleNutrients(CHICKEN, 150);
+    const per100 = per100FromPortion(porzione, 150);
+    expect(per100.kcal).toBeCloseTo(CHICKEN.kcal);
+    expect(per100.protein).toBeCloseTo(CHICKEN.protein);
+  });
+
+  // E' il motivo per cui esiste: la stima da foto da' valori assoluti, e per
+  // cambiare i grammi servono valori per 100 g stabili da cui riscalare.
+  it("e' l'inverso di scaleNutrients", () => {
+    const per100 = per100FromPortion(scaleNutrients(CHICKEN, 237), 237);
+    const tornata = scaleNutrients(per100, 237);
+    expect(tornata.kcal).toBeCloseTo(scaleNutrients(CHICKEN, 237).kcal);
+  });
+
+  it("con 0 grammi ritorna zeri invece di dividere per zero", () => {
+    expect(per100FromPortion(nutrients({ kcal: 300 }), 0)).toEqual(
+      EMPTY_NUTRIENTS,
+    );
+  });
+
+  it("con grammi negativi ritorna zeri", () => {
+    expect(per100FromPortion(nutrients({ kcal: 300 }), -10)).toEqual(
+      EMPTY_NUTRIENTS,
+    );
+  });
+
+  it("non muta l'oggetto di partenza", () => {
+    const source = nutrients({ kcal: 100 });
+    per100FromPortion(source, 250);
     expect(source.kcal).toBe(100);
   });
 });

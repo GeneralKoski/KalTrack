@@ -6,6 +6,7 @@ import { AiRequestError, AiResponseError } from "@/src/ai/errors";
 import { resolveFoodItem, type ResolvedItem } from "@/src/ai/resolveFood";
 import {
   kcalFromMacros,
+  per100FromPortion,
   roundNutrients,
   scaleNutrients,
   sumNutrients,
@@ -45,6 +46,15 @@ interface PhotoEstimateItemBase {
    * dominio, unità opposta: da qui il nome diverso, per non poterli scambiare.
    */
   nutrientsForPortion: Nutrients;
+  /**
+   * Gli stessi valori per 100 g, l'unita' di tutto il resto del dominio.
+   *
+   * Non e' un doppione di `nutrientsForPortion`: da qui si riscala quando
+   * l'utente corregge i grammi prima di salvare. Ricavarlo a valle dai valori
+   * assoluti, che sono arrotondati a un decimale, farebbe divergere lo stesso
+   * alimento aggiunto dalla foto da quello aggiunto dalla ricerca.
+   */
+  per100: Nutrients;
   /** 0-1. Quanta fiducia dare alla voce nel suo insieme. */
   confidence: number;
 }
@@ -308,6 +318,8 @@ function catalogPer100(resolved: ResolvedItem): Nutrients | null {
 
 const asEstimated = (item: VisionItem): PhotoEstimateItem => ({
   ...item,
+  // Qui non esiste una fonte migliore: i numeri del modello sono assoluti.
+  per100: per100FromPortion(item.nutrientsForPortion, item.quantityG),
   isEstimated: true,
   resolved: null,
 });
@@ -344,6 +356,7 @@ async function withCatalogValues(item: VisionItem): Promise<PhotoEstimateItem> {
     label: resolved.kind === "food" ? resolved.food.name : item.label,
     quantityG: item.quantityG,
     nutrientsForPortion: roundNutrients(scaleNutrients(per100, item.quantityG)),
+    per100,
     // I valori sono del catalogo ma la quantità resta una stima dalla foto:
     // la voce non può essere più affidabile dell'anello più debole.
     confidence: Math.min(item.confidence, resolved.confidence),

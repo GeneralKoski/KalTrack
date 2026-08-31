@@ -5,7 +5,7 @@ import { __setDbForTesting } from "@/src/db/index";
 import { runMigrations } from "@/src/db/migrations";
 import { createFood } from "@/src/db/queries/foods";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
-import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
+import { EMPTY_NUTRIENTS, scaleNutrients } from "@/src/domain/nutrition";
 import { searchByName } from "@/src/services/openFoodFacts";
 
 // Senza chiave il client lancia prima di arrivare a fetch: qui la rete è
@@ -286,6 +286,36 @@ describe("estimateFromPhoto", () => {
     expect(pasta.confidence).toBeLessThanOrEqual(0.6);
     expect(insalata.isEstimated).toBe(true);
     expect(estimate.totalNutrients.kcal).toBe(420);
+  });
+
+  // `per100` esiste perche' i grammi si possono correggere prima di salvare, e
+  // riscalare partendo dai valori assoluti - che sono arrotondati a un decimale
+  // - farebbe divergere lo stesso alimento aggiunto dalla foto da quello
+  // aggiunto dalla ricerca.
+  it("espone i valori per 100 g del catalogo, non quelli ricavati dalla porzione", async () => {
+    await createFood({
+      name: "Pasta al pomodoro",
+      source: "user",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 130, protein: 4, carbs: 25 },
+    });
+    respondWith(VALID_RESPONSE);
+
+    const estimate = await estimateFromPhoto({ uri: "file:///cache/foto.jpg" });
+
+    expect(estimate.items[0].per100.kcal).toBe(130);
+    expect(estimate.items[0].per100.carbs).toBe(25);
+  });
+
+  it("per una voce stimata i valori per 100 g tornano alla porzione", async () => {
+    respondWith(VALID_RESPONSE);
+
+    const estimate = await estimateFromPhoto({ uri: "file:///cache/foto.jpg" });
+
+    const voce = estimate.items[0];
+    expect(voce.isEstimated).toBe(true);
+    expect(
+      scaleNutrients(voce.per100, voce.quantityG).kcal,
+    ).toBeCloseTo(voce.nutrientsForPortion.kcal, 1);
   });
 
   it("non fa cadere la stima se la risoluzione dal catalogo fallisce", async () => {
