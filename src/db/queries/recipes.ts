@@ -92,6 +92,8 @@ export async function buildRecipeTree(
       if (!food) continue;
       items.push({
         kind: "food",
+        foodId: food.id,
+        label: food.name,
         per100: foodNutrients(food),
         grams: row.quantity_g ?? 0,
       });

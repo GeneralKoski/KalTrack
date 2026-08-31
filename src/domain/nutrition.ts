@@ -83,7 +83,22 @@ export interface RecipeNode {
  * porzioni: l'unità resta non ambigua a ogni livello di annidamento.
  */
 export type RecipeItemNode =
-  | { kind: "food"; per100: Nutrients; grams: number }
+  | {
+      kind: "food";
+      /**
+       * Da dove viene l'ingrediente, e come si chiama.
+       *
+       * Servono a chi copia gli ingredienti fuori dalla ricetta - la
+       * composizione di una voce del diario. Senza, l'unica etichetta possibile
+       * sarebbe generica, e un elenco di "ingrediente 1, ingrediente 2" non
+       * risponde a nessuna domanda. Non sono la fonte dei valori: quelli sono
+       * `per100`.
+       */
+      foodId: string;
+      label: string;
+      per100: Nutrients;
+      grams: number;
+    }
   | { kind: "recipe"; child: RecipeNode; servings: number };
 
 /** Valori nutrizionali dell'intera ricetta (tutte le porzioni). */

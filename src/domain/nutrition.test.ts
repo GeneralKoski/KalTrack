@@ -119,8 +119,8 @@ describe("recipeTotals", () => {
     const recipe: RecipeNode = {
       servings: 2,
       items: [
-        { kind: "food", per100: CHICKEN, grams: 200 },
-        { kind: "food", per100: RICE, grams: 100 },
+        { kind: "food", foodId: "f-pollo", label: "Pollo", per100: CHICKEN, grams: 200 },
+        { kind: "food", foodId: "f-riso", label: "Riso", per100: RICE, grams: 100 },
       ],
     };
     const totals = recipeTotals(recipe);
@@ -131,14 +131,14 @@ describe("recipeTotals", () => {
   it("include le ricette annidate contate a porzioni", () => {
     const base: RecipeNode = {
       servings: 4,
-      items: [{ kind: "food", per100: RICE, grams: 400 }],
+      items: [{ kind: "food", foodId: "f-riso", label: "Riso", per100: RICE, grams: 400 }],
     };
     // base: 1432 kcal totali, 358 kcal a porzione.
     const outer: RecipeNode = {
       servings: 1,
       items: [
         { kind: "recipe", child: base, servings: 2 },
-        { kind: "food", per100: CHICKEN, grams: 100 },
+        { kind: "food", foodId: "f-chicken", label: "Chicken", per100: CHICKEN, grams: 100 },
       ],
     };
     expect(recipeTotals(outer).kcal).toBeCloseTo(358 * 2 + 165);
@@ -147,7 +147,7 @@ describe("recipeTotals", () => {
   it("regge due livelli di annidamento", () => {
     const level0: RecipeNode = {
       servings: 2,
-      items: [{ kind: "food", per100: RICE, grams: 200 }],
+      items: [{ kind: "food", foodId: "f-rice", label: "Rice", per100: RICE, grams: 200 }],
     };
     const level1: RecipeNode = {
       servings: 1,
@@ -167,7 +167,7 @@ describe("recipeTotals", () => {
   it("una ricetta annidata con 0 porzioni non contribuisce", () => {
     const base: RecipeNode = {
       servings: 2,
-      items: [{ kind: "food", per100: RICE, grams: 200 }],
+      items: [{ kind: "food", foodId: "f-rice", label: "Rice", per100: RICE, grams: 200 }],
     };
     const outer: RecipeNode = {
       servings: 1,
@@ -181,7 +181,7 @@ describe("recipePerServing", () => {
   it("divide i totali per il numero di porzioni", () => {
     const recipe: RecipeNode = {
       servings: 4,
-      items: [{ kind: "food", per100: RICE, grams: 400 }],
+      items: [{ kind: "food", foodId: "f-riso", label: "Riso", per100: RICE, grams: 400 }],
     };
     expect(recipePerServing(recipe).kcal).toBeCloseTo(358);
   });
@@ -189,7 +189,7 @@ describe("recipePerServing", () => {
   it("tratta 0 porzioni come 1 invece di dividere per zero", () => {
     const recipe: RecipeNode = {
       servings: 0,
-      items: [{ kind: "food", per100: RICE, grams: 100 }],
+      items: [{ kind: "food", foodId: "f-riso", label: "Riso", per100: RICE, grams: 100 }],
     };
     expect(recipePerServing(recipe).kcal).toBeCloseTo(358);
   });
@@ -197,7 +197,7 @@ describe("recipePerServing", () => {
   it("gestisce porzioni frazionarie", () => {
     const recipe: RecipeNode = {
       servings: 2.5,
-      items: [{ kind: "food", per100: RICE, grams: 250 }],
+      items: [{ kind: "food", foodId: "f-rice", label: "Rice", per100: RICE, grams: 250 }],
     };
     expect(recipePerServing(recipe).kcal).toBeCloseTo(358);
   });
