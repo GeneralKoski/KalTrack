@@ -36,6 +36,7 @@ export function MyProfileScreen() {
   const insets = useSafeAreaInsets();
   const { goBack } = useAppNav();
 
+  const token = useAccountStore((s) => s.token);
   const profile = useAccountStore((s) => s.profile);
   const setProfile = useAccountStore((s) => s.setProfile);
   const refreshProfile = useAccountStore((s) => s.refreshProfile);
@@ -51,6 +52,19 @@ export function MyProfileScreen() {
   useEffect(() => {
     void refreshProfile();
   }, [refreshProfile]);
+
+  /*
+   * Sessione finita: si esce da qui.
+   *
+   * `refreshProfile` gestisce gia' il 401 e azzera token e profilo, ma questa
+   * schermata mostra il caricamento finche' il profilo non c'e' - e senza
+   * sessione non arrivera' mai. Il risultato era una rotella che girava per
+   * sempre, con l'unica via d'uscita nel tasto indietro. Capita davvero: basta
+   * una password cambiata da un altro dispositivo.
+   */
+  useEffect(() => {
+    if (!token) goBack();
+  }, [token, goBack]);
 
   useEffect(() => {
     if (!profile) return;
