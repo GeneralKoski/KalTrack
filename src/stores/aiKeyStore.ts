@@ -36,10 +36,20 @@ export const useAiKeyStore = create<AiKeyStore>()((set) => ({
 
   restore: async () => {
     try {
-      let key = await SecureStore.getItemAsync(PRIMARY_KEY_STORAGE);
-      if (!key) {
-        key = await SecureStore.getItemAsync(LEGACY_KEY_STORAGE);
+      // Pulisce l'eventuale vecchia chiave Groq legacy salvata in precedenza
+      try {
+        await SecureStore.deleteItemAsync(LEGACY_KEY_STORAGE);
+      } catch {
+        // Ignora se non esiste
       }
+
+      let key = await SecureStore.getItemAsync(PRIMARY_KEY_STORAGE);
+      // Se la chiave inizia con 'gsk_' era una vecchia chiave Groq: la scarta
+      if (key && key.startsWith("gsk_")) {
+        await SecureStore.deleteItemAsync(PRIMARY_KEY_STORAGE);
+        key = null;
+      }
+
       set({ key, isHydrated: true });
     } catch (error) {
       logger.error("[ai] lettura della chiave fallita", error);

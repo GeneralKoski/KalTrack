@@ -224,6 +224,7 @@ export async function chat(args: {
       method: "POST",
       headers: {
         Authorization: `Bearer ${aiKey()}`,
+        "x-goog-api-key": aiKey(),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -287,7 +288,10 @@ export async function listAvailableModels(): Promise<string[]> {
 
   const response = await withTimeout(`${GEMINI_BASE_URL}/models`, {
     method: "GET",
-    headers: { Authorization: `Bearer ${aiKey()}` },
+    headers: {
+      Authorization: `Bearer ${aiKey()}`,
+      "x-goog-api-key": aiKey(),
+    },
   });
 
   if (!response.ok) {

@@ -25,24 +25,24 @@ beforeEach(() => {
 
 describe("la chiave dell'assistente", () => {
   it("si salva e si rilegge dopo un riavvio", async () => {
-    await useAiKeyStore.getState().save("gsk_prova123");
-    expect(useAiKeyStore.getState().key).toBe("gsk_prova123");
+    await useAiKeyStore.getState().save("AIzaSy_prova123");
+    expect(useAiKeyStore.getState().key).toBe("AIzaSy_prova123");
 
     // Come un riavvio: lo store riparte vuoto e si riempie da SecureStore.
     useAiKeyStore.setState({ key: null, isHydrated: false });
     await useAiKeyStore.getState().restore();
 
-    expect(useAiKeyStore.getState().key).toBe("gsk_prova123");
+    expect(useAiKeyStore.getState().key).toBe("AIzaSy_prova123");
     expect(useAiKeyStore.getState().isHydrated).toBe(true);
   });
 
   it("toglie gli spazi, che incollando arrivano quasi sempre", async () => {
-    await useAiKeyStore.getState().save("  gsk_prova123\n");
-    expect(useAiKeyStore.getState().key).toBe("gsk_prova123");
+    await useAiKeyStore.getState().save("  AIzaSy_prova123\n");
+    expect(useAiKeyStore.getState().key).toBe("AIzaSy_prova123");
   });
 
   it("rimuoverla la toglie anche da SecureStore, non solo dallo schermo", async () => {
-    await useAiKeyStore.getState().save("gsk_prova123");
+    await useAiKeyStore.getState().save("AIzaSy_prova123");
     await useAiKeyStore.getState().clear();
 
     expect(useAiKeyStore.getState().key).toBeNull();
@@ -71,11 +71,11 @@ describe("la chiave non deve finire nei dati sincronizzati", () => {
    * doveva togliere.
    */
   it("passa da SecureStore e non dal database", async () => {
-    await useAiKeyStore.getState().save("gsk_segreta");
+    await useAiKeyStore.getState().save("AIzaSy_segreta");
 
     expect(SecureStore.setItemAsync).toHaveBeenCalledWith(
       "kaltrack_ai_key",
-      "gsk_segreta",
+      "AIzaSy_segreta",
     );
   });
 });
