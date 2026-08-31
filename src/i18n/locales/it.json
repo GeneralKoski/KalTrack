@@ -826,5 +826,7 @@
   "quantity": {
     "serving_is": "Una porzione = %{grams} g"
   },
-  "exit_app_confirm": "Esci"
+  "exit_app_confirm": "Esci",
+  "password_show": "Mostra la password",
+  "password_hide": "Nascondi la password"
 }

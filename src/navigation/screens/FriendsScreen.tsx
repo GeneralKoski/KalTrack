@@ -10,6 +10,7 @@ import {
 } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
+import { FormScreen } from "@/src/components/FormScreen";
 import { AccountForm } from "@/src/containers/social/AccountForm";
 import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { useAppNav } from "@/src/hooks/useAppNav";
@@ -23,7 +24,6 @@ import { Check, ChevronLeft, UserPlus, Users, X } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -324,7 +324,7 @@ export function FriendsScreen() {
           </Text>
         </View>
 
-        <ScrollView
+        <FormScreen
           contentContainerStyle={[
             styles.content,
             { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
@@ -333,7 +333,7 @@ export function FriendsScreen() {
           showsVerticalScrollIndicator={false}
         >
           {body()}
-        </ScrollView>
+        </FormScreen>
       </SafeAreaView>
     </View>
   );

@@ -9,8 +9,14 @@ import { useAccountStore } from "@/src/stores/accountStore";
 import { theme } from "@/src/styles";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
-import React, { useState } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { Eye, EyeOff } from "lucide-react-native";
+import React, { useRef, useState } from "react";
+import {
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  type TextInput as RNTextInput,
+} from "react-native";
 
 /**
  * Entrata e registrazione, nella stessa schermata.
@@ -37,6 +43,12 @@ export const AccountForm: React.FC = () => {
   const [displayName, setDisplayName] = useState("");
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleRef = useRef<RNTextInput | null>(null);
+  const emailRef = useRef<RNTextInput | null>(null);
+  const loginRef = useRef<RNTextInput | null>(null);
+  const passwordRef = useRef<RNTextInput | null>(null);
 
   const submit = async () => {
     setBusy(true);
@@ -76,26 +88,61 @@ export const AccountForm: React.FC = () => {
       autoCapitalize?: "none" | "words";
       keyboardType?: "email-address" | "default";
       hint?: string;
+      inputRef?: React.RefObject<RNTextInput | null>;
+      /** Il campo dopo questo: l'invio ci porta il cursore. */
+      next?: React.RefObject<RNTextInput | null>;
     } = {},
   ) => (
     <View style={styles.field}>
       <Text style={[styles.label, { color: colors.textMuted }]}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        secureTextEntry={options.secure}
-        autoCapitalize={options.autoCapitalize ?? "none"}
-        autoCorrect={false}
-        keyboardType={options.keyboardType}
-        style={[
-          styles.input,
-          {
-            backgroundColor: colors.surface,
-            borderColor: errors[key] ? theme.colors.error : colors.border,
-            color: colors.text,
-          },
-        ]}
-      />
+      <View style={styles.inputRow}>
+        <TextInput
+          ref={options.inputRef}
+          value={value}
+          onChangeText={onChange}
+          secureTextEntry={options.secure && !showPassword}
+          autoCapitalize={options.autoCapitalize ?? "none"}
+          autoCorrect={false}
+          keyboardType={options.keyboardType}
+          /*
+           * L'invio porta al campo dopo, e sull'ultimo manda il modulo.
+           * Prima ogni campo chiudeva la tastiera con "fatto", anche col
+           * modulo mezzo vuoto.
+           */
+          returnKeyType={options.next ? "next" : "go"}
+          onSubmitEditing={() => {
+            if (options.next) options.next.current?.focus();
+            else void submit();
+          }}
+          submitBehavior={options.next ? "submit" : "blurAndSubmit"}
+          style={[
+            styles.input,
+            options.secure && styles.inputWithEye,
+            {
+              backgroundColor: colors.surface,
+              borderColor: errors[key] ? theme.colors.error : colors.border,
+              color: colors.text,
+            },
+          ]}
+        />
+        {options.secure ? (
+          <TouchableOpacity
+            onPress={() => setShowPassword((v) => !v)}
+            activeOpacity={0.6}
+            hitSlop={10}
+            style={styles.eye}
+            accessibilityLabel={t(
+              showPassword ? "password_hide" : "password_show",
+            )}
+          >
+            {showPassword ? (
+              <EyeOff size={20} color={colors.textFaint} />
+            ) : (
+              <Eye size={20} color={colors.textFaint} />
+            )}
+          </TouchableOpacity>
+        ) : null}
+      </View>
       {errors[key] ? (
         <Text style={[styles.error, { color: theme.colors.error }]}>
           {errors[key][0]}
@@ -120,23 +167,30 @@ export const AccountForm: React.FC = () => {
             t("social.display_name"),
             displayName,
             setDisplayName,
-            { autoCapitalize: "words" },
+            { autoCapitalize: "words", next: handleRef },
           )
         : null}
       {isRegistering
         ? field("handle", t("social.handle"), handle, setHandle, {
             hint: t("social.handle_hint"),
+            inputRef: handleRef,
+            next: emailRef,
           })
         : null}
       {isRegistering
         ? field("email", t("social.email"), email, setEmail, {
             keyboardType: "email-address",
+            inputRef: emailRef,
+            next: passwordRef,
           })
         : field("login", t("social.login_field"), login, setLogin, {
             hint: t("social.login_hint"),
+            inputRef: loginRef,
+            next: passwordRef,
           })}
       {field("password", t("social.password"), password, setPassword, {
         secure: true,
+        inputRef: passwordRef,
       })}
 
       <DfButton
@@ -150,6 +204,11 @@ export const AccountForm: React.FC = () => {
         onPress={() => {
           setIsRegistering((current) => !current);
           setErrors({});
+          // La password non sopravvive al cambio di modulo: quella scelta per
+          // un account nuovo non e' quella con cui si entra in uno che esiste
+          // gia', e ritrovarla scritta fa premere Accedi senza guardarla.
+          setPassword("");
+          setShowPassword(false);
         }}
         activeOpacity={0.6}
         hitSlop={8}
@@ -165,6 +224,11 @@ export const AccountForm: React.FC = () => {
 
 const styles = StyleSheet.create({
   root: { gap: theme.spacing.sm },
+  inputRow: { justifyContent: "center" },
+  eye: {
+    position: "absolute",
+    right: theme.spacing.md,
+  },
   intro: { fontSize: 14, lineHeight: 20, marginBottom: theme.spacing.sm },
   field: { gap: 4 },
   label: {
@@ -180,6 +244,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
     fontSize: 16,
   },
+  inputWithEye: { paddingRight: 44 },
   error: { fontSize: 12, lineHeight: 16 },
   hint: { fontSize: 12, lineHeight: 16 },
   submit: { marginTop: theme.spacing.sm },

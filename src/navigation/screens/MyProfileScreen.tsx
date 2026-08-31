@@ -2,6 +2,7 @@ import * as social from "@/src/api/social";
 import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { DfAlert } from "@/src/components/DfAlert";
 import { DfButton } from "@/src/components/form/DfButton";
+import { FormScreen } from "@/src/components/FormScreen";
 import { Card, ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text, TextInput } from "@/src/components/ui";
@@ -16,7 +17,6 @@ import { ChevronLeft, LogOut } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -107,7 +107,7 @@ export function MyProfileScreen() {
         {!profile ? (
           <ActivityIndicator style={styles.loader} color={colors.accent} />
         ) : (
-          <ScrollView
+          <FormScreen
             contentContainerStyle={[
               styles.content,
               { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
@@ -207,7 +207,7 @@ export function MyProfileScreen() {
               onPress={() => setConfirmSignOut(true)}
               style={styles.section}
             />
-          </ScrollView>
+          </FormScreen>
         )}
       </SafeAreaView>
 
