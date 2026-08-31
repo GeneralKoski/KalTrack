@@ -1,8 +1,9 @@
 import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
-import { Card, ScreenBackground } from "@/src/components/kal";
+import { Card, ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
-import { useAppNav } from "@/src/hooks/useAppNav";
+import { ProfileSummary } from "@/src/containers/profile/ProfileSummary";
+import { useAppNav, type NavParams } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import {
@@ -13,6 +14,7 @@ import {
   CookingPot,
   DatabaseBackup,
   Dumbbell,
+  ListChecks,
   Ruler,
   Salad,
   Settings,
@@ -22,11 +24,75 @@ import {
   Users,
 } from "lucide-react-native";
 import React from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+
+type Icon = React.ComponentType<{ size?: number; color?: string }>;
+
+interface Voice {
+  route: keyof NavParams;
+  labelKey: string;
+  icon: Icon;
+}
+
+interface Group {
+  titleKey: string;
+  voices: Voice[];
+}
+
+/**
+ * Le voci raggruppate per quello che si sta per fare.
+ *
+ * Erano tredici righe identiche una sotto l'altra, e trovarci "Misure" voleva
+ * dire leggerle tutte: righe tutte uguali non si scorrono, si scandagliano.
+ * I gruppi non tolgono niente e non aggiungono un tocco - danno un punto in cui
+ * fermare l'occhio.
+ *
+ * Le impostazioni non stanno qui: sono dietro l'ingranaggio in alto, perché non
+ * sono una cosa che si fa ma il posto in cui si cambia come l'app si comporta.
+ */
+const GROUPS: Group[] = [
+  {
+    titleKey: "profile.group_food",
+    voices: [
+      { route: "Targets", labelKey: "profile.targets", icon: Target },
+      { route: "Foods", labelKey: "profile.my_foods", icon: Salad },
+      { route: "Recipes", labelKey: "profile.my_recipes", icon: CookingPot },
+      { route: "MealPlan", labelKey: "profile.meal_plan", icon: CalendarRange },
+      { route: "Fasting", labelKey: "profile.fasting", icon: Timer },
+    ],
+  },
+  {
+    titleKey: "profile.group_gym",
+    voices: [
+      { route: "Routines", labelKey: "gym.routines", icon: Dumbbell },
+      { route: "Exercises", labelKey: "profile.exercises", icon: ListChecks },
+    ],
+  },
+  {
+    titleKey: "profile.group_progress",
+    voices: [
+      { route: "Measurements", labelKey: "profile.measurements", icon: Ruler },
+      {
+        route: "ProgressPhotos",
+        labelKey: "profile.progress_photos",
+        icon: Camera,
+      },
+      { route: "Achievements", labelKey: "profile.achievements", icon: Trophy },
+    ],
+  },
+  {
+    titleKey: "profile.group_app",
+    voices: [
+      { route: "Friends", labelKey: "social.title", icon: Users },
+      { route: "Reminders", labelKey: "profile.reminders", icon: Bell },
+      { route: "Backup", labelKey: "profile.backup", icon: DatabaseBackup },
+    ],
+  },
+];
 
 export function ProfileScreen() {
   const { t } = useTranslation();
@@ -38,134 +104,50 @@ export function ProfileScreen() {
     <View style={styles.root}>
       <ScreenBackground />
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
-        <Text style={[styles.title, { color: colors.text }]}>
-          {t("tabs.profile")}
-        </Text>
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+            {t("tabs.profile")}
+          </Text>
+          <TouchableOpacity
+            onPress={() => navigate("Settings")}
+            activeOpacity={0.6}
+            hitSlop={10}
+            accessibilityLabel={t("profile.settings")}
+          >
+            <Settings size={24} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
 
         <ScrollView
           contentContainerStyle={[
             styles.content,
             { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
           ]}
+          showsVerticalScrollIndicator={false}
         >
-          <Card onPress={() => navigate("Targets")} style={styles.row}>
-            <Target size={22} color={colors.text} />
-            <Text
-              style={[styles.rowLabel, { color: colors.text }]}
-              numberOfLines={1}
-            >
-              {t("profile.targets")}
-            </Text>
-            <ChevronRight size={20} color={colors.textFaint} />
-          </Card>
+          <ProfileSummary />
 
-          <Card onPress={() => navigate("Foods")} style={styles.row}>
-            <Salad size={22} color={colors.text} />
-            <Text
-              style={[styles.rowLabel, { color: colors.text }]}
-              numberOfLines={1}
-            >
-              {t("profile.my_foods")}
-            </Text>
-            <ChevronRight size={20} color={colors.textFaint} />
-          </Card>
-
-          <Card onPress={() => navigate("Recipes")} style={styles.row}>
-            <CookingPot size={22} color={colors.text} />
-            <Text
-              style={[styles.rowLabel, { color: colors.text }]}
-              numberOfLines={1}
-            >
-              {t("profile.my_recipes")}
-            </Text>
-            <ChevronRight size={20} color={colors.textFaint} />
-          </Card>
-
-          <Card onPress={() => navigate("Routines")} style={styles.row}>
-            <Dumbbell size={22} color={colors.text} />
-            <Text style={[styles.rowLabel, { color: colors.text }]}>
-              {t("gym.routines")}
-            </Text>
-            <ChevronRight size={20} color={colors.textFaint} />
-          </Card>
-
-          <Card onPress={() => navigate("Achievements")} style={styles.row}>
-            <Trophy size={22} color={colors.text} />
-            <Text style={[styles.rowLabel, { color: colors.text }]}>
-              {t("profile.achievements")}
-            </Text>
-            <ChevronRight size={20} color={colors.textFaint} />
-          </Card>
-
-          <Card onPress={() => navigate("MealPlan")} style={styles.row}>
-            <CalendarRange size={22} color={colors.text} />
-            <Text style={[styles.rowLabel, { color: colors.text }]}>
-              {t("profile.meal_plan")}
-            </Text>
-            <ChevronRight size={20} color={colors.textFaint} />
-          </Card>
-
-          <Card onPress={() => navigate("Fasting")} style={styles.row}>
-            <Timer size={22} color={colors.text} />
-            <Text style={[styles.rowLabel, { color: colors.text }]}>
-              {t("profile.fasting")}
-            </Text>
-            <ChevronRight size={20} color={colors.textFaint} />
-          </Card>
-
-          <Card onPress={() => navigate("Measurements")} style={styles.row}>
-            <Ruler size={22} color={colors.text} />
-            <Text style={[styles.rowLabel, { color: colors.text }]}>
-              {t("profile.measurements")}
-            </Text>
-            <ChevronRight size={20} color={colors.textFaint} />
-          </Card>
-
-          <Card onPress={() => navigate("ProgressPhotos")} style={styles.row}>
-            <Camera size={22} color={colors.text} />
-            <Text style={[styles.rowLabel, { color: colors.text }]}>
-              {t("profile.progress_photos")}
-            </Text>
-            <ChevronRight size={20} color={colors.textFaint} />
-          </Card>
-
-          <Card onPress={() => navigate("Reminders")} style={styles.row}>
-            <Bell size={22} color={colors.text} />
-            <Text style={[styles.rowLabel, { color: colors.text }]}>
-              {t("profile.reminders")}
-            </Text>
-            <ChevronRight size={20} color={colors.textFaint} />
-          </Card>
-
-          <Card onPress={() => navigate("Friends")} style={styles.row}>
-            <Users size={22} color={colors.text} />
-            <Text style={[styles.rowLabel, { color: colors.text }]}>
-              {t("social.title")}
-            </Text>
-            <ChevronRight size={20} color={colors.textFaint} />
-          </Card>
-
-          <Card onPress={() => navigate("Backup")} style={styles.row}>
-            <DatabaseBackup size={22} color={colors.text} />
-            <Text
-              style={[styles.rowLabel, { color: colors.text }]}
-              numberOfLines={1}
-            >
-              {t("profile.backup")}
-            </Text>
-            <ChevronRight size={20} color={colors.textFaint} />
-          </Card>
-
-          <Card onPress={() => navigate("Settings")} style={styles.row}>
-            <Settings size={22} color={colors.text} />
-            <Text
-              style={[styles.rowLabel, { color: colors.text }]}
-              numberOfLines={1}
-            >
-              {t("profile.settings")}
-            </Text>
-            <ChevronRight size={20} color={colors.textFaint} />
-          </Card>
+          {GROUPS.map((group) => (
+            <View key={group.titleKey} style={styles.group}>
+              <SectionLabel>{t(group.titleKey)}</SectionLabel>
+              {group.voices.map(({ route, labelKey, icon: IconTag }) => (
+                <Card
+                  key={route}
+                  onPress={() => navigate(route)}
+                  style={styles.row}
+                >
+                  <IconTag size={22} color={colors.text} />
+                  <Text
+                    style={[styles.rowLabel, { color: colors.text }]}
+                    numberOfLines={1}
+                  >
+                    {t(labelKey)}
+                  </Text>
+                  <ChevronRight size={20} color={colors.textFaint} />
+                </Card>
+              ))}
+            </View>
+          ))}
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -179,14 +161,23 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
     paddingHorizontal: theme.spacing.md,
     paddingTop: theme.spacing.sm,
   },
+  title: {
+    flex: 1,
+    fontSize: 24,
+    fontWeight: "700",
+  },
   content: {
     padding: theme.spacing.md,
+    gap: theme.spacing.md,
+  },
+  group: {
     gap: theme.spacing.sm,
   },
   row: {

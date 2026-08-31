@@ -75,7 +75,19 @@
     "measurements": "Misure",
     "reminders": "Promemoria",
     "fasting": "Digiuno",
-    "progress_photos": "Foto progressi"
+    "progress_photos": "Foto progressi",
+    "no_account": "Il tuo profilo",
+    "no_account_hint": "Senza account: tutto resta su questo telefono",
+    "sign_in": "Crea un account o accedi",
+    "stat_weight": "Peso",
+    "stat_streak": "Giorni di fila",
+    "stat_workouts": "Allenamenti",
+    "stat_kcal": "Media kcal",
+    "group_food": "Alimentazione",
+    "group_gym": "Palestra",
+    "group_progress": "Progressi",
+    "group_app": "App",
+    "exercises": "Esercizi"
   },
   "recipes": {
     "title": "I miei pasti",
