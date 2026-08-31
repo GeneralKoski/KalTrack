@@ -1,6 +1,10 @@
 import { runAssistant, type AssistantContext } from "@/src/ai/assistant";
 import { hasGroqKey } from "@/src/ai/config";
-import { MissingApiKeyError, OfflineError } from "@/src/ai/errors";
+import {
+  MissingApiKeyError,
+  OfflineError,
+  RateLimitError,
+} from "@/src/ai/errors";
 import { speak, stopSpeaking } from "@/src/ai/speak";
 import type { ToolIntent } from "@/src/ai/tools/types";
 import { transcribeVoice } from "@/src/ai/transcribe";
@@ -22,6 +26,7 @@ export type AssistantPhase =
 export type AssistantFailure =
   | "no-key"
   | "offline"
+  | "rate-limit"
   | "no-speech"
   | "permission"
   | "failed";
@@ -181,6 +186,7 @@ export function useAssistantSession(
       if (stale()) return;
       if (error instanceof MissingApiKeyError) return fail("no-key");
       if (error instanceof OfflineError) return fail("offline");
+      if (error instanceof RateLimitError) return fail("rate-limit");
       logger.error("[assistant] ciclo fallito", error);
       fail("failed");
     }

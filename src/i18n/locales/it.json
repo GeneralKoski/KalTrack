@@ -418,6 +418,7 @@
     "error": {
       "no-key": "Manca la chiave API: aggiungila in .env per usare l'assistente",
       "offline": "Serve una connessione per l'assistente",
+      "rate-limit": "Groq ha esaurito la quota del momento: riprova fra un minuto",
       "no-speech": "Non ho sentito niente, riprova",
       "permission": "Serve il permesso del microfono",
       "failed": "Qualcosa è andato storto. Il dettaglio è in Impostazioni > Diagnostica"

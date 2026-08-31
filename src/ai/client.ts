@@ -14,6 +14,7 @@ import {
   AiResponseError,
   MissingApiKeyError,
   OfflineError,
+  RateLimitError,
 } from "@/src/ai/errors";
 import { logger } from "@/src/utils/logger";
 
@@ -133,6 +134,29 @@ async function withTimeout(
 }
 
 /**
+ * L'errore giusto per una risposta non ok.
+ *
+ * Il 429 esce come RateLimitError e tutto il resto come AiRequestError: la
+ * quota finita è l'unico guasto del provider su cui chi usa l'app può fare
+ * qualcosa, e va detto invece di finire nel messaggio generico.
+ */
+async function failureFor(
+  response: Response,
+  prefix: string,
+): Promise<AiRequestError | RateLimitError> {
+  const body = await response.text();
+  if (response.status === 429) {
+    const header = response.headers?.get("retry-after");
+    const seconds = header === null || header === undefined ? NaN : Number(header);
+    return new RateLimitError(Number.isFinite(seconds) ? Math.ceil(seconds) : null);
+  }
+  return new AiRequestError(
+    `${prefix} ${response.status}: ${body.slice(0, 200)}`,
+    response.status,
+  );
+}
+
+/**
  * I tool call arrivano da JSON non tipizzato, e il loop dell'assistente li
  * dereferenzia subito (`call.function.name`, `call.id`). Un elemento senza
  * `function` ucciderebbe l'intero turno con un TypeError, e uno senza `id`
@@ -210,13 +234,7 @@ export async function chat(args: {
       }),
     });
 
-    if (!response.ok) {
-      const body = await response.text();
-      throw new AiRequestError(
-        `Groq ha risposto ${response.status}: ${body.slice(0, 200)}`,
-        response.status,
-      );
-    }
+    if (!response.ok) throw await failureFor(response, "Groq ha risposto");
 
     const json = (await response.json()) as {
       choices?: { message?: { content?: unknown; tool_calls?: unknown } }[];
@@ -280,11 +298,7 @@ export async function listAvailableModels(): Promise<string[]> {
   });
 
   if (!response.ok) {
-    const body = await response.text();
-    throw new AiRequestError(
-      `Elenco dei modelli non disponibile ${response.status}: ${body.slice(0, 200)}`,
-      response.status,
-    );
+    throw await failureFor(response, "Elenco dei modelli non disponibile");
   }
 
   const json = (await response.json()) as { data?: unknown };
@@ -331,13 +345,7 @@ export async function transcribeAudio(args: {
       body: form,
     });
 
-    if (!response.ok) {
-      const body = await response.text();
-      throw new AiRequestError(
-        `Trascrizione fallita ${response.status}: ${body.slice(0, 200)}`,
-        response.status,
-      );
-    }
+    if (!response.ok) throw await failureFor(response, "Trascrizione fallita");
 
     const json = (await response.json()) as { text?: unknown };
     // Un 200 con un body inatteso NON è una trascrizione riuscita: restituire

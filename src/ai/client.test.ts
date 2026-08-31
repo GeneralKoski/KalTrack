@@ -1,3 +1,4 @@
+import { RateLimitError } from "@/src/ai/errors";
 import { createTestDb } from "@/src/db/__testing__/betterSqliteAdapter";
 import { __setDbForTesting } from "@/src/db/index";
 import { runMigrations } from "@/src/db/migrations";
@@ -57,6 +58,50 @@ const validCall = {
   type: "function",
   function: { name: "add_food", arguments: "{}" },
 };
+
+/** Errore HTTP nudo, come lo restituisce Groq quando la quota è finita. */
+function failure(status: number, headers: Record<string, string> = {}): Response {
+  return {
+    ok: false,
+    status,
+    headers: { get: (name: string) => headers[name.toLowerCase()] ?? null },
+    text: async () => '{"error":{"code":"rate_limit_exceeded"}}',
+    json: async () => ({}),
+  } as unknown as Response;
+}
+
+describe("chat: quota finita", () => {
+  // Un 429 finiva in AiRequestError generico, indistinguibile da un 500 o da
+  // un modello ritirato: a schermo diceva "qualcosa è andato storto" e
+  // l'unica causa su cui l'utente può agire (aspettare) non era detta.
+  it("distingue il 429 dagli altri errori del provider", async () => {
+    fetchMock.mockResolvedValue(failure(429, { "retry-after": "12" }));
+
+    await expect(ask()).rejects.toBeInstanceOf(RateLimitError);
+  });
+
+  it("legge Retry-After: è il solo modo di dire quanto aspettare", async () => {
+    fetchMock.mockResolvedValue(failure(429, { "retry-after": "12" }));
+
+    // Finisce anche nel messaggio, che è quello che si legge in Diagnostica.
+    await expect(ask()).rejects.toMatchObject({
+      retryAfterSeconds: 12,
+      message: "Quota Groq esaurita, riprovare fra 12 s",
+    });
+  });
+
+  it("senza Retry-After non inventa un'attesa", async () => {
+    fetchMock.mockResolvedValue(failure(429));
+
+    await expect(ask()).rejects.toMatchObject({ retryAfterSeconds: null });
+  });
+
+  it("lascia gli altri errori come sono", async () => {
+    fetchMock.mockResolvedValue(failure(500));
+
+    await expect(ask()).rejects.not.toBeInstanceOf(RateLimitError);
+  });
+});
 
 describe("chat: forma dei tool call", () => {
   it("accetta un tool call completo mantenendone id, nome e argomenti", async () => {
