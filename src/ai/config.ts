@@ -1,39 +1,30 @@
 import { useAiKeyStore } from "@/src/stores/aiKeyStore";
+
 /**
- * Configurazione dei modelli AI, in un solo posto.
+ * Configurazione dei modelli AI Google Gemini (Google AI Studio).
  *
- * I model id di Groq cambiano spesso: tenerli qui significa che aggiornarli è
- * una riga, e che sostituire Groq con un altro provider (o con un proxy
- * server-side) tocca solo questo file e il client.
- *
- * Un modello ritirato non degrada: sparisce. Groq risponde 404
- * `model_not_found` e la capability muore di colpo, quindi questi tre id
- * hanno una scadenza e vanno riguardati quando qualcosa smette di funzionare
- * senza che nessuno l'abbia toccato.
- *
- * `llama-3.3-70b-versatile` (assistente) è stato spento il 16 agosto 2026 e
- * `meta-llama/llama-4-scout-17b-16e-instruct` (foto) il 17 luglio: il secondo
- * è rimasto rotto un mese e mezzo senza che se ne accorgesse nessuno, perché
- * l'app diceva solo "qualcosa è andato storto". Da lì viene `app_logs`.
- *
- * Il modello vision è in preview: su Groq le uniche alternative che accettano
- * immagini sono i due qwen, quindi qui la preview non è una scelta.
+ * KalTrack usa i modelli Gemini per tutte le capability (assistente vocale/testuale,
+ * stima nutrizionale da foto ed etichette, trascrizione audio e generazione schede).
  */
-export const GROQ_BASE_URL = "https://api.groq.com/openai/v1";
+export const GEMINI_BASE_URL =
+  "https://generativelanguage.googleapis.com/v1beta/openai";
+export const GEMINI_NATIVE_BASE_URL =
+  "https://generativelanguage.googleapis.com/v1beta";
+
+/** Alias di retrocompatibilità */
+export const GROQ_BASE_URL = GEMINI_BASE_URL;
 
 export const MODELS = {
   /** Trascrizione vocale. */
-  transcription: "whisper-large-v3-turbo",
+  transcription: "gemini-2.5-flash",
   /** Comprensione e function calling dell'assistente. */
-  assistant: "openai/gpt-oss-120b",
-  /** Stima nutrizionale da foto. Deve accettare immagini e JSON object mode. */
-  vision: "qwen/qwen3.6-27b",
+  assistant: "gemini-2.5-flash",
+  /** Stima nutrizionale da foto ed etichette. */
+  vision: "gemini-2.5-flash",
 } as const;
 
 /**
- * Lingua fissata invece di lasciarla all'autodetect: su clip corte come
- * "duecento grammi di riso" la rilevazione automatica a volte sbaglia lingua,
- * e fissarla migliora anche accuratezza e latenza.
+ * Lingua fissata per la trascrizione e comprensione.
  */
 export const TRANSCRIPTION_LANGUAGE = "it";
 
@@ -41,16 +32,29 @@ export const TRANSCRIPTION_LANGUAGE = "it";
 export const AI_TIMEOUT_MS = 45_000;
 
 /**
- * La chiave la porta chi usa l'app, e sta sul suo telefono.
- *
- * Non arriva piu' da `EXPO_PUBLIC_GROQ_API_KEY`: quella finiva nel bundle in
- * chiaro ed era la stessa per tutti, quindi chiunque avesse l'APK poteva
- * estrarla e spendere la quota di chi l'aveva messa. Vedi
- * `src/stores/aiKeyStore.ts`.
+ * Chiave predefinita fornita all'app tramite variabile d'ambiente (per tutti gli utenti).
  */
-export const groqKey = (): string => useAiKeyStore.getState().key ?? "";
+const defaultEnvKey = (): string =>
+  process.env.EXPO_PUBLIC_GEMINI_API_KEY ??
+  process.env.EXPO_PUBLIC_AI_KEY ??
+  process.env.EXPO_PUBLIC_GROQ_API_KEY ??
+  "";
 
-export const hasGroqKey = (): boolean => groqKey().trim().length > 0;
+/**
+ * La chiave Google AI Studio: usa la chiave personalizzata dell'utente (se inserita
+ * nelle Impostazioni) oppure la chiave condivisa predefinita dell'app.
+ */
+export const aiKey = (): string => {
+  const custom = useAiKeyStore.getState().key?.trim();
+  if (custom && custom.length > 0) return custom;
+  return defaultEnvKey().trim();
+};
+
+export const hasAiKey = (): boolean => aiKey().trim().length > 0;
+
+/** Alias di retrocompatibilità */
+export const groqKey = aiKey;
+export const hasGroqKey = hasAiKey;
 
 export type AiCapability =
   | "transcription"

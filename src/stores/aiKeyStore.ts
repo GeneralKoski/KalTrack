@@ -19,7 +19,8 @@ import { create } from "zustand";
  * render: leggere SecureStore a ogni disegno vorrebbe dire renderla asincrona
  * e far comparire i riquadri dell'AI con un lampo di ritardo.
  */
-const KEY_STORAGE = "kaltrack_groq_key";
+const PRIMARY_KEY_STORAGE = "kaltrack_ai_key";
+const LEGACY_KEY_STORAGE = "kaltrack_groq_key";
 
 interface AiKeyStore {
   key: string | null;
@@ -35,7 +36,10 @@ export const useAiKeyStore = create<AiKeyStore>()((set) => ({
 
   restore: async () => {
     try {
-      const key = await SecureStore.getItemAsync(KEY_STORAGE);
+      let key = await SecureStore.getItemAsync(PRIMARY_KEY_STORAGE);
+      if (!key) {
+        key = await SecureStore.getItemAsync(LEGACY_KEY_STORAGE);
+      }
       set({ key, isHydrated: true });
     } catch (error) {
       logger.error("[ai] lettura della chiave fallita", error);
@@ -45,12 +49,15 @@ export const useAiKeyStore = create<AiKeyStore>()((set) => ({
 
   save: async (key) => {
     const pulita = key.trim();
-    await SecureStore.setItemAsync(KEY_STORAGE, pulita);
+    await SecureStore.setItemAsync(PRIMARY_KEY_STORAGE, pulita);
     set({ key: pulita });
   },
 
   clear: async () => {
-    await SecureStore.deleteItemAsync(KEY_STORAGE);
+    await Promise.all([
+      SecureStore.deleteItemAsync(PRIMARY_KEY_STORAGE),
+      SecureStore.deleteItemAsync(LEGACY_KEY_STORAGE),
+    ]);
     set({ key: null });
   },
 }));

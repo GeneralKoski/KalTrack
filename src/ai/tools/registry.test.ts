@@ -1,6 +1,10 @@
 import { chat } from "@/src/ai/client";
 import { AiResponseError } from "@/src/ai/errors";
-import { createTools, TOOL_COUNT, toolDefinitions } from "@/src/ai/tools/registry";
+import {
+  createTools,
+  TOOL_COUNT,
+  toolDefinitions,
+} from "@/src/ai/tools/registry";
 import type { JsonSchema, RegisteredTool } from "@/src/ai/tools/types";
 import { createTestDb } from "@/src/db/__testing__/betterSqliteAdapter";
 import { __setDbForTesting } from "@/src/db/index";
@@ -33,7 +37,9 @@ jest.mock("@/src/services/openFoodFacts", () => {
 });
 
 const chatMock = chat as jest.MockedFunction<typeof chat>;
-const searchByNameMock = searchByName as jest.MockedFunction<typeof searchByName>;
+const searchByNameMock = searchByName as jest.MockedFunction<
+  typeof searchByName
+>;
 
 const DATE = "2026-08-28";
 
@@ -92,10 +98,16 @@ describe("toolDefinitions", () => {
     expect(definitions).toHaveLength(TOOL_COUNT);
     expect(definitions.map((d) => d.function.name).sort()).toEqual([
       "add_meal_entries",
+      "create_custom_food",
+      "create_exercise",
+      "create_recipe",
+      "create_routine",
       "delete_entry",
       "log_steps",
       "log_weight",
+      "log_workout",
       "navigate",
+      "plan_meal_entry",
       "query_summary",
       "set_target",
     ]);
@@ -213,11 +225,11 @@ describe("add_meal_entries", () => {
     };
 
     const preview = await tool("add_meal_entries").preview(args);
-    expect(preview.title).toBe("Aggiungo a pranzo (28/08)");
+    expect(preview.title).toBe("Aggiungo a Pranzo (28/08)");
     expect(preview.lines[0]).toContain("Riso - 150 g - 195 kcal");
 
     const result = await tool("add_meal_entries").execute(args);
-    expect(result.message).toBe("Aggiunta 1 voce a pranzo.");
+    expect(result.message).toBe("Aggiunta 1 voce a Pranzo.");
 
     const diary = await getDayDiary(DATE);
     expect(Math.round(diary.totals.kcal)).toBe(195);
@@ -242,7 +254,9 @@ describe("add_meal_entries", () => {
     });
 
     // 200 g di riso su 2 porzioni = 130 kcal a porzione, più 100 g = 130 kcal.
-    expect(preview.lines[0]).toContain("Iper pizza proteica - 1 porzione - 130 kcal");
+    expect(preview.lines[0]).toContain(
+      "Iper pizza proteica - 1 porzione - 130 kcal",
+    );
     expect(preview.lines[2]).toBe("Totale: 260 kcal, P 5,4 g");
   });
 
@@ -317,7 +331,9 @@ describe("add_meal_entries", () => {
     // Stessa interazione per anteprima ed esecuzione, come fa runAssistant.
     const current = interaction();
     const preview = await current("add_meal_entries").preview(args);
-    expect(preview.lines[0]).toContain("Piadina del bar (stima) - 200 g - 600 kcal");
+    expect(preview.lines[0]).toContain(
+      "Piadina del bar (stima) - 200 g - 600 kcal",
+    );
 
     // Una seconda stima con numeri diversi: l'esecuzione deve scrivere quello
     // che l'utente ha confermato, non un nuovo tiro di dadi.
@@ -394,7 +410,7 @@ describe("delete_entry", () => {
 
     const args = { date: DATE, entryId, label: "riso" };
     const preview = await tool("delete_entry").preview(args);
-    expect(preview.lines[0]).toBe("Riso - 195 kcal (pranzo del 28/08)");
+    expect(preview.lines[0]).toBe("Riso - 195 kcal (Pranzo del 28/08)");
 
     const result = await tool("delete_entry").execute(args);
     expect(result.message).toBe("Eliminato: Riso.");
@@ -464,9 +480,9 @@ describe("query_summary", () => {
       entries: [{ name: "riso", foodId, quantityG: 200 }],
     });
 
-    expect((await tool("query_summary").execute({ date: DATE })).message).toContain(
-      "sforato di 160",
-    );
+    expect(
+      (await tool("query_summary").execute({ date: DATE })).message,
+    ).toContain("sforato di 160");
   });
 
   it("a obiettivo centrato non dice sforato di 0", async () => {
@@ -480,7 +496,8 @@ describe("query_summary", () => {
     });
     await setSteps(DATE, 10000);
 
-    const message = (await tool("query_summary").execute({ date: DATE })).message;
+    const message = (await tool("query_summary").execute({ date: DATE }))
+      .message;
 
     expect(message).toContain("Passi: 10000 su 10000 (obiettivo raggiunto)");
     expect(message).not.toContain("sforato di 0");
@@ -513,9 +530,9 @@ describe("set_target", () => {
   });
 
   it("rifiuta una chiamata che non cambia nulla", async () => {
-    await expect(tool("set_target").execute({ validFrom: DATE })).rejects.toThrow(
-      AiResponseError,
-    );
+    await expect(
+      tool("set_target").execute({ validFrom: DATE }),
+    ).rejects.toThrow(AiResponseError);
   });
 });
 
@@ -580,5 +597,227 @@ describe("navigate", () => {
     await expect(
       tool("navigate").execute({ screen: "PaginaInventata" }),
     ).rejects.toThrow(AiResponseError);
+  });
+});
+
+describe("create_custom_food", () => {
+  it("valida e crea un alimento con valori per 100g", async () => {
+    const t = tool("create_custom_food");
+    const preview = await t.preview({
+      name: "Barretta Choco",
+      kcal: 350,
+      protein: 25,
+      carbs: 30,
+      fat: 10,
+      brand: "ProBrand",
+      defaultServingG: 45,
+      servingLabel: "1 barretta = 45g",
+    });
+
+    expect(preview.title).toBe("Crea nuovo alimento");
+    expect(preview.lines[0]).toContain("Barretta Choco (ProBrand)");
+    expect(preview.lines[1]).toContain("350 kcal · 25g P · 30g C · 10g G");
+    expect(preview.lines[2]).toContain("45g (1 barretta = 45g)");
+
+    const result = await t.execute({
+      name: "Barretta Choco",
+      kcal: 350,
+      protein: 25,
+      carbs: 30,
+      fat: 10,
+      brand: "ProBrand",
+      defaultServingG: 45,
+      servingLabel: "1 barretta = 45g",
+    });
+    expect(result.message).toContain("creato");
+  });
+
+  it("rifiuta dati mancanti o non validi", async () => {
+    await expect(
+      tool("create_custom_food").execute({
+        name: "Barretta",
+        kcal: 350,
+        // protein mancante
+      }),
+    ).rejects.toThrow(AiResponseError);
+  });
+});
+
+describe("create_recipe", () => {
+  it("crea una ricetta risolvendo gli ingredienti", async () => {
+    await createFood({
+      name: "Farina d'avena",
+      nutrients: {
+        ...EMPTY_NUTRIENTS,
+        kcal: 370,
+        protein: 13,
+        carbs: 60,
+        fat: 7,
+      },
+    });
+
+    const t = tool("create_recipe");
+    const preview = await t.preview({
+      name: "Pancake Proteici",
+      servings: 2,
+      ingredients: [{ name: "Farina d'avena", quantityG: 100 }],
+    });
+
+    expect(preview.title).toBe("Crea nuova ricetta");
+    expect(preview.lines[0]).toContain("Pancake Proteici (2 porzioni)");
+
+    const result = await t.execute({
+      name: "Pancake Proteici",
+      servings: 2,
+      ingredients: [{ name: "Farina d'avena", quantityG: 100 }],
+    });
+    expect(result.message).toContain("creata");
+  });
+});
+
+describe("create_exercise", () => {
+  it("crea un esercizio valido con gruppo muscolare ed equipaggiamento", async () => {
+    const t = tool("create_exercise");
+    const preview = await t.preview({
+      name: "Spinte con manubri su panca inclinata",
+      muscleGroup: "petto",
+      secondaryMuscles: ["spalle", "tricipiti"],
+      equipment: ["manubri", "panca"],
+    });
+
+    expect(preview.title).toBe("Crea esercizio");
+    expect(preview.lines[0]).toContain("Spinte con manubri su panca inclinata");
+    expect(preview.lines[1]).toContain("petto");
+
+    const result = await t.execute({
+      name: "Spinte con manubri su panca inclinata",
+      muscleGroup: "petto",
+      secondaryMuscles: ["spalle", "tricipiti"],
+      equipment: ["manubri", "panca"],
+    });
+    expect(result.message).toContain("creato");
+  });
+
+  it("rifiuta un gruppo muscolare inesistente", async () => {
+    await expect(
+      tool("create_exercise").execute({
+        name: "Test",
+        muscleGroup: "muscolo_inventato",
+      }),
+    ).rejects.toThrow(AiResponseError);
+  });
+});
+
+describe("create_routine", () => {
+  it("crea una scheda con giorni ed esercizi", async () => {
+    const t = tool("create_routine");
+    const preview = await t.preview({
+      name: "Push Pull Legs",
+      days: [
+        {
+          name: "Push Day",
+          exercises: [
+            {
+              name: "Panca piana",
+              targetSets: 4,
+              targetReps: "8-10",
+              targetWeight: 80,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(preview.title).toBe("Crea nuova scheda");
+    expect(preview.lines[0]).toContain("Push Pull Legs");
+
+    const result = await t.execute({
+      name: "Push Pull Legs",
+      days: [
+        {
+          name: "Push Day",
+          exercises: [
+            {
+              name: "Panca piana",
+              targetSets: 4,
+              targetReps: "8-10",
+              targetWeight: 80,
+            },
+          ],
+        },
+      ],
+    });
+    expect(result.message).toContain("creata");
+  });
+});
+
+describe("log_workout", () => {
+  it("registra un allenamento con serie e carichi", async () => {
+    const t = tool("log_workout");
+    const preview = await t.preview({
+      date: DATE,
+      exercises: [
+        {
+          name: "Panca piana con bilanciere",
+          sets: [
+            { reps: 10, weight: 60, isWarmup: true },
+            { reps: 8, weight: 80 },
+            { reps: 8, weight: 80 },
+          ],
+        },
+      ],
+    });
+
+    expect(preview.title).toBe("Registra allenamento");
+    expect(preview.lines[0]).toContain(DATE.slice(8, 10));
+
+    const result = await t.execute({
+      date: DATE,
+      exercises: [
+        {
+          name: "Panca piana con bilanciere",
+          sets: [
+            { reps: 10, weight: 60, isWarmup: true },
+            { reps: 8, weight: 80 },
+            { reps: 8, weight: 80 },
+          ],
+        },
+      ],
+    });
+    expect(result.message).toContain("registrato");
+  });
+});
+
+describe("plan_meal_entry", () => {
+  it("aggiunge una voce al piano alimentare settimanale", async () => {
+    await createFood({
+      name: "Riso Basmati",
+      nutrients: {
+        ...EMPTY_NUTRIENTS,
+        kcal: 350,
+        protein: 8,
+        carbs: 78,
+        fat: 1,
+      },
+    });
+
+    const t = tool("plan_meal_entry");
+    const preview = await t.preview({
+      date: DATE,
+      mealType: MEAL_TYPE_IDS.lunch,
+      name: "Riso Basmati",
+      quantityG: 120,
+    });
+
+    expect(preview.title).toBe("Aggiungi al piano alimentare");
+    expect(preview.lines[1]).toContain("Riso Basmati (120 g)");
+
+    const result = await t.execute({
+      date: DATE,
+      mealType: MEAL_TYPE_IDS.lunch,
+      name: "Riso Basmati",
+      quantityG: 120,
+    });
+    expect(result.message).toContain("Aggiunto al piano");
   });
 });

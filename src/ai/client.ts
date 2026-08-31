@@ -1,12 +1,12 @@
+import * as FileSystem from "expo-file-system/legacy";
 import { getNetworkStateAsync } from "expo-network";
 
-import { getDb } from "@/src/db/index";
-import { newId, nowIso } from "@/src/db/ids";
 import {
   AI_TIMEOUT_MS,
-  groqKey,
-  GROQ_BASE_URL,
-  hasGroqKey,
+  aiKey,
+  GEMINI_BASE_URL,
+  GEMINI_NATIVE_BASE_URL,
+  hasAiKey,
   type AiCapability,
 } from "@/src/ai/config";
 import {
@@ -16,6 +16,8 @@ import {
   OfflineError,
   RateLimitError,
 } from "@/src/ai/errors";
+import { newId, nowIso } from "@/src/db/ids";
+import { getDb } from "@/src/db/index";
 import { logger } from "@/src/utils/logger";
 
 export interface ChatMessage {
@@ -147,8 +149,11 @@ async function failureFor(
   const body = await response.text();
   if (response.status === 429) {
     const header = response.headers?.get("retry-after");
-    const seconds = header === null || header === undefined ? NaN : Number(header);
-    return new RateLimitError(Number.isFinite(seconds) ? Math.ceil(seconds) : null);
+    const seconds =
+      header === null || header === undefined ? NaN : Number(header);
+    return new RateLimitError(
+      Number.isFinite(seconds) ? Math.ceil(seconds) : null,
+    );
   }
   return new AiRequestError(
     `${prefix} ${response.status}: ${body.slice(0, 200)}`,
@@ -168,14 +173,18 @@ async function failureFor(
 function parseToolCalls(raw: unknown): ToolCall[] {
   if (!Array.isArray(raw)) return [];
   const calls: ToolCall[] = [];
-  for (const entry of raw) {
-    if (typeof entry !== "object" || entry === null) {
-      logger.warn("[ai] tool call scartato: non è un oggetto");
-      continue;
-    }
-    const { id, function: fn } = entry as { id?: unknown; function?: unknown };
-    if (typeof fn !== "object" || fn === null) {
-      logger.warn("[ai] tool call scartato: manca function");
+  for (const item of raw) {
+    if (typeof item !== "object" || item === null) continue;
+    const {
+      id,
+      type,
+      function: fn,
+    } = item as {
+      id?: unknown;
+      type?: unknown;
+      function?: unknown;
+    };
+    if (type !== "function" || typeof fn !== "object" || fn === null) {
       continue;
     }
     const { name, arguments: args } = fn as {
@@ -183,15 +192,12 @@ function parseToolCalls(raw: unknown): ToolCall[] {
       arguments?: unknown;
     };
     if (typeof id !== "string" || id.length === 0) {
-      logger.warn("[ai] tool call scartato: id mancante");
       continue;
     }
     if (typeof name !== "string" || name.length === 0) {
-      logger.warn("[ai] tool call scartato: nome mancante");
       continue;
     }
     if (typeof args !== "string") {
-      logger.warn(`[ai] tool call ${name} scartato: argomenti non stringa`);
       continue;
     }
     calls.push({ id, type: "function", function: { name, arguments: args } });
@@ -200,10 +206,7 @@ function parseToolCalls(raw: unknown): ToolCall[] {
 }
 
 /**
- * Chat completion con eventuale function calling.
- *
- * Unico punto che parla con Groq per il testo: sostituire provider o mettere un
- * proxy davanti significa cambiare qui, non nelle capability.
+ * Chat completion con eventuale function calling tramite Google AI Studio (OpenAI endpoint).
  */
 export async function chat(args: {
   capability: AiCapability;
@@ -213,14 +216,14 @@ export async function chat(args: {
   temperature?: number;
   responseFormatJson?: boolean;
 }): Promise<ChatResponse> {
-  if (!hasGroqKey()) throw new MissingApiKeyError();
+  if (!hasAiKey()) throw new MissingApiKeyError();
 
   const startedAt = Date.now();
   try {
-    const response = await withTimeout(`${GROQ_BASE_URL}/chat/completions`, {
+    const response = await withTimeout(`${GEMINI_BASE_URL}/chat/completions`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${groqKey()}`,
+        Authorization: `Bearer ${aiKey()}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -234,7 +237,7 @@ export async function chat(args: {
       }),
     });
 
-    if (!response.ok) throw await failureFor(response, "Groq ha risposto");
+    if (!response.ok) throw await failureFor(response, "Gemini ha risposto");
 
     const json = (await response.json()) as {
       choices?: { message?: { content?: unknown; tool_calls?: unknown } }[];
@@ -277,24 +280,14 @@ export async function chat(args: {
 }
 
 /**
- * I model id che Groq sta servendo a questa chiave.
- *
- * Serve a una domanda sola: gli id in `config.ts` esistono ancora? E' la
- * verifica piu' economica possibile - una GET, nessun token speso, nessun
- * effetto - e copre l'unico guasto che si e' presentato due volte: un modello
- * ritirato che fa morire una capability di colpo.
- *
- * Si chiede l'elenco invece di interrogare `/models/{id}` uno per uno perche'
- * due id su tre contengono una barra (`openai/gpt-oss-120b`), e infilarla in
- * un percorso significa scegliere fra un path annidato e un %2F senza sapere
- * quale dei due il provider accetti.
+ * I model id che Google Gemini sta servendo a questa chiave.
  */
 export async function listAvailableModels(): Promise<string[]> {
-  if (!hasGroqKey()) throw new MissingApiKeyError();
+  if (!hasAiKey()) throw new MissingApiKeyError();
 
-  const response = await withTimeout(`${GROQ_BASE_URL}/models`, {
+  const response = await withTimeout(`${GEMINI_BASE_URL}/models`, {
     method: "GET",
-    headers: { Authorization: `Bearer ${groqKey()}` },
+    headers: { Authorization: `Bearer ${aiKey()}` },
   });
 
   if (!response.ok) {
@@ -315,7 +308,9 @@ export async function listAvailableModels(): Promise<string[]> {
     .filter((id): id is string => typeof id === "string");
 }
 
-/** Trascrizione audio. Multipart, quindi non passa da `chat`. */
+/**
+ * Trascrizione audio multimodale tramite Gemini.
+ */
 export async function transcribeAudio(args: {
   capability: AiCapability;
   model: string;
@@ -323,38 +318,51 @@ export async function transcribeAudio(args: {
   language: string;
   prompt?: string;
 }): Promise<string> {
-  if (!hasGroqKey()) throw new MissingApiKeyError();
+  if (!hasAiKey()) throw new MissingApiKeyError();
 
   const startedAt = Date.now();
-  const form = new FormData();
-  // React Native accetta questa forma per i file locali nel FormData.
-  form.append("file", {
-    uri: args.uri,
-    name: "audio.m4a",
-    type: "audio/m4a",
-  } as unknown as Blob);
-  form.append("model", args.model);
-  form.append("language", args.language);
-  form.append("response_format", "json");
-  if (args.prompt) form.append("prompt", args.prompt);
+  const base64Audio = await FileSystem.readAsStringAsync(args.uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+
+  const promptText = args.prompt
+    ? `Trascrivi fedelmente e integralmente il parlato in lingua italiana. Contesto lessicale: ${args.prompt}. Restituisci SOLO ed esclusivamente il testo trascritto, senza virgolette, senza premesse e senza commenti.`
+    : "Trascrivi fedelmente e integralmente il parlato in lingua italiana. Restituisci SOLO ed esclusivamente il testo trascritto, senza virgolette, senza premesse e senza commenti.";
 
   try {
-    const response = await withTimeout(`${GROQ_BASE_URL}/audio/transcriptions`, {
+    const url = `${GEMINI_NATIVE_BASE_URL}/models/${args.model}:generateContent?key=${aiKey()}`;
+    const response = await withTimeout(url, {
       method: "POST",
-      headers: { Authorization: `Bearer ${groqKey()}` },
-      body: form,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                inlineData: {
+                  mimeType: "audio/m4a",
+                  data: base64Audio,
+                },
+              },
+              {
+                text: promptText,
+              },
+            ],
+          },
+        ],
+      }),
     });
 
     if (!response.ok) throw await failureFor(response, "Trascrizione fallita");
 
-    const json = (await response.json()) as { text?: unknown };
-    // Un 200 con un body inatteso NON è una trascrizione riuscita: restituire
-    // "" lo registrerebbe come success e a valle si spenderebbe una chat
-    // completion con un messaggio utente vuoto. Il silenzio dell'utente è un
-    // altro caso e lo distingue transcribe.ts, non questo ramo.
-    if (typeof json.text !== "string") {
+    const json = (await response.json()) as {
+      candidates?: { content?: { parts?: { text?: unknown }[] } }[];
+    };
+    const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (typeof text !== "string") {
       throw new AiResponseError(
-        "Trascrizione: la risposta non contiene il campo text",
+        "Trascrizione: la risposta non contiene il testo trascritto",
       );
     }
 
@@ -366,7 +374,7 @@ export async function transcribeAudio(args: {
       latencyMs: elapsed(startedAt),
       success: true,
     });
-    return json.text;
+    return text.trim();
   } catch (error) {
     await logCall({
       capability: args.capability,

@@ -1,7 +1,7 @@
 /** L'AI non è configurata: manca la chiave. Distinta da un errore di rete. */
 export class MissingApiKeyError extends Error {
   constructor() {
-    super("Chiave API Groq non configurata");
+    super("Chiave API Google AI Studio non configurata");
     this.name = "MissingApiKeyError";
   }
 }
@@ -18,19 +18,14 @@ export class OfflineError extends Error {
  * Quota esaurita: 429.
  *
  * Distinto da AiRequestError perché è l'unico guasto del provider su cui chi
- * usa l'app può fare qualcosa, cioè aspettare. Con il 429 dentro l'errore
- * generico la UI diceva "qualcosa è andato storto" e la causa vera si leggeva
- * solo in Diagnostica.
- *
- * `retryAfterSeconds` è null quando Groq non manda l'header: un'attesa
- * inventata sarebbe peggio del non dirla.
+ * usa l'app può fare qualcosa, cioè aspettare.
  */
 export class RateLimitError extends Error {
   constructor(readonly retryAfterSeconds: number | null) {
     super(
       retryAfterSeconds === null
-        ? "Quota Groq esaurita"
-        : `Quota Groq esaurita, riprovare fra ${retryAfterSeconds} s`,
+        ? "Quota API esaurita"
+        : `Quota API esaurita, riprovare fra ${retryAfterSeconds} s`,
     );
     this.name = "RateLimitError";
   }

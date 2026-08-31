@@ -14,10 +14,17 @@ import {
   getDayDiary,
   listMealTypes,
 } from "@/src/db/queries/diary";
-import { getFood } from "@/src/db/queries/foods";
-import { buildRecipeTree, getRecipe } from "@/src/db/queries/recipes";
+import { createExercise, searchExercises } from "@/src/db/queries/exercises";
+import { createFood, getFood } from "@/src/db/queries/foods";
+import { addPlanEntry } from "@/src/db/queries/mealPlan";
+import {
+  buildRecipeTree,
+  createRecipe,
+  getRecipe,
+} from "@/src/db/queries/recipes";
 import { getTargetsFor, saveTargets } from "@/src/db/queries/settings";
 import { getSteps, setSteps, setWeight } from "@/src/db/queries/tracking";
+import { createRoutine, logSet, startSession } from "@/src/db/queries/workouts";
 import { isRealIsoDate, todayIso } from "@/src/domain/date";
 import {
   recipePerServing,
@@ -25,14 +32,20 @@ import {
   sumNutrients,
   type Nutrients,
 } from "@/src/domain/nutrition";
+import type { NavParams } from "@/src/hooks/useAppNav";
+import { navigationRef } from "@/src/navigation/navigationRef";
+import {
+  EQUIPMENT,
+  MUSCLE_GROUPS,
+  type Equipment,
+  type MuscleGroup,
+} from "@/src/types/gym";
 import {
   foodNutrients,
   type FoodRow,
   type MealEntryRow,
   type RecipeRow,
 } from "@/src/types/nutrition";
-import type { NavParams } from "@/src/hooks/useAppNav";
-import { navigationRef } from "@/src/navigation/navigationRef";
 
 /**
  * Giorno a cui si riferiscono i tool quando il modello NON passa una data.
@@ -185,9 +198,9 @@ const logSteps: ToolFactory = (context) =>
     riskLevel: "write",
     description:
       "Save the daily step count for one or more days. The user often lists " +
-      "several days in a single sentence (\"lunedì 8000, martedì 12000\"): return " +
+      'several days in a single sentence ("lunedì 8000, martedì 12000"): return ' +
       "one item per day, never merge them. Dates MUST be in YYYY-MM-DD format: " +
-      "resolve \"oggi\", \"ieri\" and weekday names against the current date given " +
+      'resolve "oggi", "ieri" and weekday names against the current date given ' +
       "in the context. Omit the date only when the user names no day at all: it " +
       "then means the reference day of the context. Saving a day again replaces " +
       "its value instead of adding to it.",
@@ -200,7 +213,10 @@ const logSteps: ToolFactory = (context) =>
           items: {
             type: "object",
             properties: {
-              date: { type: "string", description: "Day in YYYY-MM-DD format." },
+              date: {
+                type: "string",
+                description: "Day in YYYY-MM-DD format.",
+              },
               steps: { type: "integer", description: "Steps walked that day." },
             },
             required: ["date", "steps"],
@@ -224,7 +240,9 @@ const logSteps: ToolFactory = (context) =>
     },
     preview: async ({ days }) => ({
       title: "Passi",
-      lines: days.map((day) => `${shortDate(day.date)}: ${int(day.steps)} passi`),
+      lines: days.map(
+        (day) => `${shortDate(day.date)}: ${int(day.steps)} passi`,
+      ),
     }),
     execute: async ({ days }) => {
       for (const day of days) await setSteps(day.date, day.steps, "voice");
@@ -254,7 +272,7 @@ const logWeight: ToolFactory = (context) =>
     riskLevel: "write",
     description:
       "Save the body weight of one day, in kilograms. Italian speakers say " +
-      "\"settantotto e mezzo\" or \"78 e mezzo\" meaning 78.5 kg: always convert to " +
+      '"settantotto e mezzo" or "78 e mezzo" meaning 78.5 kg: always convert to ' +
       "a decimal number of kilograms. Date in YYYY-MM-DD, defaults to the " +
       "reference day of the context. One measurement per day: saving again " +
       "replaces the previous one.",
@@ -262,8 +280,14 @@ const logWeight: ToolFactory = (context) =>
       type: "object",
       properties: {
         date: { type: "string", description: "Day in YYYY-MM-DD format." },
-        weightKg: { type: "number", description: "Weight in kilograms, e.g. 78.5." },
-        bodyFatPct: { type: "number", description: "Body fat percentage, if said." },
+        weightKg: {
+          type: "number",
+          description: "Weight in kilograms, e.g. 78.5.",
+        },
+        bodyFatPct: {
+          type: "number",
+          description: "Body fat percentage, if said.",
+        },
       },
       required: ["weightKg"],
     },
@@ -331,7 +355,7 @@ function checkedGrams(value: number, what: string): number {
   if (value < MIN_PLAUSIBLE_QUANTITY_G) {
     fail(
       `Quantità implausibile per "${what}": ${num(value)} g. 1 etto = 100 g, ` +
-        "\"due etti\" = 200 g. Se l'utente intendeva davvero pochi grammi, chiediglielo.",
+        '"due etti" = 200 g. Se l\'utente intendeva davvero pochi grammi, chiediglielo.',
     );
   }
   return value;
@@ -527,7 +551,12 @@ function planFromResolved(item: ResolvedItem): Promise<EntryPlan> | EntryPlan {
         item.confidence,
       );
     case "estimated":
-      return freePlan(item.label, item.nutrients, item.quantityG, item.confidence);
+      return freePlan(
+        item.label,
+        item.nutrients,
+        item.quantityG,
+        item.confidence,
+      );
   }
 }
 
@@ -559,7 +588,9 @@ async function planEntries(
   const resolved =
     byName.length === 0
       ? []
-      : await cachedResolve(context,           byName.map(({ entry }) => ({
+      : await cachedResolve(
+          context,
+          byName.map(({ entry }) => ({
             name: entry.name,
             quantityG: entry.quantityG,
             servings: entry.servings,
@@ -585,9 +616,9 @@ const addMealEntries: ToolFactory = (context) =>
       "user ate and HOW MUCH: calories and macros are NOT your job and there " +
       "is no field for them. The app resolves every entry against the user's " +
       "recipes, the user's foods, the local database and OpenFoodFacts. " +
-      "QUANTITIES ARE ALWAYS IN GRAMS: 1 etto = 100 g, \"un etto e mezzo\" = " +
-      "150 g, \"due etti e mezzo\" = 250 g, \"mezzo chilo\" = 500 g, \"un chilo\" " +
-      "= 1000 g. Never pass 1 for \"un etto\". Always pass `name` with what the " +
+      'QUANTITIES ARE ALWAYS IN GRAMS: 1 etto = 100 g, "un etto e mezzo" = ' +
+      '150 g, "due etti e mezzo" = 250 g, "mezzo chilo" = 500 g, "un chilo" ' +
+      '= 1000 g. Never pass 1 for "un etto". Always pass `name` with what the ' +
       "user said; add `foodId` or `recipeId` when the name clearly matches one " +
       "of the ids listed in the context. A recipe is counted in servings, a " +
       "food in grams: if the user did not say how much, ask instead of " +
@@ -599,7 +630,8 @@ const addMealEntries: ToolFactory = (context) =>
         date: { type: "string", description: "Day in YYYY-MM-DD format." },
         mealTypeId: {
           type: "string",
-          description: "Id of the meal type, from the list given in the context.",
+          description:
+            "Id of the meal type, from the list given in the context.",
         },
         entries: {
           type: "array",
@@ -610,7 +642,7 @@ const addMealEntries: ToolFactory = (context) =>
               name: {
                 type: "string",
                 description:
-                  "What the user called it, e.g. \"riso basmati\". Always required.",
+                  'What the user called it, e.g. "riso basmati". Always required.',
               },
               foodId: {
                 type: "string",
@@ -669,7 +701,7 @@ const addMealEntries: ToolFactory = (context) =>
           if (optPositive(source, "quantityG") !== undefined) {
             fail(
               "Un pasto si aggiunge a porzioni, non a grammi: manda " +
-                "\"servings\" invece di \"quantityG\", o passa il nome " +
+                '"servings" invece di "quantityG", o passa il nome ' +
                 "dell'alimento se l'utente intendeva un ingrediente.",
             );
           }
@@ -705,7 +737,9 @@ const addMealEntries: ToolFactory = (context) =>
       const lines = plans.map((plan) => plan.line);
       if (plans.length > 1) {
         const totals = sumNutrients(plans.map((plan) => plan.nutrients));
-        lines.push(`Totale: ${int(totals.kcal)} kcal, P ${num(totals.protein)} g`);
+        lines.push(
+          `Totale: ${int(totals.kcal)} kcal, P ${num(totals.protein)} g`,
+        );
       }
       return { title: `Aggiungo a ${name} (${shortDate(args.date)})`, lines };
     },
@@ -770,7 +804,7 @@ const deleteEntryTool: ToolFactory = (context) =>
     riskLevel: "destructive",
     description:
       "Delete one entry from the diary. Pass the entry id taken from the " +
-      "\"Diary entries\" list of the context: never guess it, and if the entry " +
+      '"Diary entries" list of the context: never guess it, and if the entry ' +
       "the user means is not in that list, say so instead of calling this " +
       "tool. `date` is the day that list refers to (YYYY-MM-DD), and defaults " +
       "to the reference day of the context. `label` is only shown in the " +
@@ -910,7 +944,7 @@ const querySummary: ToolFactory = (context) =>
     description:
       "Read the summary of one day: calories and macros eaten against the " +
       "targets, how much is left, and the steps walked. Call it for questions " +
-      "like \"quante proteine mi mancano?\" or \"quanto ho camminato?\". " +
+      'like "quante proteine mi mancano?" or "quanto ho camminato?". ' +
       "Date in YYYY-MM-DD, defaults to the reference day of the context.",
     parameters: {
       type: "object",
@@ -958,7 +992,9 @@ interface ResolvedTargets {
 async function resolveTargets(args: SetTargetArgs): Promise<ResolvedTargets> {
   const current = await getTargetsFor(args.validFrom);
   if (!current) {
-    fail("Non ci sono obiettivi da aggiornare: impostane prima uno dal profilo.");
+    fail(
+      "Non ci sono obiettivi da aggiornare: impostane prima uno dal profilo.",
+    );
   }
 
   const next = {
@@ -971,7 +1007,8 @@ async function resolveTargets(args: SetTargetArgs): Promise<ResolvedTargets> {
 
   const changes: string[] = [];
   const track = (label: string, before: number, after: number): void => {
-    if (before !== after) changes.push(`${label}: ${num(before)} → ${num(after)}`);
+    if (before !== after)
+      changes.push(`${label}: ${num(before)} → ${num(after)}`);
   };
   track("Calorie", current.kcal, next.kcal);
   track("Proteine", current.protein_g, next.proteinG);
@@ -994,9 +1031,15 @@ const setTarget: ToolFactory = (context) =>
     parameters: {
       type: "object",
       properties: {
-        validFrom: { type: "string", description: "Start day in YYYY-MM-DD format." },
+        validFrom: {
+          type: "string",
+          description: "Start day in YYYY-MM-DD format.",
+        },
         kcal: { type: "integer", description: "Daily calorie target." },
-        proteinG: { type: "integer", description: "Daily protein target, grams." },
+        proteinG: {
+          type: "integer",
+          description: "Daily protein target, grams.",
+        },
         carbsG: { type: "integer", description: "Daily carbs target, grams." },
         fatG: { type: "integer", description: "Daily fat target, grams." },
         steps: { type: "integer", description: "Daily step target." },
@@ -1013,10 +1056,15 @@ const setTarget: ToolFactory = (context) =>
         steps: optNumber(root, "steps"),
       };
       if (args.steps !== undefined && args.steps < 0) {
-        fail("\"steps\" non può essere negativo");
+        fail('"steps" non può essere negativo');
       }
-      const hasValue = [args.kcal, args.proteinG, args.carbsG, args.fatG, args.steps]
-        .some((value) => value !== undefined);
+      const hasValue = [
+        args.kcal,
+        args.proteinG,
+        args.carbsG,
+        args.fatG,
+        args.steps,
+      ].some((value) => value !== undefined);
       if (!hasValue) fail("Nessun obiettivo da modificare");
       return args;
     },
@@ -1092,16 +1140,20 @@ const navigate: ToolFactory = () =>
     name: "navigate",
     riskLevel: "read",
     description:
-      "Open a screen of the app. Use it for requests like \"portami alla scheda " +
-      "di oggi\" or \"apri i miei alimenti\". Only the listed screen names are " +
+      'Open a screen of the app. Use it for requests like "portami alla scheda ' +
+      'di oggi" or "apri i miei alimenti". Only the listed screen names are ' +
       "valid. It does not change any data.",
     parameters: {
       type: "object",
       properties: {
-        screen: { type: "string", description: "Screen to open.", enum: SCREENS },
+        screen: {
+          type: "string",
+          description: "Screen to open.",
+          enum: SCREENS,
+        },
         params: {
           type: "object",
-          description: "Optional route params, e.g. { \"id\": \"...\" }.",
+          description: 'Optional route params, e.g. { "id": "..." }.',
         },
       },
       required: ["screen"],
@@ -1146,6 +1198,753 @@ const navigate: ToolFactory = () =>
     },
   });
 
+// ─── create_custom_food ──────────────────────────────────────────────────────
+
+interface CreateCustomFoodArgs {
+  name: string;
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  brand?: string;
+  fiber?: number;
+  sugars?: number;
+  saturatedFat?: number;
+  salt?: number;
+  isLiquid?: boolean;
+  defaultServingG?: number;
+  servingLabel?: string;
+}
+
+const createCustomFood: ToolFactory = () =>
+  defineTool<CreateCustomFoodArgs>({
+    name: "create_custom_food",
+    riskLevel: "write",
+    description:
+      "Create a new personal food item in the user's food database with nutritional values per 100g. " +
+      "Use when user wants to create a new food, add a food to their personal list, or describes nutritional facts.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Name of the food item." },
+        kcal: { type: "number", description: "Calories (kcal) per 100g." },
+        protein: { type: "number", description: "Protein (g) per 100g." },
+        carbs: { type: "number", description: "Carbohydrates (g) per 100g." },
+        fat: { type: "number", description: "Fat (g) per 100g." },
+        brand: { type: "string", description: "Brand name, optional." },
+        fiber: { type: "number", description: "Fiber (g) per 100g, optional." },
+        sugars: {
+          type: "number",
+          description: "Sugars (g) per 100g, optional.",
+        },
+        saturatedFat: {
+          type: "number",
+          description: "Saturated fat (g) per 100g, optional.",
+        },
+        salt: { type: "number", description: "Salt (g) per 100g, optional." },
+        isLiquid: {
+          type: "boolean",
+          description: "True if liquid (ml instead of g), optional.",
+        },
+        defaultServingG: {
+          type: "number",
+          description: "Standard serving size in grams, optional.",
+        },
+        servingLabel: {
+          type: "string",
+          description:
+            "Description of the serving, e.g. '1 barretta = 45g', optional.",
+        },
+      },
+      required: ["name", "kcal", "protein", "carbs", "fat"],
+    },
+    parse: (raw) => {
+      const root = asRecord(raw);
+      const name = reqString(root, "name");
+      const kcal = reqNumber(root, "kcal");
+      const protein = reqNumber(root, "protein");
+      const carbs = reqNumber(root, "carbs");
+      const fat = reqNumber(root, "fat");
+      return {
+        name,
+        kcal,
+        protein,
+        carbs,
+        fat,
+        brand: optString(root, "brand"),
+        fiber: optNumber(root, "fiber"),
+        sugars: optNumber(root, "sugars"),
+        saturatedFat: optNumber(root, "saturatedFat"),
+        salt: optNumber(root, "salt"),
+        isLiquid:
+          typeof root.isLiquid === "boolean" ? root.isLiquid : undefined,
+        defaultServingG: optNumber(root, "defaultServingG"),
+        servingLabel: optString(root, "servingLabel"),
+      };
+    },
+    preview: async (args) => {
+      const lines = [
+        `Nome: ${args.name}${args.brand ? ` (${args.brand})` : ""}`,
+        `Valori per 100g: ${num(args.kcal)} kcal · ${num(args.protein)}g P · ${num(args.carbs)}g C · ${num(args.fat)}g G`,
+      ];
+      if (args.defaultServingG) {
+        lines.push(
+          `Porzione: ${int(args.defaultServingG)}g${args.servingLabel ? ` (${args.servingLabel})` : ""}`,
+        );
+      }
+      return {
+        title: "Crea nuovo alimento",
+        lines,
+      };
+    },
+    execute: async (args) => {
+      await createFood({
+        name: args.name,
+        brand: args.brand,
+        nutrients: {
+          kcal: args.kcal,
+          protein: args.protein,
+          carbs: args.carbs,
+          fat: args.fat,
+          fiber: args.fiber ?? 0,
+          sugars: args.sugars ?? 0,
+          saturatedFat: args.saturatedFat ?? 0,
+          salt: args.salt ?? 0,
+        },
+        isLiquid: args.isLiquid ?? false,
+        defaultServingG: args.defaultServingG,
+        servingLabel: args.servingLabel,
+      });
+      return { message: `Alimento "${args.name}" creato.` };
+    },
+  });
+
+// ─── create_recipe ───────────────────────────────────────────────────────────
+
+interface CreateRecipeIngredient {
+  name: string;
+  quantityG: number;
+}
+
+interface CreateRecipeArgs {
+  name: string;
+  servings: number;
+  ingredients: CreateRecipeIngredient[];
+  notes?: string;
+}
+
+const createRecipeTool: ToolFactory = (context) =>
+  defineTool<CreateRecipeArgs>({
+    name: "create_recipe",
+    riskLevel: "write",
+    description:
+      "Create a custom recipe with a list of ingredients and quantities in grams, plus number of servings. " +
+      "Use when user wants to create a new recipe or save a custom composite meal.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Name of the recipe." },
+        servings: {
+          type: "number",
+          description: "Number of servings (default 1).",
+        },
+        ingredients: {
+          type: "array",
+          description: "List of ingredients with name and grams.",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string", description: "Food name." },
+              quantityG: { type: "number", description: "Quantity in grams." },
+            },
+            required: ["name", "quantityG"],
+          },
+        },
+        notes: { type: "string", description: "Optional preparation notes." },
+      },
+      required: ["name", "ingredients"],
+    },
+    parse: (raw) => {
+      const root = asRecord(raw);
+      const name = reqString(root, "name");
+      const servings = optPositive(root, "servings") ?? 1;
+      const rawIngredients = reqArray(root, "ingredients");
+      const ingredients: CreateRecipeIngredient[] = rawIngredients.map(
+        (item, idx) => {
+          const rec = asRecord(item, `Ingrediente [${idx}]`);
+          return {
+            name: reqString(rec, "name"),
+            quantityG: reqPositive(rec, "quantityG"),
+          };
+        },
+      );
+      return {
+        name,
+        servings,
+        ingredients,
+        notes: optString(root, "notes"),
+      };
+    },
+    preview: async (args) => ({
+      title: "Crea nuova ricetta",
+      lines: [
+        `Ricetta: ${args.name} (${args.servings} ${plural(args.servings, "porzione", "porzioni")})`,
+        `Ingredienti: ${args.ingredients.map((i) => `${i.name} (${int(i.quantityG)} g)`).join(", ")}`,
+      ],
+    }),
+    execute: async (args) => {
+      const resolved = await cachedResolve(
+        context,
+        args.ingredients.map((i) => ({ name: i.name, quantityG: i.quantityG })),
+      );
+
+      const items: { foodId: string; quantityG: number }[] = [];
+      for (let i = 0; i < resolved.length; i++) {
+        const item = resolved[i];
+        const ing = args.ingredients[i];
+        if (item.kind === "food") {
+          items.push({ foodId: item.food.id, quantityG: ing.quantityG });
+        } else if (item.kind === "off") {
+          const foodId = await createFood(item.food);
+          items.push({ foodId, quantityG: ing.quantityG });
+        } else {
+          const nutrients =
+            item.kind === "estimated"
+              ? item.nutrients
+              : {
+                  kcal: 0,
+                  protein: 0,
+                  carbs: 0,
+                  fat: 0,
+                  fiber: 0,
+                  sugars: 0,
+                  saturatedFat: 0,
+                  salt: 0,
+                };
+          const foodId = await createFood({
+            name: ing.name,
+            nutrients,
+            isEstimated: true,
+          });
+          items.push({ foodId, quantityG: ing.quantityG });
+        }
+      }
+
+      await createRecipe({
+        name: args.name,
+        servings: args.servings,
+        notes: args.notes,
+        items,
+      });
+      return { message: `Ricetta "${args.name}" creata.` };
+    },
+  });
+
+// ─── create_exercise ─────────────────────────────────────────────────────────
+
+interface CreateExerciseArgs {
+  name: string;
+  muscleGroup: MuscleGroup;
+  secondaryMuscles?: MuscleGroup[];
+  equipment?: Equipment[];
+  instructions?: string;
+}
+
+const createExerciseTool: ToolFactory = () =>
+  defineTool<CreateExerciseArgs>({
+    name: "create_exercise",
+    riskLevel: "write",
+    description:
+      "Create a new gym exercise. Valid muscleGroup values: 'petto', 'schiena', 'spalle', 'bicipiti', 'tricipiti', 'quadricipiti', 'femorali', 'glutei', 'polpacci', 'addome', 'avambracci', 'full_body'. " +
+      "Valid equipment values: 'corpo_libero', 'bilanciere', 'manubri', 'kettlebell', 'cavi', 'macchina', 'panca', 'sbarra', 'elastici', 'trx', 'cardio'.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: {
+          type: "string",
+          description:
+            "Name of the exercise, e.g. 'Panca inclinata con manubri'.",
+        },
+        muscleGroup: {
+          type: "string",
+          description: "Primary muscle group.",
+          enum: MUSCLE_GROUPS,
+        },
+        secondaryMuscles: {
+          type: "array",
+          description: "Secondary muscle groups.",
+          items: { type: "string", enum: MUSCLE_GROUPS },
+        },
+        equipment: {
+          type: "array",
+          description: "Equipment needed.",
+          items: { type: "string", enum: EQUIPMENT },
+        },
+        instructions: {
+          type: "string",
+          description: "Execution instructions, optional.",
+        },
+      },
+      required: ["name", "muscleGroup"],
+    },
+    parse: (raw) => {
+      const root = asRecord(raw);
+      const name = reqString(root, "name");
+      const muscleGroup = reqString(root, "muscleGroup") as MuscleGroup;
+      if (!(MUSCLE_GROUPS as readonly string[]).includes(muscleGroup)) {
+        fail(`Gruppo muscolare "${muscleGroup}" non valido`);
+      }
+      const secondaryMuscles: MuscleGroup[] = [];
+      if (Array.isArray(root.secondaryMuscles)) {
+        for (const m of root.secondaryMuscles) {
+          if (
+            typeof m === "string" &&
+            (MUSCLE_GROUPS as readonly string[]).includes(m)
+          ) {
+            secondaryMuscles.push(m as MuscleGroup);
+          }
+        }
+      }
+      const equipment: Equipment[] = [];
+      if (Array.isArray(root.equipment)) {
+        for (const eq of root.equipment) {
+          if (
+            typeof eq === "string" &&
+            (EQUIPMENT as readonly string[]).includes(eq)
+          ) {
+            equipment.push(eq as Equipment);
+          }
+        }
+      }
+      return {
+        name,
+        muscleGroup,
+        secondaryMuscles:
+          secondaryMuscles.length > 0 ? secondaryMuscles : undefined,
+        equipment: equipment.length > 0 ? equipment : undefined,
+        instructions: optString(root, "instructions"),
+      };
+    },
+    preview: async (args) => {
+      const lines = [
+        `Nome: ${args.name}`,
+        `Gruppo muscolare: ${args.muscleGroup}${args.secondaryMuscles?.length ? ` (sec: ${args.secondaryMuscles.join(", ")})` : ""}`,
+      ];
+      if (args.equipment?.length) {
+        lines.push(`Attrezzatura: ${args.equipment.join(", ")}`);
+      }
+      return {
+        title: "Crea esercizio",
+        lines,
+      };
+    },
+    execute: async (args) => {
+      await createExercise({
+        name: args.name,
+        muscleGroup: args.muscleGroup,
+        secondaryMuscles: args.secondaryMuscles ?? [],
+        equipment: args.equipment ?? [],
+        instructions: args.instructions,
+      });
+      return { message: `Esercizio "${args.name}" creato.` };
+    },
+  });
+
+// ─── create_routine ──────────────────────────────────────────────────────────
+
+interface RoutineDayExerciseInput {
+  name: string;
+  targetSets?: number;
+  targetReps?: string;
+  targetWeight?: number;
+}
+
+interface RoutineDayInputArg {
+  name: string;
+  exercises: RoutineDayExerciseInput[];
+}
+
+interface CreateRoutineArgs {
+  name: string;
+  days: RoutineDayInputArg[];
+  notes?: string;
+}
+
+const createRoutineTool: ToolFactory = () =>
+  defineTool<CreateRoutineArgs>({
+    name: "create_routine",
+    riskLevel: "write",
+    description:
+      "Create a workout routine with structured training days and exercises. " +
+      "Use when user wants to create a new gym routine or training split.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: {
+          type: "string",
+          description: "Name of the routine (e.g. 'Push Pull Legs').",
+        },
+        days: {
+          type: "array",
+          description: "Training days in the routine.",
+          items: {
+            type: "object",
+            properties: {
+              name: {
+                type: "string",
+                description: "Day name (e.g. 'Push - Petto e Spalle').",
+              },
+              exercises: {
+                type: "array",
+                description: "Exercises in this day.",
+                items: {
+                  type: "object",
+                  properties: {
+                    name: { type: "string", description: "Exercise name." },
+                    targetSets: {
+                      type: "number",
+                      description: "Target sets (e.g. 3 or 4).",
+                    },
+                    targetReps: {
+                      type: "string",
+                      description: "Target reps (e.g. '8-10' or '12').",
+                    },
+                    targetWeight: {
+                      type: "number",
+                      description: "Target weight in kg, optional.",
+                    },
+                  },
+                  required: ["name"],
+                },
+              },
+            },
+            required: ["name", "exercises"],
+          },
+        },
+        notes: { type: "string", description: "Optional notes." },
+      },
+      required: ["name", "days"],
+    },
+    parse: (raw) => {
+      const root = asRecord(raw);
+      const name = reqString(root, "name");
+      const rawDays = reqArray(root, "days");
+      const days: RoutineDayInputArg[] = rawDays.map((d, dIdx) => {
+        const dayRec = asRecord(d, `Giorno [${dIdx}]`);
+        const dayName = reqString(dayRec, "name");
+        const rawEx = reqArray(dayRec, "exercises");
+        const exercises: RoutineDayExerciseInput[] = rawEx.map((e, eIdx) => {
+          const exRec = asRecord(e, `Esercizio [${eIdx}]`);
+          return {
+            name: reqString(exRec, "name"),
+            targetSets: optPositive(exRec, "targetSets"),
+            targetReps: optString(exRec, "targetReps"),
+            targetWeight: optPositive(exRec, "targetWeight"),
+          };
+        });
+        return { name: dayName, exercises };
+      });
+      return {
+        name,
+        days,
+        notes: optString(root, "notes"),
+      };
+    },
+    preview: async (args) => ({
+      title: "Crea nuova scheda",
+      lines: [
+        `Scheda: ${args.name}`,
+        ...args.days.map(
+          (d) =>
+            `${d.name}: ${d.exercises.map((e) => `${e.name}${e.targetSets ? ` (${e.targetSets}x${e.targetReps ?? "10"})` : ""}`).join(", ")}`,
+        ),
+      ],
+    }),
+    execute: async (args) => {
+      const formattedDays = [];
+      for (const day of args.days) {
+        const blockExercises = [];
+        for (const ex of day.exercises) {
+          const found = await searchExercises({ term: ex.name, limit: 1 });
+          let exerciseId: string;
+          if (found.length > 0) {
+            exerciseId = found[0].id;
+          } else {
+            exerciseId = await createExercise({
+              name: ex.name,
+              muscleGroup: "full_body",
+              secondaryMuscles: [],
+              equipment: [],
+            });
+          }
+          blockExercises.push({
+            exerciseId,
+            targetSets: ex.targetSets ?? 3,
+            targetReps: ex.targetReps ?? "10",
+            targetWeight: ex.targetWeight ?? null,
+          });
+        }
+        formattedDays.push({
+          name: day.name,
+          blocks: [
+            {
+              kind: "single" as const,
+              exercises: blockExercises,
+            },
+          ],
+        });
+      }
+      await createRoutine({
+        name: args.name,
+        notes: args.notes,
+        days: formattedDays,
+      });
+      return { message: `Scheda "${args.name}" creata.` };
+    },
+  });
+
+// ─── log_workout ─────────────────────────────────────────────────────────────
+
+interface WorkoutSetInput {
+  reps: number;
+  weight?: number;
+  isWarmup?: boolean;
+}
+
+interface WorkoutExerciseLogInput {
+  name: string;
+  sets: WorkoutSetInput[];
+}
+
+interface LogWorkoutArgs {
+  date: string;
+  exercises: WorkoutExerciseLogInput[];
+}
+
+const logWorkout: ToolFactory = (context) =>
+  defineTool<LogWorkoutArgs>({
+    name: "log_workout",
+    riskLevel: "write",
+    description:
+      "Log a workout session with exercises, sets, reps and weights for a given date. " +
+      "Use when user reports completed exercises or training sets (e.g. 'ho fatto panca 3x10 a 80kg e squat 3x8 a 100kg').",
+    parameters: {
+      type: "object",
+      properties: {
+        date: {
+          type: "string",
+          description: "Date (YYYY-MM-DD), defaults to reference date.",
+        },
+        exercises: {
+          type: "array",
+          description: "List of exercises performed.",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string", description: "Exercise name." },
+              sets: {
+                type: "array",
+                description: "Sets performed.",
+                items: {
+                  type: "object",
+                  properties: {
+                    reps: { type: "number", description: "Reps completed." },
+                    weight: {
+                      type: "number",
+                      description: "Weight in kg (optional).",
+                    },
+                    isWarmup: {
+                      type: "boolean",
+                      description: "True if warmup set (optional).",
+                    },
+                  },
+                  required: ["reps"],
+                },
+              },
+            },
+            required: ["name", "sets"],
+          },
+        },
+      },
+      required: ["exercises"],
+    },
+    parse: (raw) => {
+      const root = asRecord(raw);
+      const date = dateOrReference(root, context);
+      const rawExercises = reqArray(root, "exercises");
+      const exercises: WorkoutExerciseLogInput[] = rawExercises.map(
+        (e, eIdx) => {
+          const exRec = asRecord(e, `Esercizio [${eIdx}]`);
+          const rawSets = reqArray(exRec, "sets");
+          const sets: WorkoutSetInput[] = rawSets.map((s, sIdx) => {
+            const sRec = asRecord(s, `Serie [${sIdx}]`);
+            return {
+              reps: reqPositive(sRec, "reps"),
+              weight: optNumber(sRec, "weight"),
+              isWarmup:
+                typeof sRec.isWarmup === "boolean" ? sRec.isWarmup : undefined,
+            };
+          });
+          return {
+            name: reqString(exRec, "name"),
+            sets,
+          };
+        },
+      );
+      return { date, exercises };
+    },
+    preview: async (args) => ({
+      title: "Registra allenamento",
+      lines: [
+        `Data: ${shortDate(args.date)}`,
+        ...args.exercises.map(
+          (e) =>
+            `${e.name}: ${e.sets.length} ${plural(e.sets.length, "serie", "serie")} (${e.sets.map((s) => `${s.reps}x${s.weight ?? 0}kg${s.isWarmup ? " risc." : ""}`).join(", ")})`,
+        ),
+      ],
+    }),
+    execute: async (args) => {
+      const sessionId = await startSession({ date: args.date });
+      for (const ex of args.exercises) {
+        const found = await searchExercises({ term: ex.name, limit: 1 });
+        let exerciseId: string;
+        if (found.length > 0) {
+          exerciseId = found[0].id;
+        } else {
+          exerciseId = await createExercise({
+            name: ex.name,
+            muscleGroup: "full_body",
+            secondaryMuscles: [],
+            equipment: [],
+          });
+        }
+        for (let i = 0; i < ex.sets.length; i++) {
+          const set = ex.sets[i];
+          await logSet({
+            sessionId,
+            exerciseId,
+            setIndex: i + 1,
+            reps: set.reps,
+            weight: set.weight ?? null,
+            isWarmup: set.isWarmup ?? false,
+          });
+        }
+      }
+      return { message: `Allenamento del ${shortDate(args.date)} registrato.` };
+    },
+  });
+
+// ─── plan_meal_entry ─────────────────────────────────────────────────────────
+
+interface PlanMealEntryArgs {
+  date: string;
+  mealType: string;
+  name: string;
+  quantityG?: number;
+  servings?: number;
+}
+
+const planMealEntry: ToolFactory = (context) =>
+  defineTool<PlanMealEntryArgs>({
+    name: "plan_meal_entry",
+    riskLevel: "write",
+    description:
+      "Add a food or recipe to the weekly meal plan for a given date and meal type. " +
+      "Use when user wants to plan future meals (e.g. 'pianifica per domani a pranzo 200g di riso', 'metti la pasta nel piano di giovedì').",
+    parameters: {
+      type: "object",
+      properties: {
+        date: { type: "string", description: "Date (YYYY-MM-DD)." },
+        mealType: {
+          type: "string",
+          description: "Meal type name or id (e.g. 'Pranzo', 'Cena').",
+        },
+        name: { type: "string", description: "Food or recipe name." },
+        quantityG: {
+          type: "number",
+          description: "Quantity in grams (optional).",
+        },
+        servings: {
+          type: "number",
+          description: "Servings for recipe (optional).",
+        },
+      },
+      required: ["date", "mealType", "name"],
+    },
+    parse: (raw) => {
+      const root = asRecord(raw);
+      return {
+        date: dateOrReference(root, context),
+        mealType: reqString(root, "mealType"),
+        name: reqString(root, "name"),
+        quantityG: optPositive(root, "quantityG"),
+        servings: optPositive(root, "servings"),
+      };
+    },
+    preview: async (args) => ({
+      title: "Aggiungi al piano alimentare",
+      lines: [
+        `Data: ${shortDate(args.date)} · Pasto: ${args.mealType}`,
+        `${args.name}${args.quantityG ? ` (${int(args.quantityG)} g)` : args.servings ? ` (${args.servings} ${plural(args.servings, "porzione", "porzioni")})` : ""}`,
+      ],
+    }),
+    execute: async (args) => {
+      const mealTypes = await listMealTypes();
+      const matched = mealTypes.find(
+        (m) =>
+          m.id === args.mealType ||
+          m.name.toLowerCase() === args.mealType.toLowerCase(),
+      );
+      const mealTypeId = matched?.id ?? mealTypes[0]?.id;
+      if (!mealTypeId) fail("Tipo di pasto non trovato");
+
+      const resolved = await cachedResolve(context, [
+        {
+          name: args.name,
+          quantityG: args.quantityG,
+          servings: args.servings,
+        },
+      ]);
+      const item = resolved[0];
+
+      if (item.kind === "food") {
+        await addPlanEntry({
+          date: args.date,
+          mealTypeId,
+          foodId: item.food.id,
+          quantityG:
+            args.quantityG ??
+            item.quantityG ??
+            item.food.default_serving_g ??
+            100,
+        });
+      } else if (item.kind === "recipe") {
+        await addPlanEntry({
+          date: args.date,
+          mealTypeId,
+          recipeId: item.recipe.id,
+          servings: args.servings ?? item.servings ?? 1,
+        });
+      } else if (item.kind === "off") {
+        const foodId = await createFood(item.food);
+        await addPlanEntry({
+          date: args.date,
+          mealTypeId,
+          foodId,
+          quantityG: args.quantityG ?? item.quantityG ?? 100,
+        });
+      } else {
+        await addPlanEntry({
+          date: args.date,
+          mealTypeId,
+          label: args.name,
+          quantityG: args.quantityG ?? 100,
+        });
+      }
+      return { message: `Aggiunto al piano per ${shortDate(args.date)}.` };
+    },
+  });
+
 // ─── Registro ────────────────────────────────────────────────────────────────
 
 const TOOL_FACTORIES: ToolFactory[] = [
@@ -1156,6 +1955,12 @@ const TOOL_FACTORIES: ToolFactory[] = [
   logWeight,
   querySummary,
   setTarget,
+  createCustomFood,
+  createRecipeTool,
+  createExerciseTool,
+  createRoutineTool,
+  logWorkout,
+  planMealEntry,
 ];
 
 /** Numero di tool esposti: utile ai test senza costruirli tutti. */

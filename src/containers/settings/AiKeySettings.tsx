@@ -9,8 +9,8 @@ import { showToast } from "@/src/utils/toast";
 import React, { useState } from "react";
 import { Linking, StyleSheet, TouchableOpacity, View } from "react-native";
 
-/** Dove si prende una chiave, per chi non l'ha mai fatto. */
-const GROQ_CONSOLE = "https://console.groq.com/keys";
+/** Dove si prende una chiave gratuita su Google AI Studio. */
+const GOOGLE_AI_STUDIO = "https://aistudio.google.com/app/apikey";
 
 interface AiKeySettingsProps {
   /** Vero quando si arriva qui da "serve la chiave AI": il cursore parte nel campo. */
@@ -111,7 +111,7 @@ export const AiKeySettings: React.FC<AiKeySettingsProps> = ({ autoFocus }) => {
       </View>
 
       <TouchableOpacity
-        onPress={() => void Linking.openURL(GROQ_CONSOLE)}
+        onPress={() => void Linking.openURL(GOOGLE_AI_STUDIO)}
         activeOpacity={0.6}
         hitSlop={8}
       >

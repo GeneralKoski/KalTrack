@@ -8,8 +8,8 @@ import {
 import { speak, stopSpeaking } from "@/src/ai/speak";
 import type { ToolIntent } from "@/src/ai/tools/types";
 import { transcribeVoice } from "@/src/ai/transcribe";
-import { useVoiceRecording } from "@/src/hooks/useVoiceRecording";
 import { useOnlineStatus } from "@/src/hooks/useOnlineStatus";
+import { useVoiceRecording } from "@/src/hooks/useVoiceRecording";
 import { useAssistantStore } from "@/src/stores/assistantStore";
 import { logger } from "@/src/utils/logger";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -45,13 +45,14 @@ export interface AssistantSession {
   spokenReplyUnavailable: boolean;
   startListening: () => Promise<void>;
   stopListening: () => Promise<void>;
+  submitText: (text: string) => Promise<void>;
   /** Toglie un intento da `pending`, dopo averlo eseguito o scartato. */
   resolvePending: (intent: ToolIntent) => void;
   reset: () => void;
 }
 
 /**
- * Il ciclo dell'assistente: audio, trascrizione, ragionamento, conferma.
+ * Il ciclo dell'assistente: audio o testo, trascrizione/parsing, ragionamento, conferma.
  *
  * Tiene fuori dalla UI tutto ciò che non è resa: la schermata mostra una fase
  * e basta, e il ciclo resta testabile e riusabile da un'altra superficie.
@@ -192,6 +193,50 @@ export function useAssistantSession(
     }
   }, [fail, recording, voiceReplyEnabled]);
 
+  const submitText = useCallback(
+    async (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+
+      reset();
+      if (!hasGroqKey()) return fail("no-key");
+      if (!online) return fail("offline");
+
+      const turn = ++turnRef.current;
+      const stale = () => turnRef.current !== turn;
+
+      setTranscript(trimmed);
+      setPhase("thinking");
+
+      try {
+        const result = await runAssistant({
+          transcript: trimmed,
+          context: contextRef.current(),
+        });
+        if (stale()) return;
+
+        setReply(result.reply);
+        setExecuted(result.intents.filter((i) => i.executed));
+        const writes = result.intents.filter((i) => !i.executed);
+        setPending(writes);
+        setPhase(writes.length > 0 ? "confirming" : "done");
+
+        if (voiceReplyEnabled && result.reply) {
+          const spoken = await speak(result.reply);
+          if (!spoken) setSpokenReplyUnavailable(true);
+        }
+      } catch (error) {
+        if (stale()) return;
+        if (error instanceof MissingApiKeyError) return fail("no-key");
+        if (error instanceof OfflineError) return fail("offline");
+        if (error instanceof RateLimitError) return fail("rate-limit");
+        logger.error("[assistant] ciclo testuale fallito", error);
+        fail("failed");
+      }
+    },
+    [fail, online, reset, voiceReplyEnabled],
+  );
+
   return {
     phase,
     level: recording.level,
@@ -203,6 +248,7 @@ export function useAssistantSession(
     spokenReplyUnavailable,
     startListening,
     stopListening,
+    submitText,
     resolvePending,
     reset,
   };

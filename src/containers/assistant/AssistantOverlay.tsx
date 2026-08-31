@@ -1,17 +1,20 @@
+import type { ToolIntent } from "@/src/ai/tools/types";
 import { DfButton } from "@/src/components/form/DfButton";
 import { MetalPanel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
-import { Text } from "@/src/components/ui";
+import { Text, TextInput } from "@/src/components/ui";
 import type { AssistantSession } from "@/src/containers/assistant/useAssistantSession";
 import { VoiceOrb } from "@/src/containers/assistant/VoiceOrb";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
-import type { ToolIntent } from "@/src/ai/tools/types";
-import { Check, Mic, VolumeX, X } from "lucide-react-native";
+import { ArrowUp, Check, Mic, VolumeX, X } from "lucide-react-native";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -38,10 +41,18 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const [remember, setRemember] = useState<Record<string, boolean>>({});
+  const [inputText, setInputText] = useState("");
 
-  const busy =
-    session.phase === "transcribing" || session.phase === "thinking";
+  const busy = session.phase === "transcribing" || session.phase === "thinking";
   const listening = session.phase === "listening";
+
+  const handleSendText = () => {
+    const text = inputText.trim();
+    if (!text || busy) return;
+    setInputText("");
+    Keyboard.dismiss();
+    void session.submitText(text);
+  };
 
   return (
     <Modal
@@ -50,8 +61,13 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
       transparent
       onRequestClose={onClose}
     >
-      <View style={[styles.backdrop, { backgroundColor: colors.background }]}>
-        <View style={[styles.header, { paddingTop: insets.top + theme.spacing.sm }]}>
+      <KeyboardAvoidingView
+        style={[styles.backdrop, { backgroundColor: colors.background }]}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <View
+          style={[styles.header, { paddingTop: insets.top + theme.spacing.sm }]}
+        >
           <TouchableOpacity onPress={onClose} activeOpacity={0.6} hitSlop={12}>
             <X size={24} color={colors.textMuted} />
           </TouchableOpacity>
@@ -60,8 +76,9 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
         <ScrollView
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: insets.bottom + 160 },
+            { paddingBottom: insets.bottom + 120 },
           ]}
+          keyboardShouldPersistTaps="handled"
         >
           {/* Mentre si parla la palla e' l'unica cosa a schermo che conta:
               dice che il microfono sente davvero, e si tocca per fermarsi. */}
@@ -168,7 +185,10 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
                       ) : null}
                     </View>
                     <Text
-                      style={[styles.rememberLabel, { color: colors.textMuted }]}
+                      style={[
+                        styles.rememberLabel,
+                        { color: colors.textMuted },
+                      ]}
                       numberOfLines={2}
                     >
                       {t("assistant.dont_ask_again")}
@@ -198,33 +218,70 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
           ))}
         </ScrollView>
 
-        {/* Il microfono in fondo riapre l'ascolto, e sparisce mentre si
-            ascolta: due bottoni per fermarsi - lui e la palla - sarebbero due
-            posti dove cercare la stessa cosa. */}
+        {/* Input in fondo: campo testo + pulsante invio e microfono.
+            Spento mentre si registra per non interferire. */}
         {listening ? null : (
           <View
             style={[
               styles.footer,
-              { paddingBottom: insets.bottom + theme.spacing.lg },
+              { paddingBottom: insets.bottom + theme.spacing.md },
             ]}
           >
-            <TouchableOpacity
-              onPress={session.startListening}
-              activeOpacity={0.6}
-              disabled={busy}
-            >
+            <View style={styles.inputRow}>
               <View
                 style={[
-                  styles.mic,
-                  { backgroundColor: colors.accent, opacity: busy ? 0.4 : 1 },
+                  styles.inputContainer,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
                 ]}
               >
-                <Mic size={30} color={colors.accentOn} />
+                <TextInput
+                  style={[styles.textInput, { color: colors.text }]}
+                  placeholder={t("assistant.text_input_placeholder")}
+                  placeholderTextColor={colors.textMuted}
+                  value={inputText}
+                  onChangeText={setInputText}
+                  onSubmitEditing={handleSendText}
+                  returnKeyType="send"
+                  editable={!busy}
+                />
+                {inputText.trim().length > 0 ? (
+                  <TouchableOpacity
+                    onPress={handleSendText}
+                    activeOpacity={0.6}
+                    disabled={busy}
+                    style={[
+                      styles.sendButton,
+                      { backgroundColor: colors.accent },
+                    ]}
+                    accessibilityLabel={t("assistant.send")}
+                  >
+                    <ArrowUp size={18} color={colors.accentOn} />
+                  </TouchableOpacity>
+                ) : null}
               </View>
-            </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={session.startListening}
+                activeOpacity={0.6}
+                disabled={busy}
+                accessibilityLabel={t("assistant.open")}
+              >
+                <View
+                  style={[
+                    styles.mic,
+                    { backgroundColor: colors.accent, opacity: busy ? 0.4 : 1 },
+                  ]}
+                >
+                  <Mic size={24} color={colors.accentOn} />
+                </View>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -276,11 +333,41 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.sm,
   },
   action: { flex: 1 },
-  footer: { alignItems: "center", paddingTop: theme.spacing.md },
+  footer: {
+    paddingHorizontal: theme.spacing.md,
+    paddingTop: theme.spacing.xs,
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  inputContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 1,
+    paddingLeft: theme.spacing.md,
+    paddingRight: theme.spacing.xs,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: 0,
+  },
+  sendButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   mic: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -37,18 +37,16 @@ describe("checkModels", () => {
     expect(esiti.every((e) => e.served)).toBe(true);
   });
 
-  // Il guasto vero: due su tre rispondono e la terza capability e' morta.
-  it("isola quello che Groq non serve piu'", async () => {
-    listing.mockResolvedValue([MODELS.transcription, MODELS.assistant]);
+  // Il guasto vero: un modello non risponde e la capability e' non servita.
+  it("rileva quando un modello non e' disponibile", async () => {
+    listing.mockResolvedValue(["gemini-unsupported"]);
 
     const esiti = await checkModels();
-    const vision = esiti.find((e) => e.capability === "vision");
-    expect(vision?.served).toBe(false);
-    expect(esiti.filter((e) => e.served)).toHaveLength(2);
+    expect(esiti.every((e) => !e.served)).toBe(true);
   });
 
   it("scrive nel registro i modelli mancanti", async () => {
-    listing.mockResolvedValue([MODELS.transcription]);
+    listing.mockResolvedValue([]);
 
     await checkModels();
 

@@ -74,7 +74,7 @@ describe("la chiave non deve finire nei dati sincronizzati", () => {
     await useAiKeyStore.getState().save("gsk_segreta");
 
     expect(SecureStore.setItemAsync).toHaveBeenCalledWith(
-      "kaltrack_groq_key",
+      "kaltrack_ai_key",
       "gsk_segreta",
     );
   });

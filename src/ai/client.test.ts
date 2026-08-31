@@ -60,7 +60,10 @@ const validCall = {
 };
 
 /** Errore HTTP nudo, come lo restituisce Groq quando la quota è finita. */
-function failure(status: number, headers: Record<string, string> = {}): Response {
+function failure(
+  status: number,
+  headers: Record<string, string> = {},
+): Response {
   return {
     ok: false,
     status,
@@ -86,7 +89,7 @@ describe("chat: quota finita", () => {
     // Finisce anche nel messaggio, che è quello che si legge in Diagnostica.
     await expect(ask()).rejects.toMatchObject({
       retryAfterSeconds: 12,
-      message: "Quota Groq esaurita, riprovare fra 12 s",
+      message: "Quota API esaurita, riprovare fra 12 s",
     });
   });
 
@@ -138,19 +141,25 @@ describe("chat: forma dei tool call", () => {
       },
     ],
     // Nessun tool da cercare e nessun nome da mostrare nel messaggio d'errore.
-    ["senza nome", { id: "call-1", type: "function", function: { arguments: "{}" } }],
+    [
+      "senza nome",
+      { id: "call-1", type: "function", function: { arguments: "{}" } },
+    ],
     ["non oggetto", "add_food"],
   ];
 
-  it.each(malformedCalls)("scarta un tool call %s", async (_label, malformed) => {
-    fetchMock.mockResolvedValue(
-      completion({ content: null, tool_calls: [malformed] }),
-    );
+  it.each(malformedCalls)(
+    "scarta un tool call %s",
+    async (_label, malformed) => {
+      fetchMock.mockResolvedValue(
+        completion({ content: null, tool_calls: [malformed] }),
+      );
 
-    const response = await ask();
+      const response = await ask();
 
-    expect(response.toolCalls).toEqual([]);
-  });
+      expect(response.toolCalls).toEqual([]);
+    },
+  );
 
   it("scarta solo l'elemento malformato e tiene gli altri", async () => {
     fetchMock.mockResolvedValue(

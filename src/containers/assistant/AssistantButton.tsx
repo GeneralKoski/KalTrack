@@ -9,10 +9,12 @@ import {
   getDayDiary,
   listMealTypes,
 } from "@/src/db/queries/diary";
+import { searchExercises } from "@/src/db/queries/exercises";
 import { searchFoods } from "@/src/db/queries/foods";
 import { searchRecipes } from "@/src/db/queries/recipes";
 import { getTargetsFor } from "@/src/db/queries/settings";
 import { getSteps } from "@/src/db/queries/tracking";
+import { listRoutines } from "@/src/db/queries/workouts";
 import { todayIso } from "@/src/domain/date";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { useAssistantLaunch } from "@/src/services/assistantLaunch";
@@ -55,7 +57,10 @@ export const AssistantButton: React.FC = () => {
   const launchRequests = useAssistantLaunch();
   const referenceDate = useDayContextStore((s) => s.referenceDate);
 
-  const buildContext = useCallback((): AssistantContext => contextRef.current, []);
+  const buildContext = useCallback(
+    (): AssistantContext => contextRef.current,
+    [],
+  );
   const contextRef = useRef<AssistantContext>({});
   const session = useAssistantSession(buildContext);
 
@@ -80,7 +85,7 @@ export const AssistantButton: React.FC = () => {
     void startListeningRef.current();
   }, [launchRequests]);
 
-  // Il contesto si prepara PRIMA di parlare, non dopo: raccoglierlo mentre il
+  // Il contesto si prepara PRIMA di parlare o scrivere, non dopo: raccoglierlo mentre il
   // modello aspetta aggiungerebbe latenza proprio nel momento più visibile.
   useEffect(() => {
     if (!open) return;
@@ -90,13 +95,16 @@ export const AssistantButton: React.FC = () => {
         // Il giorno che l'utente sta guardando, non quello del telefono: chi
         // scorre a ieri e detta una voce se la vedeva scrivere su oggi.
         const date = referenceDate ?? todayIso();
-        const [diary, mealTypes, targets, foods, recipes] = await Promise.all([
-          getDayDiary(date),
-          listMealTypes(),
-          getTargetsFor(date),
-          searchFoods("", CONTEXT_ITEMS),
-          searchRecipes("", CONTEXT_ITEMS),
-        ]);
+        const [diary, mealTypes, targets, foods, recipes, exercises, routines] =
+          await Promise.all([
+            getDayDiary(date),
+            listMealTypes(),
+            getTargetsFor(date),
+            searchFoods("", CONTEXT_ITEMS),
+            searchRecipes("", CONTEXT_ITEMS),
+            searchExercises({ limit: CONTEXT_ITEMS }),
+            listRoutines(),
+          ]);
         const [stepLog, names] = await Promise.all([
           getSteps(date),
           entryDisplayNames(diary),
@@ -127,6 +135,8 @@ export const AssistantButton: React.FC = () => {
           mealTypes: mealTypes.map((m) => ({ id: m.id, name: m.name })),
           foods: foods.map((f) => ({ id: f.id, name: f.name })),
           recipes: recipes.map((r) => ({ id: r.id, name: r.name })),
+          exercises: exercises.map((e) => ({ id: e.id, name: e.name })),
+          routines: routines.map((r) => ({ id: r.id, name: r.name })),
           // Il nome della riga e' quello dell'alimento o del pasto, non quello
           // del tipo di pasto: con il ripiego su `meal.type.name` ogni voce si
           // chiamava "Colazione", e "togli il pane" non poteva funzionare.
@@ -199,8 +209,8 @@ export const AssistantButton: React.FC = () => {
         }}
         accessibilityLabel={t("assistant.open")}
       >
-        <MetalSurface radius={26} style={styles.surface}>
-          <Mic size={22} color={colors.text} />
+        <MetalSurface radius={28} style={styles.surface}>
+          <Mic size={24} color={colors.text} />
         </MetalSurface>
       </TouchableOpacity>
 
@@ -239,10 +249,10 @@ export const AssistantButton: React.FC = () => {
 
 /** Quanto il microfono sta staccato dal fondo della schermata. */
 const FAB_OFFSET = theme.spacing.lg;
-/** Lato del microfono. */
-const FAB_SIZE = 52;
+/** Lato del microfono: identico al pulsante "+" per coerenza visiva. */
+const FAB_SIZE = 56;
 
-/** Lato del "+" di Oggi: più grande del microfono, è l'azione locale. */
+/** Lato del "+" di Oggi: stessa dimensione del microfono (56). */
 export const SCREEN_FAB_SIZE = 56;
 
 /** Dove appoggiare il "+" perché stia SOPRA il microfono, in colonna. */
@@ -263,7 +273,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: theme.spacing.md,
     bottom: FAB_OFFSET,
-    borderRadius: 26,
+    borderRadius: 28,
     shadowColor: theme.colors.gray900,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,

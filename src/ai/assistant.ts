@@ -59,6 +59,8 @@ export interface AssistantContext {
   mealTypes?: AssistantNamedItem[];
   recipes?: AssistantNamedItem[];
   foods?: AssistantNamedItem[];
+  exercises?: AssistantNamedItem[];
+  routines?: AssistantNamedItem[];
   /** Voci in diario del giorno di riferimento, con il loro id. */
   entries?: AssistantDiaryEntry[];
 }
@@ -103,7 +105,9 @@ const namedList = (items: AssistantNamedItem[]): string =>
 
 const entryList = (entries: AssistantDiaryEntry[]): string =>
   entries
-    .map((entry) => `${entry.id} = ${entry.name} (${Math.round(entry.kcal)} kcal)`)
+    .map(
+      (entry) => `${entry.id} = ${entry.name} (${Math.round(entry.kcal)} kcal)`,
+    )
     .join("; ");
 
 const macroLine = (macros: AssistantMacros): string =>
@@ -238,19 +242,19 @@ export function normalizeQuantities(text: string): string {
  */
 export function buildSystemPrompt(): string {
   return [
-    "You are the voice assistant of KalTrack, a personal tracker for food, weight, steps and training.",
+    "You are the intelligent assistant of KalTrack, a personal tracker for food, weight, steps and gym training.",
     "ALWAYS reply in Italian, in one or two short spoken sentences. No markdown, no bullet lists.",
     "Use the tools to act. Never invent nutritional values: foods and recipes are resolved by the app, not by you.",
     "",
-    "The next message is the CURRENT CONTEXT: today's date, the day the user is looking at, the targets and the ids of the user's own meal types, recipes, foods and diary entries.",
+    "The next message is the CURRENT CONTEXT: today's date, the day the user is looking at, the targets and the ids of the user's own meal types, recipes, foods, exercises, routines and diary entries.",
     "",
     "RULES",
-    "- Quantities are ALWAYS in grams. The transcript already has the common Italian units converted (1 etto = 100 g, \"mezzo chilo\" = 500 g): use the grams you read, and if a quantity is still vague ask instead of guessing. Never pass 1 for \"un etto\".",
-    "- Never send calories or macros to a tool: there is no field for them. Send what the user ate and how much, the app resolves the values on the user's own data.",
-    "- Dates are ALWAYS YYYY-MM-DD. Resolve \"oggi\", \"ieri\", \"l'altro ieri\" and weekday names against `Now`. If the user names no day at all, omit the date: the tools use the reference day.",
-    "- Prefer the ids listed in the CURRENT CONTEXT over free text: a name close to one of the user's recipes or foods IS that recipe or food.",
-    "- To delete something use only the ids listed under \"Diary entries\". If what the user wants to delete is not in that list, say so instead of guessing an id.",
-    "- English words mixed into Italian speech (whey, overnight oats, lat machine) are normal: never correct them, just use them.",
+    '- Quantities are ALWAYS in grams. The transcript already has the common Italian units converted (1 etto = 100 g, "mezzo chilo" = 500 g): use the grams you read, and if a quantity is still vague ask instead of guessing. Never pass 1 for "un etto".',
+    "- Never send calories or macros to `add_meal_entries`: there is no field for them. Send what the user ate and how much, the app resolves the values on the user's own data. Only `create_custom_food` accepts nutritional values (per 100g) when explicitly creating a food item.",
+    '- Dates are ALWAYS YYYY-MM-DD. Resolve "oggi", "ieri", "l\'altro ieri" and weekday names against `Now`. If the user names no day at all, omit the date: the tools use the reference day.',
+    "- Prefer the ids listed in the CURRENT CONTEXT over free text: a name close to one of the user's recipes, foods, exercises or routines IS that item.",
+    '- To delete something use only the ids listed under "Diary entries". If what the user wants to delete is not in that list, say so instead of guessing an id.',
+    "- English words mixed into Italian speech (whey, overnight oats, lat machine, bench press, deadlift, squat, push, pull, legs) are normal: never correct them, just use them.",
     "- If an essential detail is missing, ask one short question in Italian instead of guessing.",
     "- Write and delete actions are only prepared, not applied: after calling such a tool, tell the user in Italian what is about to happen, as if it were done.",
   ].join("\n");
@@ -276,10 +280,14 @@ export function buildContextMessage(context: AssistantContext): string {
   ];
 
   if (context.screen) lines.push(`Current screen: ${context.screen}`);
-  if (context.targets) lines.push(`Targets today: ${macroLine(context.targets)}`);
-  if (context.consumed) lines.push(`Done so far today: ${macroLine(context.consumed)}`);
+  if (context.targets)
+    lines.push(`Targets today: ${macroLine(context.targets)}`);
+  if (context.consumed)
+    lines.push(`Done so far today: ${macroLine(context.consumed)}`);
   if (context.targets && context.consumed) {
-    lines.push(`Remaining today: ${macroLine(remaining(context.targets, context.consumed))}`);
+    lines.push(
+      `Remaining today: ${macroLine(remaining(context.targets, context.consumed))}`,
+    );
   }
   if (context.mealTypes?.length) {
     lines.push(`Meal types: ${namedList(context.mealTypes)}`);
@@ -290,8 +298,16 @@ export function buildContextMessage(context: AssistantContext): string {
   if (context.foods?.length) {
     lines.push(`Most used foods: ${namedList(context.foods)}`);
   }
+  if (context.exercises?.length) {
+    lines.push(`Known exercises: ${namedList(context.exercises)}`);
+  }
+  if (context.routines?.length) {
+    lines.push(`Gym routines: ${namedList(context.routines)}`);
+  }
   if (context.entries?.length) {
-    lines.push(`Diary entries of the reference day: ${entryList(context.entries)}`);
+    lines.push(
+      `Diary entries of the reference day: ${entryList(context.entries)}`,
+    );
   }
 
   return lines.join("\n");

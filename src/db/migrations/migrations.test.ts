@@ -81,11 +81,11 @@ describe("runMigrations", () => {
       "SELECT name FROM meal_types WHERE deleted_at IS NULL ORDER BY sort",
     );
     expect(rows.map((r) => r.name)).toEqual([
-      "colazione",
-      "brunch",
-      "pranzo",
-      "snack",
-      "cena",
+      "Colazione",
+      "Brunch",
+      "Pranzo",
+      "Snack",
+      "Cena",
     ]);
   });
 

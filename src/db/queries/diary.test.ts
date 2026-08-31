@@ -18,10 +18,14 @@ import {
   updateEntryQuantity,
 } from "@/src/db/queries/diary";
 import { createFood, getFood, updateFood } from "@/src/db/queries/foods";
-import { createRecipe, deleteRecipe, updateRecipe } from "@/src/db/queries/recipes";
+import {
+  createRecipe,
+  deleteRecipe,
+  updateRecipe,
+} from "@/src/db/queries/recipes";
+import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 import { setComponentGrams } from "@/src/domain/entryComposition";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
-import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 
 const DATE = "2026-08-28";
 let db: LocalDatabase;
@@ -33,7 +37,13 @@ beforeEach(async () => {
   __setDbForTesting(db);
   riceId = await createFood({
     name: "Riso",
-    nutrients: { ...EMPTY_NUTRIENTS, kcal: 358, protein: 7, carbs: 79, fat: 0.6 },
+    nutrients: {
+      ...EMPTY_NUTRIENTS,
+      kcal: 358,
+      protein: 7,
+      carbs: 79,
+      fat: 0.6,
+    },
   });
 });
 
@@ -162,7 +172,13 @@ describe("addFreeEntry", () => {
       date: DATE,
       mealTypeId: MEAL_TYPE_IDS.dinner,
       label: "Margherita al ristorante",
-      nutrients: { ...EMPTY_NUTRIENTS, kcal: 850, protein: 35, carbs: 90, fat: 30 },
+      nutrients: {
+        ...EMPTY_NUTRIENTS,
+        kcal: 850,
+        protein: 35,
+        carbs: 90,
+        fat: 30,
+      },
       isEstimated: true,
     });
 
@@ -243,21 +259,46 @@ describe("getDayDiary", () => {
   });
 
   it("ordina i pasti secondo l'ordine dei tipi, non di inserimento", async () => {
-    await addFoodEntry({ date: DATE, mealTypeId: MEAL_TYPE_IDS.dinner, foodId: riceId, quantityG: 10 });
-    await addFoodEntry({ date: DATE, mealTypeId: MEAL_TYPE_IDS.breakfast, foodId: riceId, quantityG: 10 });
+    await addFoodEntry({
+      date: DATE,
+      mealTypeId: MEAL_TYPE_IDS.dinner,
+      foodId: riceId,
+      quantityG: 10,
+    });
+    await addFoodEntry({
+      date: DATE,
+      mealTypeId: MEAL_TYPE_IDS.breakfast,
+      foodId: riceId,
+      quantityG: 10,
+    });
 
     const diary = await getDayDiary(DATE);
-    expect(diary.meals.map((m) => m.type.name)).toEqual(["colazione", "cena"]);
+    expect(diary.meals.map((m) => m.type.name)).toEqual(["Colazione", "Cena"]);
   });
 
   it("non mescola giorni diversi", async () => {
-    await addFoodEntry({ date: DATE, mealTypeId: MEAL_TYPE_IDS.lunch, foodId: riceId, quantityG: 100 });
+    await addFoodEntry({
+      date: DATE,
+      mealTypeId: MEAL_TYPE_IDS.lunch,
+      foodId: riceId,
+      quantityG: 100,
+    });
     expect((await getDayDiary("2026-08-29")).totals.kcal).toBe(0);
   });
 
   it("i totali del pasto sommano solo le sue righe", async () => {
-    await addFoodEntry({ date: DATE, mealTypeId: MEAL_TYPE_IDS.lunch, foodId: riceId, quantityG: 100 });
-    await addFoodEntry({ date: DATE, mealTypeId: MEAL_TYPE_IDS.dinner, foodId: riceId, quantityG: 200 });
+    await addFoodEntry({
+      date: DATE,
+      mealTypeId: MEAL_TYPE_IDS.lunch,
+      foodId: riceId,
+      quantityG: 100,
+    });
+    await addFoodEntry({
+      date: DATE,
+      mealTypeId: MEAL_TYPE_IDS.dinner,
+      foodId: riceId,
+      quantityG: 200,
+    });
 
     const diary = await getDayDiary(DATE);
     const lunch = diary.meals.find((m) => m.type.id === MEAL_TYPE_IDS.lunch);
@@ -268,7 +309,12 @@ describe("getDayDiary", () => {
 
 describe("copyDay", () => {
   it("duplica tutte le righe sul giorno di destinazione", async () => {
-    await addFoodEntry({ date: DATE, mealTypeId: MEAL_TYPE_IDS.lunch, foodId: riceId, quantityG: 100 });
+    await addFoodEntry({
+      date: DATE,
+      mealTypeId: MEAL_TYPE_IDS.lunch,
+      foodId: riceId,
+      quantityG: 100,
+    });
     await copyDay(DATE, "2026-08-29");
 
     expect((await getDayDiary("2026-08-29")).totals.kcal).toBeCloseTo(358);
@@ -277,7 +323,12 @@ describe("copyDay", () => {
   });
 
   it("conserva gli snapshot invece di ricalcolarli", async () => {
-    await addFoodEntry({ date: DATE, mealTypeId: MEAL_TYPE_IDS.lunch, foodId: riceId, quantityG: 100 });
+    await addFoodEntry({
+      date: DATE,
+      mealTypeId: MEAL_TYPE_IDS.lunch,
+      foodId: riceId,
+      quantityG: 100,
+    });
     await updateFood(riceId, {
       name: "Riso",
       nutrients: { ...EMPTY_NUTRIENTS, kcal: 1000 },
@@ -297,11 +348,11 @@ describe("tipi di pasto", () => {
   it("elenca i cinque di default in ordine", async () => {
     const types = await listMealTypes();
     expect(types.map((t) => t.name)).toEqual([
-      "colazione",
-      "brunch",
-      "pranzo",
-      "snack",
-      "cena",
+      "Colazione",
+      "Brunch",
+      "Pranzo",
+      "Snack",
+      "Cena",
     ]);
   });
 
@@ -322,12 +373,14 @@ describe("tipi di pasto", () => {
   it("si può cancellare un tipo custom", async () => {
     const id = await createMealType("da buttare");
     await deleteMealType(id);
-    expect((await listMealTypes()).map((t) => t.name)).not.toContain("da buttare");
+    expect((await listMealTypes()).map((t) => t.name)).not.toContain(
+      "da buttare",
+    );
   });
 
   it("i tipi di default non sono cancellabili", async () => {
     await expect(deleteMealType(MEAL_TYPE_IDS.lunch)).rejects.toThrow();
-    expect((await listMealTypes()).map((t) => t.name)).toContain("pranzo");
+    expect((await listMealTypes()).map((t) => t.name)).toContain("Pranzo");
   });
 });
 
@@ -388,7 +441,10 @@ describe("composizione di una voce", () => {
     const composizione = await getEntryComposition(entryId);
     if (!composizione) throw new Error("composizione attesa");
 
-    await saveEntryComposition(entryId, setComponentGrams(composizione, 0, 200));
+    await saveEntryComposition(
+      entryId,
+      setComponentGrams(composizione, 0, 200),
+    );
 
     // 200 g a 17 kcal/100 g.
     expect(await kcalOf(entryId)).toBeCloseTo(34);

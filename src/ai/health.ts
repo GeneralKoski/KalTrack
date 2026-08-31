@@ -28,18 +28,23 @@ export interface ModelCheck {
 export async function checkModels(): Promise<ModelCheck[]> {
   const serviti = new Set(await listAvailableModels());
 
-  const esiti = CONTROLLATE.map((capability) => ({
-    capability,
-    model: MODELS[capability],
-    served: serviti.has(MODELS[capability]),
-  }));
+  const esiti = CONTROLLATE.map((capability) => {
+    const model = MODELS[capability];
+    const isServed =
+      serviti.has(model) ||
+      serviti.has(`models/${model}`) ||
+      serviti.has(model.replace(/^models\//, ""));
+    return {
+      capability,
+      model,
+      served: isServed,
+    };
+  });
 
   const mancanti = esiti.filter((esito) => !esito.served);
   if (mancanti.length > 0) {
-    // Nel registro, non solo a schermo: chi apre la diagnostica dopo deve
-    // trovarlo scritto anche se non ha ripremuto il bottone.
     logger.error(
-      `[ai] modelli non piu' serviti da Groq: ${mancanti
+      `[ai] modelli non più disponibili su Google AI Studio: ${mancanti
         .map((esito) => `${esito.capability}=${esito.model}`)
         .join(", ")}`,
     );

@@ -8,12 +8,13 @@ import { migration007 } from "@/src/db/migrations/007_wellbeing";
 import { migration008 } from "@/src/db/migrations/008_planning";
 import { migration009 } from "@/src/db/migrations/009_app_logs";
 import { migration010 } from "@/src/db/migrations/010_entry_components";
+import { migration011 } from "@/src/db/migrations/011_capitalize_meal_types";
 import type { Migration } from "@/src/db/migrations/types";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 import { logger } from "@/src/utils/logger";
 
-export type { Migration };
 export { MEAL_TYPE_IDS } from "@/src/db/migrations/002_meal_types";
+export type { Migration };
 
 export const MIGRATIONS: Migration[] = [
   migration001,
@@ -26,6 +27,7 @@ export const MIGRATIONS: Migration[] = [
   migration008,
   migration009,
   migration010,
+  migration011,
 ];
 
 /**

@@ -214,7 +214,7 @@ describe("export del diario", () => {
     ]);
 
     expect(pranzo[0]).toBe("2026-08-20");
-    expect(pranzo[1]).toBe("pranzo");
+    expect(pranzo[1]).toBe("Pranzo");
     expect(pranzo[2]).toBe('Insalata "mista", con tonno');
     expect(pranzo[3]).toBe("250");
     expect(pranzo[4]).toBe("g");

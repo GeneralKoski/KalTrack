@@ -8,6 +8,11 @@ import type { LocalDatabase } from "@/src/db/sqliteAdapter";
  * "sei offline" o "il provider non risponde": qui lo stato è pilotato a mano
  * perché sotto jest il modulo nativo non risponde nulla.
  */
+jest.mock("expo-file-system/legacy", () => ({
+  readAsStringAsync: jest.fn(async () => "bW9ja2VkLWF1ZGlvLWJhc2U2NA=="),
+  EncodingType: { Base64: "base64" },
+}));
+
 const mockNetworkState = jest.fn<Promise<unknown>, []>();
 jest.mock("expo-network", () => ({
   getNetworkStateAsync: () => mockNetworkState(),
@@ -43,11 +48,32 @@ beforeEach(async () => {
   fetchMock.mockReset();
   mockNetworkState.mockReset();
   // Default: rete presente, cosi solo i test che lo vogliono vedono OfflineError.
-  mockNetworkState.mockResolvedValue({ isConnected: true, isInternetReachable: true });
+  mockNetworkState.mockResolvedValue({
+    isConnected: true,
+    isInternetReachable: true,
+  });
   global.fetch = fetchMock as unknown as typeof fetch;
 });
 
 afterEach(() => __setDbForTesting(null));
+
+function geminiAudioResponse(text: string, status = 200): Response {
+  const body = {
+    candidates: [
+      {
+        content: {
+          parts: [{ text }],
+        },
+      },
+    ],
+  };
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => body,
+    text: async () => JSON.stringify(body),
+  } as Response;
+}
 
 function jsonResponse(body: unknown, status = 200): Response {
   return {
@@ -58,37 +84,26 @@ function jsonResponse(body: unknown, status = 200): Response {
   } as Response;
 }
 
-function sentForm(): FormData {
-  const [, init] = fetchMock.mock.calls[0];
-  return init.body as FormData;
-}
-
 describe("transcribeVoice", () => {
-  it("invia il modello e la lingua di trascrizione configurati", async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ text: "due etti di riso" }));
+  it("invia l'audio in base64 a Gemini con prompt di contesto", async () => {
+    fetchMock.mockResolvedValue(geminiAudioResponse("due etti di riso"));
 
     const text = await transcribe.transcribeVoice("file:///audio.m4a");
 
     expect(text).toBe("due etti di riso");
-    const [url] = fetchMock.mock.calls[0];
-    expect(url).toBe(`${config.GROQ_BASE_URL}/audio/transcriptions`);
-    const form = sentForm();
-    expect(form.get("model")).toBe(config.MODELS.transcription);
-    expect(form.get("language")).toBe(config.TRANSCRIPTION_LANGUAGE);
-  });
-
-  it("passa a Whisper il prompt con il lessico di dominio", async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ text: "ok" }));
-
-    await transcribe.transcribeVoice("file:///audio.m4a");
-
-    const prompt = sentForm().get("prompt");
-    expect(typeof prompt).toBe("string");
-    expect(prompt).toContain("etti");
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toContain(
+      `${config.GEMINI_NATIVE_BASE_URL}/models/${config.MODELS.transcription}:generateContent`,
+    );
+    const parsedBody = JSON.parse(init.body as string);
+    expect(parsedBody.contents[0].parts[0].inlineData.mimeType).toBe(
+      "audio/m4a",
+    );
+    expect(parsedBody.contents[0].parts[1].text).toContain("etti");
   });
 
   it("ripulisce gli spazi attorno alla trascrizione", async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ text: "  cento grammi  \n" }));
+    fetchMock.mockResolvedValue(geminiAudioResponse("  cento grammi  \n"));
 
     await expect(transcribe.transcribeVoice("file:///a.m4a")).resolves.toBe(
       "cento grammi",
@@ -96,9 +111,11 @@ describe("transcribeVoice", () => {
   });
 
   it("ritorna null quando non c'è parlato, senza spacciarlo per testo", async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ text: "   \n " }));
+    fetchMock.mockResolvedValue(geminiAudioResponse("   \n "));
 
-    await expect(transcribe.transcribeVoice("file:///a.m4a")).resolves.toBeNull();
+    await expect(
+      transcribe.transcribeVoice("file:///a.m4a"),
+    ).resolves.toBeNull();
   });
 
   it("rifiuta un 200 senza campo text invece di trascrivere il vuoto", async () => {
