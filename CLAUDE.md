@@ -427,43 +427,20 @@ Valgono le guide Dieffetech `docs/react-native/`:
 
 ## AI
 
-Tutte le capability passano da Groq: Whisper per la trascrizione, un modello con
-function calling per l'assistente, un modello vision per la stima da foto.
+Tutte le capability passano da **Google Gemini** (Google AI Studio): modello unico e performante **`gemini-3.6-flash`** per la trascrizione audio multimodale, la comprensione/function calling dell'assistente (vocale e testuale) e la stima nutrizionale da foto ed etichette (vision + JSON object mode).
 `expo-speech` per le risposte parlate (on-device).
 
-La chiave **la porta chi usa l'app**: si inserisce in Profilo > Impostazioni e
-vive in SecureStore su quel telefono (`src/stores/aiKeyStore.ts`). Non e' nel
-bundle e non e' nel database.
+La chiave API viene configurata a livello globale nel file `.env` tramite `EXPO_PUBLIC_GEMINI_API_KEY`: in questo modo viene inclusa nel bundle al momento della compilazione e tutti gli utenti dell'app hanno l'AI attiva al primo avvio a costo zero (Free Tier di Google AI Studio con 1.500 richieste/giorno).
 
-Non va salvata in `settings`: quella tabella si sincronizza, e la chiave
-finirebbe sul server in chiaro dentro `sync_records`. E' la scorciatoia ovvia
-ed e' esattamente il danno che questa scelta toglie.
+Non va salvata in `settings`: quella tabella si sincronizza, e la chiave finirebbe sul server in chiaro dentro `sync_records`.
 
-### I model id scadono
+### Modelli e Diagnostica
 
-I tre id in `src/ai/config.ts` **hanno una data di scadenza**, e Groq la
-rispetta senza avvisare l'app: un modello ritirato non peggiora, sparisce, e la
-chiamata torna 404 `model_not_found`. La capability muore di colpo mentre tutto
-il resto - chiave, rete, audio - funziona.
+I modelli vengono serviti da Google Gemini tramite:
+1. Endpoint OpenAI-compatible (`https://generativelanguage.googleapis.com/v1beta/openai`) per chat, tool calling e structured JSON vision.
+2. Endpoint nativo multimodale (`https://generativelanguage.googleapis.com/v1beta`) per trascrizione audio via base64.
 
-E' gia' successo due volte lo stesso giorno: l'assistente spento il 16 agosto
-2026, e il vision il 17 luglio, rimasto rotto **un mese e mezzo** senza che
-nessuno se ne accorgesse. Quando una funzione AI smette di funzionare da sola,
-il primo posto da guardare e' la lista dei ritiri di Groq.
-
-Il vincolo del modello vision e' piu' stretto degli altri: deve accettare
-**immagini e JSON object mode** insieme, e su Groq oggi lo fanno solo i due
-qwen, entrambi in preview.
-
-Non serve piu' aspettare che qualcuno ci sbatta contro: **Impostazioni >
-Diagnostica > Prova i modelli** chiede a Groq quali id sta servendo a questa
-chiave e mette una spunta o una croce sui tre. Una GET, zero token, nessun
-effetto. Chiede l'elenco e non `/models/{id}` uno per uno perche' due id su tre
-contengono una barra (`openai/gpt-oss-120b`) e infilarla in un percorso
-significa indovinare fra path annidato e `%2F`.
-
-Dimostra che un modello **esiste**, non che la capability funzioni: sono due
-affermazioni diverse e quella che si e' rotta due volte e' questa.
+**Impostazioni > Diagnostica > Prova i modelli** interroga l'elenco dei modelli Google AI Studio per verificare che il model id in `src/ai/config.ts` sia regolarmente servito.
 
 ## La diagnostica
 
