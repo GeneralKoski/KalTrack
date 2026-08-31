@@ -9,7 +9,8 @@ import { theme } from "@/src/styles";
 import type { FoodRow, MealTypeRow, RecipeRow } from "@/src/types/nutrition";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import React, { forwardRef, useEffect, useState } from "react";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { ScrollView } from "react-native-gesture-handler";
 
 export type DiaryPick =
   | { kind: "food"; food: FoodRow }
@@ -57,11 +58,21 @@ export const AddEntrySheet = forwardRef<BottomSheetModal, AddEntrySheetProps>(
 
     return (
       <DfBottomSheet ref={ref} title={t("diary.add_title")}>
-        {/* Il tipo di pasto è la prima scelta: dice dove finisce la riga. */}
+        {/*
+          Il tipo di pasto è la prima scelta: dice dove finisce la riga.
+
+          ScrollView di gesture-handler e non quella di react-native: dentro un
+          BottomSheetScrollView di gorhom (che è costruito su gesture-handler)
+          una ScrollView nuda non riceve i gesti, e la striscia dei pasti
+          restava ferma con l'ultimo chip tagliato fuori. I margini negativi le
+          fanno attraversare il padding del foglio, così l'ultimo chip finisce
+          contro il bordo dello schermo invece che sotto il padding.
+        */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          style={styles.mealTypesStrip}
           contentContainerStyle={styles.mealTypes}
         >
           {mealTypes.map((type) => {
@@ -252,8 +263,12 @@ const PickerRow: React.FC<{
 
 const styles = StyleSheet.create({
   freeChoices: { gap: theme.spacing.sm },
+  mealTypesStrip: {
+    marginHorizontal: -theme.spacing.md,
+  },
   mealTypes: {
     gap: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.md,
     paddingBottom: theme.spacing.sm,
   },
   mealType: {

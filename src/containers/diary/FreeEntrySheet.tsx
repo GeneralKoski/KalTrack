@@ -58,23 +58,36 @@ export const FreeEntrySheet: React.FC<FreeEntrySheetProps> = ({
     });
   };
 
+  /**
+   * Il nome del macro sta SOPRA il campo, non nel placeholder: in tre colonne
+   * "Carboidrati" non ci sta, e un placeholder non si può accorciare con i tre
+   * puntini - viene tagliato a metà parola ("Carboid"). L'etichetta invece sì.
+   */
   const field = (
     value: string,
     onChangeText: (v: string) => void,
-    placeholder: string,
+    label: string,
   ) => (
-    <TextInput
-      value={value}
-      onChangeText={onChangeText}
-      placeholder={placeholder}
-      placeholderTextColor={colors.textFaint}
-      keyboardType="decimal-pad"
-      style={[
-        styles.input,
-        styles.macroInput,
-        { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text },
-      ]}
-    />
+    <View style={styles.macroField}>
+      <Text
+        style={[styles.macroLabel, { color: colors.textMuted }]}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={t("diary.free_macro_placeholder")}
+        placeholderTextColor={colors.textFaint}
+        keyboardType="decimal-pad"
+        style={[
+          styles.input,
+          styles.macroInput,
+          { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text },
+        ]}
+      />
+    </View>
   );
 
   return (
@@ -143,8 +156,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: theme.spacing.sm,
   },
-  macroInput: {
+  macroField: {
     flex: 1,
+    gap: 2,
+  },
+  macroLabel: {
+    fontSize: 11,
+    fontWeight: "500",
+    textAlign: "center",
+  },
+  macroInput: {
     textAlign: "center",
   },
 });

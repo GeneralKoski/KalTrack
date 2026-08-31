@@ -10,6 +10,7 @@ import {
 import { X } from "lucide-react-native";
 import React, { forwardRef, useCallback, useEffect, useState } from "react";
 import {
+  BackHandler,
   Dimensions,
   Keyboard,
   Platform,
@@ -26,14 +27,43 @@ interface DfBottomSheetProps {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   onDismiss?: () => void;
+  /**
+   * Il back di Android da dentro il foglio: `true` = gestito qui dentro (una
+   * sotto-vista è tornata indietro e il foglio resta aperto), `false` = chiudi
+   * il foglio.
+   */
+  onAndroidBack?: () => boolean;
 }
 
 export const DfBottomSheet = forwardRef<BottomSheetModal, DfBottomSheetProps>(
-  ({ title, children, style, onDismiss }, ref) => {
+  ({ title, children, style, onDismiss, onAndroidBack }, ref) => {
     const { colors } = useAppTheme();
     const insets = useSafeAreaInsets();
     const { t } = useTranslation();
     const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(false);
+
+    const dismiss = useCallback(() => {
+      if (typeof ref === "object" && ref?.current) ref.current.dismiss();
+    }, [ref]);
+
+    /**
+     * Il foglio vive FUORI dallo stack di navigazione, quindi il back di
+     * Android gli passa attraverso: arrivava a react-navigation, che faceva il
+     * pop della schermata dietro. Da qui lo sfondo che si muoveva invece del
+     * foglio che si chiudeva.
+     *
+     * Il listener sta su solo da aperto e consuma sempre l'evento.
+     */
+    useEffect(() => {
+      if (!isOpen) return;
+      const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+        if (onAndroidBack?.()) return true;
+        dismiss();
+        return true;
+      });
+      return () => sub.remove();
+    }, [isOpen, onAndroidBack, dismiss]);
 
     useEffect(() => {
       if (Platform.OS === "web") return;
@@ -66,20 +96,21 @@ export const DfBottomSheet = forwardRef<BottomSheetModal, DfBottomSheetProps>(
 
     const header = (
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-        <Pressable
-          onPress={() => {
-            if (typeof ref === "object" && ref?.current) {
-              ref.current.dismiss();
-            }
-          }}
-        >
+        <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+          {title}
+        </Text>
+        {/* Solo la X: accanto a un'icona già inequivocabile la parola
+            "Chiudi" era rumore, e rubava larghezza al titolo. */}
+        <Pressable onPress={dismiss} hitSlop={12} accessibilityLabel={t("close")}>
           {({ pressed }) => (
-            <View style={[styles.closeButton, pressed && { opacity: 0.75 }]}>
-              <X size={16} color={colors.text} />
-              <Text style={[styles.closeLabel, { color: colors.text }]}>
-                {t("close")}
-              </Text>
+            <View
+              style={[
+                styles.closeButton,
+                { backgroundColor: colors.surfaceMuted },
+                pressed && { opacity: 0.75 },
+              ]}
+            >
+              <X size={18} color={colors.text} />
             </View>
           )}
         </Pressable>
@@ -95,6 +126,7 @@ export const DfBottomSheet = forwardRef<BottomSheetModal, DfBottomSheetProps>(
         keyboardBehavior="extend"
         keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"
+        onChange={(index) => setIsOpen(index >= 0)}
         onDismiss={() => {
           Keyboard.dismiss();
           onDismiss?.();
@@ -134,20 +166,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: theme.spacing.sm,
     marginBottom: theme.spacing.lg,
   },
   title: {
+    flex: 1,
     fontSize: 24,
     fontWeight: "700",
   },
   closeButton: {
-    flexDirection: "row",
+    width: 32,
+    height: 32,
+    borderRadius: theme.radius.full,
     alignItems: "center",
-    gap: 8,
-  },
-  closeLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    includeFontPadding: false,
+    justifyContent: "center",
   },
 });
