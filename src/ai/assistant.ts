@@ -83,8 +83,7 @@ const WEEKDAYS = [
 
 const pad = (value: number): string => String(value).padStart(2, "0");
 
-const clockTime = (now: Date): string =>
-  `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+const clockHour = (now: Date): string => pad(now.getHours());
 
 /**
  * Giorno della settimana della data che si sta STAMPANDO.
@@ -227,20 +226,52 @@ export function normalizeQuantities(text: string): string {
  * Prompt di sistema in inglese: i modelli seguono le istruzioni meglio in
  * inglese e rispondono comunque nella lingua dell'utente. È una convenzione
  * interna, l'utente vede solo italiano.
+ *
+ * **Non prende argomenti, e non è una svista.** Groq cachea automaticamente il
+ * prefisso del prompt su `gpt-oss-120b`: i token in cache costano metà e non
+ * contano nel rate limit, ma vale solo il testo identico fino al primo
+ * carattere che cambia. Con il contesto qui dentro - l'orologio ai minuti, 40
+ * alimenti, il diario che cambia dopo ogni scrittura - il prefisso saltava a
+ * ogni turno, portandosi via anche le RULES e le definizioni dei tool, che
+ * nel prompt reso vengono dopo. Il contesto sta in `buildContextMessage`, in
+ * un messaggio a parte: quel che precede resta uguale e si cachea.
  */
-export function buildSystemPrompt(context: AssistantContext): string {
-  const now = context.now ?? new Date();
-  const today = todayIso(now);
-  const date = context.date ?? today;
-  const lines: string[] = [
+export function buildSystemPrompt(): string {
+  return [
     "You are the voice assistant of KalTrack, a personal tracker for food, weight, steps and training.",
     "ALWAYS reply in Italian, in one or two short spoken sentences. No markdown, no bullet lists.",
     "Use the tools to act. Never invent nutritional values: foods and recipes are resolved by the app, not by you.",
     "",
+    "The next message is the CURRENT CONTEXT: today's date, the day the user is looking at, the targets and the ids of the user's own meal types, recipes, foods and diary entries.",
+    "",
+    "RULES",
+    "- Quantities are ALWAYS in grams. The transcript already has the common Italian units converted (1 etto = 100 g, \"mezzo chilo\" = 500 g): use the grams you read, and if a quantity is still vague ask instead of guessing. Never pass 1 for \"un etto\".",
+    "- Never send calories or macros to a tool: there is no field for them. Send what the user ate and how much, the app resolves the values on the user's own data.",
+    "- Dates are ALWAYS YYYY-MM-DD. Resolve \"oggi\", \"ieri\", \"l'altro ieri\" and weekday names against `Now`. If the user names no day at all, omit the date: the tools use the reference day.",
+    "- Prefer the ids listed in the CURRENT CONTEXT over free text: a name close to one of the user's recipes or foods IS that recipe or food.",
+    "- To delete something use only the ids listed under \"Diary entries\". If what the user wants to delete is not in that list, say so instead of guessing an id.",
+    "- English words mixed into Italian speech (whey, overnight oats, lat machine) are normal: never correct them, just use them.",
+    "- If an essential detail is missing, ask one short question in Italian instead of guessing.",
+    "- Write and delete actions are only prepared, not applied: after calling such a tool, tell the user in Italian what is about to happen, as if it were done.",
+  ].join("\n");
+}
+
+/**
+ * La parte volatile del prompt, nel messaggio che segue quello di sistema.
+ *
+ * L'ora è senza minuti: `Now` serve a risolvere "oggi", "ieri" e i giorni
+ * della settimana, e l'ora basta a capire se è ora di cena. Ai minuti era solo
+ * la garanzia che due frasi dette di seguito non condividessero il prefisso.
+ */
+export function buildContextMessage(context: AssistantContext): string {
+  const now = context.now ?? new Date();
+  const today = todayIso(now);
+  const date = context.date ?? today;
+  const lines: string[] = [
     "CURRENT CONTEXT",
     // Due righe distinte: "adesso" è il device, il giorno di riferimento è
     // quello che l'utente sta sfogliando e può essere un altro.
-    `Now: ${today} ${clockTime(now)} (${weekdayOf(today)})`,
+    `Now: ${today} ${clockHour(now)} (${weekdayOf(today)})`,
     `Reference day (what the user is looking at): ${date} (${weekdayOf(date)})`,
   ];
 
@@ -262,19 +293,6 @@ export function buildSystemPrompt(context: AssistantContext): string {
   if (context.entries?.length) {
     lines.push(`Diary entries of the reference day: ${entryList(context.entries)}`);
   }
-
-  lines.push(
-    "",
-    "RULES",
-    "- Quantities are ALWAYS in grams. The transcript already has the common Italian units converted (1 etto = 100 g, \"mezzo chilo\" = 500 g): use the grams you read, and if a quantity is still vague ask instead of guessing. Never pass 1 for \"un etto\".",
-    "- Never send calories or macros to a tool: there is no field for them. Send what the user ate and how much, the app resolves the values on the user's own data.",
-    "- Dates are ALWAYS YYYY-MM-DD. Resolve \"oggi\", \"ieri\", \"l'altro ieri\" and weekday names against `Now`. If the user names no day at all, omit the date: the tools use the reference day.",
-    "- Prefer the ids listed above over free text: a name close to one of the user's recipes or foods IS that recipe or food.",
-    "- To delete something use only the ids listed under \"Diary entries\". If what the user wants to delete is not in that list, say so instead of guessing an id.",
-    "- English words mixed into Italian speech (whey, overnight oats, lat machine) are normal: never correct them, just use them.",
-    "- If an essential detail is missing, ask one short question in Italian instead of guessing.",
-    "- Write and delete actions are only prepared, not applied: after calling such a tool, tell the user in Italian what is about to happen, as if it were done.",
-  );
 
   return lines.join("\n");
 }
@@ -390,7 +408,8 @@ export async function runAssistant(args: {
   const definitions = toolDefinitions(tools);
 
   const messages: ChatMessage[] = [
-    { role: "system", content: buildSystemPrompt(args.context) },
+    { role: "system", content: buildSystemPrompt() },
+    { role: "user", content: buildContextMessage(args.context) },
     { role: "user", content: normalizeQuantities(args.transcript) },
   ];
   const intents: ToolIntent[] = [];

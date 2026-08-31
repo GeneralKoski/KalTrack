@@ -1,4 +1,5 @@
 import {
+  buildContextMessage,
   buildSystemPrompt,
   intentKeyForTesting,
   MAX_TOOL_ROUNDS,
@@ -100,47 +101,71 @@ describe("normalizeQuantities", () => {
 });
 
 describe("buildSystemPrompt", () => {
-  it("porta il contesto passato: data, schermata, obiettivi e residuo", () => {
-    const prompt = buildSystemPrompt(context);
+  // La cache del prompt di Groq vale sul PREFISSO: il primo carattere che
+  // cambia da un turno all'altro butta via tutto quello che segue. Il prompt
+  // statico e' quel prefisso, quindi non deve contenere niente del contesto.
+  it("e' identico a ogni turno: e' il prefisso che la cache di Groq riusa", () => {
+    expect(buildSystemPrompt()).toBe(buildSystemPrompt());
+  });
 
-    expect(prompt).toContain("Now: 2026-08-28 20:41 (venerdì)");
-    expect(prompt).toContain("Current screen: Oggi");
-    expect(prompt).toContain("Targets today: 2200 kcal");
-    expect(prompt).toContain("Remaining today: 750 kcal");
+  it("porta le regole e nessun dato volatile", () => {
+    const prompt = buildSystemPrompt();
+
+    expect(prompt).toContain("RULES");
+    expect(prompt).not.toContain("Now:");
+    expect(prompt).not.toContain("Targets today");
+  });
+});
+
+describe("buildContextMessage", () => {
+  it("porta il contesto passato: data, schermata, obiettivi e residuo", () => {
+    const message = buildContextMessage(context);
+
+    expect(message).toContain("Now: 2026-08-28 20 (venerdì)");
+    expect(message).toContain("Current screen: Oggi");
+    expect(message).toContain("Targets today: 2200 kcal");
+    expect(message).toContain("Remaining today: 750 kcal");
+  });
+
+  // I minuti non servono a niente: `Now` risolve "oggi"/"ieri" e i giorni della
+  // settimana, e l'ora basta a capire se e' cena. Cambiando ogni minuto erano
+  // la garanzia che due frasi di seguito non condividessero mai il prefisso.
+  it("non stampa i minuti", () => {
+    expect(buildContextMessage(context)).not.toContain("20:41");
   });
 
   it("tiene separati oggi e il giorno sfogliato, ognuno col suo giorno della settimana", () => {
-    const prompt = buildSystemPrompt({ ...context, date: "2026-08-24" });
+    const message = buildContextMessage({ ...context, date: "2026-08-24" });
 
-    expect(prompt).toContain("Now: 2026-08-28 20:41 (venerdì)");
-    expect(prompt).toContain(
+    expect(message).toContain("Now: 2026-08-28 20 (venerdì)");
+    expect(message).toContain(
       "Reference day (what the user is looking at): 2026-08-24 (lunedì)",
     );
     // La coppia data/giorno inesistente era il difetto: il 24 non è venerdì.
-    expect(prompt).not.toContain("2026-08-24 (venerdì)");
+    expect(message).not.toContain("2026-08-24 (venerdì)");
   });
 
   it("elenca ricette e alimenti con i loro id, che è ciò che li fa agganciare", () => {
-    const prompt = buildSystemPrompt(context);
+    const message = buildContextMessage(context);
 
-    expect(prompt).toContain("rec-1 = Iper pizza proteica");
-    expect(prompt).toContain("food-1 = Riso");
-    expect(prompt).toContain(`${MEAL_TYPE_IDS.dinner} = cena`);
+    expect(message).toContain("rec-1 = Iper pizza proteica");
+    expect(message).toContain("food-1 = Riso");
+    expect(message).toContain(`${MEAL_TYPE_IDS.dinner} = cena`);
   });
 
   it("elenca le voci del diario con id e kcal: sono l'unica fonte di un entryId", () => {
-    const prompt = buildSystemPrompt(context);
+    const message = buildContextMessage(context);
 
-    expect(prompt).toContain("entry-1 = Riso (195 kcal)");
+    expect(message).toContain("entry-1 = Riso (195 kcal)");
   });
 
   it("regge un contesto minimo senza obiettivi né elenchi", () => {
-    const prompt = buildSystemPrompt({ now: new Date(2026, 7, 28) });
+    const message = buildContextMessage({ now: new Date(2026, 7, 28) });
 
-    expect(prompt).toContain("Reference day");
-    expect(prompt).toContain("2026-08-28 (venerdì)");
-    expect(prompt).not.toContain("Targets today");
-    expect(prompt).not.toContain("Diary entries of the reference day");
+    expect(message).toContain("Reference day");
+    expect(message).toContain("2026-08-28 (venerdì)");
+    expect(message).not.toContain("Targets today");
+    expect(message).not.toContain("Diary entries of the reference day");
   });
 });
 
@@ -152,6 +177,34 @@ describe("runAssistant", () => {
 
     expect(result).toEqual({ reply: "Ciao, dimmi pure.", intents: [] });
     expect(chatMock).toHaveBeenCalledTimes(1);
+  });
+
+  // La cache di Groq riusa il prefisso, e le definizioni dei tool stanno DOPO
+  // le istruzioni nel prompt reso: se il contesto volatile vive nel messaggio
+  // di sistema, ogni turno butta via anche i tool. Sta in un messaggio suo,
+  // dopo, e quel che precede resta identico.
+  it("manda il contesto in un messaggio a parte, dopo quello di sistema", async () => {
+    chatMock.mockResolvedValueOnce(answer("Fatto."));
+
+    await runAssistant({ transcript: "ciao", context });
+
+    const messages = messagesOfCall(0);
+    expect(messages.map((m) => m.role)).toEqual(["system", "user", "user"]);
+    expect(String(messages[0].content)).not.toContain("Now:");
+    expect(String(messages[1].content)).toContain("Now: 2026-08-28 20");
+    expect(String(messages[2].content)).toBe("ciao");
+  });
+
+  it("manda lo stesso messaggio di sistema a due turni con contesti diversi", async () => {
+    chatMock.mockResolvedValueOnce(answer("Uno.")).mockResolvedValueOnce(answer("Due."));
+
+    await runAssistant({ transcript: "ciao", context });
+    await runAssistant({
+      transcript: "ciao",
+      context: { ...context, date: "2026-08-24", foods: [{ id: "food-9", name: "Pane" }] },
+    });
+
+    expect(messagesOfCall(0)[0].content).toBe(messagesOfCall(1)[0].content);
   });
 
   it("esegue subito un tool di lettura e restituisce il risultato al modello", async () => {
@@ -210,7 +263,7 @@ describe("runAssistant", () => {
 
     await runAssistant({ transcript: "due etti di pasta", context });
 
-    expect(messagesOfCall(0)[1]).toEqual({
+    expect(messagesOfCall(0)[2]).toEqual({
       role: "user",
       content: "200 g di pasta",
     });
@@ -311,7 +364,7 @@ describe("runAssistant", () => {
     const args = chatMock.mock.calls[0][0];
     expect(args.capability).toBe("assistant");
     expect(args.tools?.length).toBeGreaterThan(0);
-    expect(args.messages[1]).toEqual({ role: "user", content: "ciao" });
+    expect(args.messages[2]).toEqual({ role: "user", content: "ciao" });
   });
 });
 
