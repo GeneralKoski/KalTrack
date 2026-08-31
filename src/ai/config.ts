@@ -28,8 +28,8 @@ export const MODELS = {
  */
 export const TRANSCRIPTION_LANGUAGE = "it";
 
-/** Oltre questo tempo una richiesta si considera persa. */
-export const AI_TIMEOUT_MS = 45_000;
+/** Oltre questo tempo una richiesta si considera persa (90s per consentire OCR vision e reasoning). */
+export const AI_TIMEOUT_MS = 90_000;
 
 /**
  * Chiave predefinita fornita all'app tramite variabile d'ambiente (per tutti gli utenti).

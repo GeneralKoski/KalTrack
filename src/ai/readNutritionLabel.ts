@@ -24,8 +24,8 @@ import { logger } from "@/src/utils/logger";
  *    corretti: un OCR sbagliato di nascosto è peggio di un campo vuoto.
  */
 
-/** Le etichette hanno testo piccolo: qui il dettaglio serve, a differenza del piatto. */
-const LABEL_MAX_SIDE_PX = 1568;
+/** Risoluzione ottimizzata per bilanciare OCR nitido e velocità di upload/elaborazione. */
+const LABEL_MAX_SIDE_PX = 1024;
 
 /** Ogni campo può mancare: sull'etichetta non tutti sono obbligatori. */
 export interface LabelReading {
