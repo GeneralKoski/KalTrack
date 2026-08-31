@@ -501,6 +501,7 @@ export function TodayScreen() {
         }
         initialValue={promptValue}
         serving={promptServing}
+        food={pendingPick?.kind === "food" ? pendingPick.food : null}
         onConfirm={confirmQuantity}
         onClose={() => {
           setPendingPick(null);

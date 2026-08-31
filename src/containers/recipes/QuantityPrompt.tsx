@@ -7,8 +7,10 @@ import {
   SERVING_MULTIPLIERS,
   servingGrams,
 } from "@/src/domain/serving";
+import { FoodFacts } from "@/src/containers/foods/FoodFacts";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
+import type { FoodRow } from "@/src/types/nutrition";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -26,6 +28,14 @@ interface QuantityPromptProps {
    * moltiplicatore.
    */
   serving?: { grams: number; label: string | null } | null;
+  /**
+   * L'alimento che si sta pesando, quando e' un alimento.
+   *
+   * Serve a vedere COSA si sta scrivendo mentre lo si scrive: senza, la
+   * finestra chiedeva quanti grammi di una cosa di cui non mostrava niente, e
+   * per controllare le calorie bisognava annullare e andare a cercarla.
+   */
+  food?: FoodRow | null;
   onConfirm: (value: number) => void;
   onClose: () => void;
 }
@@ -44,6 +54,7 @@ export const QuantityPrompt: React.FC<QuantityPromptProps> = ({
   unit,
   initialValue,
   serving = null,
+  food = null,
   onConfirm,
   onClose,
 }) => {
@@ -69,6 +80,12 @@ export const QuantityPrompt: React.FC<QuantityPromptProps> = ({
       onConfirm={() => valid && onConfirm(parsed)}
       onClose={onClose}
     >
+      {food ? (
+        <View style={styles.facts}>
+          <FoodFacts food={food} compact />
+        </View>
+      ) : null}
+
       <View style={styles.row}>
         <TextInput
           value={text}
@@ -132,6 +149,7 @@ export const QuantityPrompt: React.FC<QuantityPromptProps> = ({
 };
 
 const styles = StyleSheet.create({
+  facts: { marginBottom: theme.spacing.md },
   row: {
     flexDirection: "row",
     alignItems: "center",

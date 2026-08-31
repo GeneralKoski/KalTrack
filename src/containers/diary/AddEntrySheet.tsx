@@ -1,3 +1,4 @@
+import { DfAlert } from "@/src/components/DfAlert";
 import { DfBottomSheet } from "@/src/components/DfBottomSheet";
 import { EmptyState, SearchBar } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
@@ -5,9 +6,11 @@ import { Text } from "@/src/components/ui";
 import { searchFoods } from "@/src/db/queries/foods";
 import { searchRecipes } from "@/src/db/queries/recipes";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { FoodFacts } from "@/src/containers/foods/FoodFacts";
 import { theme } from "@/src/styles";
 import type { FoodRow, MealTypeRow, RecipeRow } from "@/src/types/nutrition";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { Info } from "lucide-react-native";
 import React, { forwardRef, useEffect, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
@@ -39,6 +42,8 @@ export const AddEntrySheet = forwardRef<BottomSheetModal, AddEntrySheetProps>(
     const [term, setTerm] = useState("");
     const [foods, setFoods] = useState<FoodRow[]>([]);
     const [recipes, setRecipes] = useState<RecipeRow[]>([]);
+    /** L'alimento di cui si stanno guardando i valori, non quello scelto. */
+    const [detail, setDetail] = useState<FoodRow | null>(null);
 
     useEffect(() => {
       let active = true;
@@ -183,6 +188,10 @@ export const AddEntrySheet = forwardRef<BottomSheetModal, AddEntrySheetProps>(
                 title={item.name}
                 subtitle={`${Math.round(item.kcal)} kcal / 100 ${item.is_liquid === 1 ? "ml" : "g"}`}
                 onPress={() => onPick({ kind: "food", food: item })}
+                /* Il tocco sulla riga sceglie, come sempre: i valori stanno
+                   dietro un bottone loro, o guardarli vorrebbe dire aggiungere
+                   l'alimento per sbaglio. */
+                onInfo={() => setDetail(item)}
               />
             ))
           )
@@ -203,6 +212,16 @@ export const AddEntrySheet = forwardRef<BottomSheetModal, AddEntrySheetProps>(
           )
         ) : null}
 
+        <DfAlert
+          isOpen={detail !== null}
+          title={detail?.name}
+          confirmLabel={t("close")}
+          hideCancel
+          onConfirm={() => setDetail(null)}
+          onClose={() => setDetail(null)}
+        >
+          {detail ? <FoodFacts food={detail} /> : null}
+        </DfAlert>
       </DfBottomSheet>
     );
   },
@@ -242,22 +261,43 @@ const PickerRow: React.FC<{
   title: string;
   subtitle: string;
   onPress: () => void;
-}> = ({ title, subtitle, onPress }) => {
+  onInfo?: () => void;
+}> = ({ title, subtitle, onPress, onInfo }) => {
   const { colors } = useAppTheme();
+  const { t } = useTranslation();
 
   return (
-    <TouchableOpacity
-      style={[styles.row, { borderBottomColor: colors.border }]}
-      onPress={onPress}
-      activeOpacity={0.6}
-    >
-      <Text style={[styles.rowTitle, { color: colors.text }]} numberOfLines={1}>
-        {title}
-      </Text>
-      <Text style={[styles.rowSubtitle, { color: colors.textMuted }]}>
-        {subtitle}
-      </Text>
-    </TouchableOpacity>
+    <View style={[styles.row, { borderBottomColor: colors.border }]}>
+      <TouchableOpacity
+        style={styles.rowBody}
+        onPress={onPress}
+        activeOpacity={0.6}
+      >
+        <Text
+          style={[styles.rowTitle, { color: colors.text }]}
+          numberOfLines={1}
+        >
+          {title}
+        </Text>
+        <Text
+          style={[styles.rowSubtitle, { color: colors.textMuted }]}
+          numberOfLines={1}
+        >
+          {subtitle}
+        </Text>
+      </TouchableOpacity>
+
+      {onInfo ? (
+        <TouchableOpacity
+          onPress={onInfo}
+          activeOpacity={0.6}
+          hitSlop={10}
+          accessibilityLabel={t("foods.detail_title")}
+        >
+          <Info size={20} color={colors.textFaint} />
+        </TouchableOpacity>
+      ) : null}
+    </View>
   );
 };
 
@@ -300,9 +340,13 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
   row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
     paddingVertical: theme.spacing.sm,
     borderBottomWidth: 1,
   },
+  rowBody: { flex: 1 },
   rowTitle: {
     fontSize: 15,
     fontWeight: "500",

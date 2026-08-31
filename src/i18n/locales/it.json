@@ -56,7 +56,13 @@
     "catalog_notice": "Questo alimento entra nell'elenco di tutti gli iscritti, non solo dei tuoi amici, così lo trovano anche gli altri. Puoi correggerlo o toglierlo quando vuoi: le voci che aggiungi tu restano tue. Il catalogo non dice a nessuno chi le ha scritte.",
     "import_catalog": "Aggiorna dal catalogo",
     "imported_none": "Nessun alimento nuovo",
-    "imported_some": "%{count} alimenti aggiunti"
+    "imported_some": "%{count} alimenti aggiunti",
+    "per_hundred": "per 100 %{unit}",
+    "sugars_short": "Zuccheri",
+    "saturated_fat_short": "Grassi saturi",
+    "fiber_short": "Fibre",
+    "salt_short": "Sale",
+    "detail_title": "Valori"
   },
   "profile": {
     "my_foods": "I miei alimenti",
