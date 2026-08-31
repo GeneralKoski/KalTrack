@@ -21,8 +21,6 @@ export interface AccountShares {
    * questo e' un interruttore a se' invece di essere compresa in `workouts`.
    */
   gym: boolean;
-  /** Quanti giorni di passato si pubblicano. Sette di default. */
-  windowDays: number;
 }
 
 /** Un esercizio condiviso, gia' aggregato per giorno. */
@@ -237,7 +235,6 @@ export const updateMyProfile = (input: Partial<{
   shareWeight: boolean;
   shareWorkouts: boolean;
   shareGym: boolean;
-  shareWindowDays: number;
 }>) => apiRequest<MyProfile>({ method: "patch", path: "/me", body: input });
 
 export const searchUsers = (term: string) =>

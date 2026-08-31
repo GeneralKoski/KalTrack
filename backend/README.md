@@ -28,9 +28,11 @@ degli allenamenti: chi condivideva "tre allenamenti questa settimana" non si e'
 ritrovato a condividere "panca a 92,5". Le note, i commenti e le serie singole
 non escono: il dettaglio resta sul telefono come il diario.
 
-Quanto passato esce lo decide l'utente (`share_window_days`, sette giorni di
-default, da uno a trecentosessantacinque). Restringere la finestra **cancella**
-dal server i giorni che ne restano fuori, come spegnere un interruttore.
+Esce **tutto lo storico pubblicato**: non c'e' una finestra di giorni da
+scegliere. `share_window_days` e' esistita fino al 31 agosto 2026 e i suoi
+tagli sono stati tolti - quel che esce lo dicono i cinque interruttori. Le
+righe gia' pubblicate restano: la colonna serviva a cancellarne, e toglierla
+non e' un motivo per buttare via dello storico.
 
 Non esce **niente** del resto. Il diario, gli alimenti, le ricette, le schede,
 le serie, le foto, le misure, i digiuni stanno in `sync_records`, che e' legato

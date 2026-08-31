@@ -166,9 +166,15 @@ e non un totale: quali esercizi, con che carico. Spento di serie e
 **indipendente** da `share_workouts`, che e' solo il conteggio. Chi lo accende
 lo legge scritto accanto all'interruttore.
 
-Quanto passato esce lo sceglie l'utente (`share_window_days`, default 7):
-restringere la finestra cancella dal server i giorni che ne restano fuori,
-esattamente come spegnere un interruttore.
+Quanto passato esce **non si sceglie**: esce tutto lo storico. La finestra di
+giorni (`share_window_days`) c'e' stata fino al 31 agosto 2026 ed e' stata
+tolta - era un'impostazione in piu' su una domanda che nessuno si e' mai posto,
+e intanto tagliava il confronto a una settimana. Cosa esce lo dicono i cinque
+interruttori, e basta quelli.
+
+Lato telefono lo storico comincia dal **primo dato scritto**
+(`earliestRecordedDate`), non da una data fissa: contare da una data fissa
+vorrebbe dire interrogare e spedire giornate vuote che non sono mai esistite.
 
 ### L'unica cosa che esce verso i non amici
 

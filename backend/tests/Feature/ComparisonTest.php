@@ -223,7 +223,6 @@ class ComparisonTest extends TestCase
             'share_steps' => true,
             'share_calories' => true,
             'share_workouts' => true,
-            'share_window_days' => 30,
         ]);
         $this->befriend($me, $anna);
 
@@ -251,7 +250,7 @@ class ComparisonTest extends TestCase
     public function test_su_piu_giorni_la_palestra_si_somma_per_esercizio(): void
     {
         $me = $this->user('io');
-        $anna = $this->user('anna', ['share_gym' => true, 'share_window_days' => 30]);
+        $anna = $this->user('anna', ['share_gym' => true]);
         $this->befriend($me, $anna);
 
         $this->withWorkout($anna);
@@ -278,16 +277,14 @@ class ComparisonTest extends TestCase
     }
 
     /**
-     * Un periodo piu' lungo della finestra che il proprietario condivide non
-     * puo' farne uscire di piu': la finestra e' una sua scelta, non un
-     * parametro della richiesta di chi guarda.
+     * Il periodo lo sceglie chi guarda, e arriva fin dove arriva lo storico:
+     * la finestra per persona non esiste piu'.
      */
-    public function test_il_periodo_non_puo_superare_la_finestra_del_proprietario(): void
+    public function test_il_periodo_lungo_pesca_tutto_lo_storico(): void
     {
         $me = $this->user('io');
         $anna = $this->user('anna', [
             'share_steps' => true,
-            'share_window_days' => 2,
         ]);
         $this->befriend($me, $anna);
 
@@ -301,7 +298,7 @@ class ComparisonTest extends TestCase
         $this->actingAs($me)
             ->getJson('/api/comparison?handles=anna&days=365')
             ->assertOk()
-            ->assertJsonPath('participants.0.totals.steps', 10000);
+            ->assertJsonPath('participants.0.totals.steps', 109000);
     }
 
     public function test_senza_accesso_non_si_confronta_niente(): void

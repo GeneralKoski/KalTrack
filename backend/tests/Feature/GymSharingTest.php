@@ -72,7 +72,6 @@ class GymSharingTest extends TestCase
         $user = $this->user();
 
         $this->assertFalse($user->share_gym);
-        $this->assertSame(7, $user->share_window_days);
     }
 
     /**
@@ -180,13 +179,16 @@ class GymSharingTest extends TestCase
     }
 
     /**
-     * Lo storico del profilo si ferma alla finestra scelta dal proprietario.
-     * Prima erano trenta giorni fissi: chi ne condivideva sette ne vedeva
-     * serviti trenta.
+     * Il profilo serve TUTTO lo storico pubblicato.
+     *
+     * Prima si fermava alla finestra scelta dal proprietario, sette giorni di
+     * serie: due persone che si allenano da mesi vedevano sempre e solo
+     * l'ultima settimana. Cosa esce lo dicono i cinque interruttori, non un
+     * numero di giorni.
      */
-    public function test_il_profilo_mostra_solo_la_finestra_scelta(): void
+    public function test_il_profilo_mostra_tutto_lo_storico(): void
     {
-        $anna = $this->user(['share_calories' => true, 'share_window_days' => 7]);
+        $anna = $this->user(['share_calories' => true]);
 
         SharedStat::create([
             'user_id' => $anna->id,
@@ -210,39 +212,31 @@ class GymSharingTest extends TestCase
         $this->actingAs($io)
             ->getJson('/api/users/anna')
             ->assertOk()
-            ->assertJsonCount(1, 'data.stats');
+            ->assertJsonCount(2, 'data.stats');
     }
 
-    public function test_la_finestra_si_sceglie_ma_dentro_un_limite(): void
+    /**
+     * La finestra non esiste piu': il campo non viene rifiutato, viene
+     * ignorato, e il profilo non ne parla piu'.
+     */
+    public function test_la_finestra_non_si_sceglie_piu(): void
     {
         $user = $this->user();
 
         $this->actingAs($user)
             ->patchJson('/api/me', ['shareWindowDays' => 90])
             ->assertOk()
-            ->assertJsonPath('shares.windowDays', 90);
-
-        // Zero giorni non e' una finestra, e un numero senza tetto diventa
-        // "pubblica tutto" senza che nessuno l'abbia scelto.
-        $this->actingAs($user)
-            ->patchJson('/api/me', ['shareWindowDays' => 0])
-            ->assertStatus(422);
-
-        $this->actingAs($user)
-            ->patchJson('/api/me', ['shareWindowDays' => 366])
-            ->assertStatus(422);
-
-        $this->assertSame(90, $user->fresh()->share_window_days);
+            ->assertJsonMissingPath('shares.windowDays');
     }
 
     /**
-     * Restringere la finestra e' un modo di ritirare qualcosa che era gia'
-     * uscito, esattamente come spegnere un interruttore. Se i giorni vecchi
-     * restassero, "da oggi condivido solo una settimana" sarebbe falso.
+     * Quel che era gia' uscito resta fuori: spegnere un interruttore ritira i
+     * dati, ma qui nessun interruttore si e' spento. Toglierli sarebbe
+     * cancellare storico senza che nessuno l'abbia chiesto.
      */
-    public function test_restringere_la_finestra_cancella_i_giorni_fuori(): void
+    public function test_salvare_il_profilo_non_cancella_i_giorni_vecchi(): void
     {
-        $user = $this->user(['share_gym' => true, 'share_window_days' => 90]);
+        $user = $this->user(['share_gym' => true]);
 
         SharedWorkout::create([
             'user_id' => $user->id,
@@ -256,11 +250,9 @@ class GymSharingTest extends TestCase
         $this->withWorkout($user);
 
         $this->actingAs($user)
-            ->patchJson('/api/me', ['shareWindowDays' => 7])
+            ->patchJson('/api/me', ['shareCalories' => true])
             ->assertOk();
 
-        $rimaste = SharedWorkout::where('user_id', $user->id)->get();
-        $this->assertCount(1, $rimaste);
-        $this->assertSame('Panca piana', $rimaste->first()->exercise_name);
+        $this->assertCount(2, SharedWorkout::where('user_id', $user->id)->get());
     }
 }

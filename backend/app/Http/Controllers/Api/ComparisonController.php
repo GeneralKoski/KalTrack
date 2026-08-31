@@ -93,21 +93,15 @@ class ComparisonController extends Controller
     }
 
     /**
-     * Il primo giorno del periodo per una certa persona.
+     * Il primo giorno del periodo chiesto.
      *
-     * NON PUO' ANDARE PIU' INDIETRO DELLA FINESTRA CHE LEI CONDIVIDE. La
-     * finestra e' una scelta di chi pubblica, non un parametro di chi guarda:
-     * senza questo taglio basterebbe chiedere `days=365` per farsi servire un
-     * anno a chi ne condivide sette.
+     * Non c'e' piu' un tetto per persona: si pubblica tutto lo storico, quindi
+     * il periodo lo sceglie chi guarda. Quel che si vede resta comunque solo
+     * cio' che i cinque interruttori fanno uscire, e solo fra amici.
      */
     private function primoGiorno(User $user, string $date, int $days): string
     {
-        $chiesto = Carbon::parse($date)->subDays($days - 1);
-        $consentito = Carbon::today()->subDays($user->finestraInGiorni() - 1);
-
-        return $chiesto->lt($consentito)
-            ? $consentito->toDateString()
-            : $chiesto->toDateString();
+        return Carbon::parse($date)->subDays($days - 1)->toDateString();
     }
 
     /**

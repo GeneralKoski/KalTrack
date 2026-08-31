@@ -156,12 +156,12 @@ class SharedWorkoutTest extends TestCase
     }
 
     /**
-     * Stessa ragione: la finestra la sceglie l'utente, e un telefono che ne
-     * manda di piu' non deve poterla allargare da solo.
+     * Non c'e' piu' una finestra da rispettare: il telefono pubblica tutto lo
+     * storico, e tutto quel che manda viene scritto.
      */
-    public function test_i_giorni_fuori_finestra_non_entrano(): void
+    public function test_entrano_anche_i_giorni_lontani(): void
     {
-        $user = $this->user(['share_window_days' => 7]);
+        $user = $this->user();
 
         $this->actingAs($user)
             ->putJson('/api/me/workouts', [
@@ -175,10 +175,12 @@ class SharedWorkoutTest extends TestCase
                 ],
             ])
             ->assertOk()
-            ->assertJsonPath('synced', 1);
+            ->assertJsonPath('synced', 2);
 
-        $rimasti = SharedWorkout::where('user_id', $user->id)->pluck('exercise_name');
-        $this->assertSame(['Panca piana'], $rimasti->all());
+        $rimasti = SharedWorkout::where('user_id', $user->id)
+            ->orderBy('date')
+            ->pluck('exercise_name');
+        $this->assertSame(['Stacco', 'Panca piana'], $rimasti->all());
     }
 
     public function test_il_nome_dell_esercizio_e_obbligatorio(): void

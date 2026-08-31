@@ -32,7 +32,6 @@ class ProfileController extends Controller
                 'weight' => $user->share_weight,
                 'workouts' => $user->share_workouts,
                 'gym' => $user->share_gym,
-                'windowDays' => $user->share_window_days,
             ],
         ]);
     }
@@ -56,7 +55,6 @@ class ProfileController extends Controller
             'shareWeight' => 'share_weight',
             'shareWorkouts' => 'share_workouts',
             'shareGym' => 'share_gym',
-            'shareWindowDays' => 'share_window_days',
         ];
         foreach ($map as $input => $column) {
             if (array_key_exists($input, $data)) {
@@ -66,7 +64,6 @@ class ProfileController extends Controller
         $user->save();
 
         $this->forgetUnsharedStats($user);
-        $this->forgetOutsideWindow($user);
 
         return $this->me($request);
     }
@@ -131,21 +128,13 @@ class ProfileController extends Controller
 
         if ($isFriend) {
             /*
-             * Lo storico si ferma alla finestra scelta dal PROPRIETARIO, non a
-             * un numero fisso di questa classe: chi condivide una settimana
-             * deve poterne vedere servita una, altrimenti l'impostazione dice
-             * una cosa e l'API ne serve un'altra.
+             * Tutto lo storico pubblicato, senza tagli: la finestra di giorni
+             * non esiste piu'. Quel che un amico puo' vedere lo decidono i
+             * cinque interruttori, e basta quello.
              */
-            $primoGiorno = Carbon::today()
-                ->subDays($user->finestraInGiorni() - 1)
-                ->toDateString();
-
             $user->load([
-                'sharedStats' => fn ($q) => $q
-                    ->where('date', '>=', $primoGiorno)
-                    ->orderByDesc('date'),
+                'sharedStats' => fn ($q) => $q->orderByDesc('date'),
                 'sharedWorkouts' => fn ($q) => $q
-                    ->where('date', '>=', $primoGiorno)
                     ->orderByDesc('date')
                     ->orderBy('id'),
             ]);
@@ -206,28 +195,5 @@ class ProfileController extends Controller
             ->whereNull('weight_kg')
             ->whereNull('workouts')
             ->delete();
-    }
-
-    /**
-     * Restringere la finestra ritira quel che ne resta fuori.
-     *
-     * E' lo stesso gesto di spegnere un interruttore, detto con un numero:
-     * "da oggi condivido una settimana" sarebbe falso se i tre mesi pubblicati
-     * ieri restassero sul server a disposizione degli amici. Vale per i totali
-     * e per la palestra, altrimenti la stessa impostazione vorrebbe dire due
-     * cose diverse a seconda di dove si guarda.
-     *
-     * Il telefono ripubblica comunque solo la finestra scelta, ma non ha modo
-     * di dire "e dimentica il resto": lui manda quel che c'e', non quel che
-     * non c'e' piu'.
-     */
-    private function forgetOutsideWindow(User $user): void
-    {
-        $primoGiorno = Carbon::today()
-            ->subDays($user->finestraInGiorni() - 1)
-            ->toDateString();
-
-        $user->sharedStats()->where('date', '<', $primoGiorno)->delete();
-        $user->sharedWorkouts()->where('date', '<', $primoGiorno)->delete();
     }
 }

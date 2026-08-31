@@ -20,7 +20,6 @@ const allOff = {
   weight: false,
   workouts: false,
   gym: false,
-  windowDays: 7,
 };
 
 let db: LocalDatabase;
@@ -43,10 +42,7 @@ beforeEach(async () => {
 afterEach(() => __setDbForTesting(null));
 
 const dayFor = async (shares: Partial<typeof allOff>) => {
-  const days = await buildSharedDays(
-    { ...allOff, ...shares },
-    { today: DATE, days: 1 },
-  );
+  const days = await buildSharedDays({ ...allOff, ...shares }, { today: DATE });
   return days[0];
 };
 
@@ -93,22 +89,41 @@ describe("cosa parte dal telefono", () => {
   it("lascia null il giorno senza dati, anche se condiviso", async () => {
     const days = await buildSharedDays(
       { ...allOff, steps: true, weight: true },
-      { today: "2026-08-30", days: 1 },
+      { today: "2026-08-30" },
     );
 
-    expect(days[0].date).toBe("2026-08-30");
-    expect(days[0].steps).toBeNull();
-    expect(days[0].weightKg).toBeNull();
+    const vuoto = days[days.length - 1];
+    expect(vuoto.date).toBe("2026-08-30");
+    expect(vuoto.steps).toBeNull();
+    expect(vuoto.weightKg).toBeNull();
   });
 
-  it("copre la finestra di giorni richiesta, dalla piu' vecchia", async () => {
-    const days = await buildSharedDays(allOff, { today: DATE, days: 3 });
+  /**
+   * Non piu' una finestra di N giorni: lo storico intero, e il suo inizio e' il
+   * primo dato scritto. Contare da una data fissa vorrebbe dire interrogare e
+   * spedire giornate vuote che non sono mai esistite.
+   */
+  it("parte dal primo giorno scritto e arriva a oggi", async () => {
+    await setSteps("2026-08-27", 3000);
+
+    const days = await buildSharedDays(allOff, { today: "2026-08-30" });
 
     expect(days.map((d) => d.date)).toEqual([
       "2026-08-27",
       "2026-08-28",
       "2026-08-29",
+      "2026-08-30",
     ]);
+  });
+
+  it("con il database vuoto manda il solo giorno di oggi", async () => {
+    const vuoto = createTestDb();
+    await runMigrations(vuoto);
+    __setDbForTesting(vuoto);
+
+    const days = await buildSharedDays(allOff, { today: DATE });
+
+    expect(days.map((d) => d.date)).toEqual([DATE]);
   });
 });
 
@@ -131,7 +146,7 @@ describe("cosa parte della palestra", () => {
   it("a interruttore spento non parte niente, nemmeno i giorni vuoti", async () => {
     await conAllenamento();
 
-    const days = await buildSharedWorkoutDays(allOff, { today: DATE, days: 1 });
+    const days = await buildSharedWorkoutDays(allOff, { today: DATE });
 
     // Nemmeno una lista di giorni senza esercizi: direbbe comunque "questa
     // settimana non mi sono allenato" a chi non ha diritto di saperlo.
@@ -143,7 +158,7 @@ describe("cosa parte della palestra", () => {
 
     const days = await buildSharedWorkoutDays(
       { ...allOff, gym: true },
-      { today: DATE, days: 1 },
+      { today: DATE },
     );
 
     expect(days).toEqual([
@@ -165,19 +180,20 @@ describe("cosa parte della palestra", () => {
   it("un giorno senza allenamento parte con la lista vuota", async () => {
     const days = await buildSharedWorkoutDays(
       { ...allOff, gym: true },
-      { today: DATE, days: 1 },
+      { today: DATE },
     );
 
     // E' l'unico modo che il telefono ha per dire "quel giorno non c'e' piu'".
     expect(days).toEqual([{ date: DATE, exercises: [] }]);
   });
 
-  it("copre la finestra scelta dall'utente e non sempre sette giorni", async () => {
-    const days = await buildSharedWorkoutDays({
-      ...allOff,
-      gym: true,
-      windowDays: 3,
-    }, { today: DATE });
+  it("copre lo storico intero, come i totali", async () => {
+    await setSteps("2026-08-27", 3000);
+
+    const days = await buildSharedWorkoutDays(
+      { ...allOff, gym: true },
+      { today: DATE },
+    );
 
     expect(days.map((d) => d.date)).toEqual([
       "2026-08-27",

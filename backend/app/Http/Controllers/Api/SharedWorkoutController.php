@@ -19,10 +19,10 @@ class SharedWorkoutController extends Controller
      * dalla sessione sul telefono deve sparire anche qui, e un upsert lo
      * lascerebbe in piedi per sempre.
      *
-     * Due controlli che l'app fa gia' e che qui si rifanno lo stesso, perche'
-     * questo e' l'unico endpoint che pubblica CONTENUTO e non un totale: che
-     * l'interruttore sia acceso, e che i giorni stiano nella finestra scelta.
-     * Se l'unica difesa fosse sul telefono, basterebbe un difetto del telefono.
+     * Il controllo che l'app fa gia' e che qui si rifa' lo stesso, perche'
+     * questo e' l'unico endpoint che pubblica CONTENUTO e non un totale:
+     * l'interruttore deve essere acceso. Se l'unica difesa fosse sul telefono,
+     * basterebbe un difetto del telefono.
      */
     public function sync(SyncWorkoutsRequest $request): JsonResponse
     {
@@ -34,12 +34,7 @@ class SharedWorkoutController extends Controller
             ], 403);
         }
 
-        $primoGiorno = Carbon::today()
-            ->subDays($user->finestraInGiorni() - 1)
-            ->toDateString();
-
-        $days = collect($request->validated()['days'])
-            ->filter(fn (array $day) => $day['date'] >= $primoGiorno);
+        $days = collect($request->validated()['days']);
 
         $scritti = 0;
 

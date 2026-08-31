@@ -6,8 +6,8 @@ import {
   dailyExerciseSummary,
   recentSessions,
 } from "@/src/db/queries/workouts";
-import { recentDates } from "@/src/services/healthConnect";
-import { todayIso } from "@/src/domain/date";
+import { earliestRecordedDate } from "@/src/db/queries/history";
+import { datesBetween, todayIso } from "@/src/domain/date";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { logger } from "@/src/utils/logger";
 
@@ -24,22 +24,28 @@ import { logger } from "@/src/utils/logger";
  */
 
 /**
- * Una settimana: abbastanza per un profilo, poco per essere un archivio.
+ * Quanti giorni si pubblicano: TUTTI quelli in cui c'e' qualcosa scritto.
  *
- * E' il DEFAULT, non piu' la regola: la finestra la sceglie l'utente e arriva
- * dal profilo (`shares.windowDays`). Questo valore serve quando il profilo non
- * ne porta uno, e non deve mai diventare "tutto".
+ * C'era una finestra scelta dall'utente, sette giorni di serie. Sceglierla era
+ * un'impostazione in piu' su una domanda che nessuno si e' mai posto davvero,
+ * e nel frattempo tagliava il confronto a una settimana. Adesso lo storico e'
+ * intero, e il suo inizio e' il primo dato scritto - non una data fissa da cui
+ * contare giornate vuote.
+ *
+ * Il giorno di oggi c'e' sempre, anche a database vuoto: e' quello su cui si
+ * sta scrivendo adesso.
  */
-export const SHARE_WINDOW_DAYS = 7;
+async function sharedDates(today: string): Promise<string[]> {
+  const first = await earliestRecordedDate();
+  if (!first || first >= today) return [today];
+  return datesBetween(first, today);
+}
 
 export async function buildSharedDays(
   shares: social.AccountShares,
-  options: { today?: string; days?: number } = {},
+  options: { today?: string } = {},
 ): Promise<social.SharedDay[]> {
-  const dates = recentDates(
-    options.today ?? todayIso(),
-    options.days ?? SHARE_WINDOW_DAYS,
-  );
+  const dates = await sharedDates(options.today ?? todayIso());
 
   const rows: social.SharedDay[] = [];
   for (const date of dates) {
@@ -87,14 +93,11 @@ export async function buildSharedDays(
  */
 export async function buildSharedWorkoutDays(
   shares: social.AccountShares,
-  options: { today?: string; days?: number } = {},
+  options: { today?: string } = {},
 ): Promise<social.SharedWorkoutDay[]> {
   if (!shares.gym) return [];
 
-  const dates = recentDates(
-    options.today ?? todayIso(),
-    options.days ?? shares.windowDays ?? SHARE_WINDOW_DAYS,
-  );
+  const dates = await sharedDates(options.today ?? todayIso());
 
   const days: social.SharedWorkoutDay[] = [];
   for (const date of dates) {
@@ -138,11 +141,10 @@ export async function syncSharedStats(): Promise<number | null> {
       return null;
     }
 
-    const giorni = shares.windowDays ?? SHARE_WINDOW_DAYS;
     let synced = 0;
 
     if (shares.calories || shares.steps || shares.weight || shares.workouts) {
-      const days = await buildSharedDays(shares, { days: giorni });
+      const days = await buildSharedDays(shares);
       synced += (await social.syncSharedStats(days)).synced;
     }
 
@@ -153,7 +155,7 @@ export async function syncSharedStats(): Promise<number | null> {
      * rifiutare quelli.
      */
     if (shares.gym) {
-      const workouts = await buildSharedWorkoutDays(shares, { days: giorni });
+      const workouts = await buildSharedWorkoutDays(shares);
       if (workouts.length > 0) {
         synced += (await social.syncSharedWorkouts(workouts)).synced;
       }

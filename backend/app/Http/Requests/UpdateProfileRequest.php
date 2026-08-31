@@ -43,9 +43,6 @@ class UpdateProfileRequest extends FormRequest
             // ma la regola di validazione non ha modo di dirlo: quel che la
             // distingue e' il testo accanto all'interruttore.
             'shareGym' => ['sometimes', 'boolean'],
-            // Un anno di tetto: oltre, "finestra" non vuol piu' dire niente e
-            // diventa "tutto lo storico" senza che nessuno l'abbia scelto.
-            'shareWindowDays' => ['sometimes', 'integer', 'min:1', 'max:365'],
         ];
     }
 }

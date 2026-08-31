@@ -17,6 +17,19 @@ export function addDays(iso: string, days: number): string {
   return toIsoDate(d);
 }
 
+/**
+ * Tutti i giorni da `from` a `to`, estremi inclusi, dal più vecchio.
+ *
+ * Vuota se `from` viene dopo `to`: un intervallo al contrario non è mezzo
+ * intervallo, è un errore di chi chiama, e restituire qualcosa lo
+ * nasconderebbe.
+ */
+export function datesBetween(from: string, to: string): string[] {
+  const dates: string[] = [];
+  for (let day = from; day <= to; day = addDays(day, 1)) dates.push(day);
+  return dates;
+}
+
 /** Lunedì della settimana a cui appartiene la data. */
 export function startOfWeek(iso: string): string {
   const d = parseIso(iso);
