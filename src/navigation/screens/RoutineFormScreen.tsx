@@ -19,6 +19,8 @@ import {
   updateRoutine,
   type RoutineInput,
 } from "@/src/db/queries/workouts";
+import { searchExercises } from "@/src/db/queries/exercises";
+import { GenerateRoutineModal } from "@/src/containers/gym/GenerateRoutineModal";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
@@ -26,7 +28,7 @@ import type { ExerciseRow } from "@/src/types/gym";
 import { showToast } from "@/src/utils/toast";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useRoute, type RouteProp } from "@react-navigation/native";
-import { ChevronLeft, Pencil, Plus, Trash2 } from "lucide-react-native";
+import { ChevronLeft, Pencil, Plus, Sparkles, Trash2 } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -83,6 +85,37 @@ export function RoutineFormScreen() {
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
   const [renameText, setRenameText] = useState<string | null>(null);
   const [confirmDeleteDay, setConfirmDeleteDay] = useState(false);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+
+  const handleGeneratedRoutine = async (routine: RoutineInput) => {
+    setName(routine.name);
+    const allExercises = await searchExercises({ limit: 500 });
+    const exerciseMap = new Map(allExercises.map((e) => [e.id, e]));
+
+    const drafts: DraftDay[] = routine.days.map((d) => ({
+      key: newId(),
+      name: d.name,
+      blocks: d.blocks.map((b) => ({
+        key: newId(),
+        kind: b.kind,
+        rest: b.restSeconds === null ? "" : String(b.restSeconds),
+        exercises: b.exercises.map((e) => {
+          const ex = exerciseMap.get(e.exerciseId);
+          return {
+            key: newId(),
+            exerciseId: e.exerciseId,
+            name: ex?.name ?? "Esercizio",
+            muscleGroup: ex?.muscle_group ?? "petto",
+            sets: e.targetSets === null ? "3" : String(e.targetSets),
+            reps: e.targetReps ?? "8-10",
+          };
+        }),
+      })),
+    }));
+
+    setDays(drafts);
+    setDayIndex(0);
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -257,12 +290,54 @@ export function RoutineFormScreen() {
           <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
             {id ? t("gym.edit_routine_title") : t("gym.new_routine_title")}
           </Text>
+          <TouchableOpacity
+            onPress={() => setAiModalOpen(true)}
+            activeOpacity={0.6}
+            style={[
+              styles.aiHeaderBtn,
+              {
+                backgroundColor: colors.surfaceMuted,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Sparkles size={15} color={colors.accent} />
+            <Text style={[styles.aiHeaderBtnText, { color: colors.accent }]}>
+              Genera con IA
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {loading ? (
           <ActivityIndicator style={styles.loader} color={colors.accent} />
         ) : (
           <FormScreen contentContainerStyle={styles.content} bottomSpacing={theme.spacing.lg}>
+            {!id && days.length === 0 ? (
+              <TouchableOpacity
+                onPress={() => setAiModalOpen(true)}
+                activeOpacity={0.7}
+                style={[
+                  styles.aiBanner,
+                  {
+                    backgroundColor: colors.surfaceMuted,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <View style={styles.aiBannerIcon}>
+                  <Sparkles size={20} color={colors.accent} />
+                </View>
+                <View style={styles.aiBannerText}>
+                  <Text style={[styles.aiBannerTitle, { color: colors.text }]}>
+                    Vuoi creare una scheda completa?
+                  </Text>
+                  <Text style={[styles.aiBannerSub, { color: colors.textMuted }]}>
+                    Tocca qui per generarla automaticamente con l'IA in base al tuo obiettivo.
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ) : null}
+
             <Text style={[styles.label, { color: colors.textMuted }]}>
               {t("gym.routine_name")}
             </Text>
@@ -433,6 +508,12 @@ export function RoutineFormScreen() {
         onConfirm={removeDay}
         onClose={() => setConfirmDeleteDay(false)}
       />
+
+      <GenerateRoutineModal
+        isOpen={aiModalOpen}
+        onGenerated={handleGeneratedRoutine}
+        onClose={() => setAiModalOpen(false)}
+      />
     </View>
   );
 }
@@ -448,6 +529,46 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   title: { flex: 1, fontSize: 18, fontWeight: "700" },
+  aiHeaderBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 6,
+    borderRadius: theme.radius.full,
+    borderWidth: 1,
+  },
+  aiHeaderBtnText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  aiBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.md,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    marginBottom: theme.spacing.md,
+  },
+  aiBannerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: theme.radius.full,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  aiBannerText: {
+    flex: 1,
+    gap: 2,
+  },
+  aiBannerTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  aiBannerSub: {
+    fontSize: 12,
+  },
   content: { flexGrow: 1, padding: theme.spacing.md },
   label: {
     fontSize: 13,
