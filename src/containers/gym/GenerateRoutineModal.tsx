@@ -1,17 +1,17 @@
-import { DfAlert } from "@/src/components/DfAlert";
-import { Chip } from "@/src/components/kal";
-import { useAppTheme } from "@/src/components/ThemeContext";
-import { Text } from "@/src/components/ui";
 import {
   generateRoutine,
   type RoutineGoal,
   type RoutineLevel,
   type RoutinePreferences,
 } from "@/src/ai/generateRoutine";
-import { EQUIPMENT, type Equipment } from "@/src/types/gym";
+import { DfAlert } from "@/src/components/DfAlert";
+import { Chip } from "@/src/components/kal";
+import { useAppTheme } from "@/src/components/ThemeContext";
+import { Text, TextInput } from "@/src/components/ui";
 import type { RoutineInput } from "@/src/db/queries/workouts";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
+import { EQUIPMENT, type Equipment } from "@/src/types/gym";
 import { showToast } from "@/src/utils/toast";
 import { Sparkles } from "lucide-react-native";
 import React, { useState } from "react";
@@ -62,6 +62,7 @@ export const GenerateRoutineModal: React.FC<GenerateRoutineModalProps> = ({
   const [level, setLevel] = useState<RoutineLevel>("intermedio");
   const [sessionMinutes, setSessionMinutes] = useState(60);
   const [equipmentPreset, setEquipmentPreset] = useState(0);
+  const [promptText, setPromptText] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleGenerate = async () => {
@@ -75,6 +76,7 @@ export const GenerateRoutineModal: React.FC<GenerateRoutineModalProps> = ({
         availableEquipment: EQUIPMENT_PRESETS[equipmentPreset]?.items ?? [
           ...EQUIPMENT,
         ],
+        prompt: promptText.trim() || undefined,
       };
       const routine = await generateRoutine(preferences);
       showToast.success({ title: "Scheda generata con successo!" });
@@ -82,8 +84,7 @@ export const GenerateRoutineModal: React.FC<GenerateRoutineModalProps> = ({
       onClose();
     } catch (error) {
       showToast.error({
-        title:
-          error instanceof Error ? error.message : "Generazione fallita",
+        title: error instanceof Error ? error.message : "Generazione fallita",
       });
     } finally {
       setLoading(false);
@@ -185,6 +186,28 @@ export const GenerateRoutineModal: React.FC<GenerateRoutineModalProps> = ({
             ))}
           </View>
         </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
+            Dettagli e richieste aggiuntive (opzionale)
+          </Text>
+          <TextInput
+            value={promptText}
+            onChangeText={setPromptText}
+            placeholder="Es. Ho manubri fino a 20kg e panca regolabile. Focus spalle e braccia, nessun esercizio che sforzi la schiena..."
+            placeholderTextColor={colors.textFaint}
+            multiline
+            numberOfLines={3}
+            style={[
+              styles.promptInput,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                color: colors.text,
+              },
+            ]}
+          />
+        </View>
       </ScrollView>
     </DfAlert>
   );
@@ -206,5 +229,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: theme.spacing.xs,
+  },
+  promptInput: {
+    borderWidth: 1,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.sm,
+    fontSize: 14,
+    minHeight: 70,
+    textAlignVertical: "top",
   },
 });

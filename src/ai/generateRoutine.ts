@@ -31,6 +31,7 @@ export interface RoutinePreferences {
   sessionMinutes: number;
   availableEquipment: Equipment[];
   level: RoutineLevel;
+  prompt?: string;
 }
 
 /** La generazione non ha prodotto niente di utilizzabile. */
@@ -357,6 +358,9 @@ export async function generateRoutine(
           `Livello: ${preferences.level}`,
           `Giorni a settimana: ${preferences.daysPerWeek}`,
           `Durata di una sessione: ${preferences.sessionMinutes} minuti`,
+          ...(preferences.prompt?.trim()
+            ? [`Richieste e dettagli specifici: ${preferences.prompt.trim()}`]
+            : []),
           "",
           "Catalogo ammesso (id | nome | gruppo muscolare):",
           ...catalog.map(compact),
