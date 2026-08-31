@@ -16,11 +16,11 @@ export const GROQ_BASE_URL = GEMINI_BASE_URL;
 
 export const MODELS = {
   /** Trascrizione vocale. */
-  transcription: "gemini-2.0-flash",
+  transcription: "gemini-3.6-flash",
   /** Comprensione e function calling dell'assistente. */
-  assistant: "gemini-2.0-flash",
+  assistant: "gemini-3.6-flash",
   /** Stima nutrizionale da foto ed etichette. */
-  vision: "gemini-2.0-flash",
+  vision: "gemini-3.6-flash",
 } as const;
 
 /**
