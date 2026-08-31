@@ -75,20 +75,38 @@ if [[ -z "$IP" ]]; then
 fi
 
 APK_NAME="$(basename "$APK")"
+DOWNLOAD_URL="http://$IP:$PORT/$APK_NAME"
+LOCAL_URL="http://localhost:$PORT/$APK_NAME"
 
 echo ""
-echo "  APK   : $APK_NAME ($(du -h "$APK" | cut -f1))"
+echo "============================================================"
+echo "  APK PRONTO AL DOWNLOAD"
+echo "  File : $APK_NAME ($(du -h "$APK" | cut -f1))"
+echo "  URL  : $DOWNLOAD_URL"
+echo "  Local: $LOCAL_URL"
+echo "============================================================"
 echo ""
-echo "  Sul telefono, stessa Wi-Fi, apri:"
+echo "  Inquadra questo QR Code dal telefono (connesso allo stesso Wi-Fi):"
 echo ""
-echo "      http://$IP:$PORT/$APK_NAME"
+
+# Stampa il QR Code direttamente nel terminale
+node -e '
+  try {
+    const qrcode = require("qrcode-terminal");
+    qrcode.generate(process.argv[1], { small: true });
+  } catch (e) {
+    // Continua senza errore se il modulo non fosse presente
+  }
+' "$DOWNLOAD_URL"
+
 echo ""
-echo "  Oppure la cartella:  http://$IP:$PORT/"
-echo "  (Ctrl-C per fermare)"
+echo "  Oppure apri dal browser del telefono:"
+echo "    $DOWNLOAD_URL"
+echo ""
+echo "  (Premi Ctrl-C per terminare il server)"
+echo "------------------------------------------------------------"
 echo ""
 
 # Sta in ascolto su tutta la rete locale, non solo su localhost: e' il punto.
-# Resta acceso finche' non lo fermi tu, quindi non lasciarlo in piedi su una
-# rete di cui non ti fidi.
 cd "$APK_DIR"
 exec python3 -m http.server "$PORT" --bind 0.0.0.0
