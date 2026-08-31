@@ -1,4 +1,4 @@
-# Handoff - 31 agosto 2026 (sera)
+# Handoff - 31 agosto 2026 (fine giornata)
 
 Punto della situazione per riprendere lo sviluppo da una sessione nuova. Non
 sostituisce `CLAUDE.md`, che resta il documento delle convenzioni: qui c'e' lo
@@ -6,13 +6,13 @@ sostituisce `CLAUDE.md`, che resta il documento delle convenzioni: qui c'e' lo
 
 ## In una riga
 
-L'app e' completa e in uso (Fasi 1-5), con un backend Laravel in produzione
-gia' aggiornato all'ultimo lavoro. Non resta niente di aperto sul codice: quel
-che manca e' **provarla davvero**, e per una parte serve un secondo account.
+L'app e' completa e in uso (Fasi 1-5). Sul telefono c'e' la **1.0.2**,
+costruita e installata il 31 agosto: contiene tutto quel che segue.
 
-Il 31 agosto sono venuti fuori due modelli Groq ritirati che tenevano ferme
-tre funzioni AI, e sono nate tre funzioni nuove. **Nessuna delle tre e' mai
-stata vista girare**: sul telefono c'e' la 1.0.1, che non le contiene.
+Il codice non ha niente di aperto. Il **backend si', ed e' l'unica cosa che
+resta**: una migrazione che toglie `share_window_days` e' scritta, testata e
+non deployata, quindi finche' non parte il server continua a tagliare la
+condivisione a sette giorni mentre l'app pubblica tutto lo storico.
 
 ## Stato
 
@@ -20,10 +20,10 @@ stata vista girare**: sul telefono c'e' la 1.0.1, che non le contiene.
 |---|---|
 | Test app | 935 su 58 suite |
 | Test backend | 123 |
-| Typecheck / lint | puliti, 0 errori |
+| Typecheck / lint | puliti, 0 errori (8 warning, tutti anteriori) |
 | Ramo | `main`. Si committa sempre qui, mai su un ramo a parte |
-| Server | `kaltrack.martin-trajkovski.it`, healthy, 16 migrazioni applicate, allineato al codice |
-| APK | firmato, `./scripts/build-apk.sh`. Quello sul telefono e' anteriore all'icona **e all'assistente riparato** |
+| Server | `kaltrack.martin-trajkovski.it`, healthy, 16 migrazioni applicate. **NON allineato al codice**: manca `2026_08_31_120000_drop_share_window_from_users` |
+| APK | `kaltrack-1.0.2.apk`, firmato, **installato sul telefono**. `./scripts/build-apk.sh 1.0.3` per il prossimo |
 
 ## Cosa gira dove
 
@@ -39,51 +39,52 @@ stata vista girare**: sul telefono c'e' la 1.0.1, che non le contiene.
 ## Account
 
 Sul server c'e' **un solo utente**: `GeneralKoski`
-(`mtrajkovski1@outlook.com`), amministratore. La password non e' scritta qui: se
-serve, si reimposta da Impostazioni > Reimposta password, oppure con
+(`mtrajkovski1@outlook.com`), amministratore.
+
+**La password e' stata cambiata in `KalTrack2026` il 31 agosto**, per poter
+provare il modulo di accesso: serviva uscire, e senza una password nota non si
+rientrava. Va cambiata. Si fa da Impostazioni > Reimposta password, oppure con
 `php artisan tinker` sul server assegnando `$u->password = '...'` (il cast
 `hashed` fa l'hash da solo - **non** scrivere un hash a mano nella colonna).
 
+Reimpostare la password **disconnette da tutti i dispositivi**, telefono
+compreso: dopo, l'app chiede di rientrare.
+
 ## Il lavoro aperto
 
-Nessuno sul codice. Restano tre cose da fare con le mani, in ordine di peso.
+**1. Deployare il backend.** E' l'unica cosa che tiene il server disallineato
+dal codice. La migrazione `2026_08_31_120000_drop_share_window_from_users`
+toglie una colonna in **produzione**: si prende il backup con `VACUUM INTO`
+prima (vedi § Il deploy del 31 agosto), poi `rsync` + `php artisan migrate`
+come da `backend/README.md`.
 
-**1. Provare il confronto con dati veri.** Non e' mai stato visto rispondere:
+Finche' non parte, l'app manda tutto lo storico e il server lo taglia lo
+stesso a sette giorni: `forgetOutsideWindow` cancella i giorni fuori finestra a
+ogni salvataggio del profilo, e profilo e confronto continuano a servirne
+sette. Non si rompe niente, semplicemente quella modifica non si vede.
+
+**2. Provare sul telefono quel che l'emulatore non puo' dire.** Due cose:
+
+- **La palla dell'assistente che si muove con la voce.** Il microfono virtuale
+  dell'emulatore riporta `0.000` fisso, anche riavviandolo con
+  `-allow-host-audio` (macOS deve autorizzare il microfono al processo
+  dell'emulatore da una finestra di sistema). Il collegamento e' verificato -
+  il livello arriva a schermo - ma la reazione al volume no.
+- **Le tre funzioni AI contro Groq**: assistente, lettura etichette, stima da
+  foto. I due model id nuovi sono presi dalla tabella dei ritiri e mai provati
+  davvero. Se sbagliano, il motivo si legge in **Impostazioni > Diagnostica**
+  invece di sparire.
+
+**3. Provare il confronto con dati veri.** Non e' mai stato visto rispondere:
 sul server c'e' **un solo utente**, quindi non c'e' nessuno da mettere accanto.
-Serve un secondo account per vedere quelle schermate con dei numeri dentro.
-Passa i test, ma la lezione di questo progetto e' che i difetti seri escono
-aprendo l'app, non dalla suite.
+Serve un secondo account. Passa i test, ma la lezione di questo progetto e' che
+i difetti seri escono aprendo l'app, non dalla suite.
 
-**2. Rifare l'APK e provare le tre funzioni nuove.** E' la cosa piu' urgente,
-perche' il gate verde non dice niente su di esse: i test coprono la logica pura
-e le query, non la fotocamera, non i fogli a schermo, non il salvataggio vero.
-
-- **La foto in "Voce libera"**: fotografa un piatto e guarda se i piatti
-  riconosciuti sono sensati e se correggendo i grammi i valori seguono.
-- **Le scorciatoie delle porzioni**: aggiungi uno yogurt e prova 1/2, 1, 2, 3.
-  Digitando 180 a mano nessuna deve accendersi.
-- **La composizione di una voce da ricetta**: aggiungi una ricetta, apri la
-  freccia, cambia una grammatura, togli un ingrediente, aggiungine uno che non
-  esiste creandolo da li', e salva la variante come ricetta nuova. Controlla
-  che la **ricetta originale non sia cambiata**: e' la promessa piu' facile da
-  rompere di tutta la funzione.
-
-```bash
-./scripts/build-apk.sh 1.0.1     # 1.0.0 e' quello gia' installato
-./scripts/serve-apk.sh
-```
-
-**I due modelli nuovi non sono ancora stati provati contro Groq**: sono presi
-dalla tabella dei ritiri e dalle schede dei modelli, e le capability che
-servono - tool use per l'assistente, immagini piu' JSON object mode per le
-foto - risultano dichiarate. La chiave pero' vive sul telefono, quindi la
-prima chiamata vera sara' quella dell'APK. Se sbaglia, adesso il motivo si
-legge in Impostazioni > Diagnostica invece di sparire.
-
-**3. Ripulire l'emulatore.** Ci sono dati di prova lasciati apposta durante le
-verifiche: obiettivo 2000 kcal, 100 g di anacardi, 10.000 passi, un esercizio
-`Pancainc test` gia' cancellato. Vivono solo li' e non sono mai arrivati al
-server, perche' quella sessione era scaduta.
+**4. Ripulire l'emulatore.** Ci sono dati di prova: obiettivo 2000 kcal,
+10.000 passi, un esercizio `Pancainc test` gia' cancellato, e il tema forzato
+su "Scuro". **La chiave Groq sull'emulatore e' stata tolta** durante le prove e
+va rimessa se ci si vuole riprovare l'AI; quella del telefono non e' stata
+toccata (vive in SecureStore e l'aggiornamento non la sfiora).
 
 ### Rimandato per scelta, non dimenticato
 
@@ -109,8 +110,9 @@ Cosa e' cambiato nella promessa dell'app, in tre righe:
 
 - `share_gym`, quinto interruttore, spento di serie e **indipendente** da
   `share_workouts`. Acceso, pubblica quali esercizi si fanno e con che carico.
-- `share_window_days`: quanto passato esce lo sceglie l'utente, sette di
-  default. Restringerla cancella dal server quel che ne resta fuori.
+- `share_window_days`: quanto passato esce lo sceglieva l'utente, sette di
+  default. **Tolta il 31 agosto**: si pubblica tutto lo storico. Vedi
+  § Il 31 agosto, notte.
 - il catalogo degli esercizi (`exercises` sul server) e' comune a **tutti gli
   iscritti**, ed e' la prima eccezione a "solo fra amici accettati". Non
   registra chi ha aggiunto cosa. Si alimenta dalla schermata Esercizi: il "+"
@@ -170,6 +172,10 @@ Claude. Quel che ha funzionato, se serve rifarlo:
   trovata invece di sovrascriverla;
 - **committare ogni pezzo subito**, cosi' il proprio lavoro non resta a mollo
   accanto a quello dell'altro;
+- **mai `git stash`**: stasha *tutto* il working tree, quindi anche il lavoro in
+  corso dell'altra sessione, e fra lo stash e il pop c'e' una finestra in cui
+  l'altro puo' scrivere e perdersi il proprio. Usato una volta per una verifica
+  di due secondi, e per fortuna l'altro aveva appena committato;
 - **il numero della migrazione va dichiarato**: se entrambe ne aggiungono una e
   prendono lo stesso numero, `PRAGMA user_version` ne applica una sola e l'altra
   sparisce **in silenzio**.
@@ -180,6 +186,75 @@ rimozioni dell'altra, la via d'uscita e' stata costruire per l'indice il
 contenuto desiderato (HEAD piu' le proprie chiavi) e metterlo in stage con
 `git update-index --cacheinfo`, lasciando fuori le modifiche dell'altra
 sessione. Verificato in entrambe le direzioni prima di committare.
+
+## Il 31 agosto, notte: il primo giro di prove sul telefono
+
+Sedici punti annotati usando l'app, tutti chiusi, **tutti verificati a schermo**
+sull'emulatore tranne dove detto. In ordine di quel che raccontano.
+
+**Cose che erano rotte e non si vedevano dal codice**
+
+- **L'"Annulla" grigio su nero in tema scuro.** Non era quel pulsante: era il
+  tema **chiaro** che filtrava dentro tutte le modali, perche' gluestack le
+  porta dentro `OverlayProvider` e `ThemeProvider` gli stava sotto. Regola e
+  spiegazione in `CLAUDE.md` § L'ordine dei provider in `App.tsx`.
+- **Il back di Android attraversava i fogli** e faceva il pop della schermata
+  dietro: lo sfondo si muoveva e il drawer restava aperto.
+- **La striscia dei tipi di pasto non scorreva**: era una `ScrollView` di
+  react-native annidata in un foglio gorhom, che gira su gesture-handler.
+- **`ExitConfirm` esisteva dal lavoro sulla navigazione e non era mai stato
+  montato**: il back sulla schermata iniziale chiudeva l'app di colpo.
+- **"Il mio account" restava a girare per sempre** a sessione scaduta. Trovato
+  reimpostando la password, che revoca ogni token. Bastava una password
+  cambiata da un altro dispositivo.
+
+**Cose che c'erano e dicevano la cosa sbagliata**
+
+- Senza chiave AI le tre funzioni mostravano una riga spenta che diceva cosa
+  mancava e non dove metterlo. Ora `AiKeyPrompt` porta dritti al campo, con il
+  cursore dentro. La stima da foto lo chiede **prima** di aprire la fotocamera.
+- Il nome dei macro stava nel placeholder e veniva tagliato a meta' parola
+  ("Carboid"): un placeholder non si puo' accorciare con i tre puntini, e
+  infatti ora e' un'etichetta sopra il campo.
+- La parola "Chiudi" accanto alla X dei fogli.
+
+**Cose nuove**
+
+- **Il profilo e' un profilo**: avatar, nome, bio e quattro numeri (peso,
+  giorni di fila, allenamenti della settimana, media kcal), poi le voci
+  raggruppate in Alimentazione / Palestra / Progressi / App, con le
+  impostazioni dietro l'ingranaggio. Erano tredici righe identiche.
+- **`FoodFacts`**: foto e valori per 100 g di un alimento, compatti nella
+  finestra dei grammi e per esteso dietro l'icona info nell'elenco. Il tocco
+  sulla riga continua a scegliere.
+- **`VoiceOrb`**: la palla che si muove sul volume vero del microfono
+  (`metering`, che `useVoiceRecording` esponeva gia' come `level` e nessuno
+  leggeva). E' anche il bottone per fermarsi.
+- **Il modulo di accesso si comporta da modulo**: invio al campo successivo,
+  occhiolino sulla password, password azzerata passando fra accesso e
+  registrazione, e la tastiera non copre piu' il campo.
+
+**Due decisioni di prodotto**
+
+- **Si condivide tutto lo storico.** `share_window_days` e' sparita da app e
+  server: era un'impostazione in piu' su una domanda che nessuno si pone, e
+  intanto tagliava il confronto a una settimana. Il telefono pubblica dal primo
+  giorno scritto (`earliestRecordedDate`) a oggi. **La migrazione non e'
+  deployata**, vedi § Il lavoro aperto.
+- **Il microfono vive solo su Oggi.** L'assistente scrive pasti, passi, peso e
+  obiettivi - quel che sta su Oggi - e in palestra non tocca niente. Globale
+  seguiva l'utente in dodici schermate dove non poteva far nulla, e in due si
+  sedeva sopra un interruttore. Dettagli in `CLAUDE.md` § Dove vive il
+  microfono.
+
+**Cosa fa l'assistente, per non doverlo ricostruire**
+
+Sette strumenti in `src/ai/tools/registry.ts`: `add_meal_entries`, `log_steps`,
+`log_weight`, `set_target`, `delete_entry` (sempre a conferma manuale),
+`query_summary` e `navigate`. Cioe': **cibo, passi, peso, obiettivi**. Non
+esiste niente per la palestra, e un alimento dettato che non esiste **non entra
+in catalogo** - diventa una voce libera di quel giorno, risolta contro i propri
+alimenti, il database locale, OpenFoodFacts e infine una stima AI.
 
 ## I due modelli morti (31 agosto)
 
@@ -272,8 +347,25 @@ vero, non dai test.** Le calorie a zero invece del trattino, la ricerca che non
 era stata deployata, le foto rotte sul secondo dispositivo: nessuno di questi
 sarebbe emerso da una suite verde.
 
+Il 31 agosto lo ha confermato di nuovo: sedici punti erano stati annotati
+usando l'app, e cinque difetti in piu' sono usciti mentre li si verificava a
+schermo - fra cui il tema chiaro dentro le modali, che nessun test avrebbe mai
+mostrato. **Aprire l'app e guardarla e' un passaggio del lavoro, non un extra.**
+
 Screenshot con `adb exec-out screencap -p > /tmp/x.png`, log con
 `adb logcat -d -s ReactNativeJS:V`.
+
+Un colore sospetto si misura invece di indovinarlo: ritagliare la zona dallo
+screenshot e contare i pixel dominanti dice *quale* colore e' stato usato, ed e'
+cosi' che si e' scoperto che l'"Annulla" era disegnato con l'accent del tema
+chiaro.
+
+**Quel che l'emulatore non puo' dire.** Il suo microfono virtuale riporta
+silenzio fisso (`level` a `0.000`), anche avviandolo con `-allow-host-audio`:
+tutto cio' che reagisce al volume va provato sul telefono. Il fast refresh, poi,
+rilascia gli oggetti nativi di `expo-audio` e fa comparire "Cannot use shared
+object that was already released": non e' un difetto dell'app, si riavvia
+l'applicazione e passa.
 
 Per guardare il database dell'app sull'emulatore senza indovinare:
 

@@ -321,6 +321,29 @@ React Navigation 7.x con API statica (`createStaticNavigation`). I tipi sono
 generati da `StaticParamList` in `src/navigation/index.tsx`. `useAppNav`
 centralizza l'unico cast necessario.
 
+### Dove vive il microfono
+
+`AssistantButton` e' montato **dentro `TodayScreen`**, non sopra la navigazione.
+
+E' una scelta di prodotto prima che di layout: l'assistente scrive pasti,
+passi, peso e obiettivi - esattamente quel che sta su Oggi - e in palestra non
+tocca niente (`src/ai/tools/registry.ts` ha sette strumenti e nessuno riguarda
+gli allenamenti). Globale, seguiva l'utente in dodici schermate dove non poteva
+fare nulla, e in due si sedeva sopra un interruttore.
+
+Il guadagno tecnico e' che sparisce l'aritmetica: montato fuori dal navigatore
+il microfono si misurava dal fondo della **finestra**, mentre il "+" di una
+schermata si misura dal fondo della **schermata**, che finisce dove inizia la
+tab bar. Lo stesso `bottom` cadeva a due quote diverse, ed e' cosi' che i due
+bottoni si sovrapponevano sulla home e non su Alimenti. Ora sono due elementi
+della stessa schermata: `SCREEN_FAB_BOTTOM` impila il "+" sopra il microfono e
+`ASSISTANT_FAB_CLEARANCE` e' lo spazio che **solo la lista di Oggi** si lascia
+in fondo. Nessun'altra schermata deve piu' riservare niente.
+
+Resta montato anche mentre si guarda un'altra scheda - i tab non si smontano
+dopo la prima visita - quindi la scorciatoia `kaltrack://assistente` sull'icona
+dell'app continua a far partire l'ascolto da qualunque punto.
+
 ### Organizzazione dei componenti
 
 - `src/components/` — generici, presentazionali, riusabili (`ui/`, `form/`,
@@ -330,6 +353,25 @@ centralizza l'unico cast necessario.
 
 Estraendo un componente da una schermata, default a `containers/<feature>/` a
 meno che non sia davvero generico.
+
+### L'ordine dei provider in `App.tsx`
+
+**`ThemeProvider` sta SOPRA `GluestackUIProvider`, e non e' un dettaglio.**
+
+Gluestack porta le sue modali dentro `OverlayProvider`: non le lascia dove sono
+scritte, le rimonta nel punto dell'albero dove vive quel provider. Con il tema
+sotto, qualunque cosa dentro una modale leggesse `useAppTheme()` finiva fuori
+dal contesto e prendeva il valore di default - il tema **chiaro**.
+
+Si e' visto per settimane come un solo pulsante sbagliato: l'"Annulla" di ogni
+dialogo, grigio su nero in tema scuro, disegnato con `#18181b` (l'accent del
+tema chiaro) sopra una superficie scura. Sembrava un difetto di quel bottone
+perche' `DfButton` e' quasi l'unico componente che il colore se lo risolve da
+solo; a tutti gli altri arriva gia' calcolato da chi li usa, e quelli erano
+giusti.
+
+Chi sposta i provider deve riaprire un `DfAlert` in tema scuro prima di
+dichiarare fatto.
 
 ### Styling
 
@@ -372,6 +414,16 @@ Valgono le guide Dieffetech `docs/react-native/`:
 - Animazioni con `react-native-reanimated`; il suo plugin babel resta l'ultimo.
 - TypeScript strict, mai `any`.
 - Logging solo via `logger`, mai `console.*`.
+- **Un overlay aperto consuma il back di Android.** `DfBottomSheet` intercetta
+  `hardwareBackPress` finche' e' aperto e ritorna `true`: senza, l'evento gli
+  passa attraverso e arriva a react-navigation, che fa il pop della schermata
+  **dietro** - lo sfondo si muove e il foglio resta li'. La prop
+  `onAndroidBack` serve ai fogli con sotto-viste, per tornare indietro dentro
+  prima di chiudere.
+- **Una `ScrollView` annidata in un foglio gorhom dev'essere quella di
+  `react-native-gesture-handler`.** Quella di react-native non riceve i gesti
+  dentro un `BottomSheetScrollView`: resta ferma e sembra un contenuto che non
+  scorre.
 
 ## AI
 
