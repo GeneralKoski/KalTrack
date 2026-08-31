@@ -789,6 +789,16 @@
     "no_message": "Senza messaggio",
     "share": "Condividi il registro",
     "share_failed": "Condivisione non riuscita",
-    "clear": "Svuota il registro"
+    "clear": "Svuota il registro",
+    "models_section": "Modelli AI",
+    "models_hint": "Un modello ritirato da Groq non dà segnale: la funzione smette di colpo. Questa prova chiede quali id sono ancora serviti.",
+    "models_check": "Prova i modelli",
+    "models_failed": "Prova non riuscita",
+    "models_no_key": "Manca la chiave API: aggiungila in Impostazioni",
+    "capability": {
+      "transcription": "Trascrizione",
+      "assistant": "Assistente",
+      "vision": "Foto"
+    }
   }
 }

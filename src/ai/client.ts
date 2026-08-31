@@ -258,6 +258,49 @@ export async function chat(args: {
   }
 }
 
+/**
+ * I model id che Groq sta servendo a questa chiave.
+ *
+ * Serve a una domanda sola: gli id in `config.ts` esistono ancora? E' la
+ * verifica piu' economica possibile - una GET, nessun token speso, nessun
+ * effetto - e copre l'unico guasto che si e' presentato due volte: un modello
+ * ritirato che fa morire una capability di colpo.
+ *
+ * Si chiede l'elenco invece di interrogare `/models/{id}` uno per uno perche'
+ * due id su tre contengono una barra (`openai/gpt-oss-120b`), e infilarla in
+ * un percorso significa scegliere fra un path annidato e un %2F senza sapere
+ * quale dei due il provider accetti.
+ */
+export async function listAvailableModels(): Promise<string[]> {
+  if (!hasGroqKey()) throw new MissingApiKeyError();
+
+  const response = await withTimeout(`${GROQ_BASE_URL}/models`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${groqKey()}` },
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new AiRequestError(
+      `Elenco dei modelli non disponibile ${response.status}: ${body.slice(0, 200)}`,
+      response.status,
+    );
+  }
+
+  const json = (await response.json()) as { data?: unknown };
+  if (!Array.isArray(json.data)) {
+    throw new AiResponseError("Elenco dei modelli: manca il campo data");
+  }
+
+  return json.data
+    .map((entry) =>
+      typeof entry === "object" && entry !== null
+        ? (entry as { id?: unknown }).id
+        : null,
+    )
+    .filter((id): id is string => typeof id === "string");
+}
+
 /** Trascrizione audio. Multipart, quindi non passa da `chat`. */
 export async function transcribeAudio(args: {
   capability: AiCapability;

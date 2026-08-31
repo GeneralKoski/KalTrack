@@ -1,4 +1,6 @@
 import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
+import { MissingApiKeyError } from "@/src/ai/errors";
+import { checkModels, type ModelCheck } from "@/src/ai/health";
 import { DfButton } from "@/src/components/form/DfButton";
 import { Card, EmptyState, ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
@@ -16,7 +18,7 @@ import { shareLogReport } from "@/src/services/logExport";
 import { theme } from "@/src/styles";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
-import { ChevronLeft, Share2, Trash2 } from "lucide-react-native";
+import { Check, ChevronLeft, Share2, Trash2, X } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import {
@@ -84,7 +86,8 @@ export function DiagnosticsScreen() {
 
   const [logs, setLogs] = useState<AppLog[]>([]);
   const [aiCalls, setAiCalls] = useState<FailedAiCall[]>([]);
-  const [busy, setBusy] = useState<"share" | "clear" | null>(null);
+  const [busy, setBusy] = useState<"share" | "clear" | "models" | null>(null);
+  const [checks, setChecks] = useState<ModelCheck[] | null>(null);
 
   const ricarica = useCallback(async () => {
     const [righe, chiamate] = await Promise.all([
@@ -108,6 +111,29 @@ export function DiagnosticsScreen() {
     } catch (error) {
       logger.error("[diagnostica] condivisione fallita", error);
       showToast.error({ title: t("diagnostics.share_failed") });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  /**
+   * La prova esiste perche' un modello ritirato non da' segno di se': la
+   * capability muore e l'app non ha modo di sapere perche'. Qui si chiede a
+   * Groq l'elenco di quel che serve a questa chiave e si confronta.
+   */
+  const onCheckModels = async () => {
+    setBusy("models");
+    try {
+      setChecks(await checkModels());
+    } catch (error) {
+      setChecks(null);
+      if (error instanceof MissingApiKeyError) {
+        showToast.error({ title: t("diagnostics.models_no_key") });
+      } else {
+        logger.error("[diagnostica] prova dei modelli fallita", error);
+        showToast.error({ title: t("diagnostics.models_failed") });
+      }
+      await ricarica();
     } finally {
       setBusy(null);
     }
@@ -149,6 +175,41 @@ export function DiagnosticsScreen() {
           <Text style={[styles.explain, { color: colors.textSecondary }]}>
             {t("diagnostics.explain")}
           </Text>
+
+          <SectionLabel>{t("diagnostics.models_section")}</SectionLabel>
+          <Card style={styles.modelli}>
+            <Text style={[styles.modelliHint, { color: colors.textFaint }]}>
+              {t("diagnostics.models_hint")}
+            </Text>
+            {checks?.map((check) => (
+              <View key={check.capability} style={styles.modelloRiga}>
+                {check.served ? (
+                  <Check size={16} color={theme.colors.success} />
+                ) : (
+                  <X size={16} color={theme.colors.error} />
+                )}
+                <Text
+                  style={[styles.modelloNome, { color: colors.text }]}
+                  numberOfLines={1}
+                >
+                  {t(`diagnostics.capability.${check.capability}`)}
+                </Text>
+                <Text
+                  style={[styles.modelloId, { color: colors.textFaint }]}
+                  numberOfLines={1}
+                >
+                  {check.model}
+                </Text>
+              </View>
+            ))}
+            <DfButton
+              label={t("diagnostics.models_check")}
+              variant="outlined"
+              onPress={onCheckModels}
+              loading={busy === "models"}
+              disabled={busy !== null}
+            />
+          </Card>
 
           {vuoto ? (
             <EmptyState message={t("diagnostics.empty")} />
@@ -237,4 +298,13 @@ const styles = StyleSheet.create({
   sottotitolo: { fontSize: 12 },
   dettaglio: { fontSize: 12, lineHeight: 17, marginTop: 4 },
   azioni: { marginTop: theme.spacing.md, gap: theme.spacing.sm },
+  modelli: { padding: theme.spacing.md, gap: theme.spacing.sm },
+  modelliHint: { fontSize: 12, lineHeight: 17 },
+  modelloRiga: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  modelloNome: { fontSize: 13, fontWeight: "600" },
+  modelloId: { flex: 1, fontSize: 11, textAlign: "right" },
 });
