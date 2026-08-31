@@ -1,4 +1,7 @@
-import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
+import {
+  SCREEN_FAB_SIZE,
+  useScreenFabBottom,
+} from "@/src/containers/assistant/AssistantButton";
 import {
   Card,
   EmptyState,
@@ -71,7 +74,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface DayData {
   diary: DayDiary;
@@ -88,7 +91,7 @@ interface DayData {
 export function TodayScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
-  const insets = useSafeAreaInsets();
+  const fabBottom = useScreenFabBottom();
   const { navigate } = useAppNav();
   const today = todayIso();
 
@@ -357,7 +360,7 @@ export function TodayScreen() {
           <ScrollView
             contentContainerStyle={[
               styles.content,
-              { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
+              { paddingBottom: fabBottom + SCREEN_FAB_SIZE + theme.spacing.md },
             ]}
           >
             <Card style={styles.summary}>
@@ -438,7 +441,7 @@ export function TodayScreen() {
       </SafeAreaView>
 
       <TouchableOpacity
-        style={[styles.fab, { bottom: insets.bottom + theme.spacing.lg }]}
+        style={[styles.fab, { bottom: fabBottom }]}
         activeOpacity={0.6}
         onPress={() => openAdd()}
       >
@@ -579,8 +582,8 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   fabSurface: {
-    width: 56,
-    height: 56,
+    width: SCREEN_FAB_SIZE,
+    height: SCREEN_FAB_SIZE,
     alignItems: "center",
     justifyContent: "center",
   },

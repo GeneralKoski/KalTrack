@@ -21,8 +21,15 @@ import { useDayContextStore } from "@/src/stores/dayContextStore";
 import { theme } from "@/src/styles";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
+import { BottomTabBarHeightContext } from "@react-navigation/bottom-tabs";
 import { Mic } from "lucide-react-native";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { StyleSheet, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -182,7 +189,7 @@ export const AssistantButton: React.FC = () => {
   return (
     <>
       <TouchableOpacity
-        style={[styles.button, { bottom: insets.bottom + 88 }]}
+        style={[styles.button, { bottom: insets.bottom + FAB_OFFSET }]}
         activeOpacity={0.6}
         onPress={() => {
           setOpen(true);
@@ -228,6 +235,11 @@ export const AssistantButton: React.FC = () => {
   );
 };
 
+/** Quanto il microfono sta staccato dal fondo della finestra, oltre l'inset. */
+const FAB_OFFSET = 88;
+/** Lato del microfono. */
+const FAB_SIZE = 52;
+
 /**
  * Spazio che ogni schermata scorrevole deve lasciarsi in fondo perché il
  * microfono dell'assistente non copra l'ultima riga di contenuto.
@@ -237,7 +249,35 @@ export const AssistantButton: React.FC = () => {
  * il bottone a deciderla: spostarlo senza aggiornare questo numero
  * rimetterebbe il difetto in tutte e dodici le schermate insieme.
  */
-export const ASSISTANT_FAB_CLEARANCE = 88 + 52 + 16;
+export const ASSISTANT_FAB_CLEARANCE = FAB_OFFSET + FAB_SIZE + theme.spacing.md;
+
+/** Lato del "+" delle schermate: più grande del microfono, è l'azione locale. */
+export const SCREEN_FAB_SIZE = 56;
+
+/**
+ * Dove appoggiare il "+" di una schermata perché stia SOPRA il microfono
+ * invece che addosso.
+ *
+ * Il microfono è montato FUORI dal navigatore, quindi la sua quota si misura
+ * dal fondo della finestra; il "+" vive dentro una schermata, che finisce dove
+ * inizia la tab bar. Lo stesso `bottom` cade quindi a due altezze diverse a
+ * seconda di dove sta la schermata - ed è esattamente così che i due bottoni
+ * si sovrapponevano sulla home (dentro i tab) e non su Alimenti (nel root
+ * stack). Sottrarre l'altezza della tab bar riporta le due misure nello stesso
+ * sistema di riferimento.
+ *
+ * `BottomTabBarHeightContext` e non `useBottomTabBarHeight()`: l'hook lancia
+ * dove la tab bar non c'è, e metà delle schermate con un "+" sono nel root
+ * stack.
+ */
+export function useScreenFabBottom(): number {
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = useContext(BottomTabBarHeightContext) ?? 0;
+  return Math.max(
+    theme.spacing.lg,
+    insets.bottom + FAB_OFFSET + FAB_SIZE + theme.spacing.sm - tabBarHeight,
+  );
+}
 
 const styles = StyleSheet.create({
   button: {
@@ -251,8 +291,8 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   surface: {
-    width: 52,
-    height: 52,
+    width: FAB_SIZE,
+    height: FAB_SIZE,
     alignItems: "center",
     justifyContent: "center",
   },

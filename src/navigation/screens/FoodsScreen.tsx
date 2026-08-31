@@ -1,4 +1,7 @@
-import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
+import {
+  SCREEN_FAB_SIZE,
+  useScreenFabBottom,
+} from "@/src/containers/assistant/AssistantButton";
 import {
   EmptyState,
   MetalSurface,
@@ -17,7 +20,7 @@ import type { FoodRow } from "@/src/types/nutrition";
 import { ChevronLeft, Plus, Salad } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -25,7 +28,7 @@ export function FoodsScreen() {
   const { t } = useTranslation();
   const { navigate, goBack } = useAppNav();
   const { colors } = useAppTheme();
-  const insets = useSafeAreaInsets();
+  const fabBottom = useScreenFabBottom();
   const [term, setTerm] = useState("");
   const [debounced, setDebounced] = useState("");
 
@@ -88,7 +91,7 @@ export function FoodsScreen() {
             )}
             contentContainerStyle={[
               styles.list,
-              { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
+              { paddingBottom: fabBottom + SCREEN_FAB_SIZE + theme.spacing.md },
             ]}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
             keyboardShouldPersistTaps="handled"
@@ -103,7 +106,7 @@ export function FoodsScreen() {
       </SafeAreaView>
 
       <TouchableOpacity
-        style={[styles.fab, { bottom: insets.bottom + theme.spacing.lg }]}
+        style={[styles.fab, { bottom: fabBottom }]}
         activeOpacity={0.6}
         onPress={() => navigate("FoodForm", {})}
       >
@@ -159,8 +162,8 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   fabSurface: {
-    width: 56,
-    height: 56,
+    width: SCREEN_FAB_SIZE,
+    height: SCREEN_FAB_SIZE,
     alignItems: "center",
     justifyContent: "center",
   },
