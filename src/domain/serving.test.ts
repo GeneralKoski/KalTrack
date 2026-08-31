@@ -3,6 +3,7 @@ import {
   formatGrams,
   SERVING_MULTIPLIERS,
   servingGrams,
+  toGrams,
 } from "@/src/domain/serving";
 
 describe("servingGrams", () => {
@@ -68,5 +69,16 @@ describe("formatGrams", () => {
   it("non lascia zeri in coda", () => {
     expect(formatGrams(62.0)).toBe("62");
     expect(formatGrams(62.5)).toBe("62,5");
+  });
+});
+describe("toGrams", () => {
+  it("accetta la virgola come separatore decimale", () => {
+    expect(toGrams("12,5")).toBeCloseTo(12.5);
+  });
+
+  it("su testo non numerico o negativo torna zero", () => {
+    expect(toGrams("")).toBe(0);
+    expect(toGrams("abc")).toBe(0);
+    expect(toGrams("-30")).toBe(0);
   });
 });

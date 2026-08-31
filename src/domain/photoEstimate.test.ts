@@ -4,7 +4,6 @@ import {
   rowNutrients,
   rowsFromEstimate,
   savableRows,
-  toGrams,
 } from "@/src/domain/photoEstimate";
 import { EMPTY_NUTRIENTS, type Nutrients } from "@/src/domain/nutrition";
 
@@ -132,17 +131,5 @@ describe("savableRows", () => {
     ]);
 
     expect(salvabili.map((r) => r.label)).toEqual(["Pasta"]);
-  });
-});
-
-describe("toGrams", () => {
-  it("accetta la virgola come separatore decimale", () => {
-    expect(toGrams("12,5")).toBeCloseTo(12.5);
-  });
-
-  it("su testo non numerico o negativo torna zero", () => {
-    expect(toGrams("")).toBe(0);
-    expect(toGrams("abc")).toBe(0);
-    expect(toGrams("-30")).toBe(0);
   });
 });

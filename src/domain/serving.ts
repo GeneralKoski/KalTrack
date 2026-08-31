@@ -49,3 +49,17 @@ export function activeMultiplier(
  */
 export const formatGrams = (grams: number): string =>
   String(Number(grams.toFixed(2))).replace(".", ",");
+
+/**
+ * Grammi da quel che si e' digitato. La virgola e' il separatore decimale
+ * italiano, e un campo vuoto o assurdo vale zero: zero grammi esclude la riga
+ * dal salvataggio invece di scriverne una a caso.
+ *
+ * Sta qui e non accanto a chi la usa perche' i consumatori sono due - la stima
+ * da foto e la composizione di una voce - e una copia per ciascuno divergerebbe
+ * alla prima correzione.
+ */
+export function toGrams(text: string): number {
+  const parsed = Number(text.replace(",", "."));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}

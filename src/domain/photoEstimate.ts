@@ -58,13 +58,3 @@ export const savableRows = (rows: EstimateRow[]): EstimateRow[] =>
 
 export const includedTotals = (rows: EstimateRow[]): Nutrients =>
   sumNutrients(savableRows(rows).map(rowNutrients));
-
-/**
- * Grammi da quel che si e' digitato. La virgola e' il separatore decimale
- * italiano, e un campo vuoto o assurdo vale zero: zero grammi esclude la riga
- * dal salvataggio invece di scriverne una a caso.
- */
-export function toGrams(text: string): number {
-  const parsed = Number(text.replace(",", "."));
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
-}

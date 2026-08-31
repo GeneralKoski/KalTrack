@@ -7,9 +7,9 @@ import {
   rowNutrients,
   rowsFromEstimate,
   savableRows,
-  toGrams,
   type EstimateRow,
 } from "@/src/domain/photoEstimate";
+import { toGrams } from "@/src/domain/serving";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import { Check, Square } from "lucide-react-native";
