@@ -147,7 +147,20 @@
     "multiplier_unit": "× la porzione",
     "pick_day": "Scegli il giorno",
     "pick_day_hint": "Il cerchietto dice com'è andata con le calorie, diviso per proteine, carboidrati e grassi. Vuoto vuol dire che non hai scritto niente.",
-    "free_macro_placeholder": "0"
+    "free_macro_placeholder": "0",
+    "edited": "modificata",
+    "ingredients_show": "Vedi ingredienti",
+    "ingredient_detail": "%{grams} g · %{kcal} kcal",
+    "kcal_short": "kcal",
+    "composition_title": "Modifica la composizione",
+    "composition_add": "Aggiungi un ingrediente",
+    "composition_empty": "Non è rimasto niente: se non hai mangiato nulla, togli la voce dal diario invece di svuotarla",
+    "composition_save_recipe": "Salva come nuova ricetta",
+    "composition_saved_recipe": "Ricetta creata",
+    "composition_variant_name": "%{name} (variante)",
+    "quick_food_title": "Nuovo alimento",
+    "quick_food_hint": "I valori sono per 100 g. Potrai completarlo da Alimenti.",
+    "quick_food_create": "Crea «%{name}»"
   },
   "targets": {
     "title": "Obiettivi",

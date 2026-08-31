@@ -20,6 +20,7 @@ import { WaterCard } from "@/src/containers/wellbeing/WaterCard";
 import { DayHeader } from "@/src/containers/diary/DayHeader";
 import { DayPickerSheet } from "@/src/containers/diary/DayPickerSheet";
 import { FreeEntrySheet } from "@/src/containers/diary/FreeEntrySheet";
+import { EntryCompositionSheet } from "@/src/containers/diary/EntryCompositionSheet";
 import { PhotoEstimateSheet } from "@/src/containers/diary/PhotoEstimateSheet";
 import {
   estimateFromPhoto,
@@ -111,6 +112,8 @@ export function TodayScreen() {
   );
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
+  /** La voce di cui si sta modificando la composizione. */
+  const [composing, setComposing] = useState<MealEntryRow | null>(null);
   const [askKey, setAskKey] = useState(false);
   const [stepsOpen, setStepsOpen] = useState(false);
   const [weightOpen, setWeightOpen] = useState(false);
@@ -298,6 +301,13 @@ export function TodayScreen() {
     }
   };
 
+  const onEditComposition = (entryId: string) => {
+    const entry = data?.diary.meals
+      .flatMap((m) => m.entries)
+      .find((e) => e.id === entryId);
+    if (entry) setComposing(entry);
+  };
+
   const onDeleteEntry = async (entryId: string) => {
     await deleteEntry(entryId);
     reload();
@@ -441,6 +451,7 @@ export function TodayScreen() {
                   names={data.names}
                   onAdd={() => openAdd(meal.type.id)}
                   onEditEntry={onEditEntry}
+                  onEditComposition={onEditComposition}
                   onDeleteEntry={onDeleteEntry}
                 />
               ))
@@ -504,6 +515,18 @@ export function TodayScreen() {
       />
 
       <AiKeyPrompt isOpen={askKey} onClose={() => setAskKey(false)} />
+
+      <EntryCompositionSheet
+        isOpen={composing !== null}
+        entryId={composing?.id ?? null}
+        title={composing ? (data?.names[composing.id] ?? "") : ""}
+        servings={composing?.servings ?? 1}
+        onSaved={() => {
+          setComposing(null);
+          reload();
+        }}
+        onClose={() => setComposing(null)}
+      />
 
       <PhotoEstimateSheet
         isOpen={photoBusy || photoEstimate !== null}

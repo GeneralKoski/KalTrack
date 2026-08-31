@@ -15,6 +15,7 @@ interface MealSectionProps {
   names: Record<string, string>;
   onAdd: () => void;
   onEditEntry: (entryId: string) => void;
+  onEditComposition: (entryId: string) => void;
   onDeleteEntry: (entryId: string) => void;
 }
 
@@ -23,6 +24,7 @@ export const MealSection: React.FC<MealSectionProps> = ({
   names,
   onAdd,
   onEditEntry,
+  onEditComposition,
   onDeleteEntry,
 }) => {
   const { t } = useTranslation();
@@ -55,6 +57,7 @@ export const MealSection: React.FC<MealSectionProps> = ({
             entry={entry}
             name={names[entry.id] ?? t("diary.unknown_entry")}
             onPress={() => onEditEntry(entry.id)}
+            onEditComposition={() => onEditComposition(entry.id)}
             onDelete={() => onDeleteEntry(entry.id)}
           />
         </View>
