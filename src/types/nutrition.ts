@@ -158,6 +158,11 @@ export interface MealEntryRow {
   confidence: number | null;
   note: string | null;
   photo_uri: string | null;
+  /**
+   * JSON della composizione della voce, o NULL per una voce che non ne ha una.
+   * Si legge con `parseComposition`, mai con `JSON.parse` diretto.
+   */
+  components: string | null;
   created_via: EntryCreatedVia;
   sort: number;
   created_at: string;

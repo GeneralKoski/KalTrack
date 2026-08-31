@@ -7,6 +7,7 @@ import { migration006 } from "@/src/db/migrations/006_achievements";
 import { migration007 } from "@/src/db/migrations/007_wellbeing";
 import { migration008 } from "@/src/db/migrations/008_planning";
 import { migration009 } from "@/src/db/migrations/009_app_logs";
+import { migration010 } from "@/src/db/migrations/010_entry_components";
 import type { Migration } from "@/src/db/migrations/types";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 import { logger } from "@/src/utils/logger";
@@ -24,6 +25,7 @@ export const MIGRATIONS: Migration[] = [
   migration007,
   migration008,
   migration009,
+  migration010,
 ];
 
 /**

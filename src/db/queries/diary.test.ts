@@ -10,12 +10,16 @@ import {
   deleteEntry,
   deleteMealType,
   getDayDiary,
+  getEntryComposition,
   listMealTypes,
+  materializeComposition,
   renameMealType,
+  saveEntryComposition,
   updateEntryQuantity,
 } from "@/src/db/queries/diary";
 import { createFood, getFood, updateFood } from "@/src/db/queries/foods";
-import { createRecipe } from "@/src/db/queries/recipes";
+import { createRecipe, deleteRecipe, updateRecipe } from "@/src/db/queries/recipes";
+import { setComponentGrams } from "@/src/domain/entryComposition";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 
@@ -324,5 +328,129 @@ describe("tipi di pasto", () => {
   it("i tipi di default non sono cancellabili", async () => {
     await expect(deleteMealType(MEAL_TYPE_IDS.lunch)).rejects.toThrow();
     expect((await listMealTypes()).map((t) => t.name)).toContain("pranzo");
+  });
+});
+
+/** Ricetta da due porzioni con 140 g di zucchine, e una voce da una porzione. */
+async function setupCrepes(): Promise<{
+  entryId: string;
+  recipeId: string;
+  foodId: string;
+}> {
+  const foodId = await createFood({
+    name: "Zucchine",
+    nutrients: { ...EMPTY_NUTRIENTS, kcal: 17 },
+  });
+  const recipeId = await createRecipe({
+    name: "Crepes",
+    servings: 2,
+    items: [{ foodId, quantityG: 140 }],
+  });
+  const entryId = await addRecipeEntry({
+    date: DATE,
+    mealTypeId: MEAL_TYPE_IDS.lunch,
+    recipeId,
+    servings: 1,
+  });
+  return { entryId, recipeId, foodId };
+}
+
+/** Azzera la colonna: e' lo stato di una voce scritta prima della migrazione 10. */
+async function forgetComposition(entryId: string): Promise<void> {
+  await db.runAsync("UPDATE meal_entries SET components = NULL WHERE id = ?", [
+    entryId,
+  ]);
+}
+
+const kcalOf = async (entryId: string): Promise<number> => {
+  const row = await db.getFirstAsync<{ kcal: number }>(
+    "SELECT kcal FROM meal_entries WHERE id = ?",
+    [entryId],
+  );
+  return row?.kcal ?? 0;
+};
+
+describe("composizione di una voce", () => {
+  it("una voce da ricetta nasce con la composizione della ricetta", async () => {
+    const { entryId } = await setupCrepes();
+
+    const composizione = await getEntryComposition(entryId);
+
+    expect(composizione?.edited).toBe(false);
+    expect(composizione?.items).toHaveLength(1);
+    expect(composizione?.items[0].label).toBe("Zucchine");
+    // Una delle due porzioni: meta' dei 140 g.
+    expect(composizione?.items[0].quantityG).toBeCloseTo(70);
+  });
+
+  it("salvare una composizione ricalcola i valori della voce", async () => {
+    const { entryId } = await setupCrepes();
+    const composizione = await getEntryComposition(entryId);
+    if (!composizione) throw new Error("composizione attesa");
+
+    await saveEntryComposition(entryId, setComponentGrams(composizione, 0, 200));
+
+    // 200 g a 17 kcal/100 g.
+    expect(await kcalOf(entryId)).toBeCloseTo(34);
+  });
+
+  /*
+   * Il difetto che questo lavoro chiude: prima le porzioni rileggevano la
+   * ricetta viva, quindi modificare la ricetta e poi toccare le porzioni di una
+   * voce vecchia la aggiornava ai valori nuovi, contraddicendo la fotografia.
+   */
+  it("cambiare le porzioni non rilegge la ricetta", async () => {
+    const { entryId, recipeId, foodId } = await setupCrepes();
+
+    await updateRecipe(recipeId, {
+      name: "Crepes",
+      servings: 2,
+      items: [{ foodId, quantityG: 999 }],
+    });
+
+    await updateEntryQuantity(entryId, 2);
+
+    const composizione = await getEntryComposition(entryId);
+    // I 70 g raddoppiati, non i 999 della ricetta cambiata.
+    expect(composizione?.items[0].quantityG).toBeCloseTo(140);
+  });
+
+  it("cambiare le porzioni non marca la voce come modificata", async () => {
+    const { entryId } = await setupCrepes();
+
+    await updateEntryQuantity(entryId, 2);
+
+    expect((await getEntryComposition(entryId))?.edited).toBe(false);
+  });
+
+  it("una voce senza composizione la materializza dalla ricetta", async () => {
+    const { entryId } = await setupCrepes();
+    await forgetComposition(entryId);
+
+    const composizione = await materializeComposition(entryId);
+
+    expect(composizione?.items).toHaveLength(1);
+    // E la scrive, cosi' la volta dopo non si ricostruisce da capo.
+    expect(await getEntryComposition(entryId)).not.toBeNull();
+  });
+
+  it("se la ricetta non esiste piu' la materializzazione torna null", async () => {
+    const { entryId, recipeId } = await setupCrepes();
+    await deleteRecipe(recipeId);
+    await forgetComposition(entryId);
+
+    await expect(materializeComposition(entryId)).resolves.toBeNull();
+  });
+
+  it("una voce da alimento non ha composizione", async () => {
+    const entryId = await addFoodEntry({
+      date: DATE,
+      mealTypeId: MEAL_TYPE_IDS.lunch,
+      foodId: riceId,
+      quantityG: 100,
+    });
+
+    await expect(getEntryComposition(entryId)).resolves.toBeNull();
+    await expect(materializeComposition(entryId)).resolves.toBeNull();
   });
 });

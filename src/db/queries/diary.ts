@@ -7,6 +7,14 @@ import {
   incrementRecipeUsage,
 } from "@/src/db/queries/recipes";
 import {
+  compositionNutrients,
+  flattenRecipe,
+  parseComposition,
+  rescaleComposition,
+  serializeComposition,
+  type EntryComposition,
+} from "@/src/domain/entryComposition";
+import {
   EMPTY_NUTRIENTS,
   recipePerServing,
   scaleNutrients,
@@ -307,6 +315,12 @@ export async function addRecipeEntry(args: {
     nutrients: scaleNutrients(perServing, args.servings * 100),
     createdVia: args.createdVia,
   });
+  // La voce porta la propria composizione da subito: cosi' modificarla non
+  // richiede di risalire alla ricetta, che nel frattempo puo' essere cambiata.
+  await saveEntryComposition(id, {
+    edited: false,
+    items: flattenRecipe(tree, args.servings),
+  });
   await incrementRecipeUsage(args.recipeId);
   return id;
 }
@@ -367,6 +381,27 @@ export async function updateEntryQuantity(
     nutrients = scaleNutrients(foodNutrients(food), quantity);
     quantityG = quantity;
   } else if (entry.recipe_id) {
+    const composition = parseComposition(entry.components);
+    if (composition) {
+      /*
+       * La composizione della voce e' la verita', e si riscala quella.
+       *
+       * Prima si rileggeva la ricetta viva: chi modificava una ricetta e poi
+       * toccava le porzioni di una voce di due settimane prima si ritrovava
+       * quella voce aggiornata ai valori nuovi, contro la promessa che una riga
+       * di diario e' una fotografia.
+       */
+      const previous = entry.servings || 1;
+      await saveEntryComposition(
+        entryId,
+        rescaleComposition(composition, quantity / previous),
+      );
+      await db.runAsync(
+        "UPDATE meal_entries SET servings = ?, updated_at = ? WHERE id = ?",
+        [quantity, nowIso(), entryId],
+      );
+      return;
+    }
     const tree = await buildRecipeTree(entry.recipe_id);
     if (!tree) throw new Error("Il pasto della riga non esiste più");
     nutrients = scaleNutrients(recipePerServing(tree), quantity * 100);
@@ -401,6 +436,83 @@ export async function updateEntryQuantity(
       entryId,
     ],
   );
+}
+
+/** La composizione della voce, o null se non ne ha una. */
+export async function getEntryComposition(
+  entryId: string,
+): Promise<EntryComposition | null> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ components: string | null }>(
+    "SELECT components FROM meal_entries WHERE id = ? AND deleted_at IS NULL",
+    [entryId],
+  );
+  return parseComposition(row?.components ?? null);
+}
+
+/**
+ * Scrive la composizione e ricalcola la fotografia della voce.
+ *
+ * I due vanno insieme: i valori della voce sono la somma dei suoi ingredienti,
+ * e scrivere l'una senza l'altra lascerebbe il diario a mostrare i totali
+ * vecchi sotto ingredienti nuovi.
+ */
+export async function saveEntryComposition(
+  entryId: string,
+  composition: EntryComposition,
+): Promise<void> {
+  const nutrients = compositionNutrients(composition);
+  const db = await getDb();
+  await db.runAsync(
+    `UPDATE meal_entries SET components = ?, kcal = ?, protein = ?, carbs = ?,
+       sugars = ?, fat = ?, saturated_fat = ?, fiber = ?, salt = ?,
+       updated_at = ? WHERE id = ?`,
+    [
+      serializeComposition(composition),
+      nutrients.kcal,
+      nutrients.protein,
+      nutrients.carbs,
+      nutrients.sugars,
+      nutrients.fat,
+      nutrients.saturatedFat,
+      nutrients.fiber,
+      nutrients.salt,
+      nowIso(),
+      entryId,
+    ],
+  );
+}
+
+/**
+ * Costruisce la composizione di una voce che non ne ha, leggendola dalla sua
+ * ricetta, e la scrive.
+ *
+ * Serve alle voci nate prima della migrazione 10. Torna null quando non e'
+ * possibile - la voce non viene da una ricetta, o la ricetta non esiste piu' -
+ * e non e' un errore da mostrare: e' il limite di un dato che non c'e'.
+ */
+export async function materializeComposition(
+  entryId: string,
+): Promise<EntryComposition | null> {
+  const existing = await getEntryComposition(entryId);
+  if (existing) return existing;
+
+  const db = await getDb();
+  const entry = await db.getFirstAsync<MealEntryRow>(
+    "SELECT * FROM meal_entries WHERE id = ? AND deleted_at IS NULL",
+    [entryId],
+  );
+  if (!entry?.recipe_id) return null;
+
+  const tree = await buildRecipeTree(entry.recipe_id);
+  if (!tree) return null;
+
+  const composition: EntryComposition = {
+    edited: false,
+    items: flattenRecipe(tree, entry.servings ?? 1),
+  };
+  await saveEntryComposition(entryId, composition);
+  return composition;
 }
 
 export async function deleteEntry(entryId: string): Promise<void> {
