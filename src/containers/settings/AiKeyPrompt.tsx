@@ -26,6 +26,10 @@ export const AiKeyPrompt: React.FC<AiKeyPromptProps> = ({ isOpen, onClose }) => 
       title={t("ai_key.missing_title")}
       message={t("ai_key.missing_message")}
       confirmLabel={t("ai_key.missing_cta")}
+      /* In riga i due pulsanti si dividono la larghezza e "Aggiungi la chiave"
+         diventa "Aggiungi l...". In colonna ci sta, e l'azione principale
+         resta la prima cosa sotto il testo. */
+      verticalFooter
       onConfirm={() => {
         onClose();
         navigate("Settings", { focus: "aiKey" });
