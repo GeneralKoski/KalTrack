@@ -15,6 +15,19 @@ import { WaterCard } from "@/src/containers/wellbeing/WaterCard";
 import { DayHeader } from "@/src/containers/diary/DayHeader";
 import { DayPickerSheet } from "@/src/containers/diary/DayPickerSheet";
 import { FreeEntrySheet } from "@/src/containers/diary/FreeEntrySheet";
+import { PhotoEstimateSheet } from "@/src/containers/diary/PhotoEstimateSheet";
+import {
+  estimateFromPhoto,
+  type PhotoEstimate,
+} from "@/src/ai/estimateFromPhoto";
+import { MissingApiKeyError } from "@/src/ai/errors";
+import {
+  rowNutrients,
+  type EstimateRow,
+} from "@/src/domain/photoEstimate";
+import { discardPhoto, persistPhoto } from "@/src/services/photoStorage";
+import { logger } from "@/src/utils/logger";
+import * as ImagePicker from "expo-image-picker";
 import { MacroBars } from "@/src/containers/diary/MacroBars";
 import { MealSection } from "@/src/containers/diary/MealSection";
 import { QuantityPrompt } from "@/src/containers/recipes/QuantityPrompt";
@@ -83,6 +96,16 @@ export function TodayScreen() {
   const [pendingPick, setPendingPick] = useState<DiaryPick | null>(null);
   const [editingEntry, setEditingEntry] = useState<MealEntryRow | null>(null);
   const [freeOpen, setFreeOpen] = useState(false);
+  /**
+   * Stima da foto. `photoUri` e' quella GIA' copiata in archivio permanente:
+   * l'URI che torna dal picker sta in cache, e il sistema la svuota quando ha
+   * bisogno di spazio - la riga resterebbe a puntare al nulla.
+   */
+  const [photoEstimate, setPhotoEstimate] = useState<PhotoEstimate | null>(
+    null,
+  );
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
   const [stepsOpen, setStepsOpen] = useState(false);
   const [weightOpen, setWeightOpen] = useState(false);
   const [mealTypeId, setMealTypeId] = useState<string | null>(null);
@@ -138,7 +161,83 @@ export function TodayScreen() {
       setFreeOpen(true);
       return;
     }
+    if (picked.kind === "photo") {
+      void startPhotoEstimate(picked.source);
+      return;
+    }
     setPendingPick(picked);
+  };
+
+  const startPhotoEstimate = async (source: "camera" | "library") => {
+    if (source === "camera") {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) return;
+    }
+
+    const picked =
+      source === "camera"
+        ? await ImagePicker.launchCameraAsync({ quality: 0.8 })
+        : await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ["images"],
+            quality: 0.8,
+          });
+    if (picked.canceled || !picked.assets[0]) return;
+
+    // Copia PRIMA della stima: se la stima fallisce la foto e' comunque al
+    // sicuro, e se riesce non c'e' un secondo passaggio che possa cadere.
+    const uri = await persistPhoto(picked.assets[0].uri, "meal");
+    setPhotoUri(uri);
+    setPhotoEstimate(null);
+    setPhotoBusy(true);
+    try {
+      setPhotoEstimate(await estimateFromPhoto({ uri }));
+    } catch (error) {
+      setPhotoBusy(false);
+      setPhotoUri(null);
+      await discardPhoto(uri);
+      if (error instanceof MissingApiKeyError) {
+        showToast.error({ title: t("photo_entry.no_key") });
+        return;
+      }
+      logger.error("[foto] stima del pasto fallita", error);
+      showToast.error({ title: t("photo_entry.failed") });
+      return;
+    }
+    setPhotoBusy(false);
+  };
+
+  const closePhotoEstimate = async () => {
+    // La foto e' stata copiata in archivio per una voce che non e' mai nata:
+    // senza questo resta un file che nessuno referenzia e nessuno cancella.
+    const orfana = photoUri;
+    setPhotoEstimate(null);
+    setPhotoUri(null);
+    setPhotoBusy(false);
+    await discardPhoto(orfana);
+  };
+
+  const confirmPhotoEstimate = async (rows: EstimateRow[]) => {
+    if (!mealTypeId) return;
+    try {
+      for (const row of rows) {
+        await addFreeEntry({
+          date,
+          mealTypeId,
+          label: row.label.trim(),
+          nutrients: rowNutrients(row),
+          isEstimated: !row.fromCatalog,
+          confidence: row.confidence,
+          photoUri,
+          createdVia: "photo",
+        });
+      }
+      setPhotoEstimate(null);
+      setPhotoUri(null);
+      reload();
+    } catch (error) {
+      logger.error("[foto] salvataggio delle voci stimate fallito", error);
+      showToast.error({ title: t("general_error") });
+    }
   };
 
   const confirmQuantity = async (value: number) => {
@@ -374,6 +473,14 @@ export function TodayScreen() {
         isOpen={freeOpen}
         onConfirm={confirmFree}
         onClose={() => setFreeOpen(false)}
+      />
+
+      <PhotoEstimateSheet
+        isOpen={photoBusy || photoEstimate !== null}
+        estimate={photoEstimate}
+        loading={photoBusy}
+        onConfirm={confirmPhotoEstimate}
+        onClose={() => void closePhotoEstimate()}
       />
 
       <QuickLogSheet

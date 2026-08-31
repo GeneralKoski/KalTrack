@@ -800,5 +800,25 @@
       "assistant": "Assistente",
       "vision": "Foto"
     }
+  },
+  "photo_entry": {
+    "from_camera": "Scatta una foto",
+    "from_library": "Scegli dalla galleria",
+    "entry_hint": "Stimo i valori guardando il piatto: li potrai correggere",
+    "review_title": "Cosa c'è nel piatto",
+    "working": "Sto guardando la foto...",
+    "confirm": {
+      "zero": "Niente da aggiungere",
+      "one": "Aggiungi 1 voce",
+      "other": "Aggiungi %{count} voci"
+    },
+    "label_placeholder": "Nome del piatto",
+    "grams": "g",
+    "row_detail": "%{kcal} kcal · %{source}",
+    "from_catalog": "dal tuo catalogo",
+    "from_photo": "stimato dalla foto",
+    "total": "Totale: %{kcal} kcal · P %{protein} · C %{carbs} · G %{fat}",
+    "failed": "Non sono riuscito a leggere la foto",
+    "no_key": "Serve la chiave AI: aggiungila in Impostazioni"
   }
 }

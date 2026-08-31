@@ -14,7 +14,8 @@ import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 export type DiaryPick =
   | { kind: "food"; food: FoodRow }
   | { kind: "recipe"; recipe: RecipeRow }
-  | { kind: "free" };
+  | { kind: "free" }
+  | { kind: "photo"; source: "camera" | "library" };
 
 interface AddEntrySheetProps {
   mealTypes: MealTypeRow[];
@@ -117,18 +118,43 @@ export const AddEntrySheet = forwardRef<BottomSheetModal, AddEntrySheetProps>(
         ) : null}
 
         {tab === "free" ? (
-          <TouchableOpacity
-            style={[styles.freeRow, { borderColor: colors.border }]}
-            onPress={() => onPick({ kind: "free" })}
-            activeOpacity={0.6}
-          >
-            <Text style={[styles.freeTitle, { color: colors.text }]}>
-              {t("diary.free_entry")}
-            </Text>
-            <Text style={[styles.freeHint, { color: colors.textMuted }]}>
-              {t("diary.free_entry_hint")}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.freeChoices}>
+            <TouchableOpacity
+              style={[styles.freeRow, { borderColor: colors.border }]}
+              onPress={() => onPick({ kind: "free" })}
+              activeOpacity={0.6}
+            >
+              <Text style={[styles.freeTitle, { color: colors.text }]}>
+                {t("diary.free_entry")}
+              </Text>
+              <Text style={[styles.freeHint, { color: colors.textMuted }]}>
+                {t("diary.free_entry_hint")}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.freeRow, { borderColor: colors.border }]}
+              onPress={() => onPick({ kind: "photo", source: "camera" })}
+              activeOpacity={0.6}
+            >
+              <Text style={[styles.freeTitle, { color: colors.text }]}>
+                {t("photo_entry.from_camera")}
+              </Text>
+              <Text style={[styles.freeHint, { color: colors.textMuted }]}>
+                {t("photo_entry.entry_hint")}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.freeRow, { borderColor: colors.border }]}
+              onPress={() => onPick({ kind: "photo", source: "library" })}
+              activeOpacity={0.6}
+            >
+              <Text style={[styles.freeTitle, { color: colors.text }]}>
+                {t("photo_entry.from_library")}
+              </Text>
+            </TouchableOpacity>
+          </View>
         ) : null}
 
         {/*
@@ -225,6 +251,7 @@ const PickerRow: React.FC<{
 };
 
 const styles = StyleSheet.create({
+  freeChoices: { gap: theme.spacing.sm },
   mealTypes: {
     gap: theme.spacing.xs,
     paddingBottom: theme.spacing.sm,
