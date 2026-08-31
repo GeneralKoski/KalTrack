@@ -1,4 +1,4 @@
-# Handoff - 31 agosto 2026
+# Handoff - 31 agosto 2026 (sera)
 
 Punto della situazione per riprendere lo sviluppo da una sessione nuova. Non
 sostituisce `CLAUDE.md`, che resta il documento delle convenzioni: qui c'e' lo
@@ -11,13 +11,14 @@ gia' aggiornato all'ultimo lavoro. Non resta niente di aperto sul codice: quel
 che manca e' **provarla davvero**, e per una parte serve un secondo account.
 
 Il 31 agosto sono venuti fuori due modelli Groq ritirati che tenevano ferme
-tre funzioni AI. Sistemati, ma **il telefono ha ancora l'APK vecchio**.
+tre funzioni AI, e sono nate tre funzioni nuove. **Nessuna delle tre e' mai
+stata vista girare**: sul telefono c'e' la 1.0.1, che non le contiene.
 
 ## Stato
 
 | | |
 |---|---|
-| Test app | 864 su 53 suite |
+| Test app | 935 su 58 suite |
 | Test backend | 123 |
 | Typecheck / lint | puliti, 0 errori |
 | Ramo | `main`. Si committa sempre qui, mai su un ramo a parte |
@@ -53,10 +54,19 @@ Serve un secondo account per vedere quelle schermate con dei numeri dentro.
 Passa i test, ma la lezione di questo progetto e' che i difetti seri escono
 aprendo l'app, non dalla suite.
 
-**2. Rifare l'APK.** Ora e' la cosa piu' urgente delle tre: quello installato
-e' anteriore ai modelli AI riparati, quindi **sul telefono l'assistente vocale
-e la stima da foto sono ancora rotti**. Si porta dietro anche l'icona, che
-entra nel bundle al prebuild.
+**2. Rifare l'APK e provare le tre funzioni nuove.** E' la cosa piu' urgente,
+perche' il gate verde non dice niente su di esse: i test coprono la logica pura
+e le query, non la fotocamera, non i fogli a schermo, non il salvataggio vero.
+
+- **La foto in "Voce libera"**: fotografa un piatto e guarda se i piatti
+  riconosciuti sono sensati e se correggendo i grammi i valori seguono.
+- **Le scorciatoie delle porzioni**: aggiungi uno yogurt e prova 1/2, 1, 2, 3.
+  Digitando 180 a mano nessuna deve accendersi.
+- **La composizione di una voce da ricetta**: aggiungi una ricetta, apri la
+  freccia, cambia una grammatura, togli un ingrediente, aggiungine uno che non
+  esiste creandolo da li', e salva la variante come ricetta nuova. Controlla
+  che la **ricetta originale non sia cambiata**: e' la promessa piu' facile da
+  rompere di tutta la funzione.
 
 ```bash
 ./scripts/build-apk.sh 1.0.1     # 1.0.0 e' quello gia' installato
@@ -124,6 +134,52 @@ Fuori dal piano, negli stessi due giorni:
   Connect, che qui non ci sono.
 - **L'icona non e' piu' quella di Expo**: una K bianca con un punto verde su
   fondo quasi nero, rigenerabile con `scripts/genera-icone.py`.
+
+## Il 31 agosto, pomeriggio e sera
+
+**La composizione per voce del diario.** Spec e piano in
+`docs/superpowers/specs/2026-08-31-composizione-per-voce-design.md` e
+`docs/superpowers/plans/2026-08-31-composizione-per-voce.md`, entrambi eseguiti
+per intero. Una voce da ricetta porta la propria copia degli ingredienti in una
+colonna JSON: si modificano le grammature, si toglie il cotto e si mette il
+salame, e la ricetta non si tocca. Le regole sono in `CLAUDE.md`.
+
+Ha chiuso un difetto che nessuno aveva notato: cambiare le porzioni di una voce
+da ricetta **rileggeva la ricetta viva**, quindi modificare una ricetta e poi
+toccare le porzioni di una voce di due settimane prima la aggiornava ai valori
+nuovi. Contro la promessa che una riga di diario e' una fotografia.
+
+**La stima del pasto da una foto**, che era implementata dalla Fase 1 e
+raggiungibile da nessuna parte - ed e' il motivo per cui il ritiro del suo
+modello e' passato inosservato per sei settimane.
+
+**Le porzioni nel campo quantita'**, che hanno tirato fuori dal cassetto
+`serving_label`: cinquanta frasi scritte a mano nei seed, mai mostrate.
+
+**La prova dei modelli AI** in Diagnostica, perche' i due ritiri sono stati
+scoperti sbattendoci contro.
+
+### Due sessioni sullo stesso repo
+
+Il lavoro di questa sera e' stato fatto in parallelo a una seconda sessione di
+Claude. Quel che ha funzionato, se serve rifarlo:
+
+- **mettere in stage solo percorsi espliciti**, mai `git add -A`: e' l'unica
+  cosa che impedisce a un commit di portarsi dentro il lavoro dell'altro;
+- **rileggere ogni file prima di modificarlo**, e prendere per buona la versione
+  trovata invece di sovrascriverla;
+- **committare ogni pezzo subito**, cosi' il proprio lavoro non resta a mollo
+  accanto a quello dell'altro;
+- **il numero della migrazione va dichiarato**: se entrambe ne aggiungono una e
+  prendono lo stesso numero, `PRAGMA user_version` ne applica una sola e l'altra
+  sparisce **in silenzio**.
+
+`src/i18n/locales/it.json` e' il punto di collisione peggiore, perche' ogni
+funzione aggiunge chiavi. Quando conteneva le aggiunte di una sessione e le
+rimozioni dell'altra, la via d'uscita e' stata costruire per l'indice il
+contenuto desiderato (HEAD piu' le proprie chiavi) e metterlo in stage con
+`git update-index --cacheinfo`, lasciando fuori le modifiche dell'altra
+sessione. Verificato in entrambe le direzioni prima di committare.
 
 ## I due modelli morti (31 agosto)
 
@@ -194,7 +250,12 @@ quello dell'ultimo push.
    questo lavoro la frase "non esce niente verso chi non e' amico" era vera
    senza eccezioni: ora ce ne sono due - esercizi e alimenti - ed e' scritto in
    `backend/README.md` come eccezione dichiarata.
-7. **Il keystore di firma non e' nel repository e non e' recuperabile.** Sta in
+7. **Una voce del diario e' una fotografia, composizione compresa.** I valori
+   sono congelati nella riga, e da oggi anche gli ingredienti: `label` e i
+   valori per 100 g sono copiati dentro, non letti dall'alimento. Correggere un
+   alimento domani non deve riscrivere il pranzo di ieri, e una voce deve
+   sopravvivere alla cancellazione di un suo ingrediente.
+8. **Il keystore di firma non e' nel repository e non e' recuperabile.** Sta in
    `credentials/android/kaltrack.keystore` con le password in
    `credentials.json`, entrambi gitignorati. Perderlo vuol dire non poter piu'
    aggiornare un'app gia' installata: Android rifiuta un aggiornamento firmato

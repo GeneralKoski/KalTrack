@@ -98,6 +98,91 @@ Il layer `src/db/` è l'unico che conosce SQL:
 - `queries/` — funzioni tipizzate per dominio. **Le schermate non contengono
   SQL.**
 
+### La composizione di una voce del diario
+
+`meal_entries.components` (migrazione 10), JSON. Una voce nata da una ricetta
+porta la **propria** copia degli ingredienti: cambiare le zucchine di oggi non
+tocca la ricetta ne' le crepes mangiate il mese scorso.
+
+E' una colonna e non una tabella figlia, ed e' deliberato:
+
+- una composizione si riscrive **intera** a ogni modifica, cioe' e' esattamente
+  la riscrittura in blocco che la regola 1 della sincronizzazione segna come
+  minata. Con un valore solo quella trappola non esiste, perche' non ci sono
+  righe da riconciliare;
+- una voce del diario e' **gia' una fotografia** - i valori sono congelati nella
+  riga, cosi' correggere un alimento domani non riscrive il pranzo di ieri.
+  Congelare anche la composizione e' coerente; chiavi esterne verso alimenti
+  vivi direbbero il contrario. Per questo `label` e `per100` sono **copiati**
+  dentro ogni ingrediente e non letti dall'alimento.
+
+L'elenco e' **piatto**: nessuna sotto-ricetta. Con l'annidamento non si potrebbe
+togliere il prosciutto che sta dentro la besciamella senza scendere di livello,
+e togliere il prosciutto e' il caso d'uso.
+
+Tre cose da non rompere:
+
+- **`parseComposition` non lancia mai.** `null` non e' un errore: e' una voce
+  che non ha una composizione, cioe' tutte quelle scritte prima della migrazione
+  10. JSON rotto finisce li' allo stesso modo e la voce si disegna come prima,
+  invece di sbiancare una schermata per una colonna accessoria.
+- **Riscalare NON marca `edited`.** Due porzioni sono le stesse crepes in
+  quantita' diversa, e scrivere "modificata" su voci che nessuno ha modificato
+  renderebbe quel marcatore rumore.
+- **Le porzioni non rileggono la ricetta.** `updateEntryQuantity` riscala la
+  composizione della voce. Prima interrogava `buildRecipeTree`: chi modificava
+  una ricetta e poi toccava le porzioni di una voce vecchia se la ritrovava
+  aggiornata ai valori nuovi, contro la promessa della fotografia.
+
+Non si interroga per ingrediente ("quanto salame a settembre"): e' il costo
+dichiarato del JSON, e nessuna schermata lo chiede.
+
+### Le vie per aggiungere al diario
+
+La linguetta "Voce libera" della scheda Aggiungi ne offre tre: scrivere a mano,
+**scattare una foto**, scegliere una foto dalla galleria.
+
+La foto passa da `estimateFromPhoto`, che era scritta e testata dalla Fase 1 e
+**chiamata da nessuno** - ed e' la ragione per cui il ritiro del suo modello e'
+passato inosservato per sei settimane. Torna un piatto per voce, e cosi' si
+salva: una foto di un pranzo diventa "pasta al pomodoro", "cotoletta", "pane",
+non un totale chiamato "Pranzo". Grammi e nomi si correggono prima di
+confermare, perche' sono numeri che un modello ha immaginato guardando
+un'immagine.
+
+Due cose sulla foto stessa. Si copia in archivio permanente **prima** della
+stima: l'URI del picker sta in cache e il sistema la svuota, e copiare dopo
+vorrebbe dire un secondo passaggio che puo' cadere quando le voci sono gia'
+scritte. Abbandonare il foglio cancella quella copia, altrimenti ogni stima
+scartata lascia un file che nessuno referenzia. Le N voci **condividono un file
+solo**, e va bene perche' cancellare una voce del diario non cancella la sua
+foto: togliere "il pane" non porta via l'immagine agli altri due.
+
+I grammi di una voce libera **non si salvano**: congela il totale e memorizza
+quantita' 1. E' come funziona la voce scritta dall'assistente, e seguire quella
+convenzione e' meglio che averne due per lo stesso tipo di voce.
+
+### Le porzioni nel campo quantita'
+
+`foods.default_serving_g` e' **il numero gia' scritto** quando aggiungi un
+alimento, e `foods.serving_label` la frase che lo spiega ("1 vasetto = 125 g").
+La seconda esisteva dalla migrazione 1, con una cinquantina di frasi nei seed, e
+non era mostrata da nessuna parte: rispondeva alla domanda che ti fai mentre
+digiti i grammi, e mancava nell'unico momento utile.
+
+Sotto il campo ci sono quattro scorciatoie (1/2, 1, 2, 3) che **scrivono nel
+campo**, non sono una modalita': non esiste uno stato "porzioni" che possa
+discordare da quel che c'e' scritto, e digitando 180 a mano nessuna si accende -
+180 non e' un numero di vasetti (`activeMultiplier` torna `null`, ed e' la
+risposta giusta il piu' delle volte).
+
+Il calcolo dai valori per 100 g avviene **sempre**, porzione o no: la porzione
+decide solo da quale numero parti.
+
+Non compaiono per le ricette - li' il valore e' gia' in porzioni - ne'
+modificando una voce gia' nel diario, che porta la quantita' e non la porzione
+dell'alimento da cui e' nata.
+
 ### Sincronizzazione
 
 `src/services/sync.ts`, `backend/README.md` per il lato server. Quattro regole
@@ -317,6 +402,16 @@ il primo posto da guardare e' la lista dei ritiri di Groq.
 Il vincolo del modello vision e' piu' stretto degli altri: deve accettare
 **immagini e JSON object mode** insieme, e su Groq oggi lo fanno solo i due
 qwen, entrambi in preview.
+
+Non serve piu' aspettare che qualcuno ci sbatta contro: **Impostazioni >
+Diagnostica > Prova i modelli** chiede a Groq quali id sta servendo a questa
+chiave e mette una spunta o una croce sui tre. Una GET, zero token, nessun
+effetto. Chiede l'elenco e non `/models/{id}` uno per uno perche' due id su tre
+contengono una barra (`openai/gpt-oss-120b`) e infilarla in un percorso
+significa indovinare fra path annidato e `%2F`.
+
+Dimostra che un modello **esiste**, non che la capability funzioni: sono due
+affermazioni diverse e quella che si e' rotta due volte e' questa.
 
 ## La diagnostica
 

@@ -1,7 +1,19 @@
 # La composizione di una voce del diario - Design
 
 **Data:** 31 agosto 2026
-**Stato:** da rivedere
+**Stato:** **implementata il 31 agosto 2026**, per intero. Piano in
+`docs/superpowers/plans/2026-08-31-composizione-per-voce.md`.
+
+Due cose sono cambiate scrivendo, e la spec qui sotto le racconta ancora come
+erano previste:
+
+- l'ingresso alla modifica **non e' il tocco della voce** ma una riga in coda
+  all'elenco degli ingredienti. Il tocco continua a cambiare le porzioni: sono
+  due gesti su due quantita' diverse, e unirli avrebbe richiesto di rifare la
+  modifica delle porzioni dentro il foglio;
+- ricerca dell'alimento e creazione rapida sono **modalita' dello stesso
+  foglio** e non fogli annidati: un bottom sheet dentro un modale su React
+  Native e' fragile.
 
 ## Il problema
 

@@ -1,5 +1,10 @@
 # Composizione per voce del diario - Piano di implementazione
 
+> **Chiuso il 31 agosto 2026.** Sette task su sette. Due scelte sono cambiate
+> in corso d'opera e sono annotate in testa alla spec. Il Task 1 e' costato piu'
+> del previsto: il piano contava tre letterali da aggiornare, il typecheck ne ha
+> trovati sette.
+
 > **Per chi esegue:** SOTTO-SKILL RICHIESTA: usa
 > `superpowers:subagent-driven-development` oppure
 > `superpowers:executing-plans` per eseguirlo task per task. I passi usano
