@@ -5,6 +5,7 @@ import { createFood } from "@/src/db/queries/foods";
 import {
   buildRecipeTree,
   createRecipe,
+  createRecipeFromComposition,
   deleteRecipe,
   getRecipeItems,
   incrementRecipeUsage,
@@ -296,5 +297,88 @@ describe("searchRecipes", () => {
     await incrementRecipeUsage(b);
 
     expect((await searchRecipes("")).map((r) => r.id)).toEqual([b, a]);
+  });
+});
+
+describe("createRecipeFromComposition", () => {
+  it("crea una ricetta dalla composizione di una voce", async () => {
+    const salame = await createFood({
+      name: "Salame",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 400 },
+    });
+
+    const recipeId = await createRecipeFromComposition({
+      name: "Crepes al salame",
+      servings: 1,
+      composition: {
+        edited: true,
+        items: [
+          {
+            foodId: salame,
+            label: "Salame",
+            quantityG: 40,
+            per100: { ...EMPTY_NUTRIENTS, kcal: 400 },
+          },
+        ],
+      },
+    });
+
+    const items = await getRecipeItems(recipeId);
+    expect(items).toHaveLength(1);
+    expect(items[0].quantity_g).toBeCloseTo(40);
+  });
+
+  /*
+   * Un ingrediente scritto a mano dentro una voce puo' non avere un alimento
+   * dietro. Senza alimento non esiste una riga di ricetta - il CHECK della
+   * tabella la rifiuterebbe - quindi si salta invece di far fallire tutto il
+   * salvataggio per una riga.
+   */
+  it("salta gli ingredienti senza alimento", async () => {
+    const recipeId = await createRecipeFromComposition({
+      name: "Solo testo",
+      servings: 1,
+      composition: {
+        edited: true,
+        items: [
+          {
+            foodId: null,
+            label: "Qualcosa",
+            quantityG: 10,
+            per100: { ...EMPTY_NUTRIENTS },
+          },
+        ],
+      },
+    });
+
+    expect(await getRecipeItems(recipeId)).toHaveLength(0);
+  });
+
+  it("conserva le porzioni della voce, cosi' i valori per porzione restano quelli", async () => {
+    const salame = await createFood({
+      name: "Salame",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 400 },
+    });
+
+    const recipeId = await createRecipeFromComposition({
+      name: "Due porzioni",
+      servings: 2,
+      composition: {
+        edited: false,
+        items: [
+          {
+            foodId: salame,
+            label: "Salame",
+            quantityG: 100,
+            per100: { ...EMPTY_NUTRIENTS, kcal: 400 },
+          },
+        ],
+      },
+    });
+
+    const tree = await buildRecipeTree(recipeId);
+    if (!tree) throw new Error("albero atteso");
+    // 400 kcal in due porzioni.
+    expect(recipePerServing(tree).kcal).toBeCloseTo(200);
   });
 });

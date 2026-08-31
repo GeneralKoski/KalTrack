@@ -2,10 +2,12 @@ import { getDb } from "@/src/db/index";
 import { newId, nowIso } from "@/src/db/ids";
 import type { RecipeItemNode, RecipeNode } from "@/src/domain/nutrition";
 import { normalizeText } from "@/src/domain/text";
+import type { EntryComposition } from "@/src/domain/entryComposition";
 import {
   foodNutrients,
   type FoodRow,
   type RecipeInput,
+  type RecipeItemInput,
   type RecipeItemRow,
   type RecipeRow,
 } from "@/src/types/nutrition";
@@ -152,6 +154,37 @@ export async function createRecipe(input: RecipeInput): Promise<string> {
     await insertItems(db, id, input.items, now);
   });
   return id;
+}
+
+/**
+ * Una ricetta nuova dalla composizione di una voce del diario.
+ *
+ * Serve a tenere una variante: hai messo il salame al posto del cotto, e da
+ * domani vuoi poterla riusare. `servings` sono le porzioni della voce, cosi' i
+ * valori per porzione restano quelli che hai mangiato.
+ *
+ * Gli ingredienti senza `foodId` si saltano: un elemento scritto a mano non ha
+ * un alimento dietro, e `recipe_items` ne pretende uno - il suo CHECK
+ * rifiuterebbe la riga. Saltarlo perde un ingrediente; far fallire tutto
+ * perderebbe la ricetta.
+ */
+export async function createRecipeFromComposition(args: {
+  name: string;
+  servings: number;
+  composition: EntryComposition;
+}): Promise<string> {
+  const items: RecipeItemInput[] = args.composition.items
+    .filter((item) => item.foodId !== null && item.quantityG > 0)
+    .map((item) => ({
+      foodId: item.foodId as string,
+      quantityG: item.quantityG,
+    }));
+
+  return createRecipe({
+    name: args.name,
+    servings: args.servings > 0 ? args.servings : 1,
+    items,
+  });
 }
 
 export async function updateRecipe(
