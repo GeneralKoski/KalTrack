@@ -102,6 +102,25 @@ export const QuantityPrompt: React.FC<QuantityPromptProps> = ({
         <Text style={[styles.unit, { color: colors.textMuted }]}>{unit}</Text>
       </View>
 
+      {food && valid ? (
+        <View
+          style={[
+            styles.scaledBox,
+            {
+              backgroundColor: colors.surfaceMuted,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.scaledKcal, { color: colors.text }]}>
+            {Math.round((food.kcal * parsed) / 100)} kcal
+          </Text>
+          <Text style={[styles.scaledMacros, { color: colors.textMuted }]}>
+            P {formatGrams((food.protein * parsed) / 100)}g  •  C {formatGrams((food.carbs * parsed) / 100)}g  •  G {formatGrams((food.fat * parsed) / 100)}g
+          </Text>
+        </View>
+      ) : null}
+
       {servingG > 0 ? (
         <View style={styles.serving}>
           <Text style={[styles.servingHint, { color: colors.textMuted }]}>
@@ -185,4 +204,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   chipLabel: { fontSize: 15, fontWeight: "700" },
+  scaledBox: {
+    marginTop: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.sm,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    alignItems: "center",
+    gap: 2,
+  },
+  scaledKcal: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  scaledMacros: {
+    fontSize: 12,
+  },
 });

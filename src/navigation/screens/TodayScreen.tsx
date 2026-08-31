@@ -65,9 +65,10 @@ import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { useFocusEffect } from "@react-navigation/native";
+import { getFood } from "@/src/db/queries/foods";
 import { useDayContextStore } from "@/src/stores/dayContextStore";
 import { theme } from "@/src/styles";
-import type { MealEntryRow, MealTypeRow, TargetRow } from "@/src/types/nutrition";
+import type { FoodRow, MealEntryRow, MealTypeRow, TargetRow } from "@/src/types/nutrition";
 import { showToast } from "@/src/utils/toast";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { Footprints, Plus, Scale, UtensilsCrossed } from "lucide-react-native";
@@ -102,6 +103,7 @@ export function TodayScreen() {
   const [date, setDate] = useState(today);
   const [pendingPick, setPendingPick] = useState<DiaryPick | null>(null);
   const [editingEntry, setEditingEntry] = useState<MealEntryRow | null>(null);
+  const [editingFood, setEditingFood] = useState<FoodRow | null>(null);
   const [freeOpen, setFreeOpen] = useState(false);
   /**
    * Stima da foto. `photoUri` e' quella GIA' copiata in archivio permanente:
@@ -314,11 +316,18 @@ export function TodayScreen() {
     reload();
   };
 
-  const onEditEntry = (entryId: string) => {
+  const onEditEntry = async (entryId: string) => {
     const entry = data?.diary.meals
       .flatMap((m) => m.entries)
       .find((e) => e.id === entryId);
-    if (entry) setEditingEntry(entry);
+    if (!entry) return;
+    setEditingEntry(entry);
+    if (entry.food_id) {
+      const food = await getFood(entry.food_id);
+      setEditingFood(food);
+    } else {
+      setEditingFood(null);
+    }
   };
 
   const promptOpen = pendingPick !== null || editingEntry !== null;
@@ -473,7 +482,7 @@ export function TodayScreen() {
 
       {/* L'assistente sta qui e non sopra la navigazione: scrive pasti, passi,
           peso e obiettivi, cioè quel che vive in questa schermata. */}
-      <AssistantButton />
+      <AssistantButton onIntentExecuted={reload} />
 
       <DayPickerSheet
         ref={dayPickerRef}
@@ -506,11 +515,12 @@ export function TodayScreen() {
         }
         initialValue={promptValue}
         serving={promptServing}
-        food={pendingPick?.kind === "food" ? pendingPick.food : null}
+        food={pendingPick?.kind === "food" ? pendingPick.food : editingFood}
         onConfirm={confirmQuantity}
         onClose={() => {
           setPendingPick(null);
           setEditingEntry(null);
+          setEditingFood(null);
         }}
       />
 

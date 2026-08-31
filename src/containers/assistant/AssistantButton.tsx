@@ -48,7 +48,13 @@ const CONTEXT_ITEMS = 40;
  * dopo la prima visita - e quindi la scorciatoia sull'icona dell'app continua a
  * far partire l'ascolto da qualunque punto.
  */
-export const AssistantButton: React.FC = () => {
+interface AssistantButtonProps {
+  onIntentExecuted?: () => void;
+}
+
+export const AssistantButton: React.FC<AssistantButtonProps> = ({
+  onIntentExecuted,
+}) => {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const [open, setOpen] = useState(false);
@@ -167,12 +173,13 @@ export const AssistantButton: React.FC = () => {
       try {
         const result = await intent.execute();
         showToast.success({ title: result.message });
+        onIntentExecuted?.();
       } catch (error) {
         logger.error("[assistant] esecuzione fallita", error);
         showToast.error({ title: t("assistant.execute_failed") });
       }
     },
-    [resolvePending, t],
+    [resolvePending, onIntentExecuted, t],
   );
 
   /**
