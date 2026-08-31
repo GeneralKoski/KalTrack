@@ -218,69 +218,69 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
           ))}
         </ScrollView>
 
-        {/* Input in fondo: campo testo + pulsante invio e microfono.
-            Spento mentre si registra per non interferire. */}
-        {listening ? null : (
-          <View
-            style={[
-              styles.footer,
-              { paddingBottom: insets.bottom + theme.spacing.md },
-            ]}
-          >
-            <View style={styles.inputRow}>
-              <View
-                style={[
-                  styles.inputContainer,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <TextInput
-                  style={[styles.textInput, { color: colors.text }]}
-                  placeholder={t("assistant.text_input_placeholder")}
-                  placeholderTextColor={colors.textMuted}
-                  value={inputText}
-                  onChangeText={setInputText}
-                  onSubmitEditing={handleSendText}
-                  returnKeyType="send"
-                  editable={!busy}
-                />
-                {inputText.trim().length > 0 ? (
-                  <TouchableOpacity
-                    onPress={handleSendText}
-                    activeOpacity={0.6}
-                    disabled={busy}
-                    style={[
-                      styles.sendButton,
-                      { backgroundColor: colors.accent },
-                    ]}
-                    accessibilityLabel={t("assistant.send")}
-                  >
-                    <ArrowUp size={18} color={colors.accentOn} />
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-
-              <TouchableOpacity
-                onPress={session.startListening}
-                activeOpacity={0.6}
-                disabled={busy}
-                accessibilityLabel={t("assistant.open")}
-              >
-                <View
+        {/* Input in fondo: campo testo + pulsante invio e microfono. */}
+        <View
+          style={[
+            styles.footer,
+            { paddingBottom: insets.bottom + theme.spacing.md },
+          ]}
+        >
+          <View style={styles.inputRow}>
+            <View
+              style={[
+                styles.inputContainer,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <TextInput
+                style={[styles.textInput, { color: colors.text }]}
+                placeholder={t("assistant.text_input_placeholder")}
+                placeholderTextColor={colors.textMuted}
+                value={inputText}
+                onChangeText={(text) => {
+                  setInputText(text);
+                  if (listening) void session.cancelListening();
+                }}
+                onFocus={() => {
+                  if (listening) void session.cancelListening();
+                }}
+                onSubmitEditing={handleSendText}
+                returnKeyType="send"
+                editable={!busy}
+              />
+              {inputText.trim().length > 0 ? (
+                <TouchableOpacity
+                  onPress={handleSendText}
+                  activeOpacity={0.6}
+                  disabled={busy}
                   style={[
-                    styles.mic,
-                    { backgroundColor: colors.accent, opacity: busy ? 0.4 : 1 },
+                    styles.sendButton,
+                    { backgroundColor: colors.accent },
                   ]}
+                  accessibilityLabel={t("assistant.send")}
                 >
-                  <Mic size={24} color={colors.accentOn} />
-                </View>
-              </TouchableOpacity>
+                  <ArrowUp size={18} color={colors.accentOn} />
+                </TouchableOpacity>
+              ) : null}
             </View>
+
+            <TouchableOpacity
+              onPress={listening ? session.stopListening : session.startListening}
+              activeOpacity={0.6}
+              disabled={busy}
+              accessibilityLabel={t("assistant.open")}
+              style={[
+                styles.mic,
+                { backgroundColor: listening ? colors.accent : colors.surface },
+              ]}
+            >
+              <Mic size={20} color={listening ? colors.accentOn : colors.text} />
+            </TouchableOpacity>
           </View>
-        )}
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );

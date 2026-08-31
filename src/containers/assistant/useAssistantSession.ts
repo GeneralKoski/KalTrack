@@ -44,6 +44,7 @@ export interface AssistantSession {
   /** Vero quando la voce c'è ma il dispositivo non ha una voce italiana. */
   spokenReplyUnavailable: boolean;
   startListening: () => Promise<void>;
+  cancelListening: () => Promise<void>;
   stopListening: () => Promise<void>;
   submitText: (text: string) => Promise<void>;
   /** Toglie un intento da `pending`, dopo averlo eseguito o scartato. */
@@ -111,6 +112,13 @@ export function useAssistantSession(
     setExecuted([]);
     setFailure(null);
     setSpokenReplyUnavailable(false);
+  }, [recording]);
+
+  const cancelListening = useCallback(async () => {
+    turnRef.current++;
+    await recording.cancel();
+    setPhase("idle");
+    setFailure(null);
   }, [recording]);
 
   const startListening = useCallback(async () => {
@@ -198,15 +206,21 @@ export function useAssistantSession(
       const trimmed = text.trim();
       if (!trimmed) return;
 
-      reset();
+      turnRef.current++;
+      await recording.cancel();
+      stopSpeaking();
+      setFailure(null);
+
       if (!hasGroqKey()) return fail("no-key");
       if (!online) return fail("offline");
 
-      const turn = ++turnRef.current;
+      const turn = turnRef.current;
       const stale = () => turnRef.current !== turn;
 
       setTranscript(trimmed);
       setPhase("thinking");
+      setPending([]);
+      setExecuted([]);
 
       try {
         const result = await runAssistant({
@@ -234,7 +248,7 @@ export function useAssistantSession(
         fail("failed");
       }
     },
-    [fail, online, reset, voiceReplyEnabled],
+    [fail, online, recording, voiceReplyEnabled],
   );
 
   return {
@@ -246,6 +260,7 @@ export function useAssistantSession(
     executed,
     failure,
     spokenReplyUnavailable,
+    cancelListening,
     startListening,
     stopListening,
     submitText,
