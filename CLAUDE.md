@@ -123,8 +123,7 @@ e togliere il prosciutto e' il caso d'uso.
 Tre cose da non rompere:
 
 - **`parseComposition` non lancia mai.** `null` non e' un errore: e' una voce
-  che non ha una composizione, cioe' tutte quelle scritte prima della migrazione
-  10. JSON rotto finisce li' allo stesso modo e la voce si disegna come prima,
+  che non ha una composizione, cioe' tutte quelle scritte prima della migrazione 10. JSON rotto finisce li' allo stesso modo e la voce si disegna come prima,
   invece di sbiancare una schermata per una colonna accessoria.
 - **Riscalare NON marca `edited`.** Due porzioni sono le stesse crepes in
   quantita' diversa, e scrivere "modificata" su voci che nessuno ha modificato
