@@ -1,3 +1,4 @@
+import { DfButton } from "@/src/components/form/DfButton";
 import { Card } from "@/src/components/kal";
 import { Avatar } from "@/src/components/kal/Avatar";
 import { useAppTheme } from "@/src/components/ThemeContext";
@@ -15,7 +16,7 @@ import { useTranslation } from "@/src/hooks/useTranslation";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { theme } from "@/src/styles";
 import React, { useCallback } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 interface Summary {
   weightKg: number | null;
@@ -139,16 +140,13 @@ export const ProfileSummary: React.FC = () => {
         account si va agli amici, che è la schermata dove si entra: "Il mio
         account" mostrerebbe un caricamento che non finisce mai.
       */}
-      <TouchableOpacity
+      <DfButton
+        label={account ? t("social.my_profile") : t("profile.sign_in")}
+        variant="outlined"
+        fullWidth={false}
         onPress={() => navigate(account ? "MyProfile" : "Friends")}
-        activeOpacity={0.6}
-        hitSlop={8}
-        style={styles.linkRow}
-      >
-        <Text style={[styles.link, { color: colors.accent }]}>
-          {account ? t("social.my_profile") : t("profile.sign_in")}
-        </Text>
-      </TouchableOpacity>
+        style={styles.accountButton}
+      />
     </Card>
   );
 };
@@ -173,6 +171,7 @@ const styles = StyleSheet.create({
   stat: { flex: 1, alignItems: "center", gap: 2 },
   statValue: { fontSize: 16, fontWeight: "700" },
   statLabel: { fontSize: 11, textAlign: "center" },
-  linkRow: { alignSelf: "flex-start" },
-  link: { fontSize: 14, fontWeight: "600" },
+  /* Un bordo e non solo il testo: l'interattivo qui è quasi nero come il
+     testo normale, e senza contorno "Il mio account" si legge come un titolo. */
+  accountButton: { alignSelf: "flex-start" },
 });

@@ -89,15 +89,9 @@ export const FoodFacts: React.FC<FoodFactsProps> = ({ food, compact }) => {
           </View>
         )}
 
+        {/* Il nome NON si ripete qui: chi mostra questo pannello lo ha già
+            scritto sopra - il titolo della finestra o la riga scelta. */}
         <View style={styles.headText}>
-          {!compact ? (
-            <Text
-              style={[styles.name, { color: colors.text }]}
-              numberOfLines={2}
-            >
-              {food.name}
-            </Text>
-          ) : null}
           {food.brand ? (
             <Text
               style={[styles.brand, { color: colors.textMuted }]}
@@ -164,7 +158,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   headText: { flex: 1 },
-  name: { fontSize: 16, fontWeight: "700" },
   brand: { fontSize: 13 },
   kcal: { fontSize: 18, fontWeight: "700", marginTop: 2 },
   per: { fontSize: 11 },

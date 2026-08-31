@@ -110,10 +110,26 @@ export function App() {
   if (!fontsLoaded || !dbReady || !themeReady) return null;
 
   return (
+    /*
+     * ThemeProvider STA SOPRA GluestackUIProvider, e non è un dettaglio di
+     * ordine.
+     *
+     * Gluestack porta le sue modali dentro l'`OverlayProvider`, cioè le
+     * rimonta nel punto dell'albero in cui vive quel provider. Con il tema
+     * sotto, tutto quel che dentro una modale leggeva `useAppTheme()` finiva
+     * fuori dal contesto e prendeva il valore di default - il tema CHIARO. Da
+     * lì l'"Annulla" grigio su nero: era l'accent del tema chiaro (#18181b)
+     * disegnato sopra la superficie scura.
+     *
+     * Si vedeva solo sui componenti che risolvono il colore da soli
+     * (`DfButton`): quelli a cui il colore arriva già calcolato dal chiamante
+     * erano giusti, ed è il motivo per cui il difetto sembrava riguardare un
+     * pulsante solo.
+     */
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <GluestackUIProvider>
-        <SafeAreaProvider>
-          <ThemeProvider>
+      <ThemeProvider>
+        <GluestackUIProvider>
+          <SafeAreaProvider>
             <ThemedStatusBar />
             <BottomSheetModalProvider>
               <Navigation />
@@ -125,9 +141,9 @@ export function App() {
               <ExitConfirm />
               <Toast config={toastConfig} />
             </BottomSheetModalProvider>
-          </ThemeProvider>
-        </SafeAreaProvider>
-      </GluestackUIProvider>
+          </SafeAreaProvider>
+        </GluestackUIProvider>
+      </ThemeProvider>
     </GestureHandlerRootView>
   );
 }
