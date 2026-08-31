@@ -12,6 +12,11 @@ import { Linking, StyleSheet, TouchableOpacity, View } from "react-native";
 /** Dove si prende una chiave, per chi non l'ha mai fatto. */
 const GROQ_CONSOLE = "https://console.groq.com/keys";
 
+interface AiKeySettingsProps {
+  /** Vero quando si arriva qui da "serve la chiave AI": il cursore parte nel campo. */
+  autoFocus?: boolean;
+}
+
 /**
  * La chiave dell'assistente, che e' di chi usa l'app.
  *
@@ -20,7 +25,7 @@ const GROQ_CONSOLE = "https://console.groq.com/keys";
  * schermo, e non serve a niente - chi la vuole cambiare la incolla nuova, non
  * la rilegge.
  */
-export const AiKeySettings: React.FC = () => {
+export const AiKeySettings: React.FC<AiKeySettingsProps> = ({ autoFocus }) => {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const key = useAiKeyStore((s) => s.key);
@@ -86,6 +91,7 @@ export const AiKeySettings: React.FC = () => {
           placeholderTextColor={colors.textFaint}
           autoCapitalize="none"
           autoCorrect={false}
+          autoFocus={autoFocus}
           secureTextEntry
           style={[
             styles.input,

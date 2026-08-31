@@ -1,3 +1,5 @@
+import { hasGroqKey } from "@/src/ai/config";
+import { AiKeyPrompt } from "@/src/containers/settings/AiKeyPrompt";
 import {
   SCREEN_FAB_SIZE,
   useScreenFabBottom,
@@ -109,6 +111,7 @@ export function TodayScreen() {
   );
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [askKey, setAskKey] = useState(false);
   const [stepsOpen, setStepsOpen] = useState(false);
   const [weightOpen, setWeightOpen] = useState(false);
   const [mealTypeId, setMealTypeId] = useState<string | null>(null);
@@ -172,6 +175,12 @@ export function TodayScreen() {
   };
 
   const startPhotoEstimate = async (source: "camera" | "library") => {
+    // Chiesta prima di aprire la fotocamera: scattare una foto per poi
+    // sentirsi dire che manca la chiave e' lavoro buttato.
+    if (!hasGroqKey()) {
+      setAskKey(true);
+      return;
+    }
     if (source === "camera") {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) return;
@@ -199,7 +208,7 @@ export function TodayScreen() {
       setPhotoUri(null);
       await discardPhoto(uri);
       if (error instanceof MissingApiKeyError) {
-        showToast.error({ title: t("photo_entry.no_key") });
+        setAskKey(true);
         return;
       }
       logger.error("[foto] stima del pasto fallita", error);
@@ -493,6 +502,8 @@ export function TodayScreen() {
         onConfirm={confirmFree}
         onClose={() => setFreeOpen(false)}
       />
+
+      <AiKeyPrompt isOpen={askKey} onClose={() => setAskKey(false)} />
 
       <PhotoEstimateSheet
         isOpen={photoBusy || photoEstimate !== null}

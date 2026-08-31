@@ -684,11 +684,10 @@
     },
     "check_missing": "Non letti dall'etichetta: %{fields}. Controllali prima di salvare.",
     "nothing_read": "Nessun valore leggibile nella foto",
-    "failed": "Lettura dell'etichetta non riuscita",
-    "no_key": "La lettura dell'etichetta richiede la configurazione dell'AI."
+    "failed": "Lettura dell'etichetta non riuscita"
   },
   "exit_app_title": "Uscire da KalTrack?",
-  "exit_app_message": "Tocca di nuovo indietro per uscire.",
+  "exit_app_message": "I dati restano sul telefono: alla riapertura ritrovi tutto com'era.",
   "password": "Password",
   "reset": "Azzera",
   "apply": "Applica",
@@ -769,7 +768,10 @@
     "remove": "Rimuovi la chiave",
     "saved": "Chiave salvata",
     "removed": "Chiave rimossa",
-    "where": "Dove trovo una chiave?"
+    "where": "Dove trovo una chiave?",
+    "missing_title": "Serve la chiave AI",
+    "missing_message": "Le funzioni AI - assistente vocale, lettura etichette e stima da foto - girano con una chiave Groq tua, che resta su questo telefono.",
+    "missing_cta": "Aggiungi la chiave"
   },
   "admin": {
     "title": "Reimposta password",
@@ -819,10 +821,10 @@
     "from_catalog": "dal tuo catalogo",
     "from_photo": "stimato dalla foto",
     "total": "Totale: %{kcal} kcal · P %{protein} · C %{carbs} · G %{fat}",
-    "failed": "Non sono riuscito a leggere la foto",
-    "no_key": "Serve la chiave AI: aggiungila in Impostazioni"
+    "failed": "Non sono riuscito a leggere la foto"
   },
   "quantity": {
     "serving_is": "Una porzione = %{grams} g"
-  }
+  },
+  "exit_app_confirm": "Esci"
 }

@@ -11,8 +11,9 @@ import { useAppNav } from "@/src/hooks/useAppNav";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
+import { useRoute, type RouteProp } from "@react-navigation/native";
 import { ChevronLeft, ChevronRight, Stethoscope } from "lucide-react-native";
-import React from "react";
+import React, { useRef, useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import {
   SafeAreaView,
@@ -25,6 +26,23 @@ export function SettingsScreen() {
   const { goBack, navigate } = useAppNav();
   const { colors } = useAppTheme();
   const isAdmin = useAccountStore((s) => s.profile?.isAdmin ?? false);
+
+  /*
+   * Chi arriva qui da "serve la chiave AI" vuole quel campo, non l'elenco
+   * delle impostazioni: la sezione si porta sotto gli occhi da sola e il
+   * cursore ci finisce dentro. La `y` arriva da onLayout perche' la sezione
+   * non e' la prima e la sua altezza dipende dal tema e dalla lingua.
+   */
+  const route =
+    useRoute<RouteProp<{ params: { focus?: "aiKey" } }, "params">>();
+  const wantsAiKey = route.params?.focus === "aiKey";
+  const scrollRef = useRef<ScrollView>(null);
+  const [aiKeyY, setAiKeyY] = useState<number | null>(null);
+
+  React.useEffect(() => {
+    if (!wantsAiKey || aiKeyY === null) return;
+    scrollRef.current?.scrollTo({ y: aiKeyY, animated: true });
+  }, [wantsAiKey, aiKeyY]);
 
   return (
     <View style={styles.root}>
@@ -43,6 +61,7 @@ export function SettingsScreen() {
         </View>
 
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={[
             styles.content,
             { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
@@ -51,10 +70,12 @@ export function SettingsScreen() {
           <SectionLabel>{t("settings.theme")}</SectionLabel>
           <ThemePicker />
 
-          <SectionLabel style={styles.section}>
-            {t("ai_key.title")}
-          </SectionLabel>
-          <AiKeySettings />
+          <View onLayout={(e) => setAiKeyY(e.nativeEvent.layout.y)}>
+            <SectionLabel style={styles.section}>
+              {t("ai_key.title")}
+            </SectionLabel>
+            <AiKeySettings autoFocus={wantsAiKey} />
+          </View>
 
           <SectionLabel style={styles.section}>
             {t("settings.assistant")}

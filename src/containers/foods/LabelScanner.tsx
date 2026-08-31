@@ -5,6 +5,7 @@ import {
   type LabelReading,
 } from "@/src/ai/readNutritionLabel";
 import { DfButton } from "@/src/components/form/DfButton";
+import { AiKeyPrompt } from "@/src/containers/settings/AiKeyPrompt";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
@@ -59,6 +60,7 @@ export const LabelScanner: React.FC = () => {
   const { colors } = useAppTheme();
   const form = useFormContext();
   const [busy, setBusy] = useState(false);
+  const [askKey, setAskKey] = useState(false);
 
   const apply = (reading: LabelReading) => {
     const updates = labelUpdates(reading, {
@@ -129,13 +131,18 @@ export const LabelScanner: React.FC = () => {
     if (!result.canceled && result.assets[0]) await scan(result.assets[0].uri);
   };
 
-  if (!hasGroqKey()) {
-    return (
-      <Text style={[styles.disabled, { color: colors.textMuted }]}>
-        {t("label_scan.no_key")}
-      </Text>
-    );
-  }
+  /*
+   * Senza chiave i pulsanti restano al loro posto e chiedono la chiave al
+   * tocco. Prima sparivano dietro una riga di testo spenta, che diceva cosa
+   * mancava e non dove metterlo.
+   */
+  const guard = (action: () => Promise<void>) => () => {
+    if (!hasGroqKey()) {
+      setAskKey(true);
+      return;
+    }
+    void action();
+  };
 
   return (
     <View style={styles.root}>
@@ -145,7 +152,7 @@ export const LabelScanner: React.FC = () => {
           variant="outlined"
           fullWidth={false}
           loading={busy}
-          onPress={fromCamera}
+          onPress={guard(fromCamera)}
           icon={<ScanLine size={18} color={colors.text} />}
           style={styles.button}
         />
@@ -154,13 +161,15 @@ export const LabelScanner: React.FC = () => {
           variant="outlined"
           fullWidth={false}
           loading={busy}
-          onPress={fromLibrary}
+          onPress={guard(fromLibrary)}
           style={styles.button}
         />
       </View>
       <Text style={[styles.hint, { color: colors.textMuted }]}>
         {t("label_scan.hint")}
       </Text>
+
+      <AiKeyPrompt isOpen={askKey} onClose={() => setAskKey(false)} />
     </View>
   );
 };
@@ -173,5 +182,4 @@ const styles = StyleSheet.create({
   },
   button: { flexGrow: 1, flexBasis: 0 },
   hint: { fontSize: 12, lineHeight: 16 },
-  disabled: { fontSize: 12, lineHeight: 16, marginBottom: theme.spacing.sm },
 });

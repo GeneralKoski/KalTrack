@@ -13,7 +13,7 @@ export interface NavParams {
   FoodForm: { id?: string };
   Recipes: undefined;
   RecipeForm: { id?: string };
-  Settings: undefined;
+  Settings: { focus?: "aiKey" };
   Targets: undefined;
   Backup: undefined;
   Diagnostics: undefined;

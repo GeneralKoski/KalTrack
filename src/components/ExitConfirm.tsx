@@ -34,7 +34,7 @@ export function ExitConfirm() {
       isOpen={isOpen}
       title={t("exit_app_title")}
       message={t("exit_app_message")}
-      confirmLabel={t("ok")}
+      confirmLabel={t("exit_app_confirm")}
       cancelLabel={t("cancel")}
       onConfirm={() => {
         setIsOpen(false);
