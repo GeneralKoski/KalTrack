@@ -23,7 +23,7 @@ import { useDayContextStore } from "@/src/stores/dayContextStore";
 import { theme } from "@/src/styles";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
-import { Mic } from "lucide-react-native";
+import { MessageSquare } from "lucide-react-native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, TouchableOpacity } from "react-native";
 
@@ -205,12 +205,11 @@ export const AssistantButton: React.FC = () => {
         activeOpacity={0.6}
         onPress={() => {
           setOpen(true);
-          void session.startListening();
         }}
         accessibilityLabel={t("assistant.open")}
       >
         <MetalSurface radius={28} style={styles.surface}>
-          <Mic size={24} color={colors.text} />
+          <MessageSquare size={22} color={colors.text} />
         </MetalSurface>
       </TouchableOpacity>
 
