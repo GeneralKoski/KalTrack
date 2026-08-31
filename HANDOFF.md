@@ -9,10 +9,10 @@ sostituisce `CLAUDE.md`, che resta il documento delle convenzioni: qui c'e' lo
 L'app e' completa e in uso (Fasi 1-5). Sul telefono c'e' la **1.0.2**,
 costruita e installata il 31 agosto: contiene tutto quel che segue.
 
-Il codice non ha niente di aperto. Il **backend si', ed e' l'unica cosa che
-resta**: una migrazione che toglie `share_window_days` e' scritta, testata e
-non deployata, quindi finche' non parte il server continua a tagliare la
-condivisione a sette giorni mentre l'app pubblica tutto lo storico.
+Codice e server sono **allineati**: il backend e' stato deployato il 31 agosto
+subito dopo l'APK, quindi la condivisione dello storico intero funziona da
+entrambe le parti. Non resta niente di aperto sul codice: quel che manca e'
+usare l'app e vedere cosa salta fuori.
 
 ## Stato
 
@@ -22,7 +22,7 @@ condivisione a sette giorni mentre l'app pubblica tutto lo storico.
 | Test backend | 123 |
 | Typecheck / lint | puliti, 0 errori (8 warning, tutti anteriori) |
 | Ramo | `main`. Si committa sempre qui, mai su un ramo a parte |
-| Server | `kaltrack.martin-trajkovski.it`, healthy, 16 migrazioni applicate. **NON allineato al codice**: manca `2026_08_31_120000_drop_share_window_from_users` |
+| Server | `kaltrack.martin-trajkovski.it`, healthy, **17 migrazioni** applicate, allineato al codice |
 | APK | `kaltrack-1.0.2.apk`, firmato, **installato sul telefono**. `./scripts/build-apk.sh 1.0.3` per il prossimo |
 
 ## Cosa gira dove
@@ -52,18 +52,7 @@ compreso: dopo, l'app chiede di rientrare.
 
 ## Il lavoro aperto
 
-**1. Deployare il backend.** E' l'unica cosa che tiene il server disallineato
-dal codice. La migrazione `2026_08_31_120000_drop_share_window_from_users`
-toglie una colonna in **produzione**: si prende il backup con `VACUUM INTO`
-prima (vedi § Il deploy del 31 agosto), poi `rsync` + `php artisan migrate`
-come da `backend/README.md`.
-
-Finche' non parte, l'app manda tutto lo storico e il server lo taglia lo
-stesso a sette giorni: `forgetOutsideWindow` cancella i giorni fuori finestra a
-ogni salvataggio del profilo, e profilo e confronto continuano a servirne
-sette. Non si rompe niente, semplicemente quella modifica non si vede.
-
-**2. Provare sul telefono quel che l'emulatore non puo' dire.** Due cose:
+**1. Provare sul telefono quel che l'emulatore non puo' dire.** Due cose:
 
 - **La palla dell'assistente che si muove con la voce.** Il microfono virtuale
   dell'emulatore riporta `0.000` fisso, anche riavviandolo con
@@ -75,12 +64,12 @@ sette. Non si rompe niente, semplicemente quella modifica non si vede.
   davvero. Se sbagliano, il motivo si legge in **Impostazioni > Diagnostica**
   invece di sparire.
 
-**3. Provare il confronto con dati veri.** Non e' mai stato visto rispondere:
+**2. Provare il confronto con dati veri.** Non e' mai stato visto rispondere:
 sul server c'e' **un solo utente**, quindi non c'e' nessuno da mettere accanto.
 Serve un secondo account. Passa i test, ma la lezione di questo progetto e' che
 i difetti seri escono aprendo l'app, non dalla suite.
 
-**4. Ripulire l'emulatore.** Ci sono dati di prova: obiettivo 2000 kcal,
+**3. Ripulire l'emulatore.** Ci sono dati di prova: obiettivo 2000 kcal,
 10.000 passi, un esercizio `Pancainc test` gia' cancellato, e il tema forzato
 su "Scuro". **La chiave Groq sull'emulatore e' stata tolta** durante le prove e
 va rimessa se ci si vuole riprovare l'AI; quella del telefono non e' stata
@@ -239,8 +228,8 @@ sull'emulatore tranne dove detto. In ordine di quel che raccontano.
 - **Si condivide tutto lo storico.** `share_window_days` e' sparita da app e
   server: era un'impostazione in piu' su una domanda che nessuno si pone, e
   intanto tagliava il confronto a una settimana. Il telefono pubblica dal primo
-  giorno scritto (`earliestRecordedDate`) a oggi. **La migrazione non e'
-  deployata**, vedi § Il lavoro aperto.
+  giorno scritto (`earliestRecordedDate`) a oggi. Deployato in serata, vedi
+  § I due deploy del 31 agosto.
 - **Il microfono vive solo su Oggi.** L'assistente scrive pasti, passi, peso e
   obiettivi - quel che sta su Oggi - e in palestra non tocca niente. Globale
   seguiva l'utente in dodici schermate dove non poteva far nulla, e in due si
@@ -283,10 +272,31 @@ generico dell'assistente ora dice dove guardare: "qualcosa e' andato storto,
 riprova" e' esattamente cio' che ha lasciato un modello morto in giro per sei
 settimane.
 
-## Il deploy del 31 agosto
+## I due deploy del 31 agosto
 
-Le sei migrazioni nuove sono in produzione (batch 5, sedici applicate in
-tutto), il container e' healthy e le rotte nuove rispondono 401 invece di 404.
+**Il primo, in mattinata.** Le sei migrazioni nuove sono in produzione (batch
+5, sedici applicate in tutto), il container e' healthy e le rotte nuove
+rispondono 401 invece di 404.
+
+**Il secondo, in serata**, subito dopo aver installato la 1.0.2:
+`2026_08_31_120000_drop_share_window_from_users` (batch 6, diciassette in
+tutto). Verificato dopo:
+
+- la colonna `share_window_days` non c'e' piu' in `users`;
+- `GET /api/me` non serve piu' `shares.windowDays`, cioe' esattamente la forma
+  che l'app si aspetta;
+- **niente e' andato perso**: un utente, otto stat condivise, 429 righe in
+  `sync_records`;
+- `finestraInGiorni` e `forgetOutsideWindow` non esistono piu' nel codice
+  servito - restano solo nella vecchia migrazione che creo' la colonna, e li'
+  devono restare.
+
+Il backup pre-deploy e' `kaltrack-pre-deploy-2026-08-31-093012.sqlite.gz`.
+**Attenzione al passaggio che il primo giro aveva gia' insegnato**:
+`php artisan backup:db` scrive DENTRO il volume, e un backup che vive nel
+volume che dovrebbe salvare non e' un backup. Va portato fuori con
+`docker cp` in `/srv/backups/kaltrack`, come fa
+`/usr/local/bin/kaltrack-backup` ogni notte.
 
 Prima di migrare e' stato preso un backup a parte,
 `kaltrack-pre-deploy-2026-08-30-223739.sqlite.gz`, con `VACUUM INTO` e non con
