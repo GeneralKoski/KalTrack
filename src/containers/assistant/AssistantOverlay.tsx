@@ -3,10 +3,11 @@ import { MetalPanel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import type { AssistantSession } from "@/src/containers/assistant/useAssistantSession";
+import { VoiceOrb } from "@/src/containers/assistant/VoiceOrb";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import type { ToolIntent } from "@/src/ai/tools/types";
-import { Check, Mic, Square, VolumeX, X } from "lucide-react-native";
+import { Check, Mic, VolumeX, X } from "lucide-react-native";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -40,6 +41,7 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
 
   const busy =
     session.phase === "transcribing" || session.phase === "thinking";
+  const listening = session.phase === "listening";
 
   return (
     <Modal
@@ -61,17 +63,21 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
             { paddingBottom: insets.bottom + 160 },
           ]}
         >
+          {/* Mentre si parla la palla e' l'unica cosa a schermo che conta:
+              dice che il microfono sente davvero, e si tocca per fermarsi. */}
+          {listening ? (
+            <VoiceOrb level={session.level} onPress={session.stopListening} />
+          ) : null}
+
           {session.transcript ? (
             <Text style={[styles.transcript, { color: colors.text }]}>
               {session.transcript}
             </Text>
-          ) : (
+          ) : !listening ? (
             <Text style={[styles.hint, { color: colors.textMuted }]}>
-              {session.phase === "listening"
-                ? t("assistant.listening")
-                : t("assistant.hint")}
+              {t("assistant.hint")}
             </Text>
-          )}
+          ) : null}
 
           {busy ? (
             <View style={styles.busy}>
@@ -192,36 +198,32 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
           ))}
         </ScrollView>
 
-        <View style={[styles.footer, { paddingBottom: insets.bottom + theme.spacing.lg }]}>
-          <TouchableOpacity
-            onPress={
-              session.phase === "listening"
-                ? session.stopListening
-                : session.startListening
-            }
-            activeOpacity={0.6}
-            disabled={busy}
+        {/* Il microfono in fondo riapre l'ascolto, e sparisce mentre si
+            ascolta: due bottoni per fermarsi - lui e la palla - sarebbero due
+            posti dove cercare la stessa cosa. */}
+        {listening ? null : (
+          <View
+            style={[
+              styles.footer,
+              { paddingBottom: insets.bottom + theme.spacing.lg },
+            ]}
           >
-            <View
-              style={[
-                styles.mic,
-                {
-                  backgroundColor:
-                    session.phase === "listening"
-                      ? theme.colors.error
-                      : colors.accent,
-                  opacity: busy ? 0.4 : 1,
-                },
-              ]}
+            <TouchableOpacity
+              onPress={session.startListening}
+              activeOpacity={0.6}
+              disabled={busy}
             >
-              {session.phase === "listening" ? (
-                <Square size={26} color={theme.colors.white} fill={theme.colors.white} />
-              ) : (
+              <View
+                style={[
+                  styles.mic,
+                  { backgroundColor: colors.accent, opacity: busy ? 0.4 : 1 },
+                ]}
+              >
                 <Mic size={30} color={colors.accentOn} />
-              )}
-            </View>
-          </TouchableOpacity>
-        </View>
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </Modal>
   );

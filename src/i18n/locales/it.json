@@ -406,7 +406,6 @@
   "assistant": {
     "open": "Parla con l'assistente",
     "hint": "Tocca il microfono e dimmi cosa hai mangiato",
-    "listening": "Ti ascolto...",
     "transcribing": "Sto trascrivendo",
     "thinking": "Ci sto pensando",
     "dont_ask_again": "Non chiedere più per questa azione",
@@ -431,7 +430,9 @@
       "delete_entry": "Eliminare una voce",
       "navigate": "Spostarsi tra le schermate",
       "query_summary": "Rispondere a una domanda"
-    }
+    },
+    "tap_to_stop": "Tocca per fermare",
+    "stop": "Ferma la registrazione"
   },
   "achievements": {
     "title": "Traguardi",
