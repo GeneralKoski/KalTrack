@@ -416,6 +416,14 @@ export function RecipeFormScreen() {
               ? (pending.food.default_serving_g ?? 100)
               : 1
         }
+        serving={
+          pending?.kind === "food" && pending.food.default_serving_g
+            ? {
+                grams: pending.food.default_serving_g,
+                label: pending.food.serving_label,
+              }
+            : null
+        }
         onConfirm={confirmQuantity}
         onClose={() => {
           setPending(null);

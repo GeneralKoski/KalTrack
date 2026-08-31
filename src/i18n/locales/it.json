@@ -820,5 +820,8 @@
     "total": "Totale: %{kcal} kcal · P %{protein} · C %{carbs} · G %{fat}",
     "failed": "Non sono riuscito a leggere la foto",
     "no_key": "Serve la chiave AI: aggiungila in Impostazioni"
+  },
+  "quantity": {
+    "serving_is": "Una porzione = %{grams} g"
   }
 }

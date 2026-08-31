@@ -320,6 +320,21 @@ export function TodayScreen() {
       ? (pendingPick.food.default_serving_g ?? 100)
       : 1;
 
+  /**
+   * Le scorciatoie della porzione, solo per un alimento appena scelto.
+   *
+   * Non per una voce che si sta modificando: la riga del diario porta la
+   * quantita', non la porzione dell'alimento da cui e' nata, e risalirci
+   * vorrebbe dire una lettura in piu' a prompt aperto.
+   */
+  const promptServing =
+    pendingPick?.kind === "food" && pendingPick.food.default_serving_g
+      ? {
+          grams: pendingPick.food.default_serving_g,
+          label: pendingPick.food.serving_label,
+        }
+      : null;
+
   const totals = data?.diary.totals;
 
   return (
@@ -462,6 +477,7 @@ export function TodayScreen() {
               : "g"
         }
         initialValue={promptValue}
+        serving={promptServing}
         onConfirm={confirmQuantity}
         onClose={() => {
           setPendingPick(null);
