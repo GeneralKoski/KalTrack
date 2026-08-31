@@ -43,8 +43,15 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
   const [remember, setRemember] = useState<Record<string, boolean>>({});
   const [inputText, setInputText] = useState("");
 
-  const busy = session.phase === "transcribing" || session.phase === "thinking";
+  const busy = session.phase === "thinking";
   const listening = session.phase === "listening";
+  const transcribing = session.phase === "transcribing";
+
+  const cancelVoice = () => {
+    if (listening || transcribing) {
+      void session.cancelListening();
+    }
+  };
 
   const handleSendText = () => {
     const text = inputText.trim();
@@ -74,9 +81,10 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
         </View>
 
         <ScrollView
+          style={styles.scroll}
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: insets.bottom + 120 },
+            { paddingBottom: insets.bottom + theme.spacing.md },
           ]}
           keyboardShouldPersistTaps="handled"
         >
@@ -218,69 +226,73 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
           ))}
         </ScrollView>
 
-        {/* Input in fondo: campo testo + pulsante invio e microfono. */}
-        <View
-          style={[
-            styles.footer,
-            { paddingBottom: insets.bottom + theme.spacing.md },
-          ]}
-        >
-          <View style={styles.inputRow}>
-            <View
-              style={[
-                styles.inputContainer,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <TextInput
-                style={[styles.textInput, { color: colors.text }]}
-                placeholder={t("assistant.text_input_placeholder")}
-                placeholderTextColor={colors.textMuted}
-                value={inputText}
-                onChangeText={(text) => {
-                  setInputText(text);
-                  if (listening) void session.cancelListening();
-                }}
-                onFocus={() => {
-                  if (listening) void session.cancelListening();
-                }}
-                onSubmitEditing={handleSendText}
-                returnKeyType="send"
-                editable={!busy}
-              />
-              {inputText.trim().length > 0 ? (
-                <TouchableOpacity
-                  onPress={handleSendText}
-                  activeOpacity={0.6}
-                  disabled={busy}
-                  style={[
-                    styles.sendButton,
-                    { backgroundColor: colors.accent },
-                  ]}
-                  accessibilityLabel={t("assistant.send")}
-                >
-                  <ArrowUp size={18} color={colors.accentOn} />
-                </TouchableOpacity>
-              ) : null}
-            </View>
+        {/* Input in fondo: campo testo + pulsante invio e microfono.
+            Spento mentre si registra per non interferire. */}
+        {listening ? null : (
+          <View
+            style={[
+              styles.footer,
+              { paddingBottom: insets.bottom + theme.spacing.md },
+            ]}
+          >
+            <View style={styles.inputRow}>
+              <View
+                style={[
+                  styles.inputContainer,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <TextInput
+                  style={[styles.textInput, { color: colors.text }]}
+                  placeholder={t("assistant.text_input_placeholder")}
+                  placeholderTextColor={colors.textMuted}
+                  value={inputText}
+                  onChangeText={(text) => {
+                    setInputText(text);
+                    cancelVoice();
+                  }}
+                  onFocus={cancelVoice}
+                  onSubmitEditing={handleSendText}
+                  returnKeyType="send"
+                  editable={!busy}
+                />
+                {inputText.trim().length > 0 ? (
+                  <TouchableOpacity
+                    onPress={handleSendText}
+                    activeOpacity={0.6}
+                    disabled={busy}
+                    style={[
+                      styles.sendButton,
+                      { backgroundColor: colors.accent },
+                    ]}
+                    accessibilityLabel={t("assistant.send")}
+                  >
+                    <ArrowUp size={18} color={colors.accentOn} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
 
-            <TouchableOpacity
-              onPress={listening ? session.stopListening : session.startListening}
-              activeOpacity={0.6}
-              disabled={busy}
-              accessibilityLabel={t("assistant.open")}
-              style={[
-                styles.mic,
-                { backgroundColor: listening ? colors.accent : colors.surface },
-              ]}
-            >
-              <Mic size={20} color={listening ? colors.accentOn : colors.text} />
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={session.startListening}
+                activeOpacity={0.6}
+                disabled={busy}
+                accessibilityLabel={t("assistant.open")}
+              >
+                <View
+                  style={[
+                    styles.mic,
+                    { backgroundColor: colors.accent, opacity: busy ? 0.4 : 1 },
+                  ]}
+                >
+                  <Mic size={24} color={colors.accentOn} />
+                </View>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        )}
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -288,6 +300,7 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1 },
+  scroll: { flex: 1 },
   header: {
     paddingHorizontal: theme.spacing.md,
     alignItems: "flex-end",

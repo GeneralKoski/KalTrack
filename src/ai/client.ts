@@ -32,6 +32,7 @@ export interface ToolCall {
   id: string;
   type: "function";
   function: { name: string; arguments: string };
+  extra_content?: unknown;
 }
 
 export interface ToolDefinition {
@@ -179,10 +180,12 @@ function parseToolCalls(raw: unknown): ToolCall[] {
       id,
       type,
       function: fn,
+      extra_content,
     } = item as {
       id?: unknown;
       type?: unknown;
       function?: unknown;
+      extra_content?: unknown;
     };
     if (type !== "function" || typeof fn !== "object" || fn === null) {
       continue;
@@ -200,7 +203,12 @@ function parseToolCalls(raw: unknown): ToolCall[] {
     if (typeof args !== "string") {
       continue;
     }
-    calls.push({ id, type: "function", function: { name, arguments: args } });
+    calls.push({
+      id,
+      type: "function",
+      function: { name, arguments: args },
+      ...(extra_content !== undefined ? { extra_content } : {}),
+    });
   }
   return calls;
 }
