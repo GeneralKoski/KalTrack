@@ -73,6 +73,7 @@ Rules, in order of importance:
    "di cui zuccheri" underneath it. Same for fat and "di cui acidi grassi saturi".
 6. "salt" is salt in grams ("Sale"), not sodium. If only sodium is printed,
    return null for salt rather than converting it.
+6. "salt" is salt in grams ("Sale" / "Salt"). If the label prints "Sale", transcribe that value. If the label prints "Sodio" (or "Sodium") instead of salt, convert sodium to salt in grams: salt = sodium * 2.5 (e.g. 0.70 g sodium -> 1.75 g salt, 700 mg sodium -> 1.75 g salt).
 7. All values are grams except kcal. Never return negative numbers.
 8. If the image is not a nutrition table at all, return every field as null.
 
@@ -157,8 +158,7 @@ export const sanitizeReading = (
   }
 
   // Nemmeno la somma dei macro può superare i 100 g.
-  const macroSum =
-    (clean.protein ?? 0) + (clean.carbs ?? 0) + (clean.fat ?? 0);
+  const macroSum = (clean.protein ?? 0) + (clean.carbs ?? 0) + (clean.fat ?? 0);
   if (macroSum > 100) {
     logger.warn(`[etichetta] macro totali ${macroSum} g per 100 g: scartati`);
     delete clean.protein;
