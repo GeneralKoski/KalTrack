@@ -1,7 +1,12 @@
 import { DfAlert } from "@/src/components/DfAlert";
-import { FormScreen } from "@/src/components/FormScreen";
 import { DfButton } from "@/src/components/form/DfButton";
-import { Chip, EmptyState, ScreenBackground, SectionLabel } from "@/src/components/kal";
+import { FormScreen } from "@/src/components/FormScreen";
+import {
+  Chip,
+  EmptyState,
+  ScreenBackground,
+  SectionLabel,
+} from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text, TextInput } from "@/src/components/ui";
 import {
@@ -10,7 +15,9 @@ import {
   type DraftExercise,
 } from "@/src/containers/gym/BlockEditor";
 import { ExercisePickerSheet } from "@/src/containers/gym/ExercisePickerSheet";
+import { GenerateRoutineModal } from "@/src/containers/gym/GenerateRoutineModal";
 import { newId } from "@/src/db/ids";
+import { searchExercises } from "@/src/db/queries/exercises";
 import {
   createRoutine,
   getRoutineDay,
@@ -19,8 +26,6 @@ import {
   updateRoutine,
   type RoutineInput,
 } from "@/src/db/queries/workouts";
-import { searchExercises } from "@/src/db/queries/exercises";
-import { GenerateRoutineModal } from "@/src/containers/gym/GenerateRoutineModal";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
@@ -28,7 +33,13 @@ import type { ExerciseRow } from "@/src/types/gym";
 import { showToast } from "@/src/utils/toast";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useRoute, type RouteProp } from "@react-navigation/native";
-import { ChevronLeft, Pencil, Plus, Sparkles, Trash2 } from "lucide-react-native";
+import {
+  ChevronLeft,
+  Pencil,
+  Plus,
+  Sparkles,
+  Trash2,
+} from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -149,7 +160,9 @@ export function RoutineFormScreen() {
               name: item.exercise.name,
               muscleGroup: item.exercise.muscle_group,
               sets:
-                item.row.target_sets === null ? "" : String(item.row.target_sets),
+                item.row.target_sets === null
+                  ? ""
+                  : String(item.row.target_sets),
               reps: item.row.target_reps ?? "",
             })),
           })),
@@ -216,7 +229,12 @@ export function RoutineFormScreen() {
           ...current,
           blocks: [
             ...current.blocks,
-            { key: newId(), kind: "single", rest: DEFAULT_REST, exercises: [draft] },
+            {
+              key: newId(),
+              kind: "single",
+              rest: DEFAULT_REST,
+              exercises: [draft],
+            },
           ],
         };
       }
@@ -248,7 +266,8 @@ export function RoutineFormScreen() {
       const input: RoutineInput = {
         name: name.trim(),
         days: days.map((item, index) => ({
-          name: item.name.trim() || t("gym.day_default_name", { index: index + 1 }),
+          name:
+            item.name.trim() || t("gym.day_default_name", { index: index + 1 }),
           // Un blocco senza esercizi non è un allenamento: si scarta al salvataggio
           // invece di impedirne la creazione mentre si costruisce la scheda.
           blocks: item.blocks
@@ -287,31 +306,21 @@ export function RoutineFormScreen() {
           <TouchableOpacity onPress={goBack} activeOpacity={0.6} hitSlop={10}>
             <ChevronLeft size={26} color={colors.textSecondary} />
           </TouchableOpacity>
-          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+          <Text
+            style={[styles.title, { color: colors.text }]}
+            numberOfLines={1}
+          >
             {id ? t("gym.edit_routine_title") : t("gym.new_routine_title")}
           </Text>
-          <TouchableOpacity
-            onPress={() => setAiModalOpen(true)}
-            activeOpacity={0.6}
-            style={[
-              styles.aiHeaderBtn,
-              {
-                backgroundColor: colors.surfaceMuted,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <Sparkles size={15} color={colors.accent} />
-            <Text style={[styles.aiHeaderBtnText, { color: colors.accent }]}>
-              Genera con IA
-            </Text>
-          </TouchableOpacity>
         </View>
 
         {loading ? (
           <ActivityIndicator style={styles.loader} color={colors.accent} />
         ) : (
-          <FormScreen contentContainerStyle={styles.content} bottomSpacing={theme.spacing.lg}>
+          <FormScreen
+            contentContainerStyle={styles.content}
+            bottomSpacing={theme.spacing.lg}
+          >
             {!id && days.length === 0 ? (
               <TouchableOpacity
                 onPress={() => setAiModalOpen(true)}
@@ -331,8 +340,11 @@ export function RoutineFormScreen() {
                   <Text style={[styles.aiBannerTitle, { color: colors.text }]}>
                     Vuoi creare una scheda completa?
                   </Text>
-                  <Text style={[styles.aiBannerSub, { color: colors.textMuted }]}>
-                    Tocca qui per generarla automaticamente con l'IA in base al tuo obiettivo.
+                  <Text
+                    style={[styles.aiBannerSub, { color: colors.textMuted }]}
+                  >
+                    Tocca qui per generarla automaticamente con l'IA in base al
+                    tuo obiettivo.
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -529,19 +541,6 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   title: { flex: 1, fontSize: 18, fontWeight: "700" },
-  aiHeaderBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 6,
-    borderRadius: theme.radius.full,
-    borderWidth: 1,
-  },
-  aiHeaderBtnText: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
   aiBanner: {
     flexDirection: "row",
     alignItems: "center",
