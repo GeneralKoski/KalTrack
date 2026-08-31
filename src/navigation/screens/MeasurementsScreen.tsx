@@ -1,4 +1,3 @@
-import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { DfButton } from "@/src/components/form/DfButton";
 import {
   Card,
@@ -141,7 +140,7 @@ export function MeasurementsScreen() {
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={[
               styles.content,
-              { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
+              { paddingBottom: insets.bottom + theme.spacing.lg },
             ]}
           >
             <Card style={styles.card}>

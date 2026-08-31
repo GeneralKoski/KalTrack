@@ -1,4 +1,3 @@
-import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { DfAlert } from "@/src/components/DfAlert";
 import { FormScreen } from "@/src/components/FormScreen";
 import { DfButton } from "@/src/components/form/DfButton";
@@ -276,7 +275,7 @@ export function RecipeFormScreen() {
         {loading ? (
           <ActivityIndicator style={styles.loader} color={colors.accent} />
         ) : (
-          <FormScreen contentContainerStyle={styles.content} bottomSpacing={ASSISTANT_FAB_CLEARANCE}>
+          <FormScreen contentContainerStyle={styles.content} bottomSpacing={theme.spacing.lg}>
             <Text style={[styles.label, { color: colors.textMuted }]}>
               {t("recipes.name")}
             </Text>

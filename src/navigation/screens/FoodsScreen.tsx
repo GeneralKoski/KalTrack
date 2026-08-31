@@ -1,7 +1,4 @@
-import {
-  SCREEN_FAB_SIZE,
-  useScreenFabBottom,
-} from "@/src/containers/assistant/AssistantButton";
+import { SCREEN_FAB_SIZE } from "@/src/containers/assistant/AssistantButton";
 import {
   EmptyState,
   MetalSurface,
@@ -20,7 +17,7 @@ import type { FoodRow } from "@/src/types/nutrition";
 import { ChevronLeft, Plus, Salad } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -28,7 +25,8 @@ export function FoodsScreen() {
   const { t } = useTranslation();
   const { navigate, goBack } = useAppNav();
   const { colors } = useAppTheme();
-  const fabBottom = useScreenFabBottom();
+  const insets = useSafeAreaInsets();
+  const fabBottom = insets.bottom + theme.spacing.lg;
   const [term, setTerm] = useState("");
   const [debounced, setDebounced] = useState("");
 

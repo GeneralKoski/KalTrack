@@ -1,4 +1,3 @@
-import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { MissingApiKeyError } from "@/src/ai/errors";
 import { checkModels, type ModelCheck } from "@/src/ai/health";
 import { DfButton } from "@/src/components/form/DfButton";
@@ -169,7 +168,7 @@ export function DiagnosticsScreen() {
         <ScrollView
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
+            { paddingBottom: insets.bottom + theme.spacing.lg },
           ]}
         >
           <Text style={[styles.explain, { color: colors.textSecondary }]}>

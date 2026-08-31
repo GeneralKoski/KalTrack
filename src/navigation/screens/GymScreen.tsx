@@ -1,4 +1,3 @@
-import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { DfButton } from "@/src/components/form/DfButton";
 import { Card, EmptyState, ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
@@ -98,7 +97,7 @@ export function GymScreen() {
           <ScrollView
             contentContainerStyle={[
               styles.content,
-              { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
+              { paddingBottom: insets.bottom + theme.spacing.lg },
             ]}
             showsVerticalScrollIndicator={false}
           >

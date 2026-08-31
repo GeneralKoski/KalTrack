@@ -1,4 +1,3 @@
-import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { MetalPanel, ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
@@ -150,7 +149,7 @@ export function AchievementsScreen() {
           <ScrollView
             contentContainerStyle={[
               styles.content,
-              { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
+              { paddingBottom: insets.bottom + theme.spacing.lg },
             ]}
           >
             <MetalPanel radius={theme.radius.xl} style={styles.streak}>

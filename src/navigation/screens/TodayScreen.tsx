@@ -1,8 +1,10 @@
 import { hasGroqKey } from "@/src/ai/config";
 import { AiKeyPrompt } from "@/src/containers/settings/AiKeyPrompt";
 import {
+  ASSISTANT_FAB_CLEARANCE,
+  AssistantButton,
+  SCREEN_FAB_BOTTOM,
   SCREEN_FAB_SIZE,
-  useScreenFabBottom,
 } from "@/src/containers/assistant/AssistantButton";
 import {
   Card,
@@ -94,7 +96,6 @@ interface DayData {
 export function TodayScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
-  const fabBottom = useScreenFabBottom();
   const { navigate } = useAppNav();
   const today = todayIso();
 
@@ -379,7 +380,7 @@ export function TodayScreen() {
           <ScrollView
             contentContainerStyle={[
               styles.content,
-              { paddingBottom: fabBottom + SCREEN_FAB_SIZE + theme.spacing.md },
+              { paddingBottom: ASSISTANT_FAB_CLEARANCE },
             ]}
           >
             <Card style={styles.summary}>
@@ -461,7 +462,7 @@ export function TodayScreen() {
       </SafeAreaView>
 
       <TouchableOpacity
-        style={[styles.fab, { bottom: fabBottom }]}
+        style={styles.fab}
         activeOpacity={0.6}
         onPress={() => openAdd()}
       >
@@ -469,6 +470,10 @@ export function TodayScreen() {
           <Plus size={26} color={colors.text} strokeWidth={2.5} />
         </MetalSurface>
       </TouchableOpacity>
+
+      {/* L'assistente sta qui e non sopra la navigazione: scrive pasti, passi,
+          peso e obiettivi, cioè quel che vive in questa schermata. */}
+      <AssistantButton />
 
       <DayPickerSheet
         ref={dayPickerRef}
@@ -609,6 +614,7 @@ const styles = StyleSheet.create({
   fab: {
     position: "absolute",
     right: theme.spacing.md,
+    bottom: SCREEN_FAB_BOTTOM,
     borderRadius: 28,
     shadowColor: theme.colors.gray900,
     shadowOffset: { width: 0, height: 4 },

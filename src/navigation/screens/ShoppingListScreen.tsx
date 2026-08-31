@@ -1,4 +1,3 @@
-import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { Card, EmptyState, ScreenBackground } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
@@ -165,7 +164,7 @@ export function ShoppingListScreen() {
           <ScrollView
             contentContainerStyle={[
               styles.content,
-              { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
+              { paddingBottom: insets.bottom + theme.spacing.lg },
             ]}
             keyboardShouldPersistTaps="handled"
           >

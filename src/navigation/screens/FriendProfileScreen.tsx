@@ -1,5 +1,4 @@
 import * as social from "@/src/api/social";
-import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { Card, EmptyState, ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { FriendComparison } from "@/src/containers/social/FriendComparison";
 import { FriendGymComparison } from "@/src/containers/social/FriendGymComparison";
@@ -76,7 +75,7 @@ export function FriendProfileScreen() {
           <ScrollView
             contentContainerStyle={[
               styles.content,
-              { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
+              { paddingBottom: insets.bottom + theme.spacing.lg },
             ]}
             showsVerticalScrollIndicator={false}
           >

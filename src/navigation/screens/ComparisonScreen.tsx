@@ -1,5 +1,4 @@
 import * as social from "@/src/api/social";
-import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import {
   Card,
   Chip,
@@ -329,7 +328,7 @@ export function ComparisonScreen() {
         <ScrollView
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
+            { paddingBottom: insets.bottom + theme.spacing.lg },
           ]}
         >
           <SectionLabel>{t("social.compare_pick")}</SectionLabel>

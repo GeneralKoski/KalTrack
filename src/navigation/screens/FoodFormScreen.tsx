@@ -1,4 +1,3 @@
-import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { DfAlert } from "@/src/components/DfAlert";
 import { FormScreen } from "@/src/components/FormScreen";
 import { DfButton } from "@/src/components/form/DfButton";
@@ -195,7 +194,7 @@ export function FoodFormScreen() {
         {!initial ? (
           <ActivityIndicator style={styles.loader} color={colors.accent} />
         ) : (
-          <FormScreen contentContainerStyle={styles.content} bottomSpacing={ASSISTANT_FAB_CLEARANCE}>
+          <FormScreen contentContainerStyle={styles.content} bottomSpacing={theme.spacing.lg}>
             {/*
               Prima del modulo e non dopo il salvataggio: quel che si scrive
               qui entra nell'elenco alimenti di tutti gli iscritti, e un

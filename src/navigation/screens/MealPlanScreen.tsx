@@ -1,4 +1,3 @@
-import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { DfAlert } from "@/src/components/DfAlert";
 import { DfButton } from "@/src/components/form/DfButton";
 import { ScreenBackground } from "@/src/components/kal";
@@ -365,7 +364,7 @@ export function MealPlanScreen() {
           <ScrollView
             contentContainerStyle={[
               styles.content,
-              { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
+              { paddingBottom: insets.bottom + theme.spacing.lg },
             ]}
             keyboardShouldPersistTaps="handled"
           >

@@ -1,4 +1,3 @@
-import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { DfSwitch } from "@/src/components/form/DfSwitch";
 import { Card, Chip, ScreenBackground } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
@@ -215,7 +214,7 @@ export function RemindersScreen() {
           <ScrollView
             contentContainerStyle={[
               styles.content,
-              { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
+              { paddingBottom: insets.bottom + theme.spacing.lg },
             ]}
           >
             <View style={styles.intro}>

@@ -12,7 +12,6 @@ import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { FormScreen } from "@/src/components/FormScreen";
 import { AccountForm } from "@/src/containers/social/AccountForm";
-import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
@@ -327,7 +326,7 @@ export function FriendsScreen() {
         <FormScreen
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
+            { paddingBottom: insets.bottom + theme.spacing.lg },
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}

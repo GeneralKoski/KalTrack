@@ -1,4 +1,3 @@
-import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { DfAlert } from "@/src/components/DfAlert";
 import { DfButton } from "@/src/components/form/DfButton";
 import { EmptyState, ScreenBackground } from "@/src/components/kal";
@@ -114,7 +113,7 @@ export function RoutinesScreen() {
             )}
             contentContainerStyle={[
               styles.list,
-              { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
+              { paddingBottom: insets.bottom + theme.spacing.lg },
             ]}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
             ListEmptyComponent={

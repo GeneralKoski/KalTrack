@@ -1,5 +1,4 @@
 import * as social from "@/src/api/social";
-import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { DfAlert } from "@/src/components/DfAlert";
 import { DfButton } from "@/src/components/form/DfButton";
 import { FormScreen } from "@/src/components/FormScreen";
@@ -124,7 +123,7 @@ export function MyProfileScreen() {
           <FormScreen
             contentContainerStyle={[
               styles.content,
-              { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
+              { paddingBottom: insets.bottom + theme.spacing.lg },
             ]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}

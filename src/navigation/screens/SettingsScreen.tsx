@@ -1,4 +1,3 @@
-import { ASSISTANT_FAB_CLEARANCE } from "@/src/containers/assistant/AssistantButton";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Card, ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { Text } from "@/src/components/ui";
@@ -64,7 +63,7 @@ export function SettingsScreen() {
           ref={scrollRef}
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: insets.bottom + ASSISTANT_FAB_CLEARANCE },
+            { paddingBottom: insets.bottom + theme.spacing.lg },
           ]}
         >
           <SectionLabel>{t("settings.theme")}</SectionLabel>

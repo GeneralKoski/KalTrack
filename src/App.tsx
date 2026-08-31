@@ -12,7 +12,6 @@ import { ThemeProvider, useAppTheme } from "@/src/components/ThemeContext";
 import { toastConfig } from "@/src/components/toastConfig";
 import { initDatabase } from "@/src/db";
 import { ExitConfirm } from "@/src/components/ExitConfirm";
-import { AssistantButton } from "@/src/containers/assistant/AssistantButton";
 import { Navigation } from "@/src/navigation";
 import { syncStepsOnStartup } from "@/src/services/healthConnect";
 import { syncSharedStats } from "@/src/services/shareSync";
@@ -133,9 +132,6 @@ export function App() {
             <ThemedStatusBar />
             <BottomSheetModalProvider>
               <Navigation />
-              {/* Sopra la navigazione: l'assistente è uno strato dell'app,
-                  raggiungibile ovunque senza che ogni schermata lo monti. */}
-              <AssistantButton />
               {/* Il tasto indietro sulla schermata iniziale chiudeva l'app di
                   colpo: da qui in poi chiede conferma. */}
               <ExitConfirm />
