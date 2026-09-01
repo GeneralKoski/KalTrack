@@ -26,7 +26,6 @@
     "dayjs": "^1.11.20",
     "expo": "~55.0.12",
     "expo-audio": "~55.0.18",
-    "expo-blur": "^57.0.2",
     "expo-build-properties": "~55.0.12",
     "expo-camera": "~55.0.23",
     "expo-constants": "~55.0.12",

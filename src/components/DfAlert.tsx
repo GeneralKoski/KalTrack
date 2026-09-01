@@ -10,52 +10,14 @@ import { DfButton } from "@/src/components/form/DfButton";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
-import { BlurView } from "expo-blur";
 import { X } from "lucide-react-native";
 import React from "react";
 import {
   Dimensions,
-  Platform,
   Pressable,
   StyleSheet,
-  UIManager,
   View,
 } from "react-native";
-
-const isNativeBlurAvailable = (): boolean => {
-  if (Platform.OS === "web") return false;
-  return Boolean(
-    UIManager.getViewManagerConfig?.("ExpoBlurView") ||
-      (UIManager as unknown as Record<string, unknown>)["ExpoBlurView"],
-  );
-};
-
-const SafeBlur: React.FC<{ isDark: boolean }> = ({ isDark }) => {
-  const [canBlur] = React.useState(() => isNativeBlurAvailable());
-
-  if (canBlur) {
-    return (
-      <BlurView
-        intensity={50}
-        tint={isDark ? "dark" : "light"}
-        style={StyleSheet.absoluteFill}
-      />
-    );
-  }
-
-  return (
-    <View
-      style={[
-        StyleSheet.absoluteFill,
-        {
-          backgroundColor: isDark
-            ? "rgba(10, 10, 12, 0.78)"
-            : "rgba(0, 0, 0, 0.55)",
-        },
-      ]}
-    />
-  );
-};
 
 interface DfAlertProps {
   isOpen: boolean;
@@ -122,9 +84,16 @@ export function DfAlert({
 
   return (
     <AlertDialog isOpen={isOpen} onClose={handleDismiss} size={size}>
-      <AlertDialogBackdrop style={styles.backdrop}>
-        <SafeBlur isDark={isDark} />
-      </AlertDialogBackdrop>
+      <AlertDialogBackdrop
+        style={[
+          styles.backdrop,
+          {
+            backgroundColor: isDark
+              ? "rgba(10, 10, 12, 0.78)"
+              : "rgba(0, 0, 0, 0.55)",
+          },
+        ]}
+      />
       <AlertDialogContent
         style={{
           backgroundColor: colors.surface,
