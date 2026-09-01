@@ -28,7 +28,15 @@ import { theme } from "@/src/styles";
 import { MEASUREMENT_SITES } from "@/src/types/wellbeing";
 import { formatDate } from "@/src/utils/dateUtils";
 import { logger } from "@/src/utils/logger";
-import { ChevronLeft, Ruler } from "lucide-react-native";
+import {
+  Check,
+  ChevronLeft,
+  Info,
+  Minus,
+  Ruler,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react-native";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -38,8 +46,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 interface MeasurementsData {
   /** Siti noti più quelli già registrati che non stanno nell'elenco. */
@@ -71,7 +81,6 @@ export function MeasurementsScreen() {
   }, [site]);
 
   const { data, loading, reload } = useFocusData<MeasurementsData>(loader);
-
 
   const rows = data?.rows ?? [];
   const today = todayIso();
@@ -112,26 +121,31 @@ export function MeasurementsScreen() {
           <TouchableOpacity onPress={goBack} activeOpacity={0.6} hitSlop={10}>
             <ChevronLeft size={26} color={colors.textSecondary} />
           </TouchableOpacity>
-          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+          <Text
+            style={[styles.title, { color: colors.text }]}
+            numberOfLines={1}
+          >
             {t("measurements.title")}
           </Text>
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.sites}
-        >
-          {(data?.sites ?? MEASUREMENT_SITES).map((value) => (
-            <Chip
-              key={value}
-              label={siteLabel(value)}
-              active={value === site}
-              onPress={() => setSite(value)}
-            />
-          ))}
-        </ScrollView>
+        <View style={styles.sitesWrapper}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.sites}
+          >
+            {(data?.sites ?? MEASUREMENT_SITES).map((value) => (
+              <Chip
+                key={value}
+                label={siteLabel(value)}
+                active={value === site}
+                onPress={() => setSite(value)}
+              />
+            ))}
+          </ScrollView>
+        </View>
 
         {loading && !data ? (
           <ActivityIndicator style={styles.loader} color={colors.accent} />
@@ -143,16 +157,51 @@ export function MeasurementsScreen() {
               { paddingBottom: insets.bottom + theme.spacing.lg },
             ]}
           >
-            <Card style={styles.card}>
+            <Card style={styles.overviewCard}>
               {last ? (
                 <>
-                  <Text style={[styles.value, { color: colors.text }]}>
-                    {formatCm(last.value_cm)}
-                    <Text style={[styles.unit, { color: colors.textMuted }]}>
-                      {` ${t("measurements.unit")}`}
-                    </Text>
-                  </Text>
-                  <Text style={[styles.delta, { color: colors.textSecondary }]}>
+                  <View style={styles.valueRow}>
+                    <View style={styles.valueGroup}>
+                      <Text style={[styles.value, { color: colors.text }]}>
+                        {formatCm(last.value_cm)}
+                      </Text>
+                      <Text
+                        style={[styles.unitBadge, { color: colors.textMuted }]}
+                      >
+                        {t("measurements.unit")}
+                      </Text>
+                    </View>
+                    {totalDelta !== null ? (
+                      <View
+                        style={[
+                          styles.deltaBadge,
+                          {
+                            backgroundColor: colors.surfaceMuted,
+                            borderColor: colors.border,
+                          },
+                        ]}
+                      >
+                        {totalDelta > 0 ? (
+                          <TrendingUp size={14} color={colors.accent} />
+                        ) : totalDelta < 0 ? (
+                          <TrendingDown size={14} color={colors.accent} />
+                        ) : (
+                          <Minus size={14} color={colors.textMuted} />
+                        )}
+                        <Text
+                          style={[
+                            styles.deltaBadgeText,
+                            { color: colors.text },
+                          ]}
+                        >
+                          {formatDelta(totalDelta)}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  <Text
+                    style={[styles.deltaSub, { color: colors.textSecondary }]}
+                  >
                     {totalDelta === null || !first
                       ? t("measurements.only_one")
                       : t("measurements.since_first", {
@@ -160,10 +209,12 @@ export function MeasurementsScreen() {
                           date: formatDate(first.date),
                         })}
                   </Text>
-                  <Sparkline
-                    values={rows.map((r) => r.value_cm)}
-                    emptyLabel={t("measurements.chart_empty")}
-                  />
+                  <View style={styles.chartWrapper}>
+                    <Sparkline
+                      values={rows.map((r) => r.value_cm)}
+                      emptyLabel={t("measurements.chart_empty")}
+                    />
+                  </View>
                 </>
               ) : (
                 <EmptyState
@@ -173,53 +224,82 @@ export function MeasurementsScreen() {
               )}
             </Card>
 
-            <SectionLabel style={styles.section}>
-              {t("measurements.new")}
-            </SectionLabel>
-            <Card style={styles.card}>
-              <View style={styles.inputRow}>
-                <TextInput
-                  value={text}
-                  onChangeText={setText}
-                  keyboardType="decimal-pad"
-                  placeholder={t("measurements.placeholder")}
-                  placeholderTextColor={colors.textFaint}
+            <Card style={styles.inputCard}>
+              <Text style={[styles.sectionHeading, { color: colors.text }]}>
+                {t("measurements.new")}
+              </Text>
+              <View style={styles.inputBlock}>
+                <View
                   style={[
-                    styles.input,
+                    styles.inputFieldWrapper,
                     {
                       backgroundColor: colors.surfaceMuted,
-                      borderColor: colors.border,
-                      color: colors.text,
+                      borderColor:
+                        text.length > 0 ? colors.accent : colors.border,
                     },
                   ]}
+                >
+                  <Ruler size={18} color={colors.textSecondary} />
+                  <TextInput
+                    value={text}
+                    onChangeText={setText}
+                    keyboardType="decimal-pad"
+                    placeholder={t("measurements.placeholder")}
+                    placeholderTextColor={colors.textFaint}
+                    style={[styles.inputTextInput, { color: colors.text }]}
+                  />
+                  <View
+                    style={[
+                      styles.unitPill,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.unitPillText,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      {t("measurements.unit")}
+                    </Text>
+                  </View>
+                </View>
+
+                <DfButton
+                  label={t("save")}
+                  icon={<Check size={16} color={colors.text} />}
+                  onPress={save}
+                  disabled={!valid}
+                  loading={saving}
                 />
-                <Text style={[styles.inputUnit, { color: colors.textMuted }]}>
-                  {t("measurements.unit")}
-                </Text>
               </View>
 
               {todayRow ? (
-                <Text style={[styles.hint, { color: colors.textMuted }]}>
-                  {t("measurements.today_replace", {
-                    value: formatCm(todayRow.value_cm),
-                  })}
-                </Text>
+                <View
+                  style={[
+                    styles.hintBox,
+                    { backgroundColor: colors.surfaceMuted },
+                  ]}
+                >
+                  <Info size={14} color={colors.textSecondary} />
+                  <Text style={[styles.hintText, { color: colors.textMuted }]}>
+                    {t("measurements.today_replace", {
+                      value: formatCm(todayRow.value_cm),
+                    })}
+                  </Text>
+                </View>
               ) : null}
-
-              <DfButton
-                label={t("save")}
-                onPress={save}
-                disabled={!valid}
-                loading={saving}
-              />
             </Card>
 
             {rows.length > 0 ? (
-              <>
-                <SectionLabel style={styles.section}>
-                  {t("measurements.history")}
+              <View style={styles.historySection}>
+                <SectionLabel style={styles.sectionHeader}>
+                  {`${t("measurements.history")} (${rows.length})`}
                 </SectionLabel>
-                <Card>
+                <Card style={styles.historyCard}>
                   {/* Dal più recente in giù: lo storico si legge a ritroso. */}
                   {rows
                     .map((row, index) => ({
@@ -251,7 +331,7 @@ export function MeasurementsScreen() {
                       </View>
                     ))}
                 </Card>
-              </>
+              </View>
             ) : null}
           </ScrollView>
         )}
@@ -271,37 +351,122 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   title: { flex: 1, fontSize: 18, fontWeight: "700" },
+  sitesWrapper: {
+    flexGrow: 0,
+    paddingBottom: 6,
+  },
   sites: {
     alignItems: "center",
     paddingHorizontal: theme.spacing.md,
-    paddingBottom: theme.spacing.sm,
-    gap: theme.spacing.sm,
+    gap: 6,
   },
   content: {
     paddingHorizontal: theme.spacing.md,
     paddingTop: theme.spacing.xs,
-  },
-  card: { gap: theme.spacing.sm },
-  section: { marginTop: theme.spacing.md },
-  value: { fontSize: 30, fontWeight: "700" },
-  unit: { fontSize: 15, fontWeight: "500" },
-  delta: { fontSize: 14 },
-  inputRow: {
-    flexDirection: "row",
-    alignItems: "center",
     gap: theme.spacing.sm,
   },
-  input: {
-    flex: 1,
-    fontSize: 26,
+  overviewCard: {
+    gap: theme.spacing.sm,
+  },
+  valueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  valueGroup: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 4,
+  },
+  value: {
+    fontSize: 32,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+  },
+  unitBadge: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  deltaBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: theme.radius.full,
+    borderWidth: 1,
+  },
+  deltaBadgeText: {
+    fontSize: 13,
     fontWeight: "700",
-    textAlign: "center",
+  },
+  deltaSub: {
+    fontSize: 13,
+    marginTop: -4,
+  },
+  chartWrapper: {
+    marginTop: 4,
+  },
+  inputCard: {
+    gap: theme.spacing.sm,
+  },
+  sectionHeading: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  inputBlock: {
+    gap: theme.spacing.sm,
+  },
+  inputFieldWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
     borderRadius: theme.radius.lg,
-    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    height: 48,
+    gap: theme.spacing.sm,
   },
-  inputUnit: { fontSize: 16, fontWeight: "600", minWidth: 32 },
-  hint: { fontSize: 13 },
-  separator: { height: StyleSheet.hairlineWidth },
-  loader: { marginTop: theme.spacing.xl },
+  inputTextInput: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "700",
+    paddingVertical: 0,
+  },
+  unitPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: theme.radius.sm,
+    borderWidth: 1,
+  },
+  unitPillText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  hintBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 8,
+    borderRadius: theme.radius.md,
+  },
+  hintText: {
+    fontSize: 12,
+    flex: 1,
+  },
+  historySection: {
+    gap: 4,
+  },
+  sectionHeader: {
+    marginTop: theme.spacing.xs,
+  },
+  historyCard: {
+    paddingVertical: 4,
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+  },
+  loader: {
+    marginTop: theme.spacing.xl,
+  },
 });

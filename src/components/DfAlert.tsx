@@ -10,9 +10,52 @@ import { DfButton } from "@/src/components/form/DfButton";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { BlurView } from "expo-blur";
 import { X } from "lucide-react-native";
 import React from "react";
-import { Dimensions, Pressable, StyleSheet, View } from "react-native";
+import {
+  Dimensions,
+  Platform,
+  Pressable,
+  StyleSheet,
+  UIManager,
+  View,
+} from "react-native";
+
+const isNativeBlurAvailable = (): boolean => {
+  if (Platform.OS === "web") return false;
+  return Boolean(
+    UIManager.getViewManagerConfig?.("ExpoBlurView") ||
+      (UIManager as unknown as Record<string, unknown>)["ExpoBlurView"],
+  );
+};
+
+const SafeBlur: React.FC<{ isDark: boolean }> = ({ isDark }) => {
+  const [canBlur] = React.useState(() => isNativeBlurAvailable());
+
+  if (canBlur) {
+    return (
+      <BlurView
+        intensity={50}
+        tint={isDark ? "dark" : "light"}
+        style={StyleSheet.absoluteFill}
+      />
+    );
+  }
+
+  return (
+    <View
+      style={[
+        StyleSheet.absoluteFill,
+        {
+          backgroundColor: isDark
+            ? "rgba(10, 10, 12, 0.78)"
+            : "rgba(0, 0, 0, 0.55)",
+        },
+      ]}
+    />
+  );
+};
 
 interface DfAlertProps {
   isOpen: boolean;
@@ -61,8 +104,11 @@ export function DfAlert({
   onClose,
   onDismiss,
 }: DfAlertProps) {
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const { t } = useTranslation();
+
+  const resolvedConfirmColor =
+    confirmColor === "danger" ? colors.error : confirmColor;
 
   const handleCancel = () => {
     if (loading || !dismissable) return;
@@ -76,13 +122,23 @@ export function DfAlert({
 
   return (
     <AlertDialog isOpen={isOpen} onClose={handleDismiss} size={size}>
-      <AlertDialogBackdrop />
+      <AlertDialogBackdrop style={styles.backdrop}>
+        <SafeBlur isDark={isDark} />
+      </AlertDialogBackdrop>
       <AlertDialogContent
         style={{
           backgroundColor: colors.surface,
+          borderColor: isDark ? "rgba(255, 255, 255, 0.18)" : colors.border,
+          borderWidth: 1,
+          borderRadius: 20,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: isDark ? 0.7 : 0.25,
+          shadowRadius: 20,
+          elevation: 16,
           maxHeight: Dimensions.get("window").height * 0.85,
         }}
-        className="border-0 p-0"
+        className="p-0 overflow-hidden"
       >
         {(title || headerIcon || showCloseButton) && (
           <AlertDialogHeader
@@ -135,7 +191,7 @@ export function DfAlert({
               <DfButton
                 label={confirmLabel ?? t("confirm")}
                 style={styles.confirmButton}
-                color={confirmColor}
+                color={resolvedConfirmColor}
                 loading={loading}
                 icon={confirmIcon}
                 onPress={onConfirm}
@@ -172,7 +228,7 @@ export function DfAlert({
                 <DfButton
                   label={confirmLabel ?? t("confirm")}
                   style={styles.confirmButton}
-                  color={confirmColor}
+                  color={resolvedConfirmColor}
                   loading={loading}
                   icon={confirmIcon}
                   onPress={onConfirm}
@@ -228,5 +284,8 @@ const styles = StyleSheet.create({
   confirmButton: {
     paddingVertical: 8,
     minHeight: 30,
+  },
+  backdrop: {
+    backgroundColor: "rgba(0, 0, 0, 0.65)",
   },
 });

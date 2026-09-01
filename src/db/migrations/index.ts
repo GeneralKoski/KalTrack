@@ -9,6 +9,8 @@ import { migration008 } from "@/src/db/migrations/008_planning";
 import { migration009 } from "@/src/db/migrations/009_app_logs";
 import { migration010 } from "@/src/db/migrations/010_entry_components";
 import { migration011 } from "@/src/db/migrations/011_capitalize_meal_types";
+import { migration012 } from "@/src/db/migrations/012_reminder_label";
+import { migration013 } from "@/src/db/migrations/013_reminder_position";
 import type { Migration } from "@/src/db/migrations/types";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 import { logger } from "@/src/utils/logger";
@@ -28,6 +30,8 @@ export const MIGRATIONS: Migration[] = [
   migration009,
   migration010,
   migration011,
+  migration012,
+  migration013,
 ];
 
 /**

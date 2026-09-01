@@ -1,12 +1,18 @@
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { theme } from "@/src/styles";
 import React, { type ReactNode } from "react";
-import { StyleSheet, TouchableOpacity, View, type ViewStyle } from "react-native";
+import {
+  StyleProp,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  type ViewStyle,
+} from "react-native";
 
 interface CardProps {
   children: ReactNode;
   onPress?: () => void;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 /**
@@ -23,7 +29,10 @@ export const Card: React.FC<CardProps> = ({ children, onPress, style }) => {
     styles.card,
     { backgroundColor: colors.surface },
     // Al buio l'ombra non si vede: senza bordo la card sparirebbe nello sfondo.
-    isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+    isDark && {
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+    },
     style,
   ];
 

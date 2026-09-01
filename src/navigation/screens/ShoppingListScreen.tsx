@@ -1,8 +1,13 @@
-import { Card, EmptyState, ScreenBackground } from "@/src/components/kal";
+import {
+  Card,
+  DateRangeField,
+  EmptyState,
+  ScreenBackground,
+} from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { planToShoppingList } from "@/src/db/queries/mealPlan";
-import { addDays, startOfWeek, todayIso } from "@/src/domain/date";
+import { addDays, startOfWeek, todayIso, toIsoDate } from "@/src/domain/date";
 import { formatQuantity, type ShoppingItem } from "@/src/domain/shoppingList";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
@@ -23,24 +28,31 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
-type RangeKey = "this_week" | "next_week" | "next_days";
+type RangeKey = "rest_of_week" | "this_week" | "next_week" | "custom";
 
-const RANGES: RangeKey[] = ["this_week", "next_week", "next_days"];
+const RANGES: RangeKey[] = ["rest_of_week", "this_week", "next_week", "custom"];
 
 interface ShoppingRouteParams {
   from?: string;
   to?: string;
 }
 
-/** Estremi dell'intervallo, calcolati sul giorno corrente. */
-function rangeDates(key: RangeKey, today: string): [string, string] {
+const parseIso = (iso: string): Date => {
+  const [year, month, day] = iso.split("-").map(Number);
+  return new Date(year, month - 1, day);
+};
+
+/** Estremi dell'intervallo predefinito, calcolati sul giorno corrente. */
+function rangeDates(
+  key: "rest_of_week" | "this_week" | "next_week",
+  today: string,
+): [string, string] {
   const monday = startOfWeek(today);
-  if (key === "this_week") return [monday, addDays(monday, 6)];
-  if (key === "next_week") {
-    const next = addDays(monday, 7);
-    return [next, addDays(next, 6)];
-  }
-  return [today, addDays(today, 6)];
+  const sunday = addDays(monday, 6);
+  if (key === "rest_of_week") return [today, sunday];
+  if (key === "this_week") return [monday, sunday];
+  const nextMonday = addDays(monday, 7);
+  return [nextMonday, addDays(nextMonday, 6)];
 }
 
 export function ShoppingListScreen() {
@@ -52,16 +64,14 @@ export function ShoppingListScreen() {
     useRoute<RouteProp<Record<string, ShoppingRouteParams>, string>>();
   const today = todayIso();
 
-  // L'intervallo arrivato dal piano vince sul default: si è appena guardata
-  // quella settimana, ed è di quella che si vuole la spesa.
   const initialRange =
     route.params?.from && route.params?.to
       ? ([route.params.from, route.params.to] as [string, string])
-      : rangeDates("this_week", today);
+      : rangeDates("rest_of_week", today);
 
   const [range, setRange] = useState<[string, string]>(initialRange);
   const [activeKey, setActiveKey] = useState<RangeKey | null>(
-    route.params?.from ? null : "this_week",
+    route.params?.from ? "custom" : "rest_of_week",
   );
 
   /**
@@ -77,7 +87,6 @@ export function ShoppingListScreen() {
   );
   const { data, loading } = useFocusData<ShoppingItem[]>(loader);
 
-
   const items = data ?? [];
   const takenCount = items.filter((item) => taken.has(item.foodId)).length;
 
@@ -92,7 +101,21 @@ export function ShoppingListScreen() {
 
   const selectRange = (key: RangeKey) => {
     setActiveKey(key);
-    setRange(rangeDates(key, today));
+    if (key !== "custom") {
+      setRange(rangeDates(key, today));
+    }
+  };
+
+  const handleDateChangeFrom = (d: Date) => {
+    const fromIso = toIsoDate(d);
+    setActiveKey("custom");
+    setRange(([_, to]) => [fromIso, to < fromIso ? fromIso : to]);
+  };
+
+  const handleDateChangeTo = (d: Date) => {
+    const toIso = toIsoDate(d);
+    setActiveKey("custom");
+    setRange(([from, _]) => [from > toIso ? toIso : from, toIso]);
   };
 
   return (
@@ -126,6 +149,7 @@ export function ShoppingListScreen() {
           horizontal
           showsHorizontalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          style={styles.rangesScroll}
           contentContainerStyle={styles.ranges}
         >
           {RANGES.map((key) => {
@@ -157,6 +181,17 @@ export function ShoppingListScreen() {
             );
           })}
         </ScrollView>
+
+        {activeKey === "custom" ? (
+          <View style={styles.customDateContainer}>
+            <DateRangeField
+              from={parseIso(range[0])}
+              to={parseIso(range[1])}
+              onChangeFrom={handleDateChangeFrom}
+              onChangeTo={handleDateChangeTo}
+            />
+          </View>
+        ) : null}
 
         {loading && !data ? (
           <ActivityIndicator style={styles.loader} color={colors.accent} />
@@ -275,18 +310,26 @@ const styles = StyleSheet.create({
   },
   title: { flex: 1, fontSize: 18, fontWeight: "700" },
   reset: { fontSize: 13, fontWeight: "600" },
+  rangesScroll: {
+    flexGrow: 0,
+  },
   ranges: {
     alignItems: "center",
     gap: theme.spacing.xs,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: 4,
   },
   rangeChip: {
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: 6,
     borderRadius: theme.radius.full,
   },
   rangeLabel: { fontSize: 13, fontWeight: "600" },
+  customDateContainer: {
+    paddingHorizontal: theme.spacing.md,
+    paddingTop: theme.spacing.xs,
+    paddingBottom: theme.spacing.xs,
+  },
   content: {
     paddingHorizontal: theme.spacing.md,
     gap: theme.spacing.sm,

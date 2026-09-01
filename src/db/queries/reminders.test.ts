@@ -5,6 +5,7 @@ import {
   deleteReminder,
   getReminderByKind,
   listReminders,
+  reorderReminders,
   saveReminder,
   setReminderEnabled,
   setReminderNotificationIds,
@@ -126,7 +127,12 @@ describe("saveReminder", () => {
       }),
     ).rejects.toThrow();
     await expect(
-      saveReminder({ kind: "water", time: "9:5", weekdays: [1], enabled: true }),
+      saveReminder({
+        kind: "water",
+        time: "9:5",
+        weekdays: [1],
+        enabled: true,
+      }),
     ).rejects.toThrow();
   });
 });
@@ -224,5 +230,53 @@ describe("stato", () => {
     ]);
 
     expect((await getReminderByKind("meals"))?.weekdays).toEqual([]);
+  });
+
+  it("salva e modifica promemoria personalizzati con label", async () => {
+    const custom = await saveReminder({
+      kind: "custom",
+      label: "Prendi creatina",
+      time: "08:00",
+      weekdays: [1, 2, 3, 4, 5],
+      enabled: true,
+    });
+    expect(custom.label).toBe("Prendi creatina");
+    expect(custom.kind).toBe("custom");
+
+    const updated = await saveReminder({
+      id: custom.id,
+      label: "Prendi creatina e vitamine",
+      time: "08:30",
+      weekdays: [1, 2, 3, 4, 5, 6],
+      enabled: false,
+    });
+    expect(updated.label).toBe("Prendi creatina e vitamine");
+    expect(updated.time).toBe("08:30");
+    expect(updated.enabled).toBe(false);
+  });
+
+  it("riordina i promemoria salvando le posizioni", async () => {
+    const a = await saveReminder({
+      kind: "water",
+      time: "08:00",
+      weekdays: [1],
+      enabled: true,
+    });
+    const b = await saveReminder({
+      kind: "meals",
+      time: "12:00",
+      weekdays: [1],
+      enabled: true,
+    });
+    const c = await saveReminder({
+      kind: "workout",
+      time: "18:00",
+      weekdays: [1],
+      enabled: true,
+    });
+
+    await reorderReminders([c.id, a.id, b.id]);
+    const reordered = await listReminders();
+    expect(reordered.map((r) => r.id)).toEqual([c.id, a.id, b.id]);
   });
 });

@@ -62,4 +62,5 @@ export type AiCapability =
   | "vision"
   | "food_estimate"
   | "exercise_alternatives"
-  | "routine_generation";
+  | "routine_generation"
+  | "meal_plan_generation";

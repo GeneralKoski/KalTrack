@@ -1,5 +1,5 @@
-import { getDb } from "@/src/db/index";
 import { newId, nowIso } from "@/src/db/ids";
+import { getDb } from "@/src/db/index";
 import { addFoodEntry, addRecipeEntry } from "@/src/db/queries/diary";
 import { getFood } from "@/src/db/queries/foods";
 import {
@@ -206,52 +206,69 @@ export async function deletePlanEntry(id: string): Promise<void> {
 }
 
 /**
- * Ricopia sette giorni a partire da `fromDate` sui sette a partire da `toDate`.
+ * Copia un insieme di giornate a partire da `targetStartDate`.
  *
- * La settimana di destinazione viene prima svuotata: "copia settimana" vuol
- * dire che la destinazione diventa uguale all'origine, non che le due si
- * mescolano lasciando doppioni impossibili da distinguere.
+ * Le giornate di destinazione vengono prima svuotate per evitare duplicati.
+ */
+export async function copyPlanDays(
+  sourceDates: string[],
+  targetStartDate: string,
+): Promise<number> {
+  if (sourceDates.length === 0) return 0;
+  const sorted = [...sourceDates].sort();
+  const db = await getDb();
+  const now = nowIso();
+  let totalCopied = 0;
+
+  await db.withTransactionAsync(async () => {
+    for (let i = 0; i < sorted.length; i++) {
+      const sourceDate = sorted[i];
+      const destDate = addDays(targetStartDate, i);
+      const rows = await listPlan(sourceDate, sourceDate);
+
+      await db.runAsync(
+        `UPDATE meal_plan_entries SET deleted_at = ?, updated_at = ?
+         WHERE date = ? AND deleted_at IS NULL`,
+        [now, now, destDate],
+      );
+
+      for (const row of rows) {
+        await db.runAsync(
+          `INSERT INTO meal_plan_entries (
+             id, date, meal_type_id, recipe_id, food_id, label,
+             quantity_g, servings, sort, created_at, updated_at
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            newId(),
+            destDate,
+            row.meal_type_id,
+            row.recipe_id,
+            row.food_id,
+            row.label,
+            row.quantity_g,
+            row.servings,
+            row.sort,
+            now,
+            now,
+          ],
+        );
+        totalCopied += 1;
+      }
+    }
+  });
+
+  return totalCopied;
+}
+
+/**
+ * Ricopia sette giorni a partire da `fromDate` sui sette a partire da `toDate`.
  */
 export async function copyPlanWeek(
   fromDate: string,
   toDate: string,
 ): Promise<number> {
-  const source = await listPlan(fromDate, addDays(fromDate, 6));
-  const db = await getDb();
-  const now = nowIso();
-
-  await db.withTransactionAsync(async () => {
-    await db.runAsync(
-      `UPDATE meal_plan_entries SET deleted_at = ?, updated_at = ?
-       WHERE date >= ? AND date <= ? AND deleted_at IS NULL`,
-      [now, now, toDate, addDays(toDate, 6)],
-    );
-
-    for (const row of source) {
-      const offset = daysBetween(fromDate, row.date);
-      await db.runAsync(
-        `INSERT INTO meal_plan_entries (
-           id, date, meal_type_id, recipe_id, food_id, label,
-           quantity_g, servings, sort, created_at, updated_at
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          newId(),
-          addDays(toDate, offset),
-          row.meal_type_id,
-          row.recipe_id,
-          row.food_id,
-          row.label,
-          row.quantity_g,
-          row.servings,
-          row.sort,
-          now,
-          now,
-        ],
-      );
-    }
-  });
-
-  return source.length;
+  const days = Array.from({ length: 7 }, (_, i) => addDays(fromDate, i));
+  return copyPlanDays(days, toDate);
 }
 
 const MS_PER_DAY = 86_400_000;
@@ -373,12 +390,15 @@ export async function isPlanApplied(date: string): Promise<boolean> {
  * doppio trasferimento c'è un flag per giorno: chiamarla due volte sullo stesso
  * giorno non scrive niente la seconda volta.
  */
-export async function applyPlanToDiary(date: string): Promise<ApplyPlanResult> {
-  if (await isPlanApplied(date)) {
+export async function applyPlanToDiary(
+  planDate: string,
+  targetDate: string = planDate,
+): Promise<ApplyPlanResult> {
+  if (planDate === targetDate && (await isPlanApplied(planDate))) {
     return { created: 0, skipped: 0, alreadyApplied: true };
   }
 
-  const rows = await listPlan(date, date);
+  const rows = await listPlan(planDate, planDate);
   const db = await getDb();
   let created = 0;
   let skipped = 0;
@@ -393,7 +413,7 @@ export async function applyPlanToDiary(date: string): Promise<ApplyPlanResult> {
 
       if (row.food_id && grams > 0) {
         await addFoodEntry({
-          date,
+          date: targetDate,
           mealTypeId: row.meal_type_id,
           foodId: row.food_id,
           quantityG: grams,
@@ -401,7 +421,7 @@ export async function applyPlanToDiary(date: string): Promise<ApplyPlanResult> {
         created += 1;
       } else if (row.recipe_id && servings > 0) {
         await addRecipeEntry({
-          date,
+          date: targetDate,
           mealTypeId: row.meal_type_id,
           recipeId: row.recipe_id,
           servings,
@@ -414,7 +434,9 @@ export async function applyPlanToDiary(date: string): Promise<ApplyPlanResult> {
       }
     }
 
-    await setSetting(`${APPLIED_PREFIX}${date}`, nowIso());
+    if (planDate === targetDate) {
+      await setSetting(`${APPLIED_PREFIX}${planDate}`, nowIso());
+    }
   });
 
   return { created, skipped, alreadyApplied: false };

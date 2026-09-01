@@ -2,7 +2,6 @@ import {
   setReminderEnabled,
   setReminderNotificationIds,
   type Reminder,
-  type ReminderKind,
 } from "@/src/db/queries/reminders";
 import { i18n } from "@/src/i18n";
 import { logger } from "@/src/utils/logger";
@@ -79,13 +78,34 @@ export async function scheduleReminder(reminder: Reminder): Promise<string[]> {
   await ensureAndroidChannel();
   const { hour, minute } = parseTime(reminder.time);
 
+  const isPreset =
+    reminder.kind !== "custom" &&
+    ["meals", "water", "weight", "workout"].includes(reminder.kind);
+
+  const title =
+    reminder.label?.trim() ||
+    (isPreset
+      ? i18n.t(`reminders.kinds.${reminder.kind}.title`, {
+          defaultValue: "Promemoria",
+        })
+      : "Promemoria");
+
+  const body =
+    isPreset && !reminder.label?.trim()
+      ? i18n.t(`reminders.kinds.${reminder.kind}.body`, {
+          defaultValue: "È ora del tuo promemoria!",
+        })
+      : i18n.t("reminders.custom_body", {
+          defaultValue: "È ora del tuo promemoria!",
+        });
+
   const ids: string[] = [];
   for (const weekday of reminder.weekdays) {
     const id = await Notifications.scheduleNotificationAsync({
       content: {
-        title: i18n.t(`reminders.kinds.${reminder.kind}.title`),
-        body: i18n.t(`reminders.kinds.${reminder.kind}.body`),
-        data: { kind: reminder.kind },
+        title,
+        body,
+        data: { reminderId: reminder.id, kind: reminder.kind },
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
@@ -139,13 +159,6 @@ export interface ReminderApplyResult {
  * Se il permesso manca il promemoria viene spento anche a database: mostrarlo
  * acceso mentre non arriva niente è il difetto peggiore di questa schermata.
  */
-/**
- * Una coda per promemoria: due `applyReminder` sullo stesso id non devono mai
- * sovrapporsi. Se accadesse - due tocchi rapidi sullo stesso chip - entrambe
- * cancellerebbero gli id vecchi, entrambe programmerebbero, ma a database
- * resterebbe solo l'ultima serie: le notifiche della prima resterebbero in
- * coda per sempre, senza id salvato con cui fermarle.
- */
 const applyQueues = new Map<string, Promise<unknown>>();
 
 export function applyReminder(
@@ -156,9 +169,6 @@ export function applyReminder(
     .catch(() => null)
     .then(() => applyReminderNow(reminder));
   applyQueues.set(reminder.id, next);
-  // `then` con entrambi i rami e non `finally`: quello avrebbe ripropagato un
-  // eventuale rifiuto su una promise che nessuno osserva, cioe' una
-  // unhandled rejection accanto a quella che il chiamante gestisce.
   const forget = () => {
     if (applyQueues.get(reminder.id) === next) applyQueues.delete(reminder.id);
   };
@@ -170,10 +180,7 @@ async function applyReminderNow(
   reminder: Reminder,
 ): Promise<ReminderApplyResult> {
   await cancelReminder(reminder.notificationIds);
-  // Gli id passati possono essere già stantii se la chiamata ha aspettato in
-  // coda: quel che il sistema ha davvero in programma per questo tipo è la
-  // sola fonte affidabile per non lasciare notifiche orfane.
-  await cancelReminder(await scheduledIdsForKind(reminder.kind));
+  await cancelReminder(await scheduledIdsForReminder(reminder));
   if (reminder.notificationIds.length > 0) {
     await setReminderNotificationIds(reminder.id, []);
   }
@@ -199,20 +206,25 @@ async function applyReminderNow(
     return { status: "scheduled", enabled: true, notificationIds };
   } catch (error) {
     logger.error("[reminders] programmazione notifiche fallita", error);
-    // Quel che è riuscito a partire prima dell'errore va tolto di mezzo,
-    // altrimenti restano notifiche orfane senza id salvato.
-    await cancelReminder(await scheduledIdsForKind(reminder.kind));
+    await cancelReminder(await scheduledIdsForReminder(reminder));
     await setReminderEnabled(reminder.id, false);
     return { status: "failed", enabled: false, notificationIds: [] };
   }
 }
 
-/** Id delle notifiche già in coda per un tipo, letti dal sistema. */
-async function scheduledIdsForKind(kind: ReminderKind): Promise<string[]> {
+/** Id delle notifiche già in coda per un promemoria, letti dal sistema. */
+async function scheduledIdsForReminder(reminder: Reminder): Promise<string[]> {
   try {
     const scheduled = await Notifications.getAllScheduledNotificationsAsync();
     return scheduled
-      .filter((item) => item.content.data?.kind === kind)
+      .filter((item) => {
+        const data = item.content.data as
+          | { reminderId?: string; kind?: string }
+          | undefined;
+        if (data?.reminderId && data.reminderId === reminder.id) return true;
+        if (data?.kind && data.kind === reminder.kind) return true;
+        return false;
+      })
       .map((item) => item.identifier);
   } catch (error) {
     logger.error("[reminders] lettura notifiche programmate fallita", error);

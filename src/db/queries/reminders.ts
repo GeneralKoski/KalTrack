@@ -1,19 +1,19 @@
-import { getDb } from "@/src/db/index";
 import { newId, nowIso } from "@/src/db/ids";
+import { getDb } from "@/src/db/index";
 import { logger } from "@/src/utils/logger";
 
 /**
- * Tipi di promemoria previsti. `kind` è la chiave logica della tabella: di ogni
- * tipo esiste al massimo una riga, perché due promemoria "bevi acqua" con orari
- * diversi sarebbero indistinguibili nell'elenco e nella notifica.
+ * Tipi di promemoria noti.
  */
 export const REMINDER_KINDS = ["meals", "water", "weight", "workout"] as const;
 
-export type ReminderKind = (typeof REMINDER_KINDS)[number];
+export type ReminderKind = (typeof REMINDER_KINDS)[number] | "custom" | string;
 
 export interface ReminderRow {
   id: string;
   kind: string;
+  label: string | null;
+  position?: number;
   time: string;
   weekdays: string;
   enabled: number;
@@ -27,6 +27,8 @@ export interface ReminderRow {
 export interface Reminder {
   id: string;
   kind: ReminderKind;
+  label: string | null;
+  position: number;
   /** Ora locale in formato "HH:MM". */
   time: string;
   /** Giorni attivi della settimana, 0 = domenica. */
@@ -41,7 +43,10 @@ export interface Reminder {
 }
 
 export interface ReminderInput {
-  kind: ReminderKind;
+  id?: string;
+  kind?: ReminderKind;
+  label?: string | null;
+  position?: number;
   time: string;
   weekdays: number[];
   enabled: boolean;
@@ -67,11 +72,11 @@ function parseWeekdays(raw: string): number[] {
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    const numbers = parsed.filter((day): day is number => typeof day === "number");
+    const numbers = parsed.filter(
+      (day): day is number => typeof day === "number",
+    );
     return normalizeWeekdays(numbers);
   } catch (error) {
-    // Un JSON illeggibile è meglio trattarlo come "nessun giorno" che come
-    // "tutti": un promemoria muto si nota e si corregge, uno che suona a caso no.
     logger.error("[reminders] giorni illeggibili a database", error);
     return [];
   }
@@ -94,7 +99,9 @@ function parseNotificationIds(raw: string | null): string[] {
 function toReminder(row: ReminderRow): Reminder {
   return {
     id: row.id,
-    kind: row.kind as ReminderKind,
+    kind: (row.kind || "custom") as ReminderKind,
+    label: row.label ?? null,
+    position: row.position ?? 0,
     time: row.time,
     weekdays: parseWeekdays(row.weekdays),
     enabled: row.enabled === 1,
@@ -102,12 +109,53 @@ function toReminder(row: ReminderRow): Reminder {
   };
 }
 
+/**
+ * Assicura che esista almeno 1 promemoria di default se la tabella è vuota.
+ */
+export async function ensureDefaultReminder(): Promise<void> {
+  const db = await getDb();
+  const countRow = await db.getFirstAsync<{ count: number }>(
+    "SELECT COUNT(*) as count FROM reminders",
+  );
+  if ((countRow?.count ?? 0) === 0) {
+    const now = nowIso();
+    await db.runAsync(
+      `INSERT INTO reminders (id, kind, label, position, time, weekdays, enabled, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        newId(),
+        "water",
+        "Bevi un bicchiere d'acqua",
+        0,
+        "09:00",
+        "[0,1,2,3,4,5,6]",
+        0,
+        now,
+        now,
+      ],
+    );
+  }
+}
+
 export async function listReminders(): Promise<Reminder[]> {
+  await ensureDefaultReminder();
   const db = await getDb();
   const rows = await db.getAllAsync<ReminderRow>(
-    "SELECT * FROM reminders WHERE deleted_at IS NULL ORDER BY time ASC, kind ASC",
+    "SELECT * FROM reminders WHERE deleted_at IS NULL ORDER BY position ASC, time ASC, created_at ASC",
   );
   return rows.map(toReminder);
+}
+
+export async function reorderReminders(orderedIds: string[]): Promise<void> {
+  const db = await getDb();
+  await db.withTransactionAsync(async () => {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await db.runAsync("UPDATE reminders SET position = ? WHERE id = ?", [
+        i,
+        orderedIds[i],
+      ]);
+    }
+  });
 }
 
 export async function getReminder(id: string): Promise<Reminder | null> {
@@ -131,22 +179,30 @@ export async function getReminderByKind(
 }
 
 /**
- * Crea o aggiorna il promemoria di un tipo e restituisce lo stato salvato.
- *
- * Non tocca `notification_id`: chi ha programmato le notifiche è il servizio, e
- * sovrascriverlo qui perderebbe gli identificativi delle notifiche ancora vive.
+ * Crea o aggiorna un promemoria e restituisce lo stato salvato.
  */
 export async function saveReminder(input: ReminderInput): Promise<Reminder> {
   assertTime(input.time);
   const weekdays = normalizeWeekdays(input.weekdays);
   const db = await getDb();
   const now = nowIso();
-  const existing = await getReminderByKind(input.kind);
+  const kind = input.kind ?? "custom";
+  const label = input.label !== undefined ? input.label?.trim() || null : null;
+
+  let existing: Reminder | null = null;
+  if (input.id) {
+    existing = await getReminder(input.id);
+  } else if (kind !== "custom") {
+    existing = await getReminderByKind(kind);
+  }
 
   if (existing) {
+    const finalLabel = input.label !== undefined ? label : existing.label;
     await db.runAsync(
-      "UPDATE reminders SET time = ?, weekdays = ?, enabled = ?, updated_at = ? WHERE id = ?",
+      "UPDATE reminders SET label = ?, kind = ?, time = ?, weekdays = ?, enabled = ?, updated_at = ? WHERE id = ?",
       [
+        finalLabel,
+        kind,
         input.time,
         JSON.stringify(weekdays),
         input.enabled ? 1 : 0,
@@ -156,19 +212,31 @@ export async function saveReminder(input: ReminderInput): Promise<Reminder> {
     );
     return {
       ...existing,
+      label: finalLabel,
+      kind: kind as ReminderKind,
       time: input.time,
       weekdays,
       enabled: input.enabled,
     };
   }
 
-  const id = newId();
+  const id = input.id || newId();
+  let position = input.position;
+  if (position === undefined) {
+    const maxPosRow = await db.getFirstAsync<{ max_pos: number | null }>(
+      "SELECT MAX(position) as max_pos FROM reminders WHERE deleted_at IS NULL",
+    );
+    position = (maxPosRow?.max_pos ?? -1) + 1;
+  }
+
   await db.runAsync(
-    `INSERT INTO reminders (id, kind, time, weekdays, enabled, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO reminders (id, kind, label, position, time, weekdays, enabled, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
-      input.kind,
+      kind,
+      label,
+      position,
       input.time,
       JSON.stringify(weekdays),
       input.enabled ? 1 : 0,
@@ -176,9 +244,12 @@ export async function saveReminder(input: ReminderInput): Promise<Reminder> {
       now,
     ],
   );
+
   return {
     id,
-    kind: input.kind,
+    kind: kind as ReminderKind,
+    label,
+    position,
     time: input.time,
     weekdays,
     enabled: input.enabled,

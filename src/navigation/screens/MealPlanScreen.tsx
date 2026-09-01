@@ -7,38 +7,48 @@ import {
   AddEntrySheet,
   type DiaryPick,
 } from "@/src/containers/diary/AddEntrySheet";
+import { GenerateMealPlanModal } from "@/src/containers/planning/GenerateMealPlanModal";
 import { PlanDayColumn } from "@/src/containers/planning/PlanDayColumn";
 import { QuantityPrompt } from "@/src/containers/recipes/QuantityPrompt";
 import { listMealTypes } from "@/src/db/queries/diary";
 import {
   addPlanEntry,
   applyPlanToDiary,
-  copyPlanWeek,
+  copyPlanDays,
   deletePlanEntry,
   isPlanApplied,
   listPlanEntries,
   type PlanEntry,
 } from "@/src/db/queries/mealPlan";
-import { addDays, startOfWeek, todayIso } from "@/src/domain/date";
+import { getTargetsFor } from "@/src/db/queries/settings";
+import { addDays, startOfWeek, todayIso, toIsoDate } from "@/src/domain/date";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
-import type { MealTypeRow } from "@/src/types/nutrition";
+import type { MealTypeRow, TargetRow } from "@/src/types/nutrition";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
+import DateTimePicker, {
+  DateTimePickerAndroid,
+} from "@react-native-community/datetimepicker";
 import { useNavigation } from "@react-navigation/native";
 import {
+  Calendar,
   CheckCheck,
   ChevronLeft,
   ChevronRight,
   CopyPlus,
   ShoppingCart,
+  Sparkles,
 } from "lucide-react-native";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Modal,
+  Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -70,6 +80,16 @@ const formatDay = (iso: string): string => {
   return `${day} ${MONTHS[month - 1]}`;
 };
 
+const formatLong = (iso: string): string => {
+  const [year, month, day] = iso.split("-").map(Number);
+  return `${day} ${MONTHS[month - 1]} ${year}`;
+};
+
+const parseIso = (iso: string): Date => {
+  const [year, month, day] = iso.split("-").map(Number);
+  return new Date(year, month - 1, day);
+};
+
 /** Quantità di partenza di un alimento messo a piano, in grammi. */
 const DEFAULT_GRAMS = 100;
 
@@ -78,6 +98,7 @@ interface WeekData {
   mealTypes: MealTypeRow[];
   /** Giorni della settimana già trasferiti nel diario. */
   applied: Record<string, boolean>;
+  currentTargets?: TargetRow | null;
 }
 
 export function MealPlanScreen() {
@@ -95,35 +116,88 @@ export function MealPlanScreen() {
   const [pendingPick, setPendingPick] = useState<DiaryPick | null>(null);
   const [labelText, setLabelText] = useState("");
   const [confirmApply, setConfirmApply] = useState(false);
+  const [applyTargetDate, setApplyTargetDate] = useState(() => todayIso());
+  const [showIosApplyDatePicker, setShowIosApplyDatePicker] = useState(false);
+  const [applyTempDate, setApplyTempDate] = useState<Date>(new Date());
+
   const [confirmCopy, setConfirmCopy] = useState(false);
+  const [copySourceDays, setCopySourceDays] = useState<string[]>(() => [
+    todayIso(),
+  ]);
+  const [copyTargetDate, setCopyTargetDate] = useState(() =>
+    addDays(todayIso(), 1),
+  );
+  const [showIosCopyDatePicker, setShowIosCopyDatePicker] = useState(false);
+  const [copyTempDate, setCopyTempDate] = useState<Date>(new Date());
+
+  const [aiModalOpen, setAiModalOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<PlanEntry | null>(null);
   const addSheetRef = useRef<BottomSheetModal>(null);
 
   const weekEnd = addDays(weekStart, 6);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  const dayScrollRef = useRef<ScrollView>(null);
-  const chipOffsets = useRef<Record<string, number>>({});
+  const openApply = () => {
+    setApplyTargetDate(todayIso());
+    setConfirmApply(true);
+  };
 
-  const scrollToSelected = useCallback(() => {
-    const x = chipOffsets.current[selectedDate];
-    if (x === undefined) return;
-    // Un po' di margine a sinistra: un chip incollato al bordo non si legge
-    // come "questo e' il giorno scelto".
-    dayScrollRef.current?.scrollTo({
-      x: Math.max(0, x - theme.spacing.md),
-      animated: true,
+  const openCopy = () => {
+    setCopySourceDays([selectedDate]);
+    setCopyTargetDate(addDays(selectedDate, 1));
+    setConfirmCopy(true);
+  };
+
+  const toggleCopySourceDay = (day: string) => {
+    setCopySourceDays((current) => {
+      const next = current.includes(day)
+        ? current.filter((d) => d !== day)
+        : [...current, day];
+      return next.sort();
     });
-  }, [selectedDate]);
+  };
 
-  useEffect(() => {
-    scrollToSelected();
-  }, [scrollToSelected]);
+  const openApplyDatePicker = () => {
+    const d = parseIso(applyTargetDate);
+    if (Platform.OS === "android") {
+      DateTimePickerAndroid.open({
+        value: d,
+        mode: "date",
+        onChange: (event, date) => {
+          if (event.type === "set" && date) {
+            setApplyTargetDate(toIsoDate(date));
+          }
+        },
+      });
+    } else {
+      setApplyTempDate(d);
+      setShowIosApplyDatePicker(true);
+    }
+  };
+
+  const openCopyDatePicker = () => {
+    const d = parseIso(copyTargetDate);
+    if (Platform.OS === "android") {
+      DateTimePickerAndroid.open({
+        value: d,
+        mode: "date",
+        onChange: (event, date) => {
+          if (event.type === "set" && date) {
+            setCopyTargetDate(toIsoDate(date));
+          }
+        },
+      });
+    } else {
+      setCopyTempDate(d);
+      setShowIosCopyDatePicker(true);
+    }
+  };
 
   const loader = useCallback(async (): Promise<WeekData> => {
-    const [entries, mealTypes] = await Promise.all([
+    const [entries, mealTypes, currentTargets] = await Promise.all([
       listPlanEntries(weekStart, weekEnd),
       listMealTypes(),
+      getTargetsFor(selectedDate),
     ]);
     const applied: Record<string, boolean> = {};
     for (const day of Array.from({ length: 7 }, (_, i) =>
@@ -131,11 +205,10 @@ export function MealPlanScreen() {
     )) {
       applied[day] = await isPlanApplied(day);
     }
-    return { entries, mealTypes, applied };
-  }, [weekStart, weekEnd]);
+    return { entries, mealTypes, applied, currentTargets };
+  }, [weekStart, weekEnd, selectedDate]);
 
   const { data, loading, reload } = useFocusData<WeekData>(loader);
-
 
   const changeWeek = (delta: number) => {
     const nextStart = addDays(weekStart, delta * 7);
@@ -230,7 +303,7 @@ export function MealPlanScreen() {
     setConfirmApply(false);
     let result: Awaited<ReturnType<typeof applyPlanToDiary>>;
     try {
-      result = await applyPlanToDiary(selectedDate);
+      result = await applyPlanToDiary(selectedDate, applyTargetDate);
     } catch (error) {
       // Capita quando il piano referenzia un alimento poi cancellato: la
       // transazione va in rollback e senza questo il tocco non produrrebbe
@@ -257,18 +330,22 @@ export function MealPlanScreen() {
     reload();
   };
 
-  const copyWeek = async () => {
+  const handleCopyDays = async () => {
+    if (copySourceDays.length === 0) return;
     setConfirmCopy(false);
     try {
-      const copied = await copyPlanWeek(weekStart, addDays(weekStart, 7));
+      const copied = await copyPlanDays(copySourceDays, copyTargetDate);
       if (copied === 0) {
-        showToast.info({ title: t("plan.copy_week_empty") });
+        showToast.info({ title: t("plan.copy_days_empty") });
         return;
       }
-      showToast.success({ title: t("plan.copy_week_done") });
+      showToast.success({
+        title: t("plan.copy_days_done", { count: copied }),
+      });
+      reload();
     } catch (error) {
-      logger.error("[MealPlanScreen] copia settimana fallita", error);
-      showToast.error({ title: t("plan.copy_week_failed") });
+      logger.error("[MealPlanScreen] copia giornate fallita", error);
+      showToast.error({ title: t("plan.copy_days_failed") });
     }
   };
 
@@ -279,7 +356,7 @@ export function MealPlanScreen() {
       name: string,
       params?: object,
     ) => void;
-    navigate("ShoppingList", { from: weekStart, to: weekEnd });
+    navigate("ShoppingList");
   };
 
   return (
@@ -296,22 +373,32 @@ export function MealPlanScreen() {
           >
             {t("plan.title")}
           </Text>
-          <TouchableOpacity
-            onPress={openShoppingList}
-            activeOpacity={0.6}
-            hitSlop={10}
-          >
-            <ShoppingCart size={22} color={colors.text} />
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              onPress={() => setAiModalOpen(true)}
+              activeOpacity={0.6}
+              hitSlop={10}
+            >
+              <Sparkles size={20} color={colors.accent} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={openShoppingList}
+              activeOpacity={0.6}
+              hitSlop={10}
+            >
+              <ShoppingCart size={22} color={colors.text} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.weekRow}>
           <TouchableOpacity
             onPress={() => changeWeek(-1)}
             activeOpacity={0.6}
-            hitSlop={12}
+            hitSlop={10}
+            style={styles.weekNavButton}
           >
-            <ChevronLeft size={22} color={colors.text} />
+            <ChevronLeft size={16} color={colors.textSecondary} />
           </TouchableOpacity>
           <Text
             style={[styles.weekLabel, { color: colors.textSecondary }]}
@@ -322,41 +409,25 @@ export function MealPlanScreen() {
           <TouchableOpacity
             onPress={() => changeWeek(1)}
             activeOpacity={0.6}
-            hitSlop={12}
+            hitSlop={10}
+            style={styles.weekNavButton}
           >
-            <ChevronRight size={22} color={colors.text} />
+            <ChevronRight size={16} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
-        {/*
-          La riga si porta da sola sul giorno scelto: sette chip non ci stanno
-          in larghezza, e aprendo il piano di sabato il chip di sabato restava
-          fuori schermo mentre sotto si vedeva gia' il suo contenuto.
-        */}
-        <ScrollView
-          ref={dayScrollRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.dayChips}
-        >
+        <View style={styles.dayChipsRow}>
           {days.map((day, index) => (
-            <View
+            <DayChip
               key={day}
-              onLayout={(event) => {
-                chipOffsets.current[day] = event.nativeEvent.layout.x;
-                if (day === selectedDate) scrollToSelected();
-              }}
-            >
-              <DayChip
-                label={`${WEEKDAYS[index]} ${Number(day.slice(8, 10))}`}
-                selected={day === selectedDate}
-                planned={(data?.entries ?? []).some((e) => e.row.date === day)}
-                onPress={() => setSelectedDate(day)}
-              />
-            </View>
+              weekday={WEEKDAYS[index]}
+              dayNumber={Number(day.slice(8, 10))}
+              selected={day === selectedDate}
+              planned={(data?.entries ?? []).some((e) => e.row.date === day)}
+              onPress={() => setSelectedDate(day)}
+            />
           ))}
-        </ScrollView>
+        </View>
 
         {loading && !data ? (
           <ActivityIndicator style={styles.loader} color={colors.accent} />
@@ -399,15 +470,21 @@ export function MealPlanScreen() {
             <View style={styles.actions}>
               <DfButton
                 label={t("plan.apply")}
-                onPress={() => setConfirmApply(true)}
-                disabled={isApplied || dayEntries.length === 0}
+                onPress={openApply}
+                disabled={dayEntries.length === 0}
                 icon={<CheckCheck size={16} color={colors.text} />}
               />
               <DfButton
-                label={t("plan.copy_week")}
+                label={t("plan.ai_generate")}
                 variant="outlined"
-                onPress={() => setConfirmCopy(true)}
-                icon={<CopyPlus size={16} color={colors.accent} />}
+                onPress={() => setAiModalOpen(true)}
+                icon={<Sparkles size={16} color={colors.accent} />}
+              />
+              <DfButton
+                label={t("plan.copy_days")}
+                variant="ghost"
+                onPress={openCopy}
+                icon={<CopyPlus size={16} color={colors.textSecondary} />}
               />
             </View>
           </ScrollView>
@@ -464,20 +541,252 @@ export function MealPlanScreen() {
       <DfAlert
         isOpen={confirmApply}
         title={t("plan.apply_title")}
-        message={t("plan.apply_message")}
         confirmLabel={t("confirm")}
         onConfirm={applyDay}
         onClose={() => setConfirmApply(false)}
-      />
+      >
+        <View style={styles.modalBody}>
+          <Text style={[styles.modalDesc, { color: colors.textMuted }]}>
+            {t("plan.apply_dialog_desc")}
+          </Text>
+
+          <View style={styles.quickChips}>
+            <TouchableOpacity
+              onPress={() => setApplyTargetDate(todayIso())}
+              activeOpacity={0.6}
+              style={[
+                styles.quickChip,
+                {
+                  backgroundColor:
+                    applyTargetDate === todayIso()
+                      ? colors.accent
+                      : colors.surfaceMuted,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.quickChipText,
+                  {
+                    color:
+                      applyTargetDate === todayIso()
+                        ? colors.accentOn
+                        : colors.textMuted,
+                  },
+                ]}
+              >
+                {t("diary.day_today")}
+              </Text>
+            </TouchableOpacity>
+
+            {selectedDate !== todayIso() ? (
+              <TouchableOpacity
+                onPress={() => setApplyTargetDate(selectedDate)}
+                activeOpacity={0.6}
+                style={[
+                  styles.quickChip,
+                  {
+                    backgroundColor:
+                      applyTargetDate === selectedDate
+                        ? colors.accent
+                        : colors.surfaceMuted,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.quickChipText,
+                    {
+                      color:
+                        applyTargetDate === selectedDate
+                          ? colors.accentOn
+                          : colors.textMuted,
+                    },
+                  ]}
+                >
+                  {formatDay(selectedDate)}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          <TouchableOpacity
+            onPress={openApplyDatePicker}
+            activeOpacity={0.6}
+            style={[styles.datePickerBtn, { borderColor: colors.border }]}
+          >
+            <Calendar size={18} color={colors.textSecondary} />
+            <Text style={[styles.datePickerText, { color: colors.text }]}>
+              {formatLong(applyTargetDate)}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </DfAlert>
 
       <DfAlert
         isOpen={confirmCopy}
-        title={t("plan.copy_week_title")}
-        message={t("plan.copy_week_message")}
+        title={t("plan.copy_days_title")}
         confirmLabel={t("confirm")}
-        onConfirm={copyWeek}
+        confirmColor={colors.accent}
+        onConfirm={handleCopyDays}
         onClose={() => setConfirmCopy(false)}
-      />
+      >
+        <View style={styles.modalBody}>
+          <Text style={[styles.modalSectionTitle, { color: colors.text }]}>
+            {t("plan.copy_days_source_desc")}
+          </Text>
+
+          <View style={styles.copyDaysRow}>
+            {days.map((day, index) => {
+              const selected = copySourceDays.includes(day);
+              const hasEntries = (data?.entries ?? []).some(
+                (e) => e.row.date === day,
+              );
+              return (
+                <TouchableOpacity
+                  key={day}
+                  onPress={() => toggleCopySourceDay(day)}
+                  activeOpacity={0.6}
+                  style={[
+                    styles.copyDayChip,
+                    {
+                      backgroundColor: selected
+                        ? colors.accent
+                        : colors.surfaceMuted,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.copyDayChipWeekday,
+                      { color: selected ? colors.accentOn : colors.textMuted },
+                    ]}
+                  >
+                    {WEEKDAYS[index]}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.copyDayChipNum,
+                      { color: selected ? colors.accentOn : colors.text },
+                    ]}
+                  >
+                    {Number(day.slice(8, 10))}
+                  </Text>
+                  <View
+                    style={[
+                      styles.copyDayDot,
+                      {
+                        backgroundColor: hasEntries
+                          ? selected
+                            ? colors.accentOn
+                            : colors.textSecondary
+                          : "transparent",
+                      },
+                    ]}
+                  />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={styles.copyQuickSelect}>
+            <TouchableOpacity
+              onPress={() => setCopySourceDays([selectedDate])}
+              activeOpacity={0.6}
+            >
+              <Text style={[styles.quickSelectLink, { color: colors.accent }]}>
+                {t("plan.current_day")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setCopySourceDays(days)}
+              activeOpacity={0.6}
+            >
+              <Text style={[styles.quickSelectLink, { color: colors.accent }]}>
+                {t("plan.all_week")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text
+            style={[
+              styles.modalSectionTitle,
+              { color: colors.text, marginTop: theme.spacing.xs },
+            ]}
+          >
+            {t("plan.copy_days_target_desc")}
+          </Text>
+
+          <View style={styles.quickChips}>
+            <TouchableOpacity
+              onPress={() => setCopyTargetDate(addDays(todayIso(), 1))}
+              activeOpacity={0.6}
+              style={[
+                styles.quickChip,
+                {
+                  backgroundColor:
+                    copyTargetDate === addDays(todayIso(), 1)
+                      ? colors.accent
+                      : colors.surfaceMuted,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.quickChipText,
+                  {
+                    color:
+                      copyTargetDate === addDays(todayIso(), 1)
+                        ? colors.accentOn
+                        : colors.textMuted,
+                  },
+                ]}
+              >
+                {t("diary.day_tomorrow")}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setCopyTargetDate(addDays(weekStart, 7))}
+              activeOpacity={0.6}
+              style={[
+                styles.quickChip,
+                {
+                  backgroundColor:
+                    copyTargetDate === addDays(weekStart, 7)
+                      ? colors.accent
+                      : colors.surfaceMuted,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.quickChipText,
+                  {
+                    color:
+                      copyTargetDate === addDays(weekStart, 7)
+                        ? colors.accentOn
+                        : colors.textMuted,
+                  },
+                ]}
+              >
+                {t("shopping.range_next_week")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            onPress={openCopyDatePicker}
+            activeOpacity={0.6}
+            style={[styles.datePickerBtn, { borderColor: colors.border }]}
+          >
+            <Calendar size={18} color={colors.textSecondary} />
+            <Text style={[styles.datePickerText, { color: colors.text }]}>
+              {formatLong(copyTargetDate)}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </DfAlert>
 
       <DfAlert
         isOpen={pendingDelete !== null}
@@ -488,16 +797,138 @@ export function MealPlanScreen() {
         onConfirm={removeEntry}
         onClose={() => setPendingDelete(null)}
       />
+
+      {showIosApplyDatePicker && (
+        <Modal
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowIosApplyDatePicker(false)}
+        >
+          <Pressable
+            style={styles.iosModalOverlay}
+            onPress={() => setShowIosApplyDatePicker(false)}
+          >
+            <Pressable
+              style={[
+                styles.iosModalContent,
+                { backgroundColor: colors.surface },
+              ]}
+            >
+              <View
+                style={[
+                  styles.iosModalHeader,
+                  { borderBottomColor: colors.border },
+                ]}
+              >
+                <Pressable onPress={() => setShowIosApplyDatePicker(false)}>
+                  <Text
+                    style={[styles.iosModalCancel, { color: colors.textMuted }]}
+                  >
+                    {t("cancel")}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    setApplyTargetDate(toIsoDate(applyTempDate));
+                    setShowIosApplyDatePicker(false);
+                  }}
+                >
+                  <Text
+                    style={[styles.iosModalConfirm, { color: colors.accent }]}
+                  >
+                    {t("confirm")}
+                  </Text>
+                </Pressable>
+              </View>
+              <DateTimePicker
+                value={applyTempDate}
+                mode="date"
+                display="spinner"
+                locale="it"
+                onChange={(_event, selected) => {
+                  if (selected) setApplyTempDate(selected);
+                }}
+              />
+            </Pressable>
+          </Pressable>
+        </Modal>
+      )}
+
+      {showIosCopyDatePicker && (
+        <Modal
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowIosCopyDatePicker(false)}
+        >
+          <Pressable
+            style={styles.iosModalOverlay}
+            onPress={() => setShowIosCopyDatePicker(false)}
+          >
+            <Pressable
+              style={[
+                styles.iosModalContent,
+                { backgroundColor: colors.surface },
+              ]}
+            >
+              <View
+                style={[
+                  styles.iosModalHeader,
+                  { borderBottomColor: colors.border },
+                ]}
+              >
+                <Pressable onPress={() => setShowIosCopyDatePicker(false)}>
+                  <Text
+                    style={[styles.iosModalCancel, { color: colors.textMuted }]}
+                  >
+                    {t("cancel")}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    setCopyTargetDate(toIsoDate(copyTempDate));
+                    setShowIosCopyDatePicker(false);
+                  }}
+                >
+                  <Text
+                    style={[styles.iosModalConfirm, { color: colors.accent }]}
+                  >
+                    {t("confirm")}
+                  </Text>
+                </Pressable>
+              </View>
+              <DateTimePicker
+                value={copyTempDate}
+                mode="date"
+                display="spinner"
+                locale="it"
+                onChange={(_event, selected) => {
+                  if (selected) setCopyTempDate(selected);
+                }}
+              />
+            </Pressable>
+          </Pressable>
+        </Modal>
+      )}
+
+      <GenerateMealPlanModal
+        isOpen={aiModalOpen}
+        selectedDate={selectedDate}
+        weekStart={weekStart}
+        currentTargets={data?.currentTargets}
+        onGenerated={() => reload()}
+        onClose={() => setAiModalOpen(false)}
+      />
     </View>
   );
 }
 
 const DayChip: React.FC<{
-  label: string;
+  weekday: string;
+  dayNumber: number;
   selected: boolean;
   planned: boolean;
   onPress: () => void;
-}> = ({ label, selected, planned, onPress }) => {
+}> = ({ weekday, dayNumber, selected, planned, onPress }) => {
   const { colors } = useAppTheme();
 
   return (
@@ -513,15 +944,22 @@ const DayChip: React.FC<{
     >
       <Text
         style={[
-          styles.dayChipLabel,
+          styles.dayChipWeekday,
           { color: selected ? colors.accentOn : colors.textMuted },
         ]}
         numberOfLines={1}
       >
-        {label}
+        {weekday}
       </Text>
-      {/* Il pallino dice solo "questo giorno ha un piano": senza, i giorni
-          programmati e quelli vuoti sarebbero indistinguibili. */}
+      <Text
+        style={[
+          styles.dayChipDay,
+          { color: selected ? colors.accentOn : colors.text },
+        ]}
+        numberOfLines={1}
+      >
+        {dayNumber}
+      </Text>
       <View
         style={[
           styles.dayChipDot,
@@ -529,7 +967,7 @@ const DayChip: React.FC<{
             backgroundColor: planned
               ? selected
                 ? colors.accentOn
-                : colors.textMuted
+                : colors.textSecondary
               : "transparent",
           },
         ]}
@@ -548,33 +986,59 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
     gap: theme.spacing.sm,
   },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
   title: { flex: 1, fontSize: 18, fontWeight: "700" },
   weekRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: theme.spacing.md,
-  },
-  weekLabel: { flexShrink: 1, fontSize: 14, fontWeight: "600" },
-  dayChips: {
-    alignItems: "center",
+    justifyContent: "center",
     gap: theme.spacing.xs,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingBottom: 2,
+  },
+  weekNavButton: {
+    padding: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  weekLabel: { fontSize: 13, fontWeight: "600" },
+  dayChipsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 4,
+    gap: 6,
   },
   dayChip: {
+    flex: 1,
     alignItems: "center",
-    gap: 4,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.radius.lg,
+    justifyContent: "center",
+    paddingVertical: 6,
+    borderRadius: theme.radius.md,
   },
-  dayChipLabel: {
-    fontSize: 13,
+  dayChipWeekday: {
+    fontSize: 11,
     fontWeight: "600",
     textTransform: "capitalize",
+    lineHeight: 14,
   },
-  dayChipDot: { width: 5, height: 5, borderRadius: 2.5 },
+  dayChipDay: {
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 18,
+    marginTop: 1,
+  },
+  dayChipDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 2,
+  },
   content: {
     paddingHorizontal: theme.spacing.md,
     gap: theme.spacing.sm,
@@ -596,5 +1060,112 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.lg,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
+  },
+  modalBody: {
+    gap: theme.spacing.sm,
+    paddingTop: theme.spacing.xs,
+  },
+  modalDesc: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  modalSectionTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  quickChips: {
+    flexDirection: "row",
+    gap: theme.spacing.xs,
+    alignItems: "center",
+  },
+  quickChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: theme.radius.full,
+  },
+  quickChipText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  datePickerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    borderWidth: 1,
+    borderRadius: theme.radius.lg,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 12,
+    marginTop: 2,
+  },
+  datePickerText: {
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  copyDaysRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 4,
+    marginTop: 2,
+  },
+  copyDayChip: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 6,
+    borderRadius: theme.radius.md,
+  },
+  copyDayChipWeekday: {
+    fontSize: 10,
+    fontWeight: "600",
+    textTransform: "capitalize",
+  },
+  copyDayChipNum: {
+    fontSize: 13,
+    fontWeight: "700",
+    marginTop: 1,
+  },
+  copyDayDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 2,
+  },
+  copyQuickSelect: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 2,
+    marginTop: -2,
+  },
+  quickSelectLink: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  iosModalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  iosModalContent: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingBottom: 32,
+    alignItems: "center",
+  },
+  iosModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    alignSelf: "stretch",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  iosModalCancel: {
+    fontSize: 16,
+  },
+  iosModalConfirm: {
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

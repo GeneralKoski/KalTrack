@@ -343,8 +343,9 @@ export function RoutineFormScreen() {
                   <Text
                     style={[styles.aiBannerSub, { color: colors.textMuted }]}
                   >
-                    Tocca qui per generarla automaticamente con l'IA in base al
-                    tuo obiettivo.
+                    {
+                      "Tocca qui per generarla automaticamente con l'IA in base al tuo obiettivo."
+                    }
                   </Text>
                 </View>
               </TouchableOpacity>
