@@ -30,31 +30,65 @@ if [[ ! -f "$CREDENTIALS" ]]; then
   exit 1
 fi
 
-# --- Versione (facoltativa) ------------------------------------------------
-# app.json e' la fonte unica: se ne passi una nuova, viene scritta li' e in
-# package.json, cosi' i due non divergono.
+# --- Versione --------------------------------------------------------------
+# Se non passata come argomento, legge la versione corrente da app.json,
+# calcola la proposta incrementando di +0.0.1 (patch) e chiede conferma
+# con campo libero all'utente.
 if [[ $# -ge 1 ]]; then
   NEW_VERSION="$1"
-  if [[ ! "$NEW_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    echo "ERRORE: versione non valida '$NEW_VERSION' (serve X.Y.Z)" >&2
-    exit 1
-  fi
-  APP_JSON="$PROJECT_DIR/app.json" PACKAGE_JSON="$PROJECT_DIR/package.json" \
-    NEW_VER="$NEW_VERSION" node - <<'PATCH'
+else
+  CURRENT_VERSION=$(node -e "const a=require('$PROJECT_DIR/app.json'); console.log(a.expo?.version || '1.0.0');")
+  SUGGESTED_VERSION=$(node -e "
+    const parts = '$CURRENT_VERSION'.split('.').map(p => parseInt(p, 10));
+    if (parts.length === 3 && parts.every(n => !isNaN(n))) {
+      console.log(\`\${parts[0]}.\${parts[1]}.\${parts[2] + 1}\`);
+    } else {
+      console.log('$CURRENT_VERSION');
+    }
+  ")
+
+  read -r -p "Nuova versione [$SUGGESTED_VERSION]: " USER_INPUT
+  NEW_VERSION="${USER_INPUT:-$SUGGESTED_VERSION}"
+fi
+
+if [[ ! "$NEW_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "ERRORE: versione non valida '$NEW_VERSION' (serve formato X.Y.Z)" >&2
+  exit 1
+fi
+
+APP_JSON="$PROJECT_DIR/app.json" PACKAGE_JSON="$PROJECT_DIR/package.json" \
+  PACKAGE_LOCK="$PROJECT_DIR/package-lock.json" NEW_VER="$NEW_VERSION" node - <<'PATCH'
 const fs = require("fs");
 const v = process.env.NEW_VER;
-const re = /("version":\s*")[0-9]+\.[0-9]+\.[0-9]+(")/;
-for (const p of [process.env.APP_JSON, process.env.PACKAGE_JSON]) {
-  const s = fs.readFileSync(p, "utf8");
-  if (!re.test(s)) {
-    console.error(`ERRORE: campo version non trovato in ${p}`);
-    process.exit(1);
-  }
-  fs.writeFileSync(p, s.replace(re, `$1${v}$2`));
+
+// Aggiorna app.json
+const appPath = process.env.APP_JSON;
+const appJson = JSON.parse(fs.readFileSync(appPath, "utf8"));
+if (!appJson.expo) appJson.expo = {};
+appJson.expo.version = v;
+fs.writeFileSync(appPath, JSON.stringify(appJson, null, 2) + "\n");
+
+// Aggiorna package.json
+const pkgPath = process.env.PACKAGE_JSON;
+const pkgJson = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+pkgJson.version = v;
+fs.writeFileSync(pkgPath, JSON.stringify(pkgJson, null, 2) + "\n");
+
+// Aggiorna package-lock.json se presente
+const lockPath = process.env.PACKAGE_LOCK;
+if (fs.existsSync(lockPath)) {
+  try {
+    const lockJson = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+    lockJson.version = v;
+    if (lockJson.packages && lockJson.packages[""]) {
+      lockJson.packages[""].version = v;
+    }
+    fs.writeFileSync(lockPath, JSON.stringify(lockJson, null, 2) + "\n");
+  } catch (e) {}
 }
 PATCH
-  echo "==> Versione impostata a $NEW_VERSION (app.json + package.json)"
-fi
+
+echo "==> Versione impostata a $NEW_VERSION (app.json + package.json)"
 
 # --- Credenziali -----------------------------------------------------------
 # Lette da credentials.json e mai scritte qui dentro: questo file e' versionato,
