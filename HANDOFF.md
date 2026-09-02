@@ -39,7 +39,7 @@ nuova, e lo scanner in particolare non si puo' verificare altrove.
 | Lint | 0 errori, 11 warning - **10 sono in `components/ui/`, generati dal CLI di gluestack**, e uno e' un falso positivo su axios. Nel codice nostro non ce n'e' piu' nessuno |
 | expo-doctor | 18 su 20. Uno e' `react-native-web` mancante, rosso di proposito (§ Architettura in `CLAUDE.md`); l'altro sono 17 pacchetti fuori versione |
 | Ramo | `main`. Si committa sempre qui, mai su un ramo a parte |
-| Server | `kaltrack.martin-trajkovski.it`, 17 migrazioni applicate. **Il codice backend e' avanti di un commit**: vedi § Il lavoro aperto |
+| Server | `kaltrack.martin-trajkovski.it`, 17 migrazioni applicate, **allineato al codice** (deploy del 2 settembre) |
 | Schema locale | 15 migrazioni (la 015 aggiunge `ai_calls.cached_tokens`) |
 | APK | `kaltrack-1.0.3.apk` sul telefono, **anteriore alle correzioni del 2 settembre**. `./scripts/build-apk.sh 1.0.4` per il prossimo |
 
@@ -82,11 +82,16 @@ L'elenco con le caselle da spuntare sta in [`TODO.md`](TODO.md), che e' il
 documento da tenere aggiornato. Qui sotto restano gli stessi punti col loro
 perche', che in una lista di cose da fare non ci starebbe.
 
-**1. Il backend va deployato.** Il 2 settembre sono cambiati
-`ImageController` (nome dei file e controllo del tipo) e `routes/api.php`
-(throttle sul reset password). Nessuna migrazione, quindi e' un deploy del
-codice e niente piu'. Finche' non si fa, l'app nuova e il server parlano
-comunque: le correzioni sono restrizioni lato server, non contratti nuovi.
+**1. Il backend e' deployato** (2 settembre, dopo le correzioni). Nessuna
+migrazione: l'entrypoint ha detto "Nothing to migrate", che era la risposta
+attesa e non un deploy a vuoto.
+
+Una cosa da sapere per il prossimo deploy, verificata invece di assunta:
+l'`rsync --delete` della procedura **non esclude `storage/app`**, dove stanno
+le foto degli utenti. Non fa danno, ma non per merito dell'esclusione: `storage`
+e' un **volume Docker** montato sopra la cartella, quindi la copia sull'host non
+tocca i file veri. Chi cambiasse quel montaggio si troverebbe un `--delete` che
+cancella le foto di tutti senza dire niente.
 
 **2. Serve un APK nuovo, e va provato.** Il lavoro del 2 settembre e' tutto
 coperto dai test ma niente e' stato visto funzionare. Il primo della lista

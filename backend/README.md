@@ -142,7 +142,7 @@ passa da un controllo di caratteri prima di finire in un percorso su disco, altr
 cose, con un secondo account vero che chiede il file di un altro per nome esatto e si
 prende un 404.
 
-Due strette del 2 settembre 2026, **non ancora deployate**:
+Due strette del 2 settembre 2026, **in produzione dallo stesso giorno**:
 
 - **il nome non puo' cominciare con un punto.** Il vecchio regex ammetteva `.`
   e `..`: nessuna traversata vera, visto che `/` resta fuori, ma

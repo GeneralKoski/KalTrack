@@ -10,10 +10,13 @@ Ultimo aggiornamento: 2 settembre 2026.
 
 ## 1. Bloccanti: niente di quel che segue si verifica senza questi
 
-- [ ] **Deployare il backend.** Il codice sul server e' indietro di un commit:
+- [x] ~~**Deployare il backend.**~~ Fatto il 2 settembre 2026.
       `ImageController` (nome dei file, controllo del tipo) e `routes/api.php`
-      (throttle sul reset password). Nessuna migrazione, quindi e' un deploy di
-      codice e basta. Procedura in `backend/README.md` § In produzione.
+      (throttle sul reset password), nessuna migrazione - l'entrypoint ha detto
+      "Nothing to migrate", che era la risposta attesa. Verificato dall'esterno:
+      `/up` 200 in HTTPS, le rotte protette 401 e non 500,
+      `ThrottleRequests:10,1` presente nelle rotte in cache. Backup pre-deploy
+      `kaltrack-2026-09-02-090620.sqlite`.
 - [ ] **Costruire la 1.0.4 e provarla sul telefono.**
       `./scripts/build-apk.sh 1.0.4`. **La build nativa va rifatta, metro non
       basta**: `app.json` dichiara ora il plugin di `expo-camera`.
