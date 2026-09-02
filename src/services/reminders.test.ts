@@ -2,6 +2,7 @@ import { createTestDb } from "@/src/db/__testing__/betterSqliteAdapter";
 import { __setDbForTesting } from "@/src/db/index";
 import { runMigrations } from "@/src/db/migrations";
 import {
+  getReminder,
   getReminderByKind,
   saveReminder,
   setReminderNotificationIds,
@@ -418,5 +419,82 @@ describe("consegna in primo piano", () => {
     );
     expect(behaviour.shouldShowBanner).toBe(true);
     expect(behaviour.shouldPlaySound).toBe(true);
+  });
+});
+
+describe("promemoria personalizzati", () => {
+  /**
+   * Il difetto che questo test blocca: `scheduledIdsForReminder` recuperava le
+   * notifiche orfane anche per `kind`, e TUTTI i promemoria creati a mano hanno
+   * `kind = "custom"`. Riprogrammarne uno cancellava dal sistema le notifiche
+   * di tutti gli altri, che a database restavano accesi con i loro id: la
+   * schermata li mostrava attivi e non arrivava piu' niente.
+   */
+  it("riprogrammarne uno non tocca le notifiche degli altri", async () => {
+    const live = new Map<string, string>();
+    schedule.mockImplementation(async (request) => {
+      const data = request.content.data as { reminderId?: string } | undefined;
+      const id = `n${live.size + 1}`;
+      live.set(id, data?.reminderId ?? "");
+      return id;
+    });
+    cancel.mockImplementation(async (id: string) => {
+      live.delete(id);
+    });
+    getAllScheduled.mockImplementation(async () =>
+      [...live.entries()].map(
+        ([id, reminderId]) =>
+          ({
+            identifier: id,
+            content: { data: { reminderId, kind: "custom" } },
+          }) as unknown as Notifications.NotificationRequest,
+      ),
+    );
+
+    const primo = await saveReminder({
+      label: "Integratore",
+      time: "08:00",
+      weekdays: [1],
+      enabled: true,
+    });
+    const secondo = await saveReminder({
+      label: "Stretching",
+      time: "21:00",
+      weekdays: [4],
+      enabled: true,
+    });
+
+    await applyReminder(primo);
+    const primoSalvato = await getReminder(primo.id);
+    await applyReminder(secondo);
+
+    // Il primo non e' stato toccato: i suoi id sono ancora programmati.
+    const vivi = [...live.keys()];
+    for (const id of primoSalvato?.notificationIds ?? []) {
+      expect(vivi).toContain(id);
+    }
+    expect(primoSalvato?.notificationIds).toHaveLength(1);
+    expect(vivi).toHaveLength(2);
+  });
+
+  it("recupera comunque gli orfani del promemoria su cui sta lavorando", async () => {
+    const orfano = await saveReminder({
+      label: "Integratore",
+      time: "08:00",
+      weekdays: [1],
+      enabled: true,
+    });
+    // Una notifica di QUESTO promemoria che il database non conosce piu':
+    // e' il caso che il recupero deve continuare a coprire.
+    getAllScheduled.mockResolvedValue([
+      {
+        identifier: "vecchia",
+        content: { data: { reminderId: orfano.id, kind: "custom" } },
+      } as unknown as Notifications.NotificationRequest,
+    ]);
+
+    await applyReminder(orfano);
+
+    expect(cancel).toHaveBeenCalledWith("vecchia");
   });
 });

@@ -1,4 +1,5 @@
 import {
+  REMINDER_KINDS,
   setReminderEnabled,
   setReminderNotificationIds,
   type Reminder,
@@ -78,9 +79,12 @@ export async function scheduleReminder(reminder: Reminder): Promise<string[]> {
   await ensureAndroidChannel();
   const { hour, minute } = parseTime(reminder.time);
 
+  // Un preset ha titolo e testo tradotti; un promemoria creato a mano porta il
+  // proprio nome. L'elenco dei preset e' quello di `REMINDER_KINDS`, non una
+  // copia: due copie divergono alla prima aggiunta.
   const isPreset =
     reminder.kind !== "custom" &&
-    ["meals", "water", "weight", "workout"].includes(reminder.kind);
+    REMINDER_KINDS.includes(reminder.kind as never);
 
   const title =
     reminder.label?.trim() ||
@@ -212,8 +216,23 @@ async function applyReminderNow(
   }
 }
 
-/** Id delle notifiche già in coda per un promemoria, letti dal sistema. */
+/**
+ * Id delle notifiche già in coda per un promemoria, letti dal sistema.
+ *
+ * Serve a recuperare gli orfani: notifiche che il sistema ha ancora in coda ma
+ * di cui il database ha perso l'id (una programmazione interrotta a metà, o una
+ * versione dell'app precedente a `notification_id`).
+ *
+ * Il ripiego sul `kind` vale SOLO per i quattro preset, che sono unici per
+ * definizione. I promemoria creati a mano hanno tutti `kind = "custom"`:
+ * accettarlo qui voleva dire che riprogrammarne uno cancellava dal sistema le
+ * notifiche di tutti gli altri, che a database restavano accesi con i loro id -
+ * la schermata li mostrava attivi e non arrivava più niente.
+ */
 async function scheduledIdsForReminder(reminder: Reminder): Promise<string[]> {
+  const kindIsUnique =
+    reminder.kind !== "custom" && REMINDER_KINDS.includes(reminder.kind as never);
+
   try {
     const scheduled = await Notifications.getAllScheduledNotificationsAsync();
     return scheduled
@@ -221,8 +240,8 @@ async function scheduledIdsForReminder(reminder: Reminder): Promise<string[]> {
         const data = item.content.data as
           | { reminderId?: string; kind?: string }
           | undefined;
-        if (data?.reminderId && data.reminderId === reminder.id) return true;
-        if (data?.kind && data.kind === reminder.kind) return true;
+        if (data?.reminderId) return data.reminderId === reminder.id;
+        if (kindIsUnique && data?.kind) return data.kind === reminder.kind;
         return false;
       })
       .map((item) => item.identifier);
