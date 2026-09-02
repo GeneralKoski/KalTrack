@@ -100,8 +100,16 @@ function weekdayOf(iso: string): string {
   return Number.isNaN(date.getTime()) ? "?" : WEEKDAYS[date.getDay()];
 }
 
+/**
+ * Ordinato per id, non nell'ordine in cui arriva: e' quel che rende il catalogo
+ * un prefisso identico fra due richieste, e quindi scontato dalla cache. Vedi
+ * `buildCatalogMessage`.
+ */
 const namedList = (items: AssistantNamedItem[]): string =>
-  items.map((item) => `${item.id} = ${item.name}`).join("; ");
+  [...items]
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map((item) => `${item.id} = ${item.name}`)
+    .join("; ");
 
 const entryList = (entries: AssistantDiaryEntry[]): string =>
   entries
@@ -231,14 +239,18 @@ export function normalizeQuantities(text: string): string {
  * inglese e rispondono comunque nella lingua dell'utente. È una convenzione
  * interna, l'utente vede solo italiano.
  *
- * **Non prende argomenti, e non è una svista.** Gemini cachea automaticamente il
- * prefisso del prompt su `gpt-oss-120b`: i token in cache costano metà e non
- * contano nel rate limit, ma vale solo il testo identico fino al primo
- * carattere che cambia. Con il contesto qui dentro - l'orologio ai minuti, 40
- * alimenti, il diario che cambia dopo ogni scrittura - il prefisso saltava a
- * ogni turno, portandosi via anche le RULES e le definizioni dei tool, che
- * nel prompt reso vengono dopo. Il contesto sta in `buildContextMessage`, in
- * un messaggio a parte: quel che precede resta uguale e si cachea.
+ * **Non prende argomenti, e non è una svista.** Gemini cachea da sola il
+ * prefisso comune fra due richieste e i token in cache costano un decimo
+ * ($0,075 invece di $0,75 per milione su `gemini-3.6-flash`), ma vale solo il
+ * testo identico fino al primo carattere che cambia. Con il contesto qui
+ * dentro - l'orologio, il diario che cambia dopo ogni scrittura - il prefisso
+ * saltava a ogni turno, portandosi via anche le RULES e le definizioni dei
+ * tool, che nel prompt reso vengono dopo.
+ *
+ * Il prefisso e' quindi: questo prompt, i tool, il catalogo
+ * (`buildCatalogMessage`). Il volatile viene dopo, in `buildStateMessage`.
+ * Chi sposta qualcosa in mezzo lo tolga prima dal conto: la soglia e' 4.096
+ * token e sotto quella la cache non scatta affatto.
  */
 export function buildSystemPrompt(): string {
   return [
@@ -246,13 +258,13 @@ export function buildSystemPrompt(): string {
     "ALWAYS reply in Italian, in one or two short spoken sentences. No markdown, no bullet lists.",
     "Use the tools to act. Never invent nutritional values: foods and recipes are resolved by the app, not by you.",
     "",
-    "The next message is the CURRENT CONTEXT: today's date, the day the user is looking at, the targets and the ids of the user's own meal types, recipes, foods, exercises, routines and diary entries.",
+    "Two messages follow before the user's sentence. YOUR LIBRARY has the ids of the user's own meal types, recipes, foods, exercises and routines. CURRENT STATE has today's date, the day the user is looking at, the targets and the diary entries of that day.",
     "",
     "RULES",
     '- Quantities are ALWAYS in grams. The transcript already has the common Italian units converted (1 etto = 100 g, "mezzo chilo" = 500 g): use the grams you read, and if a quantity is still vague ask instead of guessing. Never pass 1 for "un etto".',
     "- Never send calories or macros to `add_meal_entries`: there is no field for them. Send what the user ate and how much, the app resolves the values on the user's own data. Only `create_custom_food` accepts nutritional values (per 100g) when explicitly creating a food item.",
     '- Dates are ALWAYS YYYY-MM-DD. Resolve "oggi", "ieri", "l\'altro ieri" and weekday names against `Now`. If the user names no day at all, omit the date: the tools use the reference day.',
-    "- Prefer the ids listed in the CURRENT CONTEXT over free text: a name close to one of the user's recipes, foods, exercises or routines IS that item.",
+    "- Prefer the ids listed in YOUR LIBRARY over free text: a name close to one of the user's recipes, foods, exercises or routines IS that item.",
     '- To delete something use only the ids listed under "Diary entries". If what the user wants to delete is not in that list, say so instead of guessing an id.',
     "- English words mixed into Italian speech (whey, overnight oats, lat machine, bench press, deadlift, squat, push, pull, legs) are normal: never correct them, just use them.",
     "- If an essential detail is missing, ask one short question in Italian instead of guessing.",
@@ -261,18 +273,66 @@ export function buildSystemPrompt(): string {
 }
 
 /**
- * La parte volatile del prompt, nel messaggio che segue quello di sistema.
+ * Il catalogo dell'utente: la parte del contesto che NON cambia da una frase
+ * all'altra.
+ *
+ * Sta in un messaggio suo, e prima di quello di stato, per una ragione di
+ * prezzo. La cache implicita di Gemini sconta i token del prefisso comune fra
+ * due richieste, ma solo oltre una soglia - 4.096 token su `gemini-3.6-flash` -
+ * e il prefisso stabile qui era il solo prompt di sistema (millenovecento
+ * caratteri) piu' le dichiarazioni dei tredici tool (dodicimila): circa 3.900
+ * token, cioe' **appena sotto**. Ogni frase detta all'assistente li ripagava
+ * per intero, dieci volte il necessario, e il contatore di `ai_calls` non aveva
+ * modo di dirlo.
+ *
+ * Il catalogo pesa qualche centinaio di token e portarlo dentro il prefisso
+ * scavalca la soglia. Perche' serva a qualcosa deve essere **identico**
+ * carattere per carattere fra due richieste, e da qui l'ordinamento per id di
+ * `namedList`: gli alimenti arrivano ordinati per numero di utilizzi, che si
+ * riordina appena si registra un pasto. La selezione resta quella - sono
+ * comunque i piu' usati - a cambiare e' solo l'ordine in cui si stampano, che
+ * al modello non dice niente perche' legge gli id.
+ *
+ * `null` quando non c'e' niente da elencare: un'app appena installata non ha
+ * catalogo, e un messaggio con la sola intestazione sarebbe prefisso sprecato.
+ */
+export function buildCatalogMessage(context: AssistantContext): string | null {
+  const lines: string[] = [];
+
+  if (context.mealTypes?.length) {
+    lines.push(`Meal types: ${namedList(context.mealTypes)}`);
+  }
+  if (context.recipes?.length) {
+    lines.push(`User recipes: ${namedList(context.recipes)}`);
+  }
+  if (context.foods?.length) {
+    lines.push(`Most used foods: ${namedList(context.foods)}`);
+  }
+  if (context.exercises?.length) {
+    lines.push(`Known exercises: ${namedList(context.exercises)}`);
+  }
+  if (context.routines?.length) {
+    lines.push(`Gym routines: ${namedList(context.routines)}`);
+  }
+
+  if (lines.length === 0) return null;
+  return ["YOUR LIBRARY", ...lines].join("\n");
+}
+
+/**
+ * La parte volatile del prompt: quel che cambia fra due frasi dette di
+ * seguito. Va per ultima, dopo il catalogo, cosi' non spezza il prefisso.
  *
  * L'ora è senza minuti: `Now` serve a risolvere "oggi", "ieri" e i giorni
  * della settimana, e l'ora basta a capire se è ora di cena. Ai minuti era solo
  * la garanzia che due frasi dette di seguito non condividessero il prefisso.
  */
-export function buildContextMessage(context: AssistantContext): string {
+export function buildStateMessage(context: AssistantContext): string {
   const now = context.now ?? new Date();
   const today = todayIso(now);
   const date = context.date ?? today;
   const lines: string[] = [
-    "CURRENT CONTEXT",
+    "CURRENT STATE",
     // Due righe distinte: "adesso" è il device, il giorno di riferimento è
     // quello che l'utente sta sfogliando e può essere un altro.
     `Now: ${today} ${clockHour(now)} (${weekdayOf(today)})`,
@@ -288,21 +348,6 @@ export function buildContextMessage(context: AssistantContext): string {
     lines.push(
       `Remaining today: ${macroLine(remaining(context.targets, context.consumed))}`,
     );
-  }
-  if (context.mealTypes?.length) {
-    lines.push(`Meal types: ${namedList(context.mealTypes)}`);
-  }
-  if (context.recipes?.length) {
-    lines.push(`User recipes: ${namedList(context.recipes)}`);
-  }
-  if (context.foods?.length) {
-    lines.push(`Most used foods: ${namedList(context.foods)}`);
-  }
-  if (context.exercises?.length) {
-    lines.push(`Known exercises: ${namedList(context.exercises)}`);
-  }
-  if (context.routines?.length) {
-    lines.push(`Gym routines: ${namedList(context.routines)}`);
   }
   if (context.entries?.length) {
     lines.push(
@@ -423,9 +468,13 @@ export async function runAssistant(args: {
   const toolByName = new Map(tools.map((tool) => [tool.name, tool]));
   const definitions = toolDefinitions(tools);
 
+  const catalog = buildCatalogMessage(args.context);
+  // L'ordine e' il prezzo: sistema, tool e catalogo formano il prefisso che si
+  // cachea; lo stato e la frase, che cambiano ogni volta, stanno in fondo.
   const messages: ChatMessage[] = [
     { role: "system", content: buildSystemPrompt() },
-    { role: "user", content: buildContextMessage(args.context) },
+    ...(catalog ? [{ role: "user" as const, content: catalog }] : []),
+    { role: "user", content: buildStateMessage(args.context) },
     { role: "user", content: normalizeQuantities(args.transcript) },
   ];
   const intents: ToolIntent[] = [];

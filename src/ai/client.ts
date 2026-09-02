@@ -47,7 +47,32 @@ export interface ToolDefinition {
 export interface ChatResponse {
   content: string | null;
   toolCalls: ToolCall[];
-  usage: { promptTokens: number; completionTokens: number } | null;
+  usage: {
+    promptTokens: number;
+    completionTokens: number;
+    /** Quanti dei token in entrata sono arrivati dalla cache, se dichiarato. */
+    cachedTokens: number | null;
+  } | null;
+}
+
+/**
+ * I token del prompt che il provider ha servito dalla sua cache.
+ *
+ * Gemini li riporta come `prompt_tokens_details.cached_tokens` sull'endpoint
+ * OpenAI-compatible, ma il campo e' opzionale e su un colpo a vuoto puo'
+ * mancare del tutto. Distinguere "assente" da "zero" e' il punto: `null` dice
+ * che la risposta non lo ha detto, `0` che lo ha detto ed era nessuno. Con uno
+ * zero al posto di entrambi la diagnostica non potrebbe piu' dire se la cache
+ * non colpisce o se il provider ha smesso di dichiararla.
+ */
+function parseCachedTokens(usage: unknown): number | null {
+  if (typeof usage !== "object" || usage === null) return null;
+  const { prompt_tokens_details: details } = usage as {
+    prompt_tokens_details?: unknown;
+  };
+  if (typeof details !== "object" || details === null) return null;
+  const { cached_tokens: cached } = details as { cached_tokens?: unknown };
+  return typeof cached === "number" && Number.isFinite(cached) ? cached : null;
 }
 
 /**
@@ -59,6 +84,7 @@ async function logCall(entry: {
   model: string;
   tokensIn: number | null;
   tokensOut: number | null;
+  cachedTokens?: number | null;
   latencyMs: number;
   success: boolean;
   error?: string;
@@ -68,14 +94,15 @@ async function logCall(entry: {
     const now = nowIso();
     await db.runAsync(
       `INSERT INTO ai_calls (id, capability, model, tokens_in, tokens_out,
-         latency_ms, success, error, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         cached_tokens, latency_ms, success, error, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         newId(),
         entry.capability,
         entry.model,
         entry.tokensIn,
         entry.tokensOut,
+        entry.cachedTokens ?? null,
         entry.latencyMs,
         entry.success ? 1 : 0,
         entry.error ?? null,
@@ -250,16 +277,22 @@ export async function chat(args: {
 
     const json = (await response.json()) as {
       choices?: { message?: { content?: unknown; tool_calls?: unknown } }[];
-      usage?: { prompt_tokens?: number; completion_tokens?: number };
+      usage?: {
+        prompt_tokens?: number;
+        completion_tokens?: number;
+        prompt_tokens_details?: { cached_tokens?: number };
+      };
     };
     const message = json.choices?.[0]?.message;
     const toolCalls = parseToolCalls(message?.tool_calls);
+    const cachedTokens = parseCachedTokens(json.usage);
 
     await logCall({
       capability: args.capability,
       model: args.model,
       tokensIn: json.usage?.prompt_tokens ?? null,
       tokensOut: json.usage?.completion_tokens ?? null,
+      cachedTokens,
       latencyMs: elapsed(startedAt),
       success: true,
     });
@@ -271,6 +304,7 @@ export async function chat(args: {
         ? {
             promptTokens: json.usage.prompt_tokens ?? 0,
             completionTokens: json.usage.completion_tokens ?? 0,
+            cachedTokens,
           }
         : null,
     };

@@ -194,3 +194,64 @@ describe("chat: forma dei tool call", () => {
     expect(response.content).toBeNull();
   });
 });
+
+describe("chat: token dalla cache", () => {
+  const withUsage = (usage: unknown): Response => {
+    const body = { choices: [{ message: { content: "ok" } }], usage };
+    return {
+      ok: true,
+      status: 200,
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+    } as Response;
+  };
+
+  const cachedInDb = async (): Promise<number | null> => {
+    const row = await db.getFirstAsync<{ cached_tokens: number | null }>(
+      "SELECT cached_tokens FROM ai_calls ORDER BY created_at DESC LIMIT 1",
+    );
+    return row?.cached_tokens ?? null;
+  };
+
+  it("legge prompt_tokens_details.cached_tokens e lo registra", async () => {
+    fetchMock.mockResolvedValueOnce(
+      withUsage({
+        prompt_tokens: 5000,
+        completion_tokens: 120,
+        prompt_tokens_details: { cached_tokens: 4800 },
+      }),
+    );
+
+    const response = await ask();
+
+    expect(response.usage?.cachedTokens).toBe(4800);
+    expect(await cachedInDb()).toBe(4800);
+  });
+
+  // Il campo e' opzionale e su un colpo a vuoto puo' mancare del tutto. Uno
+  // zero al posto dell'assenza direbbe "misurato, nessun colpo" quando la
+  // verita' e' "non misurato", e la diagnostica non potrebbe piu' distinguere
+  // una cache che non scatta da un provider che ha smesso di dichiararla.
+  it("tiene null quando il provider non lo dichiara", async () => {
+    fetchMock.mockResolvedValueOnce(
+      withUsage({ prompt_tokens: 5000, completion_tokens: 120 }),
+    );
+
+    const response = await ask();
+
+    expect(response.usage?.cachedTokens).toBeNull();
+    expect(await cachedInDb()).toBeNull();
+  });
+
+  it("distingue lo zero dichiarato dall'assenza", async () => {
+    fetchMock.mockResolvedValueOnce(
+      withUsage({
+        prompt_tokens: 5000,
+        completion_tokens: 120,
+        prompt_tokens_details: { cached_tokens: 0 },
+      }),
+    );
+
+    expect((await ask()).usage?.cachedTokens).toBe(0);
+  });
+});

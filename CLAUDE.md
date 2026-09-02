@@ -526,6 +526,44 @@ finirebbe sul server in chiaro dentro `sync_records`. E non va nella URL: vedi
 2. **Nativo multimodale** (`.../v1beta`) per la trascrizione audio via base64,
    con `mimeType: "audio/m4a"`. La chiave viaggia in `x-goog-api-key`.
 
+### Il prezzo del prompt dell'assistente
+
+Gemini sconta di **dieci volte** i token del prefisso comune fra due richieste
+($0,075 contro $0,75 per milione su `gemini-3.6-flash`), ma solo **oltre i
+4.096 token**: sotto quella soglia la cache non scatta affatto, e non lo dice.
+
+Il prefisso dell'assistente e' costruito di proposito per starci sopra, in
+questo ordine:
+
+1. `buildSystemPrompt()` - regole, nessun dato (~500 token);
+2. le dichiarazioni dei tredici tool (~3.400 token);
+3. `buildCatalogMessage()` - tipi di pasto, ricette, alimenti, esercizi,
+   schede: quel che non cambia da una frase all'altra (qualche centinaio).
+
+Solo dopo vengono `buildStateMessage()` (ora, obiettivi, voci del diario) e la
+frase dell'utente. **Un dato volatile spostato piu' in su butta via tutto quel
+che segue**, e i primi due punti da soli fanno ~3.900 token, cioe' appena sotto
+la soglia: e' il catalogo a portarla sopra. Per la stessa ragione
+`namedList` ordina **per id** e non per utilizzi - gli alimenti piu' usati si
+riordinano appena si registra un pasto, e un riordino e' un prefisso diverso.
+
+Due conseguenze controintuitive:
+
+- **accorciare le description dei tool e' un cattivo affare.** Sono nel
+  prefisso, dove costano un decimo, e tagliarle rischia di riportare il totale
+  sotto i 4.096 - cioe' di far pagare prezzo pieno a quel che resta.
+- **la stima da foto non e' cacheabile** e non c'e' niente da fare: il suo
+  prefisso e' un prompt di 1.700 caratteri, mille token abbondanti sotto la
+  soglia.
+
+Una cache che nessuno misura e' un'ipotesi, esattamente come un model id non
+provato: `ai_calls.cached_tokens` (migrazione 15) registra quanto ha dichiarato
+il provider, e **Impostazioni > Diagnostica** ne mostra la percentuale sugli
+ultimi sette giorni. `null` in quella colonna vuol dire "non dichiarato" - la
+trascrizione passa dall'endpoint nativo, che non riporta i token - e non "zero
+colpi": i due casi non vanno confusi, o una percentuale a zero significherebbe
+due cose diverse.
+
 ## La diagnostica
 
 `app_logs` (migrazione 9) tiene gli ultimi trecento guasti: `logger.warn` e

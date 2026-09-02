@@ -1,5 +1,6 @@
 import {
-  buildContextMessage,
+  buildCatalogMessage,
+  buildStateMessage,
   buildSystemPrompt,
   intentKeyForTesting,
   MAX_TOOL_ROUNDS,
@@ -117,9 +118,9 @@ describe("buildSystemPrompt", () => {
   });
 });
 
-describe("buildContextMessage", () => {
-  it("porta il contesto passato: data, schermata, obiettivi e residuo", () => {
-    const message = buildContextMessage(context);
+describe("buildStateMessage", () => {
+  it("porta lo stato volatile: data, schermata, obiettivi e residuo", () => {
+    const message = buildStateMessage(context);
 
     expect(message).toContain("Now: 2026-08-28 20 (venerdì)");
     expect(message).toContain("Current screen: Oggi");
@@ -131,11 +132,11 @@ describe("buildContextMessage", () => {
   // settimana, e l'ora basta a capire se e' cena. Cambiando ogni minuto erano
   // la garanzia che due frasi di seguito non condividessero mai il prefisso.
   it("non stampa i minuti", () => {
-    expect(buildContextMessage(context)).not.toContain("20:41");
+    expect(buildStateMessage(context)).not.toContain("20:41");
   });
 
   it("tiene separati oggi e il giorno sfogliato, ognuno col suo giorno della settimana", () => {
-    const message = buildContextMessage({ ...context, date: "2026-08-24" });
+    const message = buildStateMessage({ ...context, date: "2026-08-24" });
 
     expect(message).toContain("Now: 2026-08-28 20 (venerdì)");
     expect(message).toContain(
@@ -145,27 +146,64 @@ describe("buildContextMessage", () => {
     expect(message).not.toContain("2026-08-24 (venerdì)");
   });
 
+  it("elenca le voci del diario con id e kcal: sono l'unica fonte di un entryId", () => {
+    const message = buildStateMessage(context);
+
+    expect(message).toContain("entry-1 = Riso (195 kcal)");
+  });
+
+  // Il catalogo sta nel prefisso cacheato, lo stato no: se un elenco finisse
+  // qui tornerebbe a costare prezzo pieno a ogni frase.
+  it("non porta il catalogo: quello sta nel prefisso", () => {
+    const message = buildStateMessage(context);
+
+    expect(message).not.toContain("Most used foods");
+    expect(message).not.toContain("User recipes");
+  });
+
+  it("regge un contesto minimo senza obiettivi né elenchi", () => {
+    const message = buildStateMessage({ now: new Date(2026, 7, 28) });
+
+    expect(message).toContain("Reference day");
+    expect(message).toContain("2026-08-28 (venerdì)");
+    expect(message).not.toContain("Targets today");
+    expect(message).not.toContain("Diary entries of the reference day");
+  });
+});
+
+describe("buildCatalogMessage", () => {
   it("elenca ricette e alimenti con i loro id, che è ciò che li fa agganciare", () => {
-    const message = buildContextMessage(context);
+    const message = buildCatalogMessage(context);
 
     expect(message).toContain("rec-1 = Iper pizza proteica");
     expect(message).toContain("food-1 = Riso");
     expect(message).toContain(`${MEAL_TYPE_IDS.dinner} = cena`);
   });
 
-  it("elenca le voci del diario con id e kcal: sono l'unica fonte di un entryId", () => {
-    const message = buildContextMessage(context);
+  // E' l'invariante che vale il prezzo: gli alimenti arrivano ordinati per
+  // utilizzi e si riordinano appena si registra un pasto. Senza ordinamento
+  // stabile il prefisso cambia, la cache non colpisce e ogni frase ripaga i
+  // quattromila token dei tool a prezzo pieno.
+  it("è identico se cambia solo l'ordine di arrivo", () => {
+    const reversed: AssistantContext = {
+      ...context,
+      foods: [...(context.foods ?? [])].reverse(),
+      recipes: [...(context.recipes ?? [])].reverse(),
+    };
 
-    expect(message).toContain("entry-1 = Riso (195 kcal)");
+    expect(buildCatalogMessage(reversed)).toBe(buildCatalogMessage(context));
   });
 
-  it("regge un contesto minimo senza obiettivi né elenchi", () => {
-    const message = buildContextMessage({ now: new Date(2026, 7, 28) });
+  it("non porta niente di volatile", () => {
+    const message = buildCatalogMessage(context);
 
-    expect(message).toContain("Reference day");
-    expect(message).toContain("2026-08-28 (venerdì)");
+    expect(message).not.toContain("Now:");
     expect(message).not.toContain("Targets today");
-    expect(message).not.toContain("Diary entries of the reference day");
+  });
+
+  // Un messaggio con la sola intestazione sarebbe prefisso sprecato.
+  it("è null quando non c'è niente da elencare", () => {
+    expect(buildCatalogMessage({ now: new Date(2026, 7, 28) })).toBeNull();
   });
 });
 
@@ -183,15 +221,39 @@ describe("runAssistant", () => {
   // le istruzioni nel prompt reso: se il contesto volatile vive nel messaggio
   // di sistema, ogni turno butta via anche i tool. Sta in un messaggio suo,
   // dopo, e quel che precede resta identico.
-  it("manda il contesto in un messaggio a parte, dopo quello di sistema", async () => {
+  // L'ordine e' il prezzo: sistema, catalogo, stato, frase. Il volatile in
+  // mezzo spezzerebbe il prefisso e la cache non colpirebbe piu' niente.
+  it("mette il prefisso stabile davanti e il volatile in fondo", async () => {
     chatMock.mockResolvedValueOnce(answer("Fatto."));
 
     await runAssistant({ transcript: "ciao", context });
 
     const messages = messagesOfCall(0);
-    expect(messages.map((m) => m.role)).toEqual(["system", "user", "user"]);
+    expect(messages.map((m) => m.role)).toEqual([
+      "system",
+      "user",
+      "user",
+      "user",
+    ]);
     expect(String(messages[0].content)).not.toContain("Now:");
-    expect(String(messages[1].content)).toContain("Now: 2026-08-28 20");
+    expect(String(messages[1].content)).toContain("YOUR LIBRARY");
+    expect(String(messages[1].content)).not.toContain("Now:");
+    expect(String(messages[2].content)).toContain("Now: 2026-08-28 20");
+    expect(String(messages[3].content)).toBe("ciao");
+  });
+
+  // Senza catalogo il messaggio non c'e' affatto: la frase resta l'ultima.
+  it("salta il catalogo quando non c'e' niente da elencare", async () => {
+    chatMock.mockResolvedValueOnce(answer("Fatto."));
+
+    await runAssistant({
+      transcript: "ciao",
+      context: { now: context.now },
+    });
+
+    const messages = messagesOfCall(0);
+    expect(messages.map((m) => m.role)).toEqual(["system", "user", "user"]);
+    expect(String(messages[1].content)).toContain("CURRENT STATE");
     expect(String(messages[2].content)).toBe("ciao");
   });
 
@@ -263,7 +325,8 @@ describe("runAssistant", () => {
 
     await runAssistant({ transcript: "due etti di pasta", context });
 
-    expect(messagesOfCall(0)[2]).toEqual({
+    const messages = messagesOfCall(0);
+    expect(messages[messages.length - 1]).toEqual({
       role: "user",
       content: "200 g di pasta",
     });
@@ -364,7 +427,10 @@ describe("runAssistant", () => {
     const args = chatMock.mock.calls[0][0];
     expect(args.capability).toBe("assistant");
     expect(args.tools?.length).toBeGreaterThan(0);
-    expect(args.messages[2]).toEqual({ role: "user", content: "ciao" });
+    expect(args.messages[args.messages.length - 1]).toEqual({
+      role: "user",
+      content: "ciao",
+    });
   });
 });
 

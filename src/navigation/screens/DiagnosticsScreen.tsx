@@ -5,9 +5,11 @@ import { Card, EmptyState, ScreenBackground, SectionLabel } from "@/src/componen
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import {
+  aiUsage,
   clearLogs,
   recentFailedAiCalls,
   recentLogs,
+  type AiUsage,
   type AppLog,
   type FailedAiCall,
 } from "@/src/db/queries/logs";
@@ -37,6 +39,19 @@ const quando = (iso: string): string => {
         minute: "2-digit",
       });
 };
+
+/**
+ * La quota di token in entrata servita dalla cache.
+ *
+ * Si divide per i token delle sole chiamate che hanno dichiarato il dato, non
+ * per il totale: la trascrizione passa dall'endpoint nativo e non riporta i
+ * token affatto, e metterla al denominatore diluirebbe la percentuale con
+ * chiamate su cui la domanda non e' mai stata posta.
+ */
+const percentuale = (usage: AiUsage): number =>
+  usage.tokensIn > 0
+    ? Math.round((usage.cachedTokens / usage.tokensIn) * 100)
+    : 0;
 
 /**
  * Una riga che si apre.
@@ -85,16 +100,19 @@ export function DiagnosticsScreen() {
 
   const [logs, setLogs] = useState<AppLog[]>([]);
   const [aiCalls, setAiCalls] = useState<FailedAiCall[]>([]);
+  const [usage, setUsage] = useState<AiUsage | null>(null);
   const [busy, setBusy] = useState<"share" | "clear" | "models" | null>(null);
   const [checks, setChecks] = useState<ModelCheck[] | null>(null);
 
   const ricarica = useCallback(async () => {
-    const [righe, chiamate] = await Promise.all([
+    const [righe, chiamate, consumo] = await Promise.all([
       recentLogs(),
       recentFailedAiCalls(),
+      aiUsage(),
     ]);
     setLogs(righe);
     setAiCalls(chiamate);
+    setUsage(consumo);
   }, []);
 
   useEffect(() => {
@@ -175,7 +193,50 @@ export function DiagnosticsScreen() {
             {t("diagnostics.explain")}
           </Text>
 
-          <SectionLabel>{t("diagnostics.models_section")}</SectionLabel>
+          <SectionLabel>{t("diagnostics.usage_section")}</SectionLabel>
+          <Card style={styles.modelli}>
+            {usage && usage.calls > 0 ? (
+              <>
+                <Text style={[styles.modelliHint, { color: colors.textFaint }]}>
+                  {t("diagnostics.usage_hint", {
+                    days: usage.days,
+                    calls: usage.calls,
+                  })}
+                </Text>
+                <Text style={[styles.consumo, { color: colors.text }]}>
+                  {t("diagnostics.usage_tokens", {
+                    tokensIn: usage.tokensIn.toLocaleString("it-IT"),
+                    tokensOut: usage.tokensOut.toLocaleString("it-IT"),
+                  })}
+                </Text>
+                <Text
+                  style={[
+                    styles.consumo,
+                    {
+                      color:
+                        usage.measured === 0
+                          ? colors.textFaint
+                          : theme.colors.success,
+                    },
+                  ]}
+                >
+                  {usage.measured === 0
+                    ? t("diagnostics.usage_unmeasured")
+                    : t("diagnostics.usage_cached", {
+                        percent: percentuale(usage),
+                      })}
+                </Text>
+              </>
+            ) : (
+              <Text style={[styles.modelliHint, { color: colors.textFaint }]}>
+                {t("diagnostics.usage_none")}
+              </Text>
+            )}
+          </Card>
+
+          <SectionLabel style={styles.section}>
+            {t("diagnostics.models_section")}
+          </SectionLabel>
           <Card style={styles.modelli}>
             <Text style={[styles.modelliHint, { color: colors.textFaint }]}>
               {t("diagnostics.models_hint")}
@@ -299,6 +360,7 @@ const styles = StyleSheet.create({
   azioni: { marginTop: theme.spacing.md, gap: theme.spacing.sm },
   modelli: { padding: theme.spacing.md, gap: theme.spacing.sm },
   modelliHint: { fontSize: 12, lineHeight: 17 },
+  consumo: { fontSize: 13, lineHeight: 19 },
   modelloRiga: {
     flexDirection: "row",
     alignItems: "center",

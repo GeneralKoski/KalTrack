@@ -2,6 +2,7 @@ import { createTestDb } from "@/src/db/__testing__/betterSqliteAdapter";
 import { __setDbForTesting } from "@/src/db/index";
 import { runMigrations } from "@/src/db/migrations";
 import {
+  aiUsage,
   clearLogs,
   MAX_LOG_ROWS,
   PRUNE_EVERY,
@@ -134,5 +135,75 @@ describe("recentLogs", () => {
 
     const righe = await recentLogs();
     expect(righe[0].message).toBe("seconda");
+  });
+});
+
+describe("aiUsage", () => {
+  const chiamata = async (
+    tokensIn: number,
+    tokensOut: number,
+    cached: number | null,
+    createdAt = new Date().toISOString(),
+  ): Promise<void> => {
+    await db.runAsync(
+      `INSERT INTO ai_calls (id, capability, model, tokens_in, tokens_out,
+         cached_tokens, latency_ms, success, created_at, updated_at)
+       VALUES (?, 'assistant', 'gemini-3.6-flash', ?, ?, ?, 100, 1, ?, ?)`,
+      [
+        `c-${Math.random()}`,
+        tokensIn,
+        tokensOut,
+        cached,
+        createdAt,
+        createdAt,
+      ],
+    );
+  };
+
+  it("somma i token e quelli serviti dalla cache", async () => {
+    await chiamata(5000, 100, 4800);
+    await chiamata(5600, 120, 4800);
+
+    const usage = await aiUsage();
+    expect(usage.calls).toBe(2);
+    expect(usage.tokensIn).toBe(10600);
+    expect(usage.tokensOut).toBe(220);
+    expect(usage.cachedTokens).toBe(9600);
+    expect(usage.measured).toBe(2);
+  });
+
+  // Il dato della cache e' opzionale: la trascrizione passa dall'endpoint
+  // nativo, che non riporta i token affatto. "Non dichiarato" e "nessun colpo"
+  // devono restare distinguibili, o una percentuale a zero direbbe le due cose
+  // allo stesso modo.
+  it("conta a parte le chiamate che non hanno dichiarato la cache", async () => {
+    await chiamata(5000, 100, null);
+    await chiamata(5000, 100, 0);
+
+    const usage = await aiUsage();
+    expect(usage.cachedTokens).toBe(0);
+    expect(usage.measured).toBe(1);
+  });
+
+  it("guarda solo la finestra chiesta", async () => {
+    const vecchia = new Date(Date.now() - 30 * 86_400_000).toISOString();
+    await chiamata(9999, 9999, 9999, vecchia);
+    await chiamata(1000, 50, 800);
+
+    const usage = await aiUsage(7);
+    expect(usage.calls).toBe(1);
+    expect(usage.tokensIn).toBe(1000);
+  });
+
+  it("non inventa numeri su un registro vuoto", async () => {
+    const usage = await aiUsage();
+    expect(usage).toEqual({
+      days: 7,
+      calls: 0,
+      tokensIn: 0,
+      tokensOut: 0,
+      cachedTokens: 0,
+      measured: 0,
+    });
   });
 });

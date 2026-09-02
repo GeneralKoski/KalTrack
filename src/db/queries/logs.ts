@@ -199,3 +199,58 @@ export async function recentFailedAiCalls(limit = 50): Promise<FailedAiCall[]> {
     createdAt: row.created_at,
   }));
 }
+
+export interface AiUsage {
+  /** Giorni coperti dal conteggio. */
+  days: number;
+  calls: number;
+  tokensIn: number;
+  tokensOut: number;
+  /** Quanti token in entrata sono arrivati dalla cache del provider. */
+  cachedTokens: number;
+  /**
+   * Quante chiamate hanno dichiarato il dato della cache. Zero significa che
+   * la domanda non ha risposta, non che la cache non colpisce: senza questo
+   * numero una percentuale a zero direbbe due cose diverse allo stesso modo.
+   */
+  measured: number;
+}
+
+/**
+ * Quanto e' costato l'ultimo periodo, e quanta parte l'ha pagata la cache.
+ *
+ * E' il contatore che mancava. Il prefisso del prompt dell'assistente - regole
+ * piu' dichiarazioni dei tredici tool piu' catalogo - vale qualche migliaio di
+ * token spediti a ogni frase, e a prezzo pieno costa dieci volte quel che
+ * costa in cache. Se un domani qualcuno accorcia il prompt di sistema o toglie
+ * un tool, il prefisso puo' ricadere sotto i 4.096 token che Gemini richiede e
+ * la cache smette di scattare **in silenzio**: qui si vede, e non altrove.
+ */
+export async function aiUsage(days = 7): Promise<AiUsage> {
+  const db = await getDb();
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const row = await db.getFirstAsync<{
+    calls: number;
+    tokens_in: number | null;
+    tokens_out: number | null;
+    cached: number | null;
+    measured: number;
+  }>(
+    `SELECT COUNT(*) AS calls,
+            SUM(tokens_in) AS tokens_in,
+            SUM(tokens_out) AS tokens_out,
+            SUM(cached_tokens) AS cached,
+            SUM(CASE WHEN cached_tokens IS NULL THEN 0 ELSE 1 END) AS measured
+       FROM ai_calls
+      WHERE success = 1 AND created_at >= ?`,
+    [since],
+  );
+  return {
+    days,
+    calls: row?.calls ?? 0,
+    tokensIn: row?.tokens_in ?? 0,
+    tokensOut: row?.tokens_out ?? 0,
+    cachedTokens: row?.cached ?? 0,
+    measured: row?.measured ?? 0,
+  };
+}
