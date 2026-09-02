@@ -12,30 +12,54 @@ export const GEMINI_NATIVE_BASE_URL =
   "https://generativelanguage.googleapis.com/v1beta";
 
 /**
- * Un modello per tutte e tre le capability.
+ * Un modello per tutte e tre le capability: `gemini-3.5-flash-lite`.
  *
- * `gemini-3.6-flash` e' quello dichiarato in `CLAUDE.md` dal passaggio a
- * Gemini; il codice era rimasto su `gemini-3.5-flash-lite`, cioe' la voce piu'
- * economica del listino, sulle capability che se ne accorgono di piu' - la
- * trascrizione audio e la lettura di un'etichetta.
+ * **La ragione e' la quota, non il costo.** Sul Free Tier il limite e'
+ * `GenerateRequestsPerDayPerProjectPerModel`, cioe' un tetto giornaliero **per
+ * modello**, e su `gemini-3.6-flash` vale **20 richieste al giorno** - misurato
+ * il 2 settembre 2026 leggendolo dal corpo di un 429, perche' Google non lo
+ * pubblica piu' (la pagina dei rate limit rimanda ad AI Studio).
  *
- * Verificati contro il servizio il 2 settembre 2026, entrambi gli endpoint:
- * trascrizione di un m4a sull'endpoint nativo, lettura di un'etichetta in
- * `json_object` su quello OpenAI-compatible. La lezione del ritiro di
- * `llama-3.3-70b-versatile`, passato inosservato per sei settimane, e' che un
- * model id non provato e' un'ipotesi: si controlla da **Impostazioni >
- * Diagnostica**, che interroga l'elenco dei modelli serviti a questa chiave.
+ * Venti non sono venti frasi. Una frase detta all'assistente costa una
+ * trascrizione, piu' da uno a `MAX_TOOL_ROUNDS` giri di tool loop, piu' una
+ * stima per ogni alimento che `resolveFood` non riconosce: una frase con tre
+ * cibi nuovi ne consuma sei. Il tetto di `gemini-3.6-flash` e' quindi **tre o
+ * quattro frasi al giorno**, e l'app diventa inutilizzabile a meta' colazione.
  *
- * Esiste anche `gemini-3.7-flash`: non e' stato provato e il salto va fatto
- * di proposito, non per abitudine all'ultimo numero.
+ * `gemini-3.5-flash-lite` ha un tetto piu' alto - oltre 28 richieste in un
+ * giorno senza esaurirlo, valore esatto non pubblicato - ed e' da tre a dieci
+ * volte piu' veloce, con una dispersione stretta: 1,0-1,7s contro i 3,4-22,7s
+ * di `gemini-3.6-flash`. Su un assistente vocale la differenza si sente.
+ *
+ * `gemini-3.7-flash` e' scartato per un motivo diverso: la quota c'e' ma la
+ * capacita' no. Restituisce `503 "This model is currently experiencing high
+ * demand"` su circa metà delle richieste, e ci mette 90-120 secondi a dirlo.
+ * E' GA da agosto 2026, quindi da un mese.
+ *
+ * **Il prezzo pagato per flash-lite:** segue le regole del prompt un po'
+ * peggio sulle frasi ambigue. "Ho mangiato del riso" gli fa scrivere 100 g
+ * inventati invece di chiedere quanto, mentre "un po' di pollo" la domanda la
+ * fa. E' l'unico scarto emerso su nove prove; sui numeri - lettura di
+ * un'etichetta, trascrizione, "un etto e mezzo" che non deve diventare 1, la
+ * data di "ieri", i macro dettati che non vanno passati - le due sono pari, e
+ * sulla data omessa quando l'utente non nomina un giorno flash-lite e' anzi
+ * l'unica che rispetta la regola.
+ *
+ * **Le tre voci restano separate perche' la quota e' per modello.** Puntandole
+ * a modelli diversi il budget giornaliero si somma invece di dividersi: e' la
+ * leva da usare se un tetto solo non basta, non un residuo storico.
+ *
+ * La lezione del ritiro di `llama-3.3-70b-versatile`, chiamato per sei
+ * settimane dopo essere stato spento, resta: un model id non provato e' un
+ * ipotesi. Si controlla da **Impostazioni > Diagnostica**.
  */
 export const MODELS = {
   /** Trascrizione vocale. */
-  transcription: "gemini-3.6-flash",
+  transcription: "gemini-3.5-flash-lite",
   /** Comprensione e function calling dell'assistente. */
-  assistant: "gemini-3.6-flash",
+  assistant: "gemini-3.5-flash-lite",
   /** Stima nutrizionale da foto ed etichette. */
-  vision: "gemini-3.6-flash",
+  vision: "gemini-3.5-flash-lite",
 } as const;
 
 /**

@@ -547,10 +547,10 @@ Valgono le guide Dieffetech `docs/react-native/`:
 ## AI
 
 Tutte le capability passano da **Google Gemini** (Google AI Studio), con un
-modello unico: **`gemini-3.6-flash`** per la trascrizione audio multimodale, la
-comprensione e il function calling dell'assistente (vocale e testuale) e la
-stima nutrizionale da foto ed etichette (vision + JSON object mode).
-`expo-speech` per le risposte parlate, on-device.
+modello unico: **`gemini-3.5-flash-lite`** per la trascrizione audio
+multimodale, la comprensione e il function calling dell'assistente (vocale e
+testuale) e la stima nutrizionale da foto ed etichette (vision + JSON object
+mode). `expo-speech` per le risposte parlate, on-device.
 
 I model id stanno in **un punto solo** (`src/ai/config.ts`), e non e' una
 comodita': `llama-3.3-70b-versatile` e' stato ritirato e l'app ha continuato a
@@ -558,11 +558,39 @@ chiamarlo per sei settimane senza che nessuno lo notasse. **Un model id non
 provato e' un'ipotesi**, e si prova da **Impostazioni > Diagnostica**, che
 chiede al servizio l'elenco di quel che sta ancora servendo a questa chiave.
 
+Il perche' di *quel* modello - quota, latenza e lo scarto di qualita' che si
+accetta in cambio - sta nel commento sopra `MODELS`, misurato invece che
+supposto.
+
 La chiave sta in `.env` come `EXPO_PUBLIC_GEMINI_API_KEY`, quindi **nel bundle**:
 e' una scelta, non una dimenticanza. Cosi' l'AI e' attiva al primo avvio senza
-configurazione e a costo zero (Free Tier, 1.500 richieste al giorno), e l'APK non
-si distribuisce. Chi vuole la propria la mette da Impostazioni e ha la
-precedenza (`aiKeyStore`, `aiKey()`).
+configurazione e a costo zero, e l'APK non si distribuisce. Chi vuole la
+propria la mette da Impostazioni e ha la precedenza (`aiKeyStore`, `aiKey()`).
+
+### La quota, che e' il vincolo vero
+
+**Non sono 1.500 richieste al giorno.** Questo documento lo ha scritto fino al
+2 settembre 2026 ed era falso: quel numero e' il tetto globale di un'altra
+epoca. Il limite reale e'
+`GenerateRequestsPerDayPerProjectPerModel-FreeTier`, un tetto giornaliero **per
+modello**, e su `gemini-3.6-flash` vale **venti**. Non e' pubblicato da nessuna
+parte - la pagina dei rate limit rimanda ad AI Studio - e si legge solo nel
+corpo di un 429, sotto `details[].violations[].quotaValue`.
+
+Venti non sono venti frasi. **Una frase detta all'assistente costa da due a sei
+richieste**: una di trascrizione, da uno a `MAX_TOOL_ROUNDS` giri di tool loop,
+e una stima per ogni alimento che `resolveFood` non riconosce. Chi conta le
+richieste come se fossero interazioni sbaglia di un fattore sei.
+
+Due conseguenze pratiche:
+
+- **La quota e' per modello, quindi le tre voci di `MODELS` sono una leva.**
+  Puntate a modelli diversi i budget si sommano invece di dividersi. Oggi
+  puntano tutte allo stesso perche' il suo tetto basta; se un giorno non
+  bastasse, si separano prima di pensare a pagare.
+- **Un 429 non e' un guasto dell'app** e va letto come tale in
+  **Impostazioni > Diagnostica**. Il tetto si azzera a mezzanotte del Pacifico,
+  non a mezzanotte qui.
 
 **Quella scelta ha una data di scadenza, ed e' l'unica condizione che la
 regge.** Il rilascio pubblico con le funzioni AI a pagamento e' in programma
