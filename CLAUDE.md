@@ -140,6 +140,31 @@ Tre cose da non rompere:
 Non si interroga per ingrediente ("quanto salame a settembre"): e' il costo
 dichiarato del JSON, e nessuna schermata lo chiede.
 
+### La ricerca di un alimento
+
+Due sezioni, e non un elenco solo: **In libreria** legge SQLite, **Dall'archivio**
+interroga OpenFoodFacts (`useOffSearch`). La prima arriva subito e senza rete,
+la seconda arriva dopo e puo' non arrivare: per questo e' un hook a parte e non
+entra in `searchFoods`, che e' local-first e deve restarlo. Se l'archivio non
+risponde la schermata non dice niente - la libreria c'e' comunque.
+
+Fino al 2 settembre 2026 `searchByName` aveva **un solo chiamante**,
+`src/ai/resolveFood.ts`: tre milioni di prodotti stavano dietro l'assistente
+vocale, e chi cercava a dita vedeva solo i seed e quel che si era aggiunto a
+mano.
+
+Un prodotto dell'archivio **si salva e si apre subito nel modulo**, non si
+aggiunge in silenzio: i valori vengono da un archivio pubblico compilato da
+chiunque e la porzione spesso manca del tutto, quindi vanno messi sotto gli
+occhi nel momento in cui correggerli costa niente. E' la stessa regola dei
+grammi stimati da una foto.
+
+Il doppione si toglie con **due** criteri (`escludiGiaPresenti`): il codice a
+barre, che e' esatto, e il nome normalizzato, che copre quel che e' stato
+aggiunto a mano senza codice. Il nome vince anche a codici diversi - due righe
+con lo stesso nome in elenco sono indistinguibili. Sotto i tre caratteri non si
+interroga niente: "ri" restituisce mille prodotti e nessuno e' quello cercato.
+
 ### Le vie per aggiungere al diario
 
 La linguetta "Voce libera" della scheda Aggiungi ne offre tre: scrivere a mano,

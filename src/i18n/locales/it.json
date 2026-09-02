@@ -62,7 +62,11 @@
     "saturated_fat_short": "Grassi saturi",
     "fiber_short": "Fibre",
     "salt_short": "Sale",
-    "detail_title": "Valori"
+    "detail_title": "Valori",
+    "section_library": "In libreria",
+    "section_off": "Dall'archivio",
+    "off_no_brand": "Marca non indicata",
+    "off_import_failed": "Non è stato possibile aggiungere il prodotto"
   },
   "profile": {
     "my_foods": "I miei alimenti",
@@ -610,7 +614,7 @@
     "copy_week_done": "Settimana copiata",
     "copy_week_empty": "Questa settimana non ha un piano da copiare",
     "apply": "Porta nel diario",
-    "apply_title": "Portare il giorno nel diario?",
+    "apply_title": "Porta nel diario",
     "apply_message": "Le voci diventano voci di diario. Il piano resta dov'è, così puoi confrontarlo con quello che hai mangiato davvero.",
     "apply_done": {
       "one": "1 voce portata nel diario",
@@ -620,7 +624,6 @@
       "one": "1 voce senza valori è rimasta fuori",
       "other": "%{count} voci senza valori sono rimaste fuori"
     },
-    "apply_title": "Porta nel diario",
     "apply_dialog_desc": "Scegli il giorno del diario in cui inserire gli alimenti:",
     "apply_already": "Questo giorno è già nel diario",
     "apply_empty": "Questo giorno non ha un piano",

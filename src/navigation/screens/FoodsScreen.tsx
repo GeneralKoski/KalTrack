@@ -8,15 +8,25 @@ import {
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { FoodListItem } from "@/src/containers/foods/FoodListItem";
-import { searchFoods, toggleFoodFavorite } from "@/src/db/queries/foods";
+import { OffResultItem } from "@/src/containers/foods/OffResultItem";
+import { useOffSearch } from "@/src/containers/foods/useOffSearch";
+import { createFood, searchFoods, toggleFoodFavorite } from "@/src/db/queries/foods";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
-import type { FoodRow } from "@/src/types/nutrition";
+import type { FoodInput, FoodRow } from "@/src/types/nutrition";
+import { logger } from "@/src/utils/logger";
+import { showToast } from "@/src/utils/toast";
 import { ChevronLeft, Plus, Salad } from "lucide-react-native";
-import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  SectionList,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SEARCH_DEBOUNCE_MS = 250;
@@ -38,10 +48,63 @@ export function FoodsScreen() {
   const loader = useCallback(() => searchFoods(debounced), [debounced]);
   const { data, loading, reload } = useFocusData<FoodRow[]>(loader);
 
+  // Memoizzato e non `data ?? []` inline: un array nuovo a ogni render
+  // ricalcolerebbe le sezioni a ogni disegno.
+  const locali = useMemo(() => data ?? [], [data]);
+  const off = useOffSearch(debounced, locali);
+
+  /*
+   * Due sezioni e non una lista sola: un prodotto dell'archivio non e' ancora
+   * una voce di questo telefono, e mescolarlo ai propri alimenti lo farebbe
+   * sembrare tale. Una sezione compare solo se ha qualcosa da dire - quella
+   * dell'archivio anche mentre carica, altrimenti l'attesa non si vede.
+   */
+  const sections = useMemo(() => {
+    const risultato: {
+      key: "library" | "off";
+      title: string;
+      data: (FoodRow | FoodInput)[];
+    }[] = [];
+
+    if (locali.length > 0) {
+      risultato.push({
+        key: "library",
+        title: t("foods.section_library"),
+        data: locali,
+      });
+    }
+    if (off.results.length > 0 || off.loading) {
+      risultato.push({
+        key: "off",
+        title: t("foods.section_off"),
+        data: off.results,
+      });
+    }
+    return risultato;
+  }, [locali, off.results, off.loading, t]);
 
   const onToggleFavorite = async (id: string) => {
     await toggleFoodFavorite(id);
     reload();
+  };
+
+  /*
+   * Il prodotto si salva e si apre subito nel modulo.
+   *
+   * Non si aggiunge in silenzio: i valori vengono da un archivio pubblico
+   * compilato da chiunque, e la porzione spesso manca del tutto. Aprire il
+   * modulo mette sotto gli occhi quel che e' entrato in libreria, nel momento
+   * in cui correggerlo costa niente.
+   */
+  const onImportOff = async (food: FoodInput) => {
+    try {
+      const id = await createFood({ ...food, source: "off" });
+      reload();
+      navigate("FoodForm", { id });
+    } catch (error) {
+      logger.error("[foods] importazione da OpenFoodFacts fallita", error);
+      showToast.error({ title: t("foods.off_import_failed") });
+    }
   };
 
   return (
@@ -77,15 +140,33 @@ export function FoodsScreen() {
         {loading && !data ? (
           <ActivityIndicator style={styles.loader} color={colors.accent} />
         ) : (
-          <FlatList
-            data={data ?? []}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <FoodListItem
-                food={item}
-                onPress={() => navigate("FoodForm", { id: item.id })}
-                onToggleFavorite={() => onToggleFavorite(item.id)}
-              />
+          <SectionList
+            sections={sections}
+            keyExtractor={(item, index) =>
+              "id" in item ? item.id : `off-${item.barcode ?? index}`
+            }
+            renderItem={({ item }) =>
+              "id" in item ? (
+                <FoodListItem
+                  food={item}
+                  onPress={() => navigate("FoodForm", { id: item.id })}
+                  onToggleFavorite={() => onToggleFavorite(item.id)}
+                />
+              ) : (
+                <OffResultItem food={item} onPress={() => onImportOff(item)} />
+              )
+            }
+            renderSectionHeader={({ section }) => (
+              <View style={styles.sectionHeader}>
+                <Text
+                  style={[styles.sectionTitle, { color: colors.textFaint }]}
+                >
+                  {section.title}
+                </Text>
+                {section.key === "off" && off.loading ? (
+                  <ActivityIndicator size="small" color={colors.textFaint} />
+                ) : null}
+              </View>
             )}
             contentContainerStyle={[
               styles.list,
@@ -93,6 +174,7 @@ export function FoodsScreen() {
             ]}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
             keyboardShouldPersistTaps="handled"
+            stickySectionHeadersEnabled={false}
             ListEmptyComponent={
               <EmptyState
                 message={t("foods.empty")}
@@ -145,6 +227,19 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: theme.spacing.sm,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.xs,
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.xs,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
   },
   loader: {
     marginTop: theme.spacing.xl,
