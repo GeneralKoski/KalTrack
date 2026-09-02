@@ -3,19 +3,27 @@ import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 
 /**
- * La chiave Groq, che e' di chi usa l'app e non dell'app.
+ * La chiave AI personale, che si sovrappone a quella dell'app.
  *
- * Prima stava in `EXPO_PUBLIC_GROQ_API_KEY`, quindi nel bundle in chiaro e
- * uguale per tutti: chiunque avesse l'APK poteva estrarla e consumare la quota
- * di chi l'aveva messa. Ora la inserisce ciascuno per se', e il problema
- * sparisce invece di essere accettato - che una persona possa estrarre dal
- * proprio telefono una chiave sua non e' un problema.
+ * **Non e' l'unica via, ed e' la meno usata.** La chiave che accende l'AI al
+ * primo avvio e' quella condivisa, che sta in `EXPO_PUBLIC_GEMINI_API_KEY` e
+ * quindi nel bundle: e' una scelta dichiarata in `CLAUDE.md` § AI, per avere
+ * l'assistente attivo senza configurazione e a costo zero sul Free Tier.
+ * Questo store serve a chi vuole mettere la propria - perche' la quota
+ * condivisa e' finita, o perche' non si fida di quella di qualcun altro - e
+ * `aiKey()` in `ai/config.ts` gli da' la precedenza.
+ *
+ * Per un periodo la chiave condivisa era stata tolta e questa era l'unica via.
+ * Il motivo era che chiunque avesse l'APK poteva estrarla dal bundle e
+ * consumarne la quota; il motivo per cui e' tornata e' che l'APK non si
+ * distribuisce, e chiedere una chiave a chi installa l'app spegneva l'AI al
+ * primo avvio, cioe' l'unica volta in cui conta che funzioni.
  *
  * SecureStore e **non** la tabella `settings`: quella si sincronizza, e la
  * chiave finirebbe sul server dentro `sync_records`, in chiaro. Sarebbe stata
  * la strada piu' corta e avrebbe rifatto lo stesso danno da un'altra parte.
  *
- * In memoria dopo l'avvio perche' `hasGroqKey()` viene chiamata anche in
+ * In memoria dopo l'avvio perche' `hasAiKey()` viene chiamata anche in
  * render: leggere SecureStore a ogni disegno vorrebbe dire renderla asincrona
  * e far comparire i riquadri dell'AI con un lampo di ritardo.
  */

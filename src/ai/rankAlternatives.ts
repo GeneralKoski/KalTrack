@@ -1,5 +1,5 @@
 import { chat } from "@/src/ai/client";
-import { hasGroqKey, MODELS } from "@/src/ai/config";
+import { hasAiKey, MODELS } from "@/src/ai/config";
 import { AiResponseError } from "@/src/ai/errors";
 import { getExercise, suggestAlternatives } from "@/src/db/queries/exercises";
 import { exerciseEquipment, type ExerciseRow } from "@/src/types/gym";
@@ -166,7 +166,7 @@ export async function rankAlternatives(args: {
   if (candidates.length === 0) return [];
 
   // Senza chiave non si tenta nemmeno la rete: l'ordine locale è già la risposta.
-  if (!hasGroqKey()) return localOrder(candidates);
+  if (!hasAiKey()) return localOrder(candidates);
 
   try {
     const response = await chat({

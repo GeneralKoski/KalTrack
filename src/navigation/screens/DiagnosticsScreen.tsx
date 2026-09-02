@@ -118,7 +118,7 @@ export function DiagnosticsScreen() {
   /**
    * La prova esiste perche' un modello ritirato non da' segno di se': la
    * capability muore e l'app non ha modo di sapere perche'. Qui si chiede a
-   * Groq l'elenco di quel che serve a questa chiave e si confronta.
+   * Gemini l'elenco di quel che serve a questa chiave e si confronta.
    */
   const onCheckModels = async () => {
     setBusy("models");

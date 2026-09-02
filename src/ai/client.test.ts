@@ -18,7 +18,7 @@ const fetchMock = jest.fn<Promise<Response>, [RequestInfo, RequestInit]>();
 
 /** La chiave è letta a livello di modulo: va impostata prima del primo import. */
 beforeAll(() => {
-  process.env.EXPO_PUBLIC_GROQ_API_KEY = "test-key";
+  process.env.EXPO_PUBLIC_GEMINI_API_KEY = "test-key";
   client = jest.requireActual<ClientModule>("@/src/ai/client");
 });
 
@@ -59,7 +59,7 @@ const validCall = {
   function: { name: "add_food", arguments: "{}" },
 };
 
-/** Errore HTTP nudo, come lo restituisce Groq quando la quota è finita. */
+/** Errore HTTP nudo, come lo restituisce Gemini quando la quota è finita. */
 function failure(
   status: number,
   headers: Record<string, string> = {},

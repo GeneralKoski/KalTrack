@@ -1,5 +1,5 @@
 import { chat } from "@/src/ai/client";
-import { hasGroqKey } from "@/src/ai/config";
+import { hasAiKey } from "@/src/ai/config";
 import { AiRequestError } from "@/src/ai/errors";
 import { rankAlternatives } from "@/src/ai/rankAlternatives";
 import { createTestDb } from "@/src/db/__testing__/betterSqliteAdapter";
@@ -17,11 +17,11 @@ import type { Equipment } from "@/src/types/gym";
 jest.mock("@/src/ai/client");
 jest.mock("@/src/ai/config", () => ({
   ...jest.requireActual("@/src/ai/config"),
-  hasGroqKey: jest.fn(),
+  hasAiKey: jest.fn(),
 }));
 
 const chatMock = chat as jest.MockedFunction<typeof chat>;
-const hasGroqKeyMock = hasGroqKey as jest.MockedFunction<typeof hasGroqKey>;
+const hasAiKeyMock = hasAiKey as jest.MockedFunction<typeof hasAiKey>;
 
 let db: LocalDatabase;
 
@@ -30,8 +30,8 @@ beforeEach(async () => {
   await runMigrations(db);
   __setDbForTesting(db);
   chatMock.mockReset();
-  hasGroqKeyMock.mockReset();
-  hasGroqKeyMock.mockReturnValue(true);
+  hasAiKeyMock.mockReset();
+  hasAiKeyMock.mockReturnValue(true);
 });
 
 afterEach(() => __setDbForTesting(null));
@@ -76,7 +76,7 @@ const ids = (result: { exercise: { id: string } }[]): string[] =>
 describe("rankAlternatives senza AI", () => {
   it("restituisce i candidati locali quando manca la chiave, senza chiamare il modello", async () => {
     const { source, alpha, beta, gamma } = await seedScenario();
-    hasGroqKeyMock.mockReturnValue(false);
+    hasAiKeyMock.mockReturnValue(false);
 
     const result = await rankAlternatives({ exerciseId: source });
 
@@ -197,7 +197,7 @@ describe("rankAlternatives, casi limite", () => {
     const corpoLibero = await addExercise("Alpha piegamenti");
     await addExercise("Beta panca", ["bilanciere", "panca"]);
     await setEquipmentAvailability("bilanciere", true);
-    hasGroqKeyMock.mockReturnValue(false);
+    hasAiKeyMock.mockReturnValue(false);
 
     const result = await rankAlternatives({ exerciseId: source });
 
@@ -208,7 +208,7 @@ describe("rankAlternatives, casi limite", () => {
   it("mette in coda gli sgraditi anche quando l'AI non è disponibile", async () => {
     const { source, alpha, beta, gamma } = await seedScenario();
     await setExerciseDislike(alpha, 2);
-    hasGroqKeyMock.mockReturnValue(false);
+    hasAiKeyMock.mockReturnValue(false);
 
     const result = await rankAlternatives({ exerciseId: source });
 

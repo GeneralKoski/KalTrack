@@ -1,4 +1,4 @@
-import { hasGroqKey } from "@/src/ai/config";
+import { hasAiKey } from "@/src/ai/config";
 import {
   MIN_LOGGED_DAYS,
   WEEK_DAYS,
@@ -206,7 +206,7 @@ export const WeeklyCoachCard: React.FC = () => {
     : [];
 
   const enoughData = data !== null && data.loggedDays >= MIN_LOGGED_DAYS;
-  const configured = hasGroqKey();
+  const configured = hasAiKey();
 
   return (
     <Card style={styles.card}>

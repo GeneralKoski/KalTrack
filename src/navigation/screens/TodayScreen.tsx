@@ -1,4 +1,4 @@
-import { hasGroqKey } from "@/src/ai/config";
+import { hasAiKey } from "@/src/ai/config";
 import { MissingApiKeyError } from "@/src/ai/errors";
 import {
   estimateFromPhoto,
@@ -187,7 +187,7 @@ export function TodayScreen() {
   const startPhotoEstimate = async (source: "camera" | "library") => {
     // Chiesta prima di aprire la fotocamera: scattare una foto per poi
     // sentirsi dire che manca la chiave e' lavoro buttato.
-    if (!hasGroqKey()) {
+    if (!hasAiKey()) {
       setAskKey(true);
       return;
     }

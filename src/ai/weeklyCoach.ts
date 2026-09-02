@@ -1,5 +1,5 @@
 import { chat } from "@/src/ai/client";
-import { hasGroqKey, MODELS } from "@/src/ai/config";
+import { hasAiKey, MODELS } from "@/src/ai/config";
 import { getDb } from "@/src/db/index";
 import { getDayDiary } from "@/src/db/queries/diary";
 import { getTargetsFor } from "@/src/db/queries/settings";
@@ -392,7 +392,7 @@ export async function weeklyReview(options?: {
   if (stats.loggedDays < MIN_LOGGED_DAYS) {
     return { stats, status: "not_enough_data", comment: null };
   }
-  if (!hasGroqKey()) return { stats, status: "no_key", comment: null };
+  if (!hasAiKey()) return { stats, status: "no_key", comment: null };
 
   try {
     const response = await chat({

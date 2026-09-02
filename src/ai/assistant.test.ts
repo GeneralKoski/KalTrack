@@ -101,10 +101,10 @@ describe("normalizeQuantities", () => {
 });
 
 describe("buildSystemPrompt", () => {
-  // La cache del prompt di Groq vale sul PREFISSO: il primo carattere che
+  // La cache del prompt di Gemini vale sul PREFISSO: il primo carattere che
   // cambia da un turno all'altro butta via tutto quello che segue. Il prompt
   // statico e' quel prefisso, quindi non deve contenere niente del contesto.
-  it("e' identico a ogni turno: e' il prefisso che la cache di Groq riusa", () => {
+  it("e' identico a ogni turno: e' il prefisso che la cache riusa", () => {
     expect(buildSystemPrompt()).toBe(buildSystemPrompt());
   });
 
@@ -179,7 +179,7 @@ describe("runAssistant", () => {
     expect(chatMock).toHaveBeenCalledTimes(1);
   });
 
-  // La cache di Groq riusa il prefisso, e le definizioni dei tool stanno DOPO
+  // La cache riusa il prefisso, e le definizioni dei tool stanno DOPO
   // le istruzioni nel prompt reso: se il contesto volatile vive nel messaggio
   // di sistema, ogni turno butta via anche i tool. Sta in un messaggio suo,
   // dopo, e quel che precede resta identico.

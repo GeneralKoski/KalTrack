@@ -1,5 +1,5 @@
 import { chat } from "@/src/ai/client";
-import { hasGroqKey } from "@/src/ai/config";
+import { hasAiKey } from "@/src/ai/config";
 import {
   MIN_LOGGED_DAYS,
   weeklyReview,
@@ -19,11 +19,11 @@ import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
 jest.mock("@/src/ai/client");
 jest.mock("@/src/ai/config", () => ({
   ...jest.requireActual("@/src/ai/config"),
-  hasGroqKey: jest.fn(),
+  hasAiKey: jest.fn(),
 }));
 
 const chatMock = chat as jest.MockedFunction<typeof chat>;
-const hasGroqKeyMock = hasGroqKey as jest.MockedFunction<typeof hasGroqKey>;
+const hasAiKeyMock = hasAiKey as jest.MockedFunction<typeof hasAiKey>;
 
 /** Ultimo giorno della finestra: la settimana va dal 22 al 28 agosto. */
 const TODAY = "2026-08-28";
@@ -35,8 +35,8 @@ beforeEach(async () => {
   await runMigrations(db);
   __setDbForTesting(db);
   chatMock.mockReset();
-  hasGroqKeyMock.mockReset();
-  hasGroqKeyMock.mockReturnValue(true);
+  hasAiKeyMock.mockReset();
+  hasAiKeyMock.mockReturnValue(true);
 });
 
 afterEach(() => __setDbForTesting(null));
@@ -219,7 +219,7 @@ describe("weeklyReview, dati insufficienti", () => {
 
 describe("weeklyReview, senza chiave", () => {
   it("restituisce le statistiche senza tentare la rete", async () => {
-    hasGroqKeyMock.mockReturnValue(false);
+    hasAiKeyMock.mockReturnValue(false);
     await seedFullWeek();
 
     const review = await weeklyReview({ today: TODAY });

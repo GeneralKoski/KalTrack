@@ -10,12 +10,12 @@ export type CheckedCapability = (typeof CONTROLLATE)[number];
 export interface ModelCheck {
   capability: CheckedCapability;
   model: string;
-  /** `true` se Groq sta ancora servendo quell'id a questa chiave. */
+  /** `true` se Gemini sta ancora servendo quell'id a questa chiave. */
   served: boolean;
 }
 
 /**
- * Dice quali dei tre model id Groq sta ancora servendo.
+ * Dice quali dei tre model id Gemini sta ancora servendo.
  *
  * E' il controllo che mancava. Un modello ritirato non degrada: torna 404 e la
  * capability muore mentre chiave, rete e audio funzionano - ed e' cosi' che il

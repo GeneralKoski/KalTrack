@@ -12,7 +12,7 @@ import { searchByName } from "@/src/services/openFoodFacts";
 // comunque finta, quindi basta far credere al client che la chiave ci sia.
 jest.mock("@/src/ai/config", () => ({
   ...jest.requireActual("@/src/ai/config"),
-  hasGroqKey: () => true,
+  hasAiKey: () => true,
 }));
 
 // La cascata di risoluzione interroga OpenFoodFacts: qui interessa il

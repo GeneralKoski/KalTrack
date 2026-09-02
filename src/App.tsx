@@ -72,7 +72,7 @@ export function App() {
       // Dopo il gate, non dentro: i passi di Health Connect sono un extra e
       // non devono trattenere la splash se il provider è lento a rispondere.
       // La chiave dell'assistente sta in SecureStore: senza questa riga
-      // `hasGroqKey()` direbbe di no fino al primo salvataggio, e i riquadri
+      // `hasAiKey()` direbbe di no fino al primo salvataggio, e i riquadri
       // dell'AI comparirebbero spenti a chi la chiave ce l'ha gia'.
       void useAiKeyStore.getState().restore();
       void syncStepsOnStartup();

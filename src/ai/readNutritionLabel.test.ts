@@ -12,7 +12,7 @@ import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 
 jest.mock("@/src/ai/config", () => ({
   ...jest.requireActual("@/src/ai/config"),
-  hasGroqKey: () => true,
+  hasAiKey: () => true,
 }));
 
 const mockSaveAsync = jest.fn();

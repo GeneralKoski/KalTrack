@@ -35,7 +35,7 @@ const fetchMock = jest.fn<Promise<Response>, [RequestInfo, RequestInit]>();
  * con un import statico in testa al file.
  */
 beforeAll(() => {
-  process.env.EXPO_PUBLIC_GROQ_API_KEY = "test-key";
+  process.env.EXPO_PUBLIC_GEMINI_API_KEY = "test-key";
   transcribe = jest.requireActual<TranscribeModule>("@/src/ai/transcribe");
   config = jest.requireActual<ConfigModule>("@/src/ai/config");
   errors = jest.requireActual<ErrorsModule>("@/src/ai/errors");

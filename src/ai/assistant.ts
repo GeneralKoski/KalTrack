@@ -231,7 +231,7 @@ export function normalizeQuantities(text: string): string {
  * inglese e rispondono comunque nella lingua dell'utente. È una convenzione
  * interna, l'utente vede solo italiano.
  *
- * **Non prende argomenti, e non è una svista.** Groq cachea automaticamente il
+ * **Non prende argomenti, e non è una svista.** Gemini cachea automaticamente il
  * prefisso del prompt su `gpt-oss-120b`: i token in cache costano metà e non
  * contano nel rate limit, ma vale solo il testo identico fino al primo
  * carattere che cambia. Con il contesto qui dentro - l'orologio ai minuti, 40

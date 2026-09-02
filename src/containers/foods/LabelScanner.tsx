@@ -1,4 +1,4 @@
-import { hasGroqKey } from "@/src/ai/config";
+import { hasAiKey } from "@/src/ai/config";
 import {
   labelUpdates,
   readNutritionLabel,
@@ -137,7 +137,7 @@ export const LabelScanner: React.FC = () => {
    * mancava e non dove metterlo.
    */
   const guard = (action: () => Promise<void>) => () => {
-    if (!hasGroqKey()) {
+    if (!hasAiKey()) {
       setAskKey(true);
       return;
     }

@@ -1,5 +1,5 @@
 import { runAssistant, type AssistantContext } from "@/src/ai/assistant";
-import { hasGroqKey } from "@/src/ai/config";
+import { hasAiKey } from "@/src/ai/config";
 import {
   MissingApiKeyError,
   OfflineError,
@@ -124,7 +124,7 @@ export function useAssistantSession(
   const startListening = useCallback(async () => {
     reset();
     // I due controlli che non richiedono di sprecare una registrazione.
-    if (!hasGroqKey()) return fail("no-key");
+    if (!hasAiKey()) return fail("no-key");
     if (!online) return fail("offline");
 
     setPhase("listening");
@@ -211,7 +211,7 @@ export function useAssistantSession(
       stopSpeaking();
       setFailure(null);
 
-      if (!hasGroqKey()) return fail("no-key");
+      if (!hasAiKey()) return fail("no-key");
       if (!online) return fail("offline");
 
       const turn = turnRef.current;
