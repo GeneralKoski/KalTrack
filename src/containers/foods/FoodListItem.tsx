@@ -6,7 +6,7 @@ import { theme } from "@/src/styles";
 import type { FoodRow } from "@/src/types/nutrition";
 import { Salad, Star } from "lucide-react-native";
 import React from "react";
-import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 interface FoodListItemProps {
   food: FoodRow;

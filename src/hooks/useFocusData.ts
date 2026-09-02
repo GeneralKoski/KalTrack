@@ -59,6 +59,11 @@ export function useFocusData<T>(loader: () => Promise<T>): FocusData<T> {
     return () => {
       active = false;
     };
+    // `syncRevision` non si legge nel corpo: serve a cambiare l'IDENTITA' di
+    // `run`, cosi' `useFocusEffect` lo rilancia con il suo cleanup quando la
+    // sincronizzazione porta righe nuove. Toglierlo, come chiede la regola,
+    // rimetterebbe la schermata aperta a mostrare i valori di prima.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loader, syncRevision]);
 
   useFocusEffect(run);

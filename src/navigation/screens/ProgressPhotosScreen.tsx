@@ -25,7 +25,6 @@ import { theme } from "@/src/styles";
 import { PHOTO_POSES } from "@/src/types/wellbeing";
 import { formatDate } from "@/src/utils/dateUtils";
 import { logger } from "@/src/utils/logger";
-import { Image } from "expo-image";
 import { Camera, ChevronLeft } from "lucide-react-native";
 import React, { useCallback, useMemo, useState } from "react";
 import {

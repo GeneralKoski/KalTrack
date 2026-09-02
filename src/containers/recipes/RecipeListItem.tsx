@@ -7,7 +7,7 @@ import { theme } from "@/src/styles";
 import type { RecipeRow } from "@/src/types/nutrition";
 import { CookingPot, Star } from "lucide-react-native";
 import React from "react";
-import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 interface RecipeListItemProps {
   recipe: RecipeRow;

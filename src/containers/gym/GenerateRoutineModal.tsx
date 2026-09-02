@@ -9,7 +9,6 @@ import { Chip } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text, TextInput } from "@/src/components/ui";
 import type { RoutineInput } from "@/src/db/queries/workouts";
-import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import { EQUIPMENT, type Equipment } from "@/src/types/gym";
 import { showToast } from "@/src/utils/toast";
@@ -54,7 +53,6 @@ export const GenerateRoutineModal: React.FC<GenerateRoutineModalProps> = ({
   onGenerated,
   onClose,
 }) => {
-  const { t } = useTranslation();
   const { colors } = useAppTheme();
 
   const [goal, setGoal] = useState<RoutineGoal>("ipertrofia");

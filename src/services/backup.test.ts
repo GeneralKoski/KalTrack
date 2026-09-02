@@ -1,4 +1,3 @@
-import { BACKUP_TABLES } from "@/src/services/backup";
 import { collectChanges } from "@/src/services/sync";
 import { CURSOR_KEY, PUSHED_KEY } from "@/src/services/syncMarkers";
 import { createTestDb } from "@/src/db/__testing__/betterSqliteAdapter";
@@ -25,6 +24,7 @@ import {
   buildBackup,
   parseBackup,
   restoreBackup,
+  BACKUP_TABLES,
 } from "@/src/services/backup";
 
 const seedData = async () => {

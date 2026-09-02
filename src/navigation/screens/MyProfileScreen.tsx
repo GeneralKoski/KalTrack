@@ -2,7 +2,7 @@ import * as social from "@/src/api/social";
 import { DfAlert } from "@/src/components/DfAlert";
 import { DfButton } from "@/src/components/form/DfButton";
 import { FormScreen } from "@/src/components/FormScreen";
-import { Card, ScreenBackground, SectionLabel } from "@/src/components/kal";
+import { ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text, TextInput } from "@/src/components/ui";
 import { ShareSettings } from "@/src/containers/social/ShareSettings";
