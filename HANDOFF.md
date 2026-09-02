@@ -8,18 +8,22 @@ quel che e' stato chiuso, in ordine inverso.
 ## In una riga
 
 L'app e' completa e in uso (Fasi 1-5). Sul telefono c'e' la **1.0.3**. Il 2
-settembre e' stato fatto un check completo del progetto, e ne sono usciti sei
+settembre e' stato fatto un check completo del progetto, e ne sono usciti sette
 difetti che i test non vedevano perche' vivono tutti sul bordo: le notifiche di
 sistema, i file fra due dispositivi, e la distanza fra quel che i documenti
-raccontavano e quel che il codice faceva.
+raccontavano e quel che il codice faceva. Nello stesso giro sono stati chiusi
+tre pezzi mancanti - lo scanner del codice a barre, la ricerca in
+OpenFoodFacts e la raccolta delle foto orfane - tutti e tre completamenti di
+catene che c'erano gia' quasi per intero.
 
-**Tutti chiusi, ma nessuno provato sul telefono.** Serve una build nuova.
+**Niente di tutto questo e' stato provato sul telefono.** Serve una build
+nuova, e lo scanner in particolare non si puo' verificare altrove.
 
 ## Stato
 
 | | |
 |---|---|
-| Test app | 973 su 60 suite |
+| Test app | 1.006 su 62 suite |
 | Test backend | 125 |
 | Typecheck | pulito |
 | Lint | 0 errori, 11 warning - **10 sono in `components/ui/`, generati dal CLI di gluestack**, e uno e' un falso positivo su axios. Nel codice nostro non ce n'e' piu' nessuno |
@@ -64,15 +68,24 @@ compreso: dopo, l'app chiede di rientrare.
 codice e niente piu'. Finche' non si fa, l'app nuova e il server parlano
 comunque: le correzioni sono restrizioni lato server, non contratti nuovi.
 
-**2. Serve un APK nuovo, e va provato.** Le sei correzioni del 2 settembre
-sono tutte verificate dai test ma nessuna e' stata vista funzionare:
+**2. Serve un APK nuovo, e va provato.** Il lavoro del 2 settembre e' tutto
+coperto dai test ma niente e' stato visto funzionare. Il primo della lista
+richiede il telefono e non ammette alternative: un emulatore non legge codici a
+barre.
 
-- i promemoria personalizzati (crearne due, cambiare l'orario del primo,
-  verificare che il secondo suoni ancora);
-- le foto dei progressi su un secondo dispositivo, che ora viaggiano;
-- il ridimensionamento, che si vede dal peso dei file in
-  `documentDirectory/photos`;
-- la trascrizione vocale sul modello nuovo.
+- **Lo scanner**, con un prodotto vero in mano. I tre esiti sono diversi e
+  vanno visti tutti: un prodotto gia' in libreria, uno che sta in
+  OpenFoodFacts, e uno che nessuno dei due conosce. Serve anche verificare che
+  il permesso della fotocamera venga chiesto - `app.json` ora dichiara il
+  plugin di `expo-camera`, quindi la build nativa va rifatta, non basta metro.
+- **La ricerca dall'archivio** nella schermata Alimenti: cercare qualcosa che
+  non e' nei seed e vedere comparire la seconda sezione.
+- I promemoria personalizzati: crearne due, cambiare l'orario del primo,
+  verificare che il secondo suoni ancora.
+- Le foto dei progressi su un secondo dispositivo, che ora viaggiano.
+- Il ridimensionamento, che si vede dal peso dei file in
+  `documentDirectory/photos`.
+- La trascrizione vocale sul modello nuovo.
 
 **3. Provare il confronto con dati veri.** Non e' mai stato visto rispondere:
 sul server c'e' **un solo utente**, quindi non c'e' nessuno da mettere accanto.
@@ -163,6 +176,16 @@ nessun test perche' nessuno di essi vive dentro una funzione pura.
    `expo-audio`. C'era per transitivita', quindi non si vedeva niente - ma e'
    la stessa classe di guasto dell'`expo-blur` del 1 settembre.
 
+7. **Correggere un alimento gli portava via il codice a barre.** `updateFood`
+   riscriveva `barcode` e `off_id` da `input`, e `FoodFormScreen` non li passa -
+   non ha un campo per nessuno dei due. Aprire un prodotto arrivato da
+   OpenFoodFacts, correggere una virgola e salvare glieli azzerava: da li' in
+   poi `getFoodByBarcode` non lo trovava, la deduplica di `resolveFood`
+   smetteva di funzionare per quel prodotto, e scansionando lo stesso codice si
+   sarebbe creato un doppione. Sono identita' e non contenuto: `updateFood` non
+   li tocca piu'. Uscito mentre si costruiva lo scanner, ed e' il difetto che la
+   catena a meta' teneva nascosto.
+
 Sul server, tre spigoli minori: il regex dei nomi foto ammetteva `.` e `..`
 (nessuna traversata vera, ma un nome deve nominare un file), l'upload non
 controllava il tipo del file, e `admin/users/{user}/password` non aveva
@@ -179,6 +202,18 @@ commento di `aiKeyStore` spiegava che la chiave nel bundle era il problema e
 che "sparisce", mentre e' tornata nel bundle per scelta dichiarata. Tutto
 allineato, e gli alias `hasGroqKey`/`groqKey`/`GROQ_BASE_URL` sono stati tolti
 invece di essere lasciati a tenere in vita il nome vecchio.
+
+### I tre pezzi mancanti, chiusi
+
+- **Lo scanner del codice a barre** (`FoodScanScreen` + `resolveBarcode`).
+  Regole e trappole in `CLAUDE.md` § Il codice a barre.
+- **OpenFoodFacts nella ricerca a mano.** `searchByName` aveva **un solo
+  chiamante**, `resolveFood.ts`: tre milioni di prodotti stavano dietro
+  l'assistente vocale, e chi cercava a dita vedeva solo i seed.
+- **La raccolta delle foto orfane**, a ogni sincronizzazione. Il criterio e' "a
+  cosa serviva", non "chi ce l'ha": la differenza fra server e telefono non e'
+  un elenco di orfani, perche' una foto scattata altrove sta sul server e qui
+  non e' ancora arrivata.
 
 **I due model id sono stati provati contro il servizio**, per la prima volta:
 `gemini-3.6-flash` e `gemini-3.5-flash-lite` esistono entrambi, e il primo
