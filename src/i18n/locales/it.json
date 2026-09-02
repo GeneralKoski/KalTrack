@@ -916,5 +916,17 @@
   },
   "exit_app_confirm": "Esci",
   "password_show": "Mostra la password",
-  "password_hide": "Nascondi la password"
+  "password_hide": "Nascondi la password",
+  "food_scan": {
+    "title": "Scansiona un codice a barre",
+    "hint": "Inquadra il codice a barre del prodotto",
+    "resolving": "Cerco il prodotto...",
+    "not_found": "Questo prodotto non è in archivio: compila i valori dall'etichetta",
+    "imported": "Prodotto aggiunto dall’archivio",
+    "failed": "Non è stato possibile leggere il codice",
+    "permission_title": "Serve la fotocamera",
+    "permission_message": "Per leggere il codice a barre di un prodotto KalTrack deve poter usare la fotocamera.",
+    "allow": "Consenti",
+    "open_settings": "Apri le impostazioni"
+  }
 }

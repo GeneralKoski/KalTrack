@@ -1,4 +1,4 @@
-import { useNavigation } from "@react-navigation/native";
+import { StackActions, useNavigation } from "@react-navigation/native";
 
 // Rotte navigabili con i relativi parametri. Centralizza l'unico cast
 // necessario con l'API statica di React Navigation (i nomi schermata si
@@ -10,7 +10,13 @@ export interface NavParams {
   GymTab: undefined;
   ProfileTab: undefined;
   Foods: undefined;
-  FoodForm: { id?: string };
+  FoodScan: undefined;
+  /**
+   * `barcode` senza `id` e' il modulo vuoto con il codice appena letto dentro:
+   * il prodotto non e' in libreria ne' in archivio, e chi lo ha in mano ha
+   * l'etichetta davanti.
+   */
+  FoodForm: { id?: string; barcode?: string };
   Recipes: undefined;
   RecipeForm: { id?: string };
   Settings: { focus?: "aiKey" };
@@ -42,6 +48,16 @@ export function useAppNav() {
   return {
     navigate: <K extends keyof NavParams>(name: K, params?: NavParams[K]) =>
       navigate(name, params),
+    /**
+     * Sostituisce la schermata corrente invece di impilarne un'altra.
+     *
+     * Passa da `StackActions` e non da `navigation.replace`: quest'ultimo
+     * esiste solo sui navigatori di tipo stack, e con l'API statica il tipo
+     * che arriva da `useNavigation` non lo sa. L'azione, invece, la gestisce
+     * lo stack che sta sopra chiunque la spedisca.
+     */
+    replace: <K extends keyof NavParams>(name: K, params?: NavParams[K]) =>
+      navigation.dispatch(StackActions.replace(name, params)),
     goBack: () => navigation.goBack(),
   };
 }

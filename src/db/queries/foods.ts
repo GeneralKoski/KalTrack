@@ -92,9 +92,22 @@ export async function updateFood(id: string, input: FoodInput): Promise<void> {
   const db = await getDb();
   const n = input.nutrients;
 
+  /*
+   * `barcode` e `off_id` NON si toccano.
+   *
+   * Sono l'identita' dell'alimento, non il suo contenuto: nessuna schermata ha
+   * un campo per modificarli, e solo `createFood` li assegna. Riscriverli da
+   * `input` voleva dire che `FoodFormScreen` - che non li passa, non avendo un
+   * campo - li azzerava a ogni salvataggio: aprire un prodotto arrivato da
+   * OpenFoodFacts, correggere una virgola e salvare gli portava via il codice
+   * a barre. Da li' in poi `getFoodByBarcode` non lo trovava piu', la
+   * deduplica di `resolveFood` smetteva di funzionare per quel prodotto e una
+   * scansione dello stesso codice ne creava un doppione. Senza un errore e
+   * senza un segno a schermo.
+   */
   await db.runAsync(
     `UPDATE foods SET
-       name = ?, name_norm = ?, brand = ?, barcode = ?, off_id = ?,
+       name = ?, name_norm = ?, brand = ?,
        kcal = ?, protein = ?, carbs = ?, sugars = ?, fat = ?,
        saturated_fat = ?, fiber = ?, salt = ?,
        is_liquid = ?, default_serving_g = ?, serving_label = ?, image_uri = ?,
@@ -104,8 +117,6 @@ export async function updateFood(id: string, input: FoodInput): Promise<void> {
       input.name,
       normalizeText(input.name),
       input.brand ?? null,
-      input.barcode ?? null,
-      input.offId ?? null,
       n.kcal,
       n.protein,
       n.carbs,

@@ -206,3 +206,55 @@ describe("incrementFoodUsage", () => {
     expect((await getFood(id))?.usage_count).toBe(2);
   });
 });
+
+describe("l'identita' di un alimento", () => {
+  /**
+   * Il difetto che questo test blocca: `updateFood` riscriveva anche `barcode`
+   * e `off_id` da `input`, e `FoodFormScreen` non li passa - il modulo non ha
+   * un campo per nessuno dei due. Aprire un prodotto arrivato da
+   * OpenFoodFacts, correggere una virgola e salvare ne cancellava il codice a
+   * barre.
+   *
+   * Da li' in poi `getFoodByBarcode` non lo trovava piu': la deduplica di
+   * `resolveFood` smetteva di funzionare per quel prodotto, e una scansione
+   * dello stesso codice avrebbe creato un doppione. Nessun errore, nessun
+   * segno a schermo.
+   */
+  it("correggere un alimento non gli porta via il codice a barre", async () => {
+    const id = await createFood({
+      name: "Fette biscottate",
+      barcode: "8001234567890",
+      offId: "8001234567890",
+      source: "off",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 412 },
+    });
+
+    // Esattamente quel che manda il modulo: nessun barcode, nessun offId.
+    await updateFood(id, {
+      name: "Fette biscottate integrali",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 400 },
+    });
+
+    const dopo = await getFood(id);
+    expect(dopo?.name).toBe("Fette biscottate integrali");
+    expect(dopo?.kcal).toBe(400);
+    expect(dopo?.barcode).toBe("8001234567890");
+    expect(dopo?.off_id).toBe("8001234567890");
+  });
+
+  it("l'alimento resta ritrovabile dal codice dopo una correzione", async () => {
+    const id = await createFood({
+      name: "Fette biscottate",
+      barcode: "8001234567890",
+      nutrients: EMPTY_NUTRIENTS,
+    });
+
+    await updateFood(id, {
+      name: "Fette biscottate integrali",
+      nutrients: EMPTY_NUTRIENTS,
+    });
+
+    const trovato = await getFoodByBarcode("8001234567890");
+    expect(trovato?.id).toBe(id);
+  });
+});

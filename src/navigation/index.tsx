@@ -39,6 +39,7 @@ import { RoutinesScreen } from "@/src/navigation/screens/RoutinesScreen";
 import { SessionScreen } from "@/src/navigation/screens/SessionScreen";
 import { ShoppingListScreen } from "@/src/navigation/screens/ShoppingListScreen";
 import { FoodFormScreen } from "@/src/navigation/screens/FoodFormScreen";
+import { FoodScanScreen } from "@/src/navigation/screens/FoodScanScreen";
 import { FoodsScreen } from "@/src/navigation/screens/FoodsScreen";
 import { GymScreen } from "@/src/navigation/screens/GymScreen";
 import { RecipeFormScreen } from "@/src/navigation/screens/RecipeFormScreen";
@@ -163,6 +164,10 @@ const RootStack = createNativeStackNavigator({
     FoodForm: {
       screen: FoodFormScreen,
       linking: { path: "alimenti/modifica" },
+    },
+    FoodScan: {
+      screen: FoodScanScreen,
+      linking: { path: "alimenti/scansiona" },
     },
     Recipes: {
       screen: RecipesScreen,
@@ -304,7 +309,7 @@ declare global {
     // Augmentation di React Navigation: i parametri delle singole rotte si
     // dichiarano qui.
     interface RootParamList extends RootStackParamList {
-      FoodForm: { id?: string };
+      FoodForm: { id?: string; barcode?: string };
       RecipeForm: { id?: string };
       RoutineForm: { id?: string };
       Session: { routineId: string; dayIndex: number };

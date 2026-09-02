@@ -101,8 +101,17 @@ export function FoodFormScreen() {
   const { t } = useTranslation();
   const { goBack } = useAppNav();
   const { colors } = useAppTheme();
-  const route = useRoute<RouteProp<{ params: { id?: string } }, "params">>();
+  const route =
+    useRoute<
+      RouteProp<{ params: { id?: string; barcode?: string } }, "params">
+    >();
   const id = route.params?.id;
+  /*
+   * Il codice appena letto dalla fotocamera, quando ne' la libreria ne'
+   * l'archivio conoscevano il prodotto. Arriva solo su un modulo nuovo: su uno
+   * esistente il codice e' quello della riga, e `updateFood` non lo tocca.
+   */
+  const barcode = route.params?.barcode?.trim() || null;
 
   const [initial, setInitial] = useState<FoodFormValues | null>(
     id ? null : EMPTY_VALUES,
@@ -156,7 +165,12 @@ export function FoodFormScreen() {
       await updateFood(id, input);
       void updatePublishedFood(nomePrecedente, input);
     } else {
-      await createFood(input);
+      // Il codice a barre solo in creazione: e' l'identita' della riga e il
+      // modulo non ha un campo per cambiarlo. Senza questa riga il terzo esito
+      // della scansione non servirebbe a niente - il prodotto entrerebbe in
+      // libreria senza codice, e la scansione successiva lo cercherebbe di
+      // nuovo in archivio invece di trovarlo qui.
+      await createFood({ ...input, barcode });
       void publishFood(input);
     }
     showToast.success({ title: t("foods.saved") });

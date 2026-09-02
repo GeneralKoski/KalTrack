@@ -86,6 +86,13 @@
         }
       ],
       [
+        "expo-camera",
+        {
+          "cameraPermission": "KalTrack usa la fotocamera per leggere il codice a barre di un prodotto.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
         "expo-audio",
         {
           "microphonePermission": "KalTrack usa il microfono per registrare quello che dici e trascriverlo nel diario."

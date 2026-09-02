@@ -165,6 +165,43 @@ aggiunto a mano senza codice. Il nome vince anche a codici diversi - due righe
 con lo stesso nome in elenco sono indistinguibili. Sotto i tre caratteri non si
 interroga niente: "ri" restituisce mille prodotti e nessuno e' quello cercato.
 
+### Il codice a barre
+
+`FoodScanScreen`, aperta dall'icona nella barra di Alimenti. Fino al 2
+settembre 2026 c'era **tutto tranne la fotocamera**: la colonna
+`foods.barcode` con il suo indice, `getFoodByBarcode`, `searchByBarcode`, e
+`expo-camera` installato con **zero import** in tutto il progetto.
+
+La schermata e' sottile di proposito: le decisioni stanno in
+`src/containers/foods/resolveBarcode.ts`, perche' una fotocamera non si
+esercita in jest e un emulatore non legge codici. Alla schermata restano il
+permesso, il fermo e la navigazione.
+
+- **La libreria vince sull'archivio**, come in `resolveFood`: i valori di
+  OpenFoodFacts sono compilati da chiunque, e un prodotto gia' corretto a mano
+  non va riscritto da quelli. Con una risposta locale l'archivio non viene
+  nemmeno interrogato.
+- **Una lettura sola.** `onBarcodeScanned` scatta in continuo finche' il codice
+  e' inquadrato: senza un fermo lo stesso prodotto si risolve dieci volte, e
+  nel ramo dell'archivio sono dieci righe identiche. E' un `useRef` e non uno
+  stato, perche' deve chiudersi nello stesso giro dell'evento.
+- **Si esce con `replace`, non `navigate`.** L'indietro dal modulo deve tornare
+  ad Alimenti: tornando alla fotocamera si rileggerebbe lo stesso codice - il
+  prodotto e' ancora in mano - e si riaprirebbe il modulo appena chiuso.
+- **Solo i formati da supermercato** (EAN-13/8, UPC-A/E). Con tutti i tipi
+  attivi la fotocamera legge il QR del volantino accanto e prova a risolverlo
+  come prodotto.
+- Codice ignoto a entrambi: modulo vuoto **con il codice dentro**, cosi' la
+  scansione successiva lo trova in libreria.
+
+**`barcode` e `off_id` sono identita', non contenuto: `updateFood` non li
+tocca.** Nessuna schermata ha un campo per modificarli e solo `createFood` li
+assegna. Riscriverli da `input` voleva dire che `FoodFormScreen` - che non li
+passa - li azzerava a ogni salvataggio: aprire un prodotto arrivato
+dall'archivio, correggere una virgola e salvare gli portava via il codice, e da
+li' in poi `getFoodByBarcode` non lo trovava piu'. Nessun errore, nessun segno
+a schermo.
+
 ### Le vie per aggiungere al diario
 
 La linguetta "Voce libera" della scheda Aggiungi ne offre tre: scrivere a mano,

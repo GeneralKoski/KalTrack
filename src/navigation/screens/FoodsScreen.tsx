@@ -18,7 +18,7 @@ import { theme } from "@/src/styles";
 import type { FoodInput, FoodRow } from "@/src/types/nutrition";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
-import { ChevronLeft, Plus, Salad } from "lucide-react-native";
+import { ChevronLeft, Plus, Salad, ScanBarcode } from "lucide-react-native";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -127,6 +127,17 @@ export function FoodsScreen() {
           >
             {t("foods.title")}
           </Text>
+          {/* Il codice a barre e' l'inserimento piu' veloce che ci sia:
+              sta nella barra e non dietro il "+", che apre un modulo vuoto. */}
+          <TouchableOpacity
+            onPress={() => navigate("FoodScan")}
+            activeOpacity={0.6}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={t("food_scan.title")}
+          >
+            <ScanBarcode size={24} color={colors.textSecondary} />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.searchWrap}>
