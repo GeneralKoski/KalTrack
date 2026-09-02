@@ -241,8 +241,23 @@ era una riga sincronizzata la cui immagine non sarebbe arrivata mai. Se il
 formato non si sa leggere si archivia l'originale: una foto grande e' un difetto
 di peso, una foto che non si salva e' un pasto che non si registra.
 
-Quel che ancora non c'e': **nessuno cancella dal server le foto tolte dal
-telefono.** `storage/app/private/images` cresce e non scende.
+**Le foto orfane si raccolgono a ogni sincronizzazione**
+(`collectOrphanPhotos`), e il criterio e' "a cosa serviva questa", non "chi ce
+l'ha". La differenza fra quel che il server tiene e quel che c'e' sul telefono
+non e' un elenco di orfani: una foto scattata su un altro dispositivo sta sul
+server e qui non e' ancora arrivata, e cancellarla distruggerebbe l'unica
+copia. Si guardano invece le righe (`orphanPhotoNames` in
+`src/db/queries/photos.ts`): orfana e' la foto che una riga cancellata nominava
+e che **nessuna riga viva nomina piu'**. La seconda meta' non e' una cautela in
+piu' - una foto libera del diario e' condivisa fra le N voci di quella stima, e
+togliere "il pane" non deve portare via l'immagine alle altre due.
+
+Due ordini che non si invertono: **prima il file locale, poi quello remoto**
+(al contrario, un'interruzione fra i due lascerebbe qui un file che nessuna
+riga nomina, e `uploadPendingPhotos` lo ricaricherebbe al giro dopo - una foto
+cancellata e rimessa all'infinito); e **prima la raccolta, poi il caricamento**,
+perche' `uploadPendingPhotos` manda tutto quel che trova in cartella, orfani
+compresi.
 
 ### Il confronto con gli amici
 

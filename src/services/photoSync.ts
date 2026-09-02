@@ -1,5 +1,6 @@
 import { apiRequest } from "@/src/api/client";
 import { API_URL, hasBackend } from "@/src/api/config";
+import { orphanPhotoNames } from "@/src/db/queries/photos";
 import { PHOTOS_DIR } from "@/src/services/photoStorage";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { logger } from "@/src/utils/logger";
@@ -139,5 +140,89 @@ async function uploadOne(name: string): Promise<boolean> {
   } catch (error) {
     logger.warn(`[foto] invio non riuscito: ${name}`, error);
     return false;
+  }
+}
+
+/**
+ * Toglie le foto che non appartengono piu' a niente, qui e sul server.
+ *
+ * Cancellare una foto dei progressi o una voce del diario non portava via il
+ * file: nessuno lo referenziava e nessuno lo cancellava. In locale erano
+ * decine di megabyte di immagini fantasma dentro il backup del telefono; sul
+ * server `storage/app/private/images` cresceva e non scendeva mai.
+ *
+ * **Il criterio e' "a cosa serviva", non "chi ce l'ha".** La differenza fra
+ * quel che il server tiene e quel che c'e' su questo telefono non e' un elenco
+ * di orfani: una foto scattata su un altro dispositivo sta sul server e qui non
+ * e' ancora arrivata, e cancellarla distruggerebbe l'unica copia. Si guardano
+ * invece le righe (`orphanPhotoNames`), che questo telefono conosce per certo.
+ *
+ * **Prima il file locale, poi quello remoto.** Nell'altro ordine, un
+ * interruzione fra i due passaggi lascerebbe qui un file che nessuna riga
+ * nomina, e `uploadPendingPhotos` - che manda tutto quel che trova in cartella
+ * - lo ricaricherebbe al giro dopo: una foto cancellata e rimessa all'infinito.
+ * Cosi' invece il caso peggiore e' un orfano che resta sul server fino al giro
+ * successivo.
+ *
+ * Non solleva mai, come tutto il resto di questo modulo: e' pulizia, e i dati
+ * sono comunque al sicuro.
+ */
+export async function collectOrphanPhotos(): Promise<number> {
+  try {
+    const orfane = await orphanPhotoNames();
+    if (orfane.length === 0) return 0;
+
+    let tolte = 0;
+    const remoti = await remoteNames();
+
+    for (const name of orfane) {
+      await FileSystem.deleteAsync(localPathOf(name), {
+        idempotent: true,
+      }).catch(() => {});
+
+      if (!remoti.has(name)) {
+        tolte++;
+        continue;
+      }
+      try {
+        await apiRequest({
+          method: "delete",
+          path: `/images/${encodeURIComponent(name)}`,
+        });
+        tolte++;
+      } catch (error) {
+        // Il file locale e' comunque andato: il giro dopo `orphanPhotoNames`
+        // la ritrova e riprova a togliere quella remota.
+        logger.warn(`[foto] ${name} non cancellata dal server`, error);
+      }
+    }
+
+    if (tolte > 0) logger.info(`[foto] rimosse ${tolte} orfane`);
+    return tolte;
+  } catch (error) {
+    logger.warn("[foto] raccolta delle orfane non riuscita", error);
+    return 0;
+  }
+}
+
+/**
+ * Cosa tiene il server, o un insieme vuoto se non c'e' un server da chiedere.
+ *
+ * Senza account le foto orfane si tolgono comunque da qui: il file locale non
+ * serve a niente in nessun caso.
+ */
+async function remoteNames(): Promise<Set<string>> {
+  if (!hasBackend()) return new Set();
+  if (!useAccountStore.getState().token) return new Set();
+
+  try {
+    const { names } = await apiRequest<{ names: string[] }>({
+      method: "get",
+      path: "/images",
+    });
+    return new Set(names);
+  } catch (error) {
+    logger.warn("[foto] elenco remoto non leggibile", error);
+    return new Set();
   }
 }

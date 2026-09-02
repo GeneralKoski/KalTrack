@@ -10,7 +10,10 @@ import {
   PUSHED_KEY,
   readCursor,
 } from "@/src/services/syncMarkers";
-import { uploadPendingPhotos } from "@/src/services/photoSync";
+import {
+  collectOrphanPhotos,
+  uploadPendingPhotos,
+} from "@/src/services/photoSync";
 import { logger } from "@/src/utils/logger";
 
 /**
@@ -447,10 +450,15 @@ export async function runSync(): Promise<{
      * per niente. Nell'altro ordine, al massimo, la riga arriva un giro prima
      * dell'immagine.
      *
+     * Fra i due passaggi sulle foto, la raccolta viene PRIMA del caricamento:
+     * `uploadPendingPhotos` manda tutto quel che trova in cartella, orfani
+     * compresi, e nell'altro ordine si sarebbe pagato il traffico per caricare
+     * un file e cancellarlo un istante dopo.
+     *
      * Non si aspetta il risultato e non puo' far fallire il giro: le foto sono
      * un extra, i dati sono gia' al sicuro.
      */
-    void uploadPendingPhotos();
+    void collectOrphanPhotos().then(() => uploadPendingPhotos());
     // Solo se sono ENTRATE righe: quel che e' partito lo conoscono gia' le
     // schermate, e ricaricarle a ogni invio sarebbe lavoro per niente.
     if (pulled > 0) useSyncStore.getState().bumpRevision();

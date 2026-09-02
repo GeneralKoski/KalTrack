@@ -1,4 +1,13 @@
-import { ensureLocalPhoto, nameOf, uploadPendingPhotos } from "@/src/services/photoSync";
+import { createTestDb } from "@/src/db/__testing__/betterSqliteAdapter";
+import { __setDbForTesting } from "@/src/db/index";
+import { runMigrations } from "@/src/db/migrations";
+import type { LocalDatabase } from "@/src/db/sqliteAdapter";
+import {
+  collectOrphanPhotos,
+  ensureLocalPhoto,
+  nameOf,
+  uploadPendingPhotos,
+} from "@/src/services/photoSync";
 import { useAccountStore } from "@/src/stores/accountStore";
 import * as FileSystem from "expo-file-system/legacy";
 
@@ -160,5 +169,110 @@ describe("mandare al server le foto che mancano", () => {
     mockApiRequest.mockRejectedValue(new Error("500"));
 
     await expect(uploadPendingPhotos()).resolves.toBe(0);
+  });
+});
+
+describe("la raccolta delle foto orfane", () => {
+  let db: LocalDatabase;
+
+  /** Una foto dei progressi, cancellata o no. */
+  const progressPhoto = async (
+    id: string,
+    name: string,
+    cancellata: boolean,
+  ) => {
+    await db.runAsync(
+      `INSERT INTO progress_photos (id, date, uri, created_at, updated_at, deleted_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        "2026-09-02",
+        `file:///doc/photos/${name}`,
+        "2026-09-02T08:00:00.000Z",
+        "2026-09-02T08:00:00.000Z",
+        cancellata ? "2026-09-02T09:00:00.000Z" : null,
+      ],
+    );
+  };
+
+  beforeEach(async () => {
+    db = createTestDb();
+    await runMigrations(db);
+    __setDbForTesting(db);
+    fs.getInfoAsync.mockResolvedValue({ exists: true } as never);
+  });
+
+  afterEach(() => __setDbForTesting(null));
+
+  it("toglie la foto di una riga cancellata, qui e sul server", async () => {
+    await progressPhoto("p1", "progress-morta.jpg", true);
+    mockApiRequest.mockImplementation(async (args: { method: string }) =>
+      args.method === "get" ? { names: ["progress-morta.jpg"] } : {},
+    );
+
+    expect(await collectOrphanPhotos()).toBe(1);
+
+    expect(fs.deleteAsync).toHaveBeenCalledWith(
+      "file:///doc/photos/progress-morta.jpg",
+      { idempotent: true },
+    );
+    expect(mockApiRequest).toHaveBeenCalledWith({
+      method: "delete",
+      path: "/images/progress-morta.jpg",
+    });
+  });
+
+  it("non tocca la foto di una riga viva", async () => {
+    await progressPhoto("p1", "progress-viva.jpg", false);
+    mockApiRequest.mockResolvedValue({ names: ["progress-viva.jpg"] });
+
+    expect(await collectOrphanPhotos()).toBe(0);
+    expect(fs.deleteAsync).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Il caso normale, non la cautela in piu': una foto libera del diario e'
+   * condivisa fra le N voci nate dalla stessa stima. Togliere "il pane" non
+   * deve portare via l'immagine alle altre due.
+   */
+  it("non tocca una foto che una riga viva nomina ancora", async () => {
+    await progressPhoto("p1", "condivisa.jpg", true);
+    await progressPhoto("p2", "condivisa.jpg", false);
+    mockApiRequest.mockResolvedValue({ names: ["condivisa.jpg"] });
+
+    expect(await collectOrphanPhotos()).toBe(0);
+    expect(fs.deleteAsync).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Il difetto che questo test blocca: il criterio ovvio - "quel che il server
+   * ha e il telefono no" - avrebbe cancellato l'unica copia di una foto
+   * scattata su un altro dispositivo e non ancora scaricata qui.
+   */
+  it("non cancella quel che sta solo sul server", async () => {
+    mockApiRequest.mockResolvedValue({
+      names: ["scattata-altrove.jpg", "e-questa-pure.jpg"],
+    });
+
+    expect(await collectOrphanPhotos()).toBe(0);
+    expect(mockApiRequest).not.toHaveBeenCalledWith(
+      expect.objectContaining({ method: "delete" }),
+    );
+  });
+
+  it("toglie comunque il file locale se il server non risponde", async () => {
+    await progressPhoto("p1", "progress-morta.jpg", true);
+    mockApiRequest.mockRejectedValue(new Error("rete assente"));
+
+    // Con l'elenco remoto illeggibile il nome risulta "non sul server", quindi
+    // la cancellazione remota non parte. Il file locale se ne va comunque, e la
+    // riga resta cancellata: al giro dopo `orphanPhotoNames` la ritrova e la
+    // remota se ne va allora. Si sistema da solo.
+    await collectOrphanPhotos();
+
+    expect(fs.deleteAsync).toHaveBeenCalledWith(
+      "file:///doc/photos/progress-morta.jpg",
+      { idempotent: true },
+    );
   });
 });
