@@ -1,9 +1,19 @@
 # Handoff - 2 settembre 2026
 
-Punto della situazione per riprendere lo sviluppo da una sessione nuova. Non
-sostituisce `CLAUDE.md`, che resta il documento delle convenzioni: qui c'e' lo
-**stato**, non le regole. Le sezioni datate piu' in basso sono il registro di
-quel che e' stato chiuso, in ordine inverso.
+Punto della situazione per riprendere lo sviluppo da una sessione nuova. Le
+sezioni datate piu' in basso sono il registro di quel che e' stato chiuso, in
+ordine inverso.
+
+Tre documenti, tre domande diverse, e conviene non confonderli:
+
+| | Risponde a | |
+|---|---|---|
+| `CLAUDE.md` | **Come si fa** | le convenzioni e il perche' di ogni scelta |
+| `HANDOFF.md` | **Dove siamo** | lo stato di oggi e come ci si e' arrivati |
+| `TODO.md` | **Cosa manca** | le cose da fare, dai bloccanti al futuro |
+
+Quindi qui non si scrivono le regole e non si tiene un secondo elenco di cose
+da fare: due elenchi divergono al primo aggiornamento fatto solo su uno.
 
 ## In una riga
 
@@ -43,19 +53,25 @@ nuova, e lo scanner in particolare non si puo' verificare altrove.
   Procedura di deploy in `backend/README.md` § In produzione.
 - **Database**: SQLite in WAL su un volume Docker montato in `/data`. Backup
   ogni notte alle 3:30 in `/srv/backups/kaltrack`, ne tiene quattordici.
-- **AI**: Google Gemini, `gemini-3.6-flash` per tutte e tre le capability.
-  Verificato contro il servizio il 2 settembre su entrambi gli endpoint.
+- **AI**: Google Gemini, `gemini-3.5-flash-lite` per tutte e tre le capability.
+  Il perche' - quota, latenza e lo scarto di qualita' che si accetta - sta nel
+  commento sopra `MODELS` in `src/ai/config.ts`, misurato invece che supposto.
 
 ## Account
 
 Sul server c'e' **un solo utente**: `GeneralKoski`
 (`mtrajkovski1@outlook.com`), amministratore.
 
-**La password e' stata cambiata in `KalTrack2026` il 31 agosto**, per poter
-provare il modulo di accesso: serviva uscire, e senza una password nota non si
-rientrava. **Va cambiata.** Si fa da Impostazioni > Reimposta password, oppure
-con `php artisan tinker` sul server assegnando `$u->password = '...'` (il cast
-`hashed` fa l'hash da solo - **non** scrivere un hash a mano nella colonna).
+**La password e' stata cambiata il 31 agosto** per poter provare il modulo di
+accesso: serviva uscire, e senza una password nota non si rientrava. Era
+scritta in chiaro qui fino al 2 settembre, ed e' stata togliata: un documento
+del repository non e' il posto di una credenziale, nemmeno di una provvisoria.
+Se non la ricordi, la si riassegna - non la si recupera.
+
+**Va cambiata comunque**, ed e' un bloccante in `TODO.md` § 1. Si fa da
+Impostazioni > Reimposta password, oppure con `php artisan tinker` sul server
+assegnando `$u->password = '...'` (il cast `hashed` fa l'hash da solo - **non**
+scrivere un hash a mano nella colonna).
 
 Reimpostare la password **disconnette da tutti i dispositivi**, telefono
 compreso: dopo, l'app chiede di rientrare.
@@ -89,7 +105,10 @@ barre.
 - Le foto dei progressi su un secondo dispositivo, che ora viaggiano.
 - Il ridimensionamento, che si vede dal peso dei file in
   `documentDirectory/photos`.
-- La trascrizione vocale sul modello nuovo.
+- La trascrizione vocale su `gemini-3.5-flash-lite`.
+- **La percentuale di cache in Diagnostica**, tenendo presente che su
+  flash-lite dira' "non dichiarata" e che e' il caso previsto: uno zero vero si
+  vedrebbe solo su un modello `-flash`.
 
 **3. Provare il confronto con dati veri.** Non e' mai stato visto rispondere:
 sul server c'e' **un solo utente**, quindi non c'e' nessuno da mettere accanto.
@@ -196,7 +215,9 @@ controllava il tipo del file, e `admin/users/{user}/password` non aveva
 throttle mentre `login` e `register` ce l'avevano.
 
 **La deriva dei documenti era la voce piu' grande.** `CLAUDE.md` dichiarava
-`gemini-3.6-flash` mentre il codice usava `gemini-3.5-flash-lite`; diceva
+`gemini-3.6-flash` mentre il codice usava `gemini-3.5-flash-lite` - e allineare
+i due nel verso sbagliato e' stato l'errore del mattino, corretto nel
+pomeriggio quando e' uscito il tetto di venti richieste (§ I modelli). Diceva
 "sette strumenti e nessuno riguarda gli allenamenti" quando sono tredici e tre
 sono di palestra - e quella frase era l'argomento con cui il microfono sta solo
 su Oggi; dava `minSdkVersion` 24 invece di 26; prometteva che
@@ -206,6 +227,25 @@ commento di `aiKeyStore` spiegava che la chiave nel bundle era il problema e
 che "sparisce", mentre e' tornata nel bundle per scelta dichiarata. Tutto
 allineato, e gli alias `hasGroqKey`/`groqKey`/`GROQ_BASE_URL` sono stati tolti
 invece di essere lasciati a tenere in vita il nome vecchio.
+
+### La cache del prompt dell'assistente
+
+Da un'**altra sessione sullo stesso repo**, nella stessa mattina (commit
+`ef1698e`, poi i miei rebasati sopra: e' la seconda volta che succede, vedi
+§ Due sessioni sullo stesso repo del 31 agosto).
+
+Gemini sconta di dieci volte i token del prefisso comune fra due richieste, ma
+solo oltre i 4.096 token. Misurato, il prefisso stabile era il prompt di
+sistema piu' le tredici dichiarazioni dei tool: circa 3.900 token, **appena
+sotto**. La cache non scattava affatto e niente lo diceva.
+`buildContextMessage` e' diventata due funzioni - `buildCatalogMessage` nel
+prefisso, `buildStateMessage` in fondo - e il catalogo e' quel che porta il
+totale sopra la soglia. La migrazione 015 aggiunge `ai_calls.cached_tokens` e
+Diagnostica ne mostra la percentuale.
+
+**Quel lavoro e' tarato su `gemini-3.6-flash` e il modello e' cambiato nel
+pomeriggio.** Non e' sprecato ed e' voluto tenerlo: vedi § I modelli e
+`CLAUDE.md` § Il prezzo del prompt dell'assistente per come si leggono insieme.
 
 ### I tre pezzi mancanti, chiusi
 
@@ -219,12 +259,50 @@ invece di essere lasciati a tenere in vita il nome vecchio.
   un elenco di orfani, perche' una foto scattata altrove sta sul server e qui
   non e' ancora arrivata.
 
-**I due model id sono stati provati contro il servizio**, per la prima volta:
-`gemini-3.6-flash` e `gemini-3.5-flash-lite` esistono entrambi, e il primo
-regge la trascrizione di un m4a sull'endpoint nativo e la lettura di
-un'etichetta in `json_object` su quello OpenAI-compatible. Il codice e' stato
-portato su `gemini-3.6-flash`, come il documento diceva da sempre. Esiste anche
-`gemini-3.7-flash`, non provato.
+### I modelli, provati contro il servizio per la prima volta
+
+E' finita diversamente da come era cominciata, e vale la pena leggere l'ordine.
+
+Prima constatazione: `gemini-3.6-flash` e `gemini-3.5-flash-lite` esistono
+entrambi, e il primo regge la trascrizione di un m4a sull'endpoint nativo e la
+lettura di un'etichetta in `json_object` su quello OpenAI-compatible. Il codice
+e' stato quindi portato su `gemini-3.6-flash`, come `CLAUDE.md` diceva da
+sempre.
+
+**Poi e' arrivato il numero che ha ribaltato la scelta.** Il Free Tier non da'
+1.500 richieste al giorno: da' `GenerateRequestsPerDayPerProjectPerModel`, un
+tetto **per modello**, e su `gemini-3.6-flash` vale **venti**. Non e'
+pubblicato - la pagina dei rate limit rimanda ad AI Studio - e si legge solo
+dentro il corpo di un 429, sotto `details[].violations[].quotaValue`.
+
+Venti non sono venti frasi: una frase detta all'assistente costa una
+trascrizione, da uno a `MAX_TOOL_ROUNDS` giri di tool loop e una stima per ogni
+alimento che `resolveFood` non riconosce. Sono **tre o quattro frasi al
+giorno**. Il codice e' quindi su **`gemini-3.5-flash-lite`**, che ha un tetto
+piu' alto (oltre 28 richieste in un giorno senza esaurirlo) ed e' da tre a
+dieci volte piu' veloce, con una dispersione stretta: 1,0-1,7s contro i
+3,4-22,7s di 3.6.
+
+`gemini-3.7-flash` e' fuori per un motivo diverso: la quota c'e', la capacita'
+no. `503 "This model is currently experiencing high demand"` su circa meta'
+delle richieste, e ci mette 90-120 secondi a dirlo. E' GA da agosto 2026.
+
+Il prezzo di flash-lite, misurato e scritto accanto alla costante: segue le
+regole del prompt un po' peggio sulle frasi ambigue. "Ho mangiato del riso" gli
+fa scrivere 100 g inventati invece di chiedere, mentre "un po' di pollo" la
+domanda la fa. Unico scarto su nove prove; sui numeri le due sono pari, e sulla
+data da omettere quando l'utente non nomina un giorno flash-lite e' anzi
+l'unica che rispetta la regola.
+
+**Nota per chi legge il § Il prezzo del prompt in `CLAUDE.md`:** quella
+sezione e' tarata su 3.6-flash e resta valida per quando si paghera'. Su
+flash-lite i token cachati non sono dichiarati affatto, quindi Diagnostica
+dira' "non dichiarata". Non e' un difetto.
+
+**Quota bruciata il 2 settembre:** il benchmark ha consumato le venti richieste
+di `gemini-3.6-flash` e intaccato quelle di 3.7 e flash-lite. Si azzerano a
+mezzanotte del Pacifico. Misure nuove sui modelli vanno fatte a contatori
+puliti, non la sera stessa.
 
 ## Chiuso il 30-31 agosto 2026
 

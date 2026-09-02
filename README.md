@@ -73,4 +73,12 @@ accende l'AI (assistente vocale, stima da foto, lettura etichette),
 senza nessuna delle due l'app funziona comunque, con meno cose.
 
 La chiave finisce **nel bundle**, ed e' voluto - vedi [`CLAUDE.md`](CLAUDE.md)
-§ AI. Per questo l'APK non si distribuisce.
+§ AI. La scelta vale per una condizione sola, **che l'APK non si
+distribuisca**, e quella condizione decade con il rilascio: portare le
+chiamate AI dietro il backend e' la prima voce di quel lavoro e non l'ultima
+([`TODO.md`](TODO.md) § 3.1).
+
+Il Free Tier non da' 1.500 richieste al giorno come si e' creduto fino al 2
+settembre 2026: da' un tetto **per modello** che su un `-flash` vale venti.
+Vedi [`CLAUDE.md`](CLAUDE.md) § La quota - e' il vincolo che decide quale
+modello si usa.

@@ -142,6 +142,22 @@ passa da un controllo di caratteri prima di finire in un percorso su disco, altr
 cose, con un secondo account vero che chiede il file di un altro per nome esatto e si
 prende un 404.
 
+Due strette del 2 settembre 2026, **non ancora deployate**:
+
+- **il nome non puo' cominciare con un punto.** Il vecchio regex ammetteva `.`
+  e `..`: nessuna traversata vera, visto che `/` resta fuori, ma
+  `images/{utente}/..` e' un percorso che il controller costruisce volentieri,
+  e un nome deve nominare un file e non una cartella.
+- **l'upload controlla il tipo** (`mimes:jpg,jpeg,png,webp,heic,heif`). Prima
+  `file` e `max` non dicevano niente sul contenuto e qualunque cosa sotto i
+  cinque megabyte entrava nella cartella. Il controllo e' sul contenuto e non
+  sull'estensione, quindi gli upload del telefono non se ne accorgono.
+
+Manca ancora la **raccolta delle foto orfane lato server**: il telefono
+cancella la propria copia e chiama `DELETE /api/images/{nome}`
+(`collectOrphanPhotos`), ma se quella chiamata non parte il file resta qui per
+sempre e nessuno lo va a cercare.
+
 ## I nomi utente
 
 **"A" e "a" sono lo stesso nome.** Se uno e' preso, l'altro non e' disponibile.
@@ -247,7 +263,7 @@ non e' un backup.
 | PUT | `/api/me/stats` | Il telefono pubblica i totali di giornata |
 | POST | `/api/sync` | Manda le modifiche e riceve quelle degli altri dispositivi |
 | GET | `/api/images` | Quali foto ha gia', così il telefono manda solo il resto |
-| POST | `/api/images` | Carica il file di una foto (max 5 MB) |
+| POST | `/api/images` | Carica il file di una foto (max 5 MB, solo immagini) |
 | GET | `/api/images/{nome}` | Scarica una foto. **Solo le proprie** |
 | DELETE | `/api/images/{nome}` | Cancella una foto |
 | PUT | `/api/me/workouts` | Il telefono pubblica la palestra. **403 a interruttore spento** |
@@ -285,3 +301,7 @@ Nessuna lettura e' pubblica: senza account non si vede niente di nessuno.
 - **Un secondo ambiente.** Ce n'e' uno solo, e le migrazioni vanno dritte in
   produzione con un backup prima. La scelta test/prod di `deploy.sh` viene dal
   template e non e' configurata.
+- **Nessuna rotta AI.** L'AI non ha mai toccato il server: la chiave sta nel
+  bundle dell'app e le chiamate a Gemini partono dal telefono. Con il rilascio
+  a pagamento quella scelta decade e le chiamate devono passare da qui - e'
+  `TODO.md` § 3.1, ed e' la prima voce di quel lavoro, non l'ultima.

@@ -1,7 +1,25 @@
 # KalTrack - Design
 
+> **Documento storico.** Questa e' la spec come e' stata approvata il 28
+> agosto 2026, e si conserva per il **perche'** delle scelte, non per lo stato
+> di oggi. Quattro cose sono cambiate da allora e in questo testo si leggono
+> ancora come attuali:
+>
+> - **il provider AI e' Google Gemini, non Groq.** Niente Whisper: la
+>   trascrizione passa dall'endpoint nativo multimodale di Gemini. Il modello
+>   in uso e le ragioni della scelta stanno in `src/ai/config.ts`;
+> - **l'account esiste** dalla Fase 5, con sincronizzazione e amici. Resta
+>   facoltativo: senza, l'app e' quella di sempre;
+> - **il Free Tier non da' 1.500 richieste al giorno** ma un tetto per modello
+>   che su un `-flash` vale venti. Vedi `CLAUDE.md` § La quota;
+> - alcune sezioni descrivono come "da fare" cose fatte, e un paio di scelte
+>   sono state ribaltate a ragion veduta.
+>
+> Per lo stato corrente: [`../../../CLAUDE.md`](../../../CLAUDE.md) per le
+> convenzioni, `HANDOFF.md` per dove siamo, `TODO.md` per cosa manca.
+
 Data: 2026-08-28
-Stato: approvato
+Stato: approvato, e in parte superato - vedi la nota qui sopra.
 
 ## 1. Obiettivo
 

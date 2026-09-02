@@ -4,8 +4,12 @@
 > perche' il lavoro e' andato avanti senza spuntarle, non perche' ci siano
 > novantotto passi da fare: la Fase 1 e' in produzione da tempo, e con lei le
 > Fasi 2, 3, 4 e 5. Resta come documento storico - il ragionamento dietro il
-> layer DB e le convenzioni vale ancora - non come lista di cose da fare. Lo
-> stato reale dell'app e' in `CLAUDE.md`; quello del progetto nella spec.
+> layer DB e le convenzioni vale ancora - non come lista di cose da fare.
+>
+> E non descrive lo stato di oggi: fra le altre cose parla di Groq e di
+> `EXPO_PUBLIC_GROQ_API_KEY`, mentre l'AI passa da Google Gemini. Per lo stato
+> corrente: `CLAUDE.md` per le convenzioni, `HANDOFF.md` per dove siamo,
+> `TODO.md` per cosa manca.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

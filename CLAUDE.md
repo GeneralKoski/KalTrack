@@ -592,6 +592,12 @@ Due conseguenze pratiche:
   **Impostazioni > Diagnostica**. Il tetto si azzera a mezzanotte del Pacifico,
   non a mezzanotte qui.
 
+**La cache non aiuta su questo.** Una richiesta cachata costa meno ma **conta
+come una richiesta**: il § Il prezzo del prompt dell'assistente parla di
+un'altra grandezza, e serve da quando si paga. L'unica leva sul tetto e'
+togliere richieste - `TODO.md` § 4.2 e § 4.3 - oppure separare le tre voci di
+`MODELS` su modelli diversi, che somma i budget invece di dividerli.
+
 **Quella scelta ha una data di scadenza, ed e' l'unica condizione che la
 regge.** Il rilascio pubblico con le funzioni AI a pagamento e' in programma
 (§ Cos'e' KalTrack), e una chiave dentro un APK distribuito si estrae in pochi
@@ -622,6 +628,29 @@ finirebbe sul server in chiaro dentro `sync_records`. E non va nella URL: vedi
    con `mimeType: "audio/m4a"`. La chiave viaggia in `x-goog-api-key`.
 
 ### Il prezzo del prompt dell'assistente
+
+**Questa sezione e' tarata su `gemini-3.6-flash`, che non e' il modello che
+l'app usa.** Non e' un residuo da cancellare: e' il lavoro da riprendere
+quando l'AI passera' dietro il backend e si comincera' a pagare (`TODO.md`
+§ 3.1), perche' e' allora che il costo per token conta. Oggi, sul Free Tier,
+conta il numero di richieste e non il loro prezzo - vedi § La quota.
+
+Cosa cambia su `gemini-3.5-flash-lite`: **il provider non dichiara i token
+cachati.** `prompt_tokens_details` e' assente sull'endpoint OpenAI e
+`cachedContentTokenCount` su quello nativo, misurato il 2 settembre 2026 con
+8.095 token di prefisso ripetuto a un secondo di distanza. Quindi la
+percentuale in Diagnostica dira' **"non dichiarata"**, che e' il caso previsto
+dalla colonna nullable e non un difetto. Se la cache scatti comunque non si sa
+e dall'API non si puo' sapere; la documentazione di Google elenca la soglia dei
+4.096 token per 3.5-flash, 3.6-flash e 3.7-flash e **flash-lite non lo elenca
+affatto**.
+
+**La struttura del prefisso resta come e'**, e non per inerzia: non costa
+niente tenerla, il modello legge gli stessi id in qualunque ordine, e il giorno
+che si torna su un modello `-flash` funziona di nuovo senza rifare il lavoro.
+Chi la smonta la deve rifare.
+
+Quel che segue vale quindi per un modello `-flash`.
 
 Gemini sconta di **dieci volte** i token del prefisso comune fra due richieste
 ($0,075 contro $0,75 per milione su `gemini-3.6-flash`), ma solo **oltre i

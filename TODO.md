@@ -41,10 +41,16 @@ Tutto coperto dai test, **niente visto funzionare**.
       che il secondo suoni ancora.
 - [ ] Le foto dei progressi su un secondo dispositivo.
 - [ ] Il ridimensionamento, dal peso dei file in `documentDirectory/photos`.
-- [ ] La trascrizione vocale su `gemini-3.6-flash`.
+- [ ] La trascrizione vocale su `gemini-3.5-flash-lite`.
 - [ ] **La percentuale di cache in Impostazioni > Diagnostica.** E' nuova del 2
-      settembre e nessuno l'ha ancora vista con dati veri: se resta a zero, il
-      prefisso non sta scavalcando i 4.096 token e va capito perche'.
+      settembre e nessuno l'ha ancora vista con dati veri. **Attenzione a come
+      si legge**: su `gemini-3.5-flash-lite` il campo non arriva affatto -
+      `prompt_tokens_details` e' assente sull'endpoint OpenAI e
+      `cachedContentTokenCount` su quello nativo, misurato con 8.095 token di
+      prefisso ripetuto a un secondo di distanza - quindi Diagnostica dira'
+      **"non dichiarata"**, che e' il caso previsto e non un difetto. Uno zero
+      vero, quello che vorrebbe dire "prefisso sotto i 4.096", si vedrebbe solo
+      su un modello `-flash`.
 
 ---
 
@@ -197,9 +203,12 @@ lingua. Un gratuito che non fa niente non convince nessuno a pagare.
       falsifica dal telefono. E' la voce piu' lunga di tutte e non e' codice
       dell'app.
 - [ ] **Prezzo e cosa comprende.** Non e' scritto da nessuna parte, e decide la
-      riga della tabella qui sopra. Il conto del § 4 e' il punto di partenza:
-      ~$0,075-0,11 al giorno di costo AI per un utente attivo, cioe' **~$2-3 al
-      mese di solo modello**, prima di store, tasse e chi usa piu' della media.
+      riga della tabella qui sopra. Il conto del § 4 e' il punto di partenza,
+      ma **quei numeri sono contati sui prezzi di `gemini-3.6-flash`**
+      ($0,75/$3,75 per milione) e l'app usa flash-lite, che costa $0,30/$2,50 -
+      input al 40%, output al 67%. Il conto scende di circa la meta', quindi
+      **~$1-1,50 al mese di solo modello** per un utente attivo. E' una
+      derivazione dai listini, non una misura: vale il § 4.1.
 - [ ] **Le note legali che oggi non esistono.** Un'app a pagamento sullo store
       vuole informativa privacy e termini di servizio, e questa ne manda dati
       a un terzo (Google Gemini) di cui va detto. Nessuno dei due documenti
@@ -213,13 +222,39 @@ lingua. Un gratuito che non fa niente non convince nessuno a pagare.
 
 ## 4. Spendere meno di AI
 
-Oggi si sta sul Free Tier (1.500 richieste al giorno contro le ~70 di un uso
-normale), quindi **non e' un problema finche' l'app resta su un telefono solo**.
-Diventa un problema il giorno che si passa a consumo, o che la usano in dieci
-sulla stessa chiave.
+**Attenzione: questa sezione diceva il contrario, e la correzione ne cambia la
+priorita'.** Ci stava scritto "1.500 richieste al giorno contro le ~70 di un uso
+normale, quindi non e' un problema finche' l'app resta su un telefono solo".
+Quel numero e' falso.
+
+Il limite del Free Tier e'
+`GenerateRequestsPerDayPerProjectPerModel-FreeTier`, un tetto giornaliero **per
+modello**, e su `gemini-3.6-flash` vale **venti**. Misurato il 2 settembre 2026
+leggendolo dal corpo di un 429: Google non lo pubblica, la pagina dei rate
+limit rimanda ad AI Studio. `gemini-3.5-flash-lite`, che l'app usa oggi, ha un
+tetto piu' alto - oltre 28 richieste in un giorno senza esaurirlo, valore
+esatto non pubblicato - ed e' la ragione per cui e' stato scelto.
+
+Con le ~70 richieste al giorno stimate qui sotto, **il tetto e' un problema
+adesso, su un telefono solo**, non il giorno che si passa a consumo. E la cache
+del 2 settembre non lo tocca: una richiesta cachata costa meno ma **conta come una
+richiesta**.
+
+Questo sposta le priorita' dentro la sezione. Il § 4.2 (trascrizione
+on-device) e il § 4.3 (percorso deterministico) non sono piu' risparmio: sono
+**le due voci che togliono richieste dal conto**, cioe' l'unica leva che agisce
+sul limite vero. Il resto della sezione parla di costo per token, che conta dal
+§ 3 in avanti - quando si paga - e non oggi.
+
+Una leva in piu', che esiste perche' la quota e' **per modello**: puntare le
+tre voci di `MODELS` a modelli diversi somma i budget invece di dividerli. Oggi
+puntano tutte a flash-lite perche' il suo tetto basta.
 
 Il conto stimato per venti frasi e dieci foto al giorno e' **~$0,20 al giorno**
-prima della cache del 2 settembre, **~$0,075-0,11** dopo. Restano tre voci
+prima della cache del 2 settembre, **~$0,075-0,11** dopo - **contato su
+`gemini-3.6-flash`**. Su flash-lite, che l'app usa, l'input costa il 40% e
+l'output il 67%: circa la meta'. Quanto valga la cache su flash-lite non si sa,
+perche' quel modello non dichiara i token cachati (vedi § 1). Restano tre voci
 grosse, e due si tolgono con **funzioni native del telefono** invece che con un
 modello.
 
