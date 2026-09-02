@@ -1,29 +1,33 @@
-# Handoff - 31 agosto 2026 (fine giornata)
+# Handoff - 2 settembre 2026
 
 Punto della situazione per riprendere lo sviluppo da una sessione nuova. Non
 sostituisce `CLAUDE.md`, che resta il documento delle convenzioni: qui c'e' lo
-**stato**, non le regole.
+**stato**, non le regole. Le sezioni datate piu' in basso sono il registro di
+quel che e' stato chiuso, in ordine inverso.
 
 ## In una riga
 
-L'app e' completa e in uso (Fasi 1-5). Sul telefono c'e' la **1.0.2**,
-costruita e installata il 31 agosto: contiene tutto quel che segue.
+L'app e' completa e in uso (Fasi 1-5). Sul telefono c'e' la **1.0.3**. Il 2
+settembre e' stato fatto un check completo del progetto, e ne sono usciti sei
+difetti che i test non vedevano perche' vivono tutti sul bordo: le notifiche di
+sistema, i file fra due dispositivi, e la distanza fra quel che i documenti
+raccontavano e quel che il codice faceva.
 
-Codice e server sono **allineati**: il backend e' stato deployato il 31 agosto
-subito dopo l'APK, quindi la condivisione dello storico intero funziona da
-entrambe le parti. Non resta niente di aperto sul codice: quel che manca e'
-usare l'app e vedere cosa salta fuori.
+**Tutti chiusi, ma nessuno provato sul telefono.** Serve una build nuova.
 
 ## Stato
 
 | | |
 |---|---|
-| Test app | 935 su 58 suite |
-| Test backend | 123 |
-| Typecheck / lint | puliti, 0 errori (8 warning, tutti anteriori) |
+| Test app | 973 su 60 suite |
+| Test backend | 125 |
+| Typecheck | pulito |
+| Lint | 0 errori, 11 warning - **10 sono in `components/ui/`, generati dal CLI di gluestack**, e uno e' un falso positivo su axios. Nel codice nostro non ce n'e' piu' nessuno |
+| expo-doctor | 18 su 20. Uno e' `react-native-web` mancante, rosso di proposito (§ Architettura in `CLAUDE.md`); l'altro sono 17 pacchetti fuori versione |
 | Ramo | `main`. Si committa sempre qui, mai su un ramo a parte |
-| Server | `kaltrack.martin-trajkovski.it`, healthy, **17 migrazioni** applicate, allineato al codice |
-| APK | `kaltrack-1.0.2.apk`, firmato, **installato sul telefono**. `./scripts/build-apk.sh 1.0.3` per il prossimo |
+| Server | `kaltrack.martin-trajkovski.it`, 17 migrazioni applicate. **Il codice backend e' avanti di un commit**: vedi § Il lavoro aperto |
+| Schema locale | 14 migrazioni (la 014 aggiunge gli indici su `updated_at`) |
+| APK | `kaltrack-1.0.3.apk` sul telefono, **anteriore alle correzioni del 2 settembre**. `./scripts/build-apk.sh 1.0.4` per il prossimo |
 
 ## Cosa gira dove
 
@@ -35,6 +39,8 @@ usare l'app e vedere cosa salta fuori.
   Procedura di deploy in `backend/README.md` § In produzione.
 - **Database**: SQLite in WAL su un volume Docker montato in `/data`. Backup
   ogni notte alle 3:30 in `/srv/backups/kaltrack`, ne tiene quattordici.
+- **AI**: Google Gemini, `gemini-3.6-flash` per tutte e tre le capability.
+  Verificato contro il servizio il 2 settembre su entrambi gli endpoint.
 
 ## Account
 
@@ -43,8 +49,8 @@ Sul server c'e' **un solo utente**: `GeneralKoski`
 
 **La password e' stata cambiata in `KalTrack2026` il 31 agosto**, per poter
 provare il modulo di accesso: serviva uscire, e senza una password nota non si
-rientrava. Va cambiata. Si fa da Impostazioni > Reimposta password, oppure con
-`php artisan tinker` sul server assegnando `$u->password = '...'` (il cast
+rientrava. **Va cambiata.** Si fa da Impostazioni > Reimposta password, oppure
+con `php artisan tinker` sul server assegnando `$u->password = '...'` (il cast
 `hashed` fa l'hash da solo - **non** scrivere un hash a mano nella colonna).
 
 Reimpostare la password **disconnette da tutti i dispositivi**, telefono
@@ -52,28 +58,38 @@ compreso: dopo, l'app chiede di rientrare.
 
 ## Il lavoro aperto
 
-**1. Provare sul telefono quel che l'emulatore non puo' dire.** Due cose:
+**1. Il backend va deployato.** Il 2 settembre sono cambiati
+`ImageController` (nome dei file e controllo del tipo) e `routes/api.php`
+(throttle sul reset password). Nessuna migrazione, quindi e' un deploy del
+codice e niente piu'. Finche' non si fa, l'app nuova e il server parlano
+comunque: le correzioni sono restrizioni lato server, non contratti nuovi.
 
-- **La palla dell'assistente che si muove con la voce.** Il microfono virtuale
-  dell'emulatore riporta `0.000` fisso, anche riavviandolo con
-  `-allow-host-audio` (macOS deve autorizzare il microfono al processo
-  dell'emulatore da una finestra di sistema). Il collegamento e' verificato -
-  il livello arriva a schermo - ma la reazione al volume no.
-- **Le tre funzioni AI contro Groq**: assistente, lettura etichette, stima da
-  foto. I due model id nuovi sono presi dalla tabella dei ritiri e mai provati
-  davvero. Se sbagliano, il motivo si legge in **Impostazioni > Diagnostica**
-  invece di sparire.
+**2. Serve un APK nuovo, e va provato.** Le sei correzioni del 2 settembre
+sono tutte verificate dai test ma nessuna e' stata vista funzionare:
 
-**2. Provare il confronto con dati veri.** Non e' mai stato visto rispondere:
+- i promemoria personalizzati (crearne due, cambiare l'orario del primo,
+  verificare che il secondo suoni ancora);
+- le foto dei progressi su un secondo dispositivo, che ora viaggiano;
+- il ridimensionamento, che si vede dal peso dei file in
+  `documentDirectory/photos`;
+- la trascrizione vocale sul modello nuovo.
+
+**3. Provare il confronto con dati veri.** Non e' mai stato visto rispondere:
 sul server c'e' **un solo utente**, quindi non c'e' nessuno da mettere accanto.
 Serve un secondo account. Passa i test, ma la lezione di questo progetto e' che
 i difetti seri escono aprendo l'app, non dalla suite.
 
-**3. Ripulire l'emulatore.** Ci sono dati di prova: obiettivo 2000 kcal,
-10.000 passi, un esercizio `Pancainc test` gia' cancellato, e il tema forzato
-su "Scuro". **La chiave Groq sull'emulatore e' stata tolta** durante le prove e
-va rimessa se ci si vuole riprovare l'AI; quella del telefono non e' stata
-toccata (vive in SecureStore e l'aggiornamento non la sfiora).
+**4. La palla dell'assistente che si muove con la voce.** Il microfono virtuale
+dell'emulatore riporta `0.000` fisso, anche riavviandolo con
+`-allow-host-audio`. Il collegamento e' verificato - il livello arriva a
+schermo - ma la reazione al volume no.
+
+**5. Diciassette pacchetti fuori versione.** Undici `expo-*` e
+`react-native` 0.83.4 contro 0.83.10 sono aggiornamenti di patch, da fare
+insieme alla prossima build nativa e non prima: costringono a ricostruire. La
+coppia da guardare con piu' attenzione e' `jest` 30 con `jest-expo` 57 contro i
+~29 e ~55 che l'SDK 55 si aspetta: la suite gira, ma e' esattamente la forma
+del guasto dell'`expo-blur` (un pacchetto per SDK 57 su un runtime 55).
 
 ### Rimandato per scelta, non dimenticato
 
@@ -87,6 +103,89 @@ toccata (vive in SecureStore e l'aggiornamento non la sfiora).
   all'elenco di tutti, e ciascuno corregge solo le proprie: non esiste un modo
   per un amministratore di togliere una voce altrui scritta male. Con un utente
   solo non e' un problema; con dieci lo diventa.
+- **Il microfono in palestra.** `registry.ts` ha tredici strumenti e tre
+  riguardano gli allenamenti, ma `AssistantButton` sta solo su Oggi. La
+  premessa con cui era stato messo li' non vale piu': vedi `CLAUDE.md` § Dove
+  vive il microfono, che dice anche perche' spostarlo non e' gratis.
+- **Nove file usano `expo-file-system/legacy`**, che e' l'API deprecata: foto,
+  backup, esportazioni CSV, log e trascrizione. Il giorno che sparisce si
+  fermano tutti insieme.
+- **`accessibilityLabel` sta in 10 file su 120.** Con 142 tocchi quasi tutti a
+  sola icona, TalkBack legge una schermata di pulsanti senza nome. Ultima
+  priorita' per un'app personale, ma e' l'unica area senza copertura.
+
+## Il 2 settembre: il check del progetto
+
+Un giro completo su tutto: suite, typecheck, lint, `expo-doctor`, poi lettura a
+fondo di sincronizzazione, foto, promemoria, AI e backend. **La suite era verde
+prima e dopo**, ed e' il punto: i sei difetti trovati non erano coperti da
+nessun test perche' nessuno di essi vive dentro una funzione pura.
+
+1. **Un promemoria personalizzato spegneva tutti gli altri.**
+   `scheduledIdsForReminder` recuperava le notifiche orfane anche per `kind`, e
+   tutti i promemoria creati a mano hanno `kind = "custom"`. Riprogrammarne uno
+   cancellava dal sistema le notifiche degli altri, che a database restavano
+   accesi con i loro id: la schermata li mostrava attivi e non arrivava piu'
+   niente. Il ripiego sul `kind` ora vale solo per i quattro preset, che sono
+   unici per definizione.
+
+2. **Le foto dei progressi non arrivavano sul secondo telefono.**
+   `progress_photos` era fuori da `SYNCED_TABLES` con la motivazione che le sue
+   righe puntano a file inesistenti sull'altro dispositivo - una motivazione
+   caduta da quando `photoSync.ts` porta i byte e `SyncedPhoto` disegna il
+   segnaposto. `ProgressPhotosScreen` usava gia' `SyncedPhoto` in tutti e tre i
+   punti: il lato ricevente era pronto da settimane. Ora c'e' anche
+   `LOCAL_ONLY_TABLES` con il motivo per ciascuna esclusione, e un test che
+   confronta i due elenchi con lo schema: e' la quinta regola della
+   sincronizzazione.
+
+3. **La chiave Gemini finiva nei log in chiaro.** L'endpoint nativo la
+   accettava in `?key=`, e `redactSecrets` copriva `Bearer`, `gsk_` e `sk_` -
+   cioe' Groq e OpenAI. Dal passaggio a Gemini **il registro non nascondeva
+   piu' niente**: una chiave `AIza...` o `AQ....` passava intera in `app_logs`,
+   che si condivide come file ed e' dentro il backup. Due correzioni: la chiave
+   e' passata all'header `x-goog-api-key`, e la redazione copre le due forme
+   Google piu' `?key=` in una URL.
+
+4. **Le foto grandi si perdevano in silenzio.** I picker scattavano a
+   `quality` 0.8 ma nessuno ridimensionava, e il server rifiuta oltre i 5 MB:
+   `uploadOne` annotava il rifiuto e andava avanti, lasciando una riga
+   sincronizzata la cui immagine non sarebbe arrivata mai. `persistPhoto` ora
+   riduce a 1600 px di lato lungo, e se il formato non si sa leggere archivia
+   l'originale.
+
+5. **Nessun indice su `updated_at`.** Ventotto indici nello schema e nessuno
+   sulla colonna con cui `collectChanges` interroga ventisei tabelle, fino a
+   venti giri per sincronizzazione. Migrazione 014, e un test che legge
+   l'`EXPLAIN QUERY PLAN` invece di fidarsi.
+
+6. **`expo-asset` non era dichiarato**, pur essendo peer dependency di
+   `expo-audio`. C'era per transitivita', quindi non si vedeva niente - ma e'
+   la stessa classe di guasto dell'`expo-blur` del 1 settembre.
+
+Sul server, tre spigoli minori: il regex dei nomi foto ammetteva `.` e `..`
+(nessuna traversata vera, ma un nome deve nominare un file), l'upload non
+controllava il tipo del file, e `admin/users/{user}/password` non aveva
+throttle mentre `login` e `register` ce l'avevano.
+
+**La deriva dei documenti era la voce piu' grande.** `CLAUDE.md` dichiarava
+`gemini-3.6-flash` mentre il codice usava `gemini-3.5-flash-lite`; diceva
+"sette strumenti e nessuno riguarda gli allenamenti" quando sono tredici e tre
+sono di palestra - e quella frase era l'argomento con cui il microfono sta solo
+su Oggi; dava `minSdkVersion` 24 invece di 26; prometteva che
+`progress_photos.uri` viaggiasse. La sezione § La diagnostica era **troncata a
+meta' frase**, con un elenco che aveva perso il proprio primo punto. Il
+commento di `aiKeyStore` spiegava che la chiave nel bundle era il problema e
+che "sparisce", mentre e' tornata nel bundle per scelta dichiarata. Tutto
+allineato, e gli alias `hasGroqKey`/`groqKey`/`GROQ_BASE_URL` sono stati tolti
+invece di essere lasciati a tenere in vita il nome vecchio.
+
+**I due model id sono stati provati contro il servizio**, per la prima volta:
+`gemini-3.6-flash` e `gemini-3.5-flash-lite` esistono entrambi, e il primo
+regge la trascrizione di un m4a sull'endpoint nativo e la lettura di
+un'etichetta in `json_object` su quello OpenAI-compatible. Il codice e' stato
+portato su `gemini-3.6-flash`, come il documento diceva da sempre. Esiste anche
+`gemini-3.7-flash`, non provato.
 
 ## Chiuso il 30-31 agosto 2026
 
@@ -315,18 +414,24 @@ quello dell'ultimo push.
   reimposta password dell'amministratore.
 - **Classifiche fra piu' persone**, e il confronto sulle calorie con un
   vincitore. Fuori scope per scelta, non per mancanza di tempo: vedi la sezione
-  9.2 della spec.
+  9.2 della spec. Il confronto affiancato da due a cinque persone invece **c'e'**,
+  dal 30 agosto.
 
 ## Quel che serve sapere e non si deduce dal codice
 
 1. **Il telefono e' la fonte di verita'.** Il server tiene una copia. L'app
    funziona senza rete e senza account, e va tenuta cosi'.
-2. **La chiave Groq la porta l'utente**, sta in SecureStore e non e' nel bundle.
-   Senza, le funzioni AI sono spente e non e' un difetto.
+2. **La chiave AI e' nel bundle**, e non e' una dimenticanza:
+   `EXPO_PUBLIC_GEMINI_API_KEY` in `.env`, cosi' l'AI e' attiva al primo avvio
+   a costo zero e l'APK non si distribuisce. Chi vuole la propria la mette da
+   Impostazioni (`aiKeyStore`, SecureStore) e ha la precedenza. Vedi
+   `CLAUDE.md` § AI.
 3. **Non salvare mai niente di segreto in `settings`**: e' una tabella
    sincronizzata, finirebbe sul server in chiaro.
-4. **Mai `DELETE FROM` su una tabella sincronizzata.** Le quattro regole della
-   sincronizzazione sono in `CLAUDE.md`, ognuna e' costata un difetto.
+4. **Mai `DELETE FROM` su una tabella sincronizzata.** Le cinque regole della
+   sincronizzazione sono in `CLAUDE.md`, ognuna e' costata un difetto. La
+   quinta - dichiarare ogni tabella nuova in un elenco o nell'altro - e' del 2
+   settembre, ed e' costata le foto dei progressi.
 5. Le regole del confronto (`src/domain/comparison.ts`) sono decisioni di
    prodotto con test propri, non logica da rifattorizzare. Da oggi valgono da
    due a cinque persone, e in palestra - a differenza delle calorie - un

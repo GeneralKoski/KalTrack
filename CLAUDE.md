@@ -72,8 +72,12 @@ Procedura in `backend/README.md` § In produzione.
 ## Architettura
 
 React Native 0.83 + Expo 55 + React 19, New Architecture attiva. iOS 15.1+,
-Android SDK 24+. **Nessun target web**: niente `react-native-web`, niente branch
-`Platform.OS === "web"`.
+Android SDK 26+ (`minSdkVersion` in `app.json`). **Nessun target web**: niente
+`react-native-web`, niente branch `Platform.OS === "web"`.
+
+`react-native-web` risulta come peer dependency mancante a `expo-doctor`, ed e'
+l'unico dei suoi controlli che si lascia rosso di proposito: lo chiede
+gluestack per il web, e il web qui non c'e'.
 
 ### Local-first
 
@@ -184,7 +188,7 @@ dell'alimento da cui e' nata.
 
 ### Sincronizzazione
 
-`src/services/sync.ts`, `backend/README.md` per il lato server. Quattro regole
+`src/services/sync.ts`, `backend/README.md` per il lato server. Cinque regole
 che sembrano dettagli e sono ognuna un difetto già pagato:
 
 1. **Mai `DELETE FROM` su una tabella sincronizzata.** Una riga tolta davvero
@@ -204,6 +208,13 @@ che sembrano dettagli e sono ognuna un difetto già pagato:
 4. **Un'impostazione che parla del dispositivo non si sincronizza.** Va in
    `LOCAL_ONLY_SETTINGS`. Una che parla dei dati sì: `plan_applied:<data>` deve
    viaggiare, o l'altro telefono riapplica il piano e duplica i pasti.
+5. **Una tabella nuova va dichiarata, in un elenco o nell'altro.** `SYNCED_TABLES`
+   se viaggia, `LOCAL_ONLY_TABLES` con il motivo se resta qui, e `sync.test.ts`
+   confronta i due elenchi con lo schema reale. Senza quel test
+   `progress_photos` e' rimasta fuori dalla sincronizzazione per settimane dopo
+   che la sua unica ragione di esclusione era caduta: le foto dei progressi
+   semplicemente non arrivavano sul secondo telefono, e niente lo diceva.
+   `BACKUP_TABLES` aveva il controllo dalla Fase 3; qui mancava.
 
 ### Le foto
 
@@ -220,6 +231,18 @@ che collidono su un nome diventerebbero la stessa foto sull'altro telefono.
 Una foto che qui non c'e' si disegna con un segnaposto e non con un rettangolo
 vuoto (`SyncedPhoto`): il rettangolo vuoto sembra un difetto dell'app, il
 segnaposto dice che la foto esiste e non e' ancora arrivata.
+
+**L'archivio contiene sempre un JPEG a 1600 px di lato lungo**, e per questo il
+nome finisce sempre in `.jpg`. `persistPhoto` ridimensiona invece di copiare:
+il server rifiuta oltre i 5 MB, e uno scatto a piena risoluzione li supera
+senza sforzo. Quando succedeva, `uploadPendingPhotos` annotava il rifiuto e
+andava avanti - di proposito, per non riprovare all'infinito - e il risultato
+era una riga sincronizzata la cui immagine non sarebbe arrivata mai. Se il
+formato non si sa leggere si archivia l'originale: una foto grande e' un difetto
+di peso, una foto che non si salva e' un pasto che non si registra.
+
+Quel che ancora non c'e': **nessuno cancella dal server le foto tolte dal
+telefono.** `storage/app/private/images` cresce e non scende.
 
 ### Il confronto con gli amici
 
@@ -324,11 +347,19 @@ centralizza l'unico cast necessario.
 
 `AssistantButton` e' montato **dentro `TodayScreen`**, non sopra la navigazione.
 
-E' una scelta di prodotto prima che di layout: l'assistente scrive pasti,
+Era una scelta di prodotto prima che di layout: l'assistente scriveva pasti,
 passi, peso e obiettivi - esattamente quel che sta su Oggi - e in palestra non
-tocca niente (`src/ai/tools/registry.ts` ha sette strumenti e nessuno riguarda
-gli allenamenti). Globale, seguiva l'utente in dodici schermate dove non poteva
+toccava niente. Globale, seguiva l'utente in dodici schermate dove non poteva
 fare nulla, e in due si sedeva sopra un interruttore.
+
+**La premessa oggi non vale piu', e la scelta va rifatta.**
+`src/ai/tools/registry.ts` ha **tredici** strumenti, e tre riguardano la
+palestra: `create_exercise`, `create_routine`, `log_workout`. L'assistente sa
+registrare una serie e il microfono non e' raggiungibile da dove lo si direbbe -
+con le mani sul bilanciere, "tre per otto a sessanta" e' piu' veloce di
+qualunque campo. Chi riapre la questione tenga presente l'aritmetica del
+paragrafo seguente: e' il motivo per cui montarlo sopra il navigatore non e'
+gratis.
 
 Il guadagno tecnico e' che sparisce l'aritmetica: montato fuori dal navigatore
 il microfono si misurava dal fondo della **finestra**, mentre il "+" di una
@@ -426,18 +457,34 @@ Valgono le guide Dieffetech `docs/react-native/`:
 
 ## AI
 
-Tutte le capability passano da **Google Gemini** (Google AI Studio): modello unico e performante **`gemini-3.6-flash`** per la trascrizione audio multimodale, la comprensione/function calling dell'assistente (vocale e testuale) e la stima nutrizionale da foto ed etichette (vision + JSON object mode).
-`expo-speech` per le risposte parlate (on-device).
-La chiave API viene configurata a livello globale nel file `.env` tramite `EXPO_PUBLIC_GEMINI_API_KEY`: in questo modo viene inclusa nel bundle al momento della compilazione e tutti gli utenti dell'app hanno l'AI attiva al primo avvio a costo zero (Free Tier di Google AI Studio con 1.500 richieste/giorno).
+Tutte le capability passano da **Google Gemini** (Google AI Studio), con un
+modello unico: **`gemini-3.6-flash`** per la trascrizione audio multimodale, la
+comprensione e il function calling dell'assistente (vocale e testuale) e la
+stima nutrizionale da foto ed etichette (vision + JSON object mode).
+`expo-speech` per le risposte parlate, on-device.
 
-Non va salvata in `settings`: quella tabella si sincronizza, e la chiave finirebbe sul server in chiaro dentro `sync_records`.
+I model id stanno in **un punto solo** (`src/ai/config.ts`), e non e' una
+comodita': `llama-3.3-70b-versatile` e' stato ritirato e l'app ha continuato a
+chiamarlo per sei settimane senza che nessuno lo notasse. **Un model id non
+provato e' un'ipotesi**, e si prova da **Impostazioni > Diagnostica**, che
+chiede al servizio l'elenco di quel che sta ancora servendo a questa chiave.
 
-### Modelli e Diagnostica
+La chiave sta in `.env` come `EXPO_PUBLIC_GEMINI_API_KEY`, quindi **nel bundle**:
+e' una scelta, non una dimenticanza. Cosi' l'AI e' attiva al primo avvio senza
+configurazione e a costo zero (Free Tier, 1.500 richieste al giorno), e l'APK non
+si distribuisce. Chi vuole la propria la mette da Impostazioni e ha la
+precedenza (`aiKeyStore`, `aiKey()`).
 
-I modelli vengono serviti da Google Gemini tramite:
+Non va salvata in `settings`: quella tabella si sincronizza, e la chiave
+finirebbe sul server in chiaro dentro `sync_records`. E non va nella URL: vedi
+§ La diagnostica.
 
-1. Endpoint OpenAI-compatible (`https://generativelanguage.googleapis.com/v1beta/openai`) per chat, tool calling e structured JSON vision.
-2. Endpoint nativo multimodale (`https://generativelanguage.googleapis.com/v1beta`) per trascrizione audio via base64.
+### I due endpoint
+
+1. **OpenAI-compatible** (`.../v1beta/openai`) per chat, tool calling e vision
+   con JSON strutturato. La chiave viaggia in `Authorization: Bearer`.
+2. **Nativo multimodale** (`.../v1beta`) per la trascrizione audio via base64,
+   con `mimeType: "audio/m4a"`. La chiave viaggia in `x-goog-api-key`.
 
 ## La diagnostica
 
@@ -446,13 +493,23 @@ I modelli vengono serviti da Google Gemini tramite:
 convenzione `[scope] messaggio` diventa una colonna.
 
 Si legge da **Impostazioni > Diagnostica**, che mostra anche le chiamate AI non
+riuscite (`ai_calls`). Tre cose da non rompere:
 
 - **Scrive anche a console spenta.** `EXPO_PUBLIC_CONSOLE_LOGGING=false` vale
   nelle build di release, cioe' proprio quelle sul telefono.
 - **`recordLog` non lancia e non registra i propri errori.** E' chiamata da
   `logger.error`: un guasto che ripassasse di li' si richiamerebbe all'infinito.
-  registro si condivide ed e' dentro il backup: e' la stessa chiave che
-  `aiKeyStore` tiene apposta fuori dal database.
+- **`redactSecrets` copre le forme di chiave che l'app usa DAVVERO.** Il
+  registro si condivide come file ed e' dentro il backup: e' la stessa chiave
+  che `aiKeyStore` tiene apposta fuori dal database. Copriva `gsk_`/`sk_` e
+  `Bearer`, cioe' Groq e OpenAI, e dal passaggio a Gemini non nascondeva piu'
+  niente - una chiave `AIza...` o `AQ....` passava intera. Ora ci sono anche
+  quelle due forme e `?key=` in una URL. Chi cambia provider aggiunge la forma
+  nuova qui, prima di committare.
+
+Per lo stesso motivo la chiave dell'endpoint nativo va nell'header
+`x-goog-api-key` e non in `?key=`: un errore di rete si porta dietro la URL, e
+quel testo finisce in `app_logs`.
 
 Il collegamento passa da `setLogSink`, installato da `initDatabase()`, e non da
 un import: `src/db` importa gia' `logger`, il verso opposto sarebbe un ciclo.

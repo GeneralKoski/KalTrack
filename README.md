@@ -41,14 +41,25 @@ npm test           # Jest
 - **Passi su iOS (HealthKit).** L'interfaccia `HealthProvider` in
   `src/services/healthConnect.ts` e' il punto d'innesto; su iOS i passi non
   arrivano da soli. Rimandato di proposito.
-- **Confronto con piu' persone e confronto in palestra.** Piano scritto:
-  [`docs/superpowers/plans/2026-08-30-confronto-multiplo-e-palestra.md`](docs/superpowers/plans/2026-08-30-confronto-multiplo-e-palestra.md).
 - **Verifica email e recupero password.** Al loro posto c'e' il reimposta
   password dell'amministratore, in Impostazioni.
+- **Moderazione dei cataloghi condivisi.** Alimenti ed esercizi sono comuni a
+  tutti gli iscritti e ciascuno corregge solo le proprie voci: nessuno puo'
+  togliere una riga altrui scritta male.
+- **Un secondo ambiente.** Il backend e' uno solo, quindi le migrazioni
+  debuttano in produzione. La scelta test/prod che `deploy.sh` propone non e'
+  mai stata configurata.
+- **Raccolta delle foto orfane.** Cancellando una foto dal telefono il file
+  resta sul server per sempre.
+
+Il resto dello stato aperto sta in [`HANDOFF.md`](HANDOFF.md).
 
 ## Configurazione
 
-Copiare `.env.example` in `.env`. Due variabili, entrambe facoltative: la
-chiave Groq accende l'assistente vocale, `EXPO_PUBLIC_API_URL` accende account
-e sincronizzazione. Senza nessuna delle due l'app funziona comunque, con meno
-cose.
+Copiare `.env.example` in `.env`. Due variabili: `EXPO_PUBLIC_GEMINI_API_KEY`
+accende l'AI (assistente vocale, stima da foto, lettura etichette),
+`EXPO_PUBLIC_API_URL` accende account e sincronizzazione. Entrambe facoltative:
+senza nessuna delle due l'app funziona comunque, con meno cose.
+
+La chiave finisce **nel bundle**, ed e' voluto - vedi [`CLAUDE.md`](CLAUDE.md)
+§ AI. Per questo l'APK non si distribuisce.
