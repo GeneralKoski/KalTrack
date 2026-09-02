@@ -31,12 +31,11 @@ import { logger } from "@/src/utils/logger";
  * dei figli, altrimenti una riga figlia arriva quando il suo padre non esiste
  * ancora e la foreign key la rifiuta.
  *
- * Fuori di proposito:
- *  - `ai_calls`, che e' il registro locale dei costi delle chiamate AI e non
- *    e' un dato dell'utente da portarsi su un altro telefono;
- *  - `progress_photos`, le cui righe puntano a file che sull'altro telefono
- *    non esistono: la riga arriverebbe e la foto sarebbe rotta. Rientrera'
- *    quando i file avranno un posto dove stare.
+ * Chi aggiunge una tabella in una migrazione la aggiunge anche qui, oppure la
+ * dichiara in `LOCAL_ONLY_TABLES`. Il test `sync.test.ts` confronta i due
+ * elenchi con lo schema reale e fallisce se una tabella non sta in nessuno dei
+ * due: e' il controllo che mancava quando `progress_photos` e' rimasta fuori
+ * dalla sincronizzazione per settimane senza che niente lo dicesse.
  */
 export const SYNCED_TABLES = [
   "meal_types",
@@ -52,6 +51,7 @@ export const SYNCED_TABLES = [
   "step_logs",
   "water_logs",
   "body_measurements",
+  "progress_photos",
   "fasting_windows",
   "achievements",
   "reminders",
@@ -67,6 +67,25 @@ export const SYNCED_TABLES = [
 ] as const;
 
 export type SyncedTable = (typeof SYNCED_TABLES)[number];
+
+/**
+ * Le tabelle che NON viaggiano, e il motivo per ciascuna.
+ *
+ * Sta qui e non in un commento perche' il test la legge: una tabella nuova
+ * deve finire in un elenco o nell'altro, e la scelta va dichiarata.
+ *
+ * `progress_photos` e' stata qui fino al 2 settembre 2026, con la motivazione
+ * che le sue righe puntano a file inesistenti sull'altro telefono. Da quando
+ * `photoSync.ts` porta i byte e `SyncedPhoto` disegna il segnaposto per quel
+ * che non e' ancora arrivato, la motivazione e' caduta: le altre tre
+ * colonne-percorso viaggiavano gia' cosi'.
+ */
+export const LOCAL_ONLY_TABLES: Record<string, string> = {
+  /** Il registro dei costi delle chiamate AI: e' storia di questo telefono. */
+  ai_calls: "registro locale, non e' un dato dell'utente",
+  /** La diagnostica: descrive i guasti di questa installazione. */
+  app_logs: "diagnostica locale, vedi CLAUDE.md § La diagnostica",
+};
 
 
 /**

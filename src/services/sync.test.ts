@@ -16,6 +16,7 @@ import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 import {
   applyChanges,
   collectChanges,
+  LOCAL_ONLY_TABLES,
   SYNCED_TABLES,
   type SyncChange,
 } from "@/src/services/sync";
@@ -134,9 +135,11 @@ describe("cosa parte dal telefono", () => {
   });
 
   it("non manda i registri che restano sul telefono", () => {
-    // ai_calls e' il conto dei costi AI, progress_photos punta a file locali.
+    // Il conto dei costi AI e la diagnostica sono storia di QUESTA
+    // installazione: su un altro telefono sarebbero il racconto di guasti che
+    // non ci sono stati.
     expect(SYNCED_TABLES).not.toContain("ai_calls");
-    expect(SYNCED_TABLES).not.toContain("progress_photos");
+    expect(SYNCED_TABLES).not.toContain("app_logs");
   });
 
   /** I padri prima dei figli: al contrario le foreign key rifiutano le righe. */
@@ -836,5 +839,92 @@ describe("impostazioni di questo telefono", () => {
 
     // Senza, l'altro telefono riapplicherebbe il piano e duplicherebbe i pasti.
     expect(chiavi).toContain("plan_applied:2026-08-29");
+  });
+});
+
+describe("l'elenco delle tabelle contro lo schema", () => {
+  /**
+   * Il difetto che questo test blocca: `progress_photos` e' rimasta fuori da
+   * `SYNCED_TABLES` per settimane dopo che la sua unica ragione di esclusione
+   * (i file non avevano un posto dove stare) era stata risolta. Nessun test
+   * guardava l'elenco, quindi la sincronizzazione taceva e le foto dei
+   * progressi semplicemente non arrivavano sul secondo telefono.
+   *
+   * `BACKUP_TABLES` aveva questo controllo dalla Fase 3. Qui mancava.
+   */
+  it("ogni tabella dello schema sta in un elenco o nell'altro", async () => {
+    const database = await getDb();
+    const rows = await database.getAllAsync<{ name: string }>(
+      `SELECT name FROM sqlite_master
+        WHERE type = 'table' AND name NOT LIKE 'sqlite_%'`,
+    );
+
+    const dichiarate = new Set([
+      ...SYNCED_TABLES,
+      ...Object.keys(LOCAL_ONLY_TABLES),
+    ]);
+    const senzaCasa = rows
+      .map((r) => r.name)
+      .filter((name) => !dichiarate.has(name as never))
+      .sort();
+
+    expect(senzaCasa).toEqual([]);
+  });
+
+  it("nessuna tabella sta in entrambi gli elenchi", () => {
+    const doppie = SYNCED_TABLES.filter(
+      (table) => table in LOCAL_ONLY_TABLES,
+    );
+    expect(doppie).toEqual([]);
+  });
+
+  /**
+   * `collectChanges` gira su ogni tabella con
+   * `WHERE updated_at > ? ORDER BY updated_at, rowid`. Senza indice erano
+   * ventisei scansioni complete per giro, fino a venti giri: la voce di costo
+   * piu' grande di un'operazione che parte a ogni apertura dell'app.
+   */
+  it("ogni tabella sincronizzata ha un indice su updated_at", async () => {
+    const database = await getDb();
+    const senzaIndice: string[] = [];
+
+    for (const table of SYNCED_TABLES) {
+      // `settings` ha `key` come chiave primaria e una manciata di righe: la
+      // scansione costa meno dell'indice da mantenere.
+      if (table === "settings") continue;
+
+      const plan = await database.getAllAsync<{ detail: string }>(
+        `EXPLAIN QUERY PLAN
+         SELECT * FROM ${table} WHERE updated_at > ? ORDER BY updated_at, rowid`,
+        ["2026-01-01T00:00:00.000Z"],
+      );
+      const usaIndice = plan.some((r) => /USING INDEX/i.test(r.detail));
+      if (!usaIndice) senzaIndice.push(table);
+    }
+
+    expect(senzaIndice).toEqual([]);
+  });
+
+  it("porta le righe delle foto dei progressi", async () => {
+    const database = await getDb();
+    await database.runAsync(
+      `INSERT INTO progress_photos (id, date, uri, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        "p1",
+        "2026-09-02",
+        "file:///photos/progress-p1.jpg",
+        "2026-09-02T08:00:00.000Z",
+        "2026-09-02T08:00:00.000Z",
+      ],
+    );
+
+    const changes = await collectChanges(null);
+    const foto = changes.find((c) => c.table === "progress_photos");
+
+    expect(foto?.id).toBe("p1");
+    // I byte viaggiano a parte (photoSync.ts): qui deve arrivare il NOME, che
+    // e' l'unica parte del percorso che i due telefoni condividono.
+    expect(foto?.payload.uri).toBe("file:///photos/progress-p1.jpg");
   });
 });
