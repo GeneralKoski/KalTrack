@@ -99,7 +99,8 @@
       ],
       "react-native-health-connect",
       "./plugins/withAssistantShortcut",
-      "./plugins/withHomeWidget"
+      "./plugins/withHomeWidget",
+      "expo-asset"
     ],
     "experiments": {
       "reactCompiler": true

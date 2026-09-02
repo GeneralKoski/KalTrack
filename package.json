@@ -25,6 +25,7 @@
     "axios": "^1.15.0",
     "dayjs": "^1.11.20",
     "expo": "~55.0.12",
+    "expo-asset": "~55.0.20",
     "expo-audio": "~55.0.18",
     "expo-build-properties": "~55.0.12",
     "expo-camera": "~55.0.23",
