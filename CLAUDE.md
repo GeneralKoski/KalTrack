@@ -6,10 +6,22 @@ Guida per Claude Code (claude.ai/code) su questo repository.
 
 App mobile personale (iOS e Android, focus Android) per il tracking di
 alimentazione, peso, passi e allenamento, con un assistente vocale AI come modo
-principale di inserimento dati. Utente singolo, nessun account.
+principale di inserimento dati.
+
+**Oggi: utente singolo, nessun account.** L'account esiste (accesso,
+sincronizzazione, amici) ma non serve per usare l'app, e questa parte non
+cambia mai: il telefono resta la fonte di verita' e senza rete si mangia
+comunque.
+
+**In programma: un rilascio pubblico con le funzioni AI a pagamento.** Non e'
+un'ipotesi, e ha una conseguenza che riguarda chi lavora sul codice **da subito**
+e non il giorno del rilascio: la chiave Gemini sta nel bundle, ed e' una scelta
+valida **solo** perche' l'APK non si distribuisce (vedi § AI). Il piano sta in
+`TODO.md` § 3.
 
 - Design: `docs/superpowers/specs/2026-08-28-kaltrack-design.md`
 - Piano Fase 1: `docs/superpowers/plans/2026-08-28-kaltrack-fase-1-nutrizione.md`
+- Cose da fare: `TODO.md`
 
 ## Comandi
 
@@ -551,6 +563,24 @@ e' una scelta, non una dimenticanza. Cosi' l'AI e' attiva al primo avvio senza
 configurazione e a costo zero (Free Tier, 1.500 richieste al giorno), e l'APK non
 si distribuisce. Chi vuole la propria la mette da Impostazioni e ha la
 precedenza (`aiKeyStore`, `aiKey()`).
+
+**Quella scelta ha una data di scadenza, ed e' l'unica condizione che la
+regge.** Il rilascio pubblico con le funzioni AI a pagamento e' in programma
+(§ Cos'e' KalTrack), e una chiave dentro un APK distribuito si estrae in pochi
+minuti: a consumo, verrebbe usata sul conto di chi pubblica. Quindi **prima del
+rilascio le chiamate AI passano dal backend**, che tiene la chiave, verifica il
+diritto dell'utente e chiama Gemini. Due conseguenze per chi lavora sul codice
+oggi:
+
+- **niente logica di prezzo o di diritto lato client.** Disattivare il
+  microfono nell'app e' un cartello, non una serratura: si aggira
+  ripacchettizzando l'APK. Il controllo vive dove vive la chiave, cioe' sul
+  server.
+- **`aiKeyStore` resta.** Chi mette la propria chiave continua a pagarsela da
+  solo e non passa dal proxy, ed e' la via d'uscita per chi non si abbona. Non
+  e' codice morto da togliere quando arrivera' il proxy.
+
+Il piano completo, con quel che manca lato server, sta in `TODO.md` § 3.
 
 Non va salvata in `settings`: quella tabella si sincronizza, e la chiave
 finirebbe sul server in chiaro dentro `sync_records`. E non va nella URL: vedi

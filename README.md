@@ -33,11 +33,20 @@ npm test           # Jest
 - Design: [`docs/superpowers/specs/2026-08-28-kaltrack-design.md`](docs/superpowers/specs/2026-08-28-kaltrack-design.md)
 - Piano Fase 1: [`docs/superpowers/plans/2026-08-28-kaltrack-fase-1-nutrizione.md`](docs/superpowers/plans/2026-08-28-kaltrack-fase-1-nutrizione.md)
 - Convenzioni di sviluppo: [`CLAUDE.md`](CLAUDE.md)
-- Stato del progetto e lavoro aperto: [`HANDOFF.md`](HANDOFF.md)
+- Stato del progetto: [`HANDOFF.md`](HANDOFF.md)
+- Cose da fare: [`TODO.md`](TODO.md)
 - Server, privacy e sincronizzazione: [`backend/README.md`](backend/README.md)
 
 ## Da fare
 
+- **Il primo avvio.** Nessun benvenuto e nessun profilo: chi apre l'app la
+  prima volta atterra su Oggi con tutto a zero. Quasi tutti i pezzi esistono
+  gia' (`TargetsScreen`, `MeasurementsScreen`, `AccountForm`, `themeStore`):
+  manca il flusso che ci accompagna.
+- **Abbonamento e funzioni AI a pagamento.** L'app verra' rilasciata al
+  pubblico con l'AI a pagamento. La prima voce non e' l'abbonamento ma la
+  **chiave**: oggi sta nel bundle, ed e' una scelta valida solo finche' l'APK
+  non si distribuisce. Prima del rilascio le chiamate AI passano dal backend.
 - **Passi su iOS (HealthKit).** L'interfaccia `HealthProvider` in
   `src/services/healthConnect.ts` e' il punto d'innesto; su iOS i passi non
   arrivano da soli. Rimandato di proposito.
@@ -49,10 +58,12 @@ npm test           # Jest
 - **Un secondo ambiente.** Il backend e' uno solo, quindi le migrazioni
   debuttano in produzione. La scelta test/prod che `deploy.sh` propone non e'
   mai stata configurata.
-- **Raccolta delle foto orfane.** Cancellando una foto dal telefono il file
-  resta sul server per sempre.
+- **Le foto orfane sul server.** Dal 2 settembre il telefono le raccoglie da
+  solo (`collectOrphanPhotos`), ma `storage/app/private/images` cresce e non
+  scende: il lato server non c'e'.
 
-Il resto dello stato aperto sta in [`HANDOFF.md`](HANDOFF.md).
+L'elenco completo, con le caselle da spuntare, sta in [`TODO.md`](TODO.md); lo
+stato del progetto in [`HANDOFF.md`](HANDOFF.md).
 
 ## Configurazione
 

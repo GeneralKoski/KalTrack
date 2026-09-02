@@ -30,7 +30,7 @@ nuova, e lo scanner in particolare non si puo' verificare altrove.
 | expo-doctor | 18 su 20. Uno e' `react-native-web` mancante, rosso di proposito (§ Architettura in `CLAUDE.md`); l'altro sono 17 pacchetti fuori versione |
 | Ramo | `main`. Si committa sempre qui, mai su un ramo a parte |
 | Server | `kaltrack.martin-trajkovski.it`, 17 migrazioni applicate. **Il codice backend e' avanti di un commit**: vedi § Il lavoro aperto |
-| Schema locale | 14 migrazioni (la 014 aggiunge gli indici su `updated_at`) |
+| Schema locale | 15 migrazioni (la 015 aggiunge `ai_calls.cached_tokens`) |
 | APK | `kaltrack-1.0.3.apk` sul telefono, **anteriore alle correzioni del 2 settembre**. `./scripts/build-apk.sh 1.0.4` per il prossimo |
 
 ## Cosa gira dove
@@ -61,6 +61,10 @@ Reimpostare la password **disconnette da tutti i dispositivi**, telefono
 compreso: dopo, l'app chiede di rientrare.
 
 ## Il lavoro aperto
+
+L'elenco con le caselle da spuntare sta in [`TODO.md`](TODO.md), che e' il
+documento da tenere aggiornato. Qui sotto restano gli stessi punti col loro
+perche', che in una lista di cose da fare non ci starebbe.
 
 **1. Il backend va deployato.** Il 2 settembre sono cambiati
 `ImageController` (nome dei file e controllo del tipo) e `routes/api.php`
@@ -461,6 +465,13 @@ quello dell'ultimo push.
    a costo zero e l'APK non si distribuisce. Chi vuole la propria la mette da
    Impostazioni (`aiKeyStore`, SecureStore) e ha la precedenza. Vedi
    `CLAUDE.md` § AI.
+
+   **E' l'unico presupposto del progetto con una scadenza nota.** Il rilascio
+   pubblico con le funzioni AI a pagamento e' in programma, e una chiave dentro
+   un APK distribuito si estrae in pochi minuti - a consumo, sul conto di chi
+   pubblica. Prima di pubblicare le chiamate AI devono passare dal backend, che
+   tiene la chiave e verifica il diritto. Non si rimanda a dopo: dopo la chiave
+   e' gia' fuori. Piano in `TODO.md` § 3.
 3. **Non salvare mai niente di segreto in `settings`**: e' una tabella
    sincronizzata, finirebbe sul server in chiaro.
 4. **Mai `DELETE FROM` su una tabella sincronizzata.** Le cinque regole della
