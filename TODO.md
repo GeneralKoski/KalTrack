@@ -73,8 +73,11 @@ prima di stimare il lavoro:
 | Piano alimentare personalizzato | si' | `generateMealPlan` |
 
 Manca **una cosa sola: nessuno ci accompagna.** Non esiste alcuna rilevazione
-del primo avvio in tutto il progetto (`grep onboarding` e `first_launch` non
-trovano niente). E' un flusso sopra schermate che ci sono, non un impianto
+del primo avvio. C'e' un `STORAGE_KEYS.FIRST_LAUNCH` in `src/consts.ts`, ma e'
+impalcatura del template arrivata col primo commit e **nessuno lo importa** -
+di quel file si usa solo `DB_NAME`. Quindi la chiave e' un nome, non un
+meccanismo: chi costruisce il flusso puo' usarla o toglierla, ma non si
+appoggia a niente. E' un flusso sopra schermate che ci sono, non un impianto
 nuovo.
 
 - [ ] **Benvenuto** con accesso o registrazione.
