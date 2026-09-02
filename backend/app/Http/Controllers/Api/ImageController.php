@@ -35,8 +35,23 @@ class ImageController extends Controller
      *
      * Non e' pignoleria: il nome finisce in un percorso su disco, e senza
      * questo controllo un `../` ci farebbe scrivere dove non dobbiamo.
+     *
+     * Il primo carattere non puo' essere un punto, e questo esclude `.` e `..`
+     * insieme ai file nascosti. Senza quel vincolo `..` passava - non contiene
+     * `/`, quindi la traversata vera restava esclusa, ma `images/{id}/..` e' un
+     * percorso che il codice qui sotto costruisce volentieri, e un nome deve
+     * nominare un file, non una cartella.
      */
-    private const NAME = '/^[A-Za-z0-9._-]{1,120}$/';
+    private const NAME = '/^[A-Za-z0-9_-][A-Za-z0-9._-]{0,119}$/';
+
+    /**
+     * Un archivio di immagini contiene immagini.
+     *
+     * `file` e `max` non dicono niente sul contenuto: qualunque cosa sotto i
+     * cinque megabyte entrava nella cartella. Il danno era contenuto, visto che
+     * la riscarica solo il proprietario, ma non e' un motivo per accettarla.
+     */
+    private const MIMES = 'jpg,jpeg,png,webp,heic,heif';
 
     /** Cosa c'e' gia', cosi' il telefono manda solo quel che manca. */
     public function index(Request $request): JsonResponse
@@ -48,7 +63,7 @@ class ImageController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'regex:'.self::NAME],
-            'file' => ['required', 'file', 'max:'.self::MAX_KB],
+            'file' => ['required', 'file', 'mimes:'.self::MIMES, 'max:'.self::MAX_KB],
         ]);
 
         $request->file('file')->storeAs(

@@ -55,7 +55,16 @@ Route::middleware('auth:sanctum')->group(function () {
      * controller e non qui, cosi' vive accanto a cio' che protegge.
      */
     Route::get('admin/users', [AdminController::class, 'users']);
-    Route::post('admin/users/{user}/password', [AdminController::class, 'resetPassword']);
+    /*
+     * Limitato per tentativi come `login` e `register`.
+     *
+     * Il controllo su `is_admin` sta nel controller e basta a fermare chi non
+     * lo e', ma questo endpoint assegna password: un limite lo rende anche
+     * inutile da usare a raffica, e un amministratore legittimo non ne cambia
+     * dieci al minuto.
+     */
+    Route::post('admin/users/{user}/password', [AdminController::class, 'resetPassword'])
+        ->middleware('throttle:10,1');
 
     Route::get('images', [ImageController::class, 'index']);
     Route::post('images', [ImageController::class, 'store']);

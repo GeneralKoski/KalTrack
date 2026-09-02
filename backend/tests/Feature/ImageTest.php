@@ -110,6 +110,43 @@ class ImageTest extends TestCase
         ])->assertStatus(422);
     }
 
+    /**
+     * `..` da solo passava il regex: non contiene `/`, quindi la traversata
+     * vera resta esclusa, ma `images/{id}/..` e' un percorso che il codice
+     * costruisce volentieri. Un nome deve nominare un file, non una cartella.
+     */
+    public function test_un_nome_fatto_di_soli_punti_viene_rifiutato(): void
+    {
+        $anna = $this->user('anna');
+
+        foreach (['.', '..', '...'] as $name) {
+            $this->actingAs($anna)->postJson('/api/images', [
+                'name' => $name,
+                'file' => UploadedFile::fake()->image('x.jpg'),
+            ])->assertStatus(422);
+
+            $this->actingAs($anna)
+                ->getJson('/api/images/'.$name)
+                ->assertNotFound();
+        }
+    }
+
+    /**
+     * Cinque megabyte di qualunque cosa entravano nella cartella: `file` e
+     * `max` non dicono niente sul contenuto. Il danno era contenuto - la
+     * riscarica solo il proprietario - ma un archivio di immagini contiene
+     * immagini.
+     */
+    public function test_un_file_che_non_e_una_immagine_viene_rifiutato(): void
+    {
+        $anna = $this->user('anna');
+
+        $this->actingAs($anna)->postJson('/api/images', [
+            'name' => 'finta.jpg',
+            'file' => UploadedFile::fake()->create('finta.jpg', 10, 'application/pdf'),
+        ])->assertStatus(422);
+    }
+
     public function test_una_foto_troppo_grande_viene_rifiutata(): void
     {
         $anna = $this->user('anna');
