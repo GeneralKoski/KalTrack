@@ -42,9 +42,32 @@ describe("splitScope", () => {
 });
 
 describe("redactSecrets", () => {
-  it("nasconde una chiave Groq scritta da sola", () => {
+  it("nasconde una chiave Groq scritta da sola (registri anteriori a Gemini)", () => {
     expect(redactSecrets("chiave gsk_abcdefgh12345678 rifiutata")).toBe(
       "chiave gsk_<nascosta> rifiutata",
+    );
+  });
+
+  it("nasconde le due forme della chiave Google AI Studio", () => {
+    // Dal passaggio a Gemini il registro non nascondeva piu' niente: le forme
+    // coperte erano solo quelle di Groq e OpenAI.
+    expect(
+      redactSecrets("chiave rifiutata: AIzaSyD-1a2b3c4d5e6f7g8h9i0jKLMNOP"),
+    ).toBe("chiave rifiutata: AIza<nascosta>");
+    expect(
+      redactSecrets("chiave rifiutata: AQ.Ab8RN6JzQw_1a2b3c4d5e6f7g8h"),
+    ).toBe("chiave rifiutata: AQ.<nascosta>");
+  });
+
+  it("nasconde la chiave passata nella URL", () => {
+    // L'endpoint nativo la accettava in `?key=`, e un errore di rete si porta
+    // dietro la URL intera.
+    expect(
+      redactSecrets(
+        "POST https://generativelanguage.googleapis.com/v1beta/models/x:generateContent?key=AIzaSyD1a2b3c4d5e6f7g8 fallita",
+      ),
+    ).toBe(
+      "POST https://generativelanguage.googleapis.com/v1beta/models/x:generateContent?key=<nascosta> fallita",
     );
   });
 

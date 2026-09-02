@@ -342,10 +342,21 @@ export async function transcribeAudio(args: {
     : "Trascrivi fedelmente e integralmente il parlato in lingua italiana. Restituisci SOLO ed esclusivamente il testo trascritto, senza virgolette, senza premesse e senza commenti.";
 
   try {
-    const url = `${GEMINI_NATIVE_BASE_URL}/models/${args.model}:generateContent?key=${aiKey()}`;
+    /*
+     * La chiave va nell'header, non in `?key=`.
+     *
+     * L'endpoint nativo accetta entrambi, ma un errore di rete si porta dietro
+     * la URL: quel testo finisce in `app_logs`, che si condivide come file ed
+     * e' dentro il backup del telefono. Era la stessa chiave che `aiKeyStore`
+     * tiene apposta fuori dal database, pubblicata da un'altra porta.
+     */
+    const url = `${GEMINI_NATIVE_BASE_URL}/models/${args.model}:generateContent`;
     const response = await withTimeout(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": aiKey(),
+      },
       body: JSON.stringify({
         contents: [
           {

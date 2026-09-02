@@ -37,13 +37,25 @@ let sinceLastPrune = PRUNE_EVERY;
  *
  * Il registro esce dall'app: si condivide come file e finisce dentro il
  * backup. Un messaggio d'errore che si porta dietro l'header `Authorization`
- * o una chiave `gsk_...` la pubblicherebbe, ed e' esattamente la chiave che
- * `aiKeyStore` tiene apposta fuori dal database.
+ * o una chiave la pubblicherebbe, ed e' esattamente la chiave che `aiKeyStore`
+ * tiene apposta fuori dal database.
+ *
+ * Le forme coperte sono quattro, e nessuna e' teorica:
+ *  - `Bearer ...`, l'header con cui parte ogni chiamata AI;
+ *  - `gsk_`/`sk_`, le chiavi di Groq e OpenAI - resta per i registri scritti
+ *    prima del passaggio a Gemini, che sono ancora nel database;
+ *  - `AIza...` e `AQ....`, le due forme delle chiavi Google AI Studio;
+ *  - `key=...` in una URL, che e' come l'endpoint nativo accettava la chiave
+ *    prima del 2 settembre 2026. Le due ultime mancavano: dal passaggio a
+ *    Gemini il registro non nascondeva piu' niente.
  */
 export function redactSecrets(text: string): string {
   return text
     .replace(/(Bearer\s+)\S+/gi, "$1<nascosta>")
-    .replace(/\b(gsk|sk)_[A-Za-z0-9_-]{8,}/g, "$1_<nascosta>");
+    .replace(/\b(gsk|sk)_[A-Za-z0-9_-]{8,}/g, "$1_<nascosta>")
+    .replace(/\bAIza[A-Za-z0-9_-]{10,}/g, "AIza<nascosta>")
+    .replace(/\bAQ\.[A-Za-z0-9_.-]{10,}/g, "AQ.<nascosta>")
+    .replace(/([?&](?:key|api_key)=)[^&\s"']+/gi, "$1<nascosta>");
 }
 
 const asText = (value: unknown): string => {
@@ -160,7 +172,7 @@ export interface FailedAiCall {
 /**
  * Le chiamate AI non riuscite.
  *
- * `ai_calls` registra da sempre l'errore del provider - il 400 di Groq col
+ * `ai_calls` registra da sempre l'errore del provider - il 400 del modello col
  * corpo della risposta - e non lo leggeva nessuno: la diagnosi c'era ed era
  * sepolta. Sta qui e non in un file suo perche' e' diagnostica, come il
  * registro, e si guarda nello stesso momento.
