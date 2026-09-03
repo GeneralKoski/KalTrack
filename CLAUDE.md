@@ -467,6 +467,34 @@ React Navigation 7.x con API statica (`createStaticNavigation`). I tipi sono
 generati da `StaticParamList` in `src/navigation/index.tsx`. `useAppNav`
 centralizza l'unico cast necessario.
 
+### Il primo avvio
+
+Sei passi (`src/navigation/onboardingStack.tsx`, `OnboardingStep` in
+`src/domain/onboarding.ts`), annidati in `RootStack` come "Onboarding" - stesso
+schema di `Tab`. `App.tsx` idrata `onboardingStore` **prima** di montare
+`<Navigation />`: la scelta fra atterrare su Oggi o sul wizard si legge una
+volta sola all'avvio, passata a `StaticNavigation` come `initialState`, che
+React Navigation rispetta solo al primo montaggio.
+
+Riprendendo un abbandono a meta', `initialState` non punta solo al passo
+salvato: ricostruisce **tutta** la cronologia fino a li', altrimenti
+"Indietro" al primo passo dopo la ripresa non avrebbe dove tornare.
+`onboarding_step` e' locale (`LOCAL_ONLY_SETTINGS`, come `plan_applied` non lo
+e' per il motivo opposto - vedi § Sincronizzazione): dice a che punto e'
+arrivato QUESTO telefono, non un fatto sui dati. `onboarding_completed` invece
+sincronizza, cosi' un secondo dispositivo sullo stesso account non lo rifa'.
+
+**`saveProfile` e' un upsert su riga unica**, non un aggiornamento parziale:
+ogni passo che tocca `profile` (dati base, poi attivita'/obiettivo) rilegge
+prima l'intera riga e la riscrive per intero, o il passo successivo
+sovrascriverebbe con i default i campi che un passo precedente aveva gia'
+scritto.
+
+Il "Fine" dell'ultimo passo non naviga: `resetToTabs()` (in `useAppNav.ts`)
+azzera tutta la cronologia su `Tabs` con l'imperativo `navigationRef`, perche'
+un `navigate` da dentro lo stack annidato lascerebbe "Onboarding" sotto -
+l'indietro da Oggi ci rientrerebbe.
+
 ### Dove vive il microfono
 
 `AssistantButton` e' montato **dentro `TodayScreen`**, non sopra la navigazione.
@@ -476,14 +504,16 @@ passi, peso e obiettivi - esattamente quel che sta su Oggi - e in palestra non
 toccava niente. Globale, seguiva l'utente in dodici schermate dove non poteva
 fare nulla, e in due si sedeva sopra un interruttore.
 
-**La premessa oggi non vale piu', e la scelta va rifatta.**
-`src/ai/tools/registry.ts` ha **tredici** strumenti, e tre riguardano la
-palestra: `create_exercise`, `create_routine`, `log_workout`. L'assistente sa
-registrare una serie e il microfono non e' raggiungibile da dove lo si direbbe -
-con le mani sul bilanciere, "tre per otto a sessanta" e' piu' veloce di
-qualunque campo. Chi riapre la questione tenga presente l'aritmetica del
-paragrafo seguente: e' il motivo per cui montarlo sopra il navigatore non e'
-gratis.
+**La domanda e' stata riaperta e richiusa il 3 settembre 2026** (`TODO.md`
+§ 7). `src/ai/tools/registry.ts` ha **tredici** strumenti, e tre riguardano la
+palestra: `create_exercise`, `create_routine`, `log_workout`. Con le mani sul
+bilanciere il microfono sarebbe piu' veloce di qualunque campo, ma la scelta
+di prodotto resta: l'AI in palestra fa solo `create_routine` - generazione
+scheda su richiesta, com'e' oggi da `GenerateRoutineScreen` - e il microfono
+resta su Oggi. `create_exercise` e `log_workout` restano nel registro ma non
+diventano un percorso da costruire. Chi la riapre ancora tenga presente
+l'aritmetica del paragrafo seguente: e' il motivo per cui montarlo sopra il
+navigatore non sarebbe stato gratis.
 
 Il guadagno tecnico e' che sparisce l'aritmetica: montato fuori dal navigatore
 il microfono si misurava dal fondo della **finestra**, mentre il "+" di una

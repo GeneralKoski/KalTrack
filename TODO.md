@@ -59,63 +59,16 @@ Tutto coperto dai test, **niente visto funzionare**.
 
 ## 2. Il primo avvio
 
-Oggi chi apre l'app la prima volta **atterra su Oggi con tutto a zero**: nessun
-benvenuto, nessuna domanda, nessun profilo. Gli obiettivi restano quelli di
-serie finche' non si va a cercarli in Impostazioni, e l'assistente consiglia
-senza sapere ne' l'eta' ne' l'altezza ne' cosa si sta cercando di fare.
-
-**Quasi tutto quel che serve esiste gia'**, e questa e' la parte da sapere
-prima di stimare il lavoro:
-
-| Serve | C'e' gia' | Dove |
-|---|---|---|
-| Sesso, data di nascita, altezza, livello di attivita', obiettivo | si', con calcolo di BMR e TDEE | `TargetsScreen`, `src/domain/targets.ts`, tabella `profile` |
-| Peso e misure | si' | `MeasurementsScreen` |
-| Accesso e registrazione | si' | `AccountForm` (`src/containers/social/`) |
-| Scelta del tema (sistema / chiaro / scuro) | si', gia' persistita | `themeStore` |
-| Piano alimentare personalizzato | si' | `generateMealPlan` |
-
-Manca **una cosa sola: nessuno ci accompagna.** Non esiste alcuna rilevazione
-del primo avvio. C'e' un `STORAGE_KEYS.FIRST_LAUNCH` in `src/consts.ts`, ma e'
-impalcatura del template arrivata col primo commit e **nessuno lo importa** -
-di quel file si usa solo `DB_NAME`. Quindi la chiave e' un nome, non un
-meccanismo: chi costruisce il flusso puo' usarla o toglierla, ma non si
-appoggia a niente. E' un flusso sopra schermate che ci sono, non un impianto
-nuovo.
-
-- [ ] **Benvenuto** con accesso o registrazione.
-- [ ] **Passi di completamento del profilo**: misure, obiettivo, preferenze,
-      livello di attivita'. Chiedere una volta all'inizio invece di dedurre o
-      di domandare al momento del bisogno.
-- [ ] **Scelta del tema** e le altre preferenze d'apertura.
-- [ ] **Rilevazione del primo avvio** e un modo di riprendere il flusso se lo
-      si abbandona a meta'.
-
-### Due vincoli, e il primo non e' negoziabile
-
-- **La registrazione non puo' sbarrare l'ingresso.** `CLAUDE.md` apre con
-  "utente singolo, nessun account", e la regola sopra a tutte e' che l'app
-  funziona **senza rete e senza account**: il telefono e' la fonte di verita',
-  il server tiene una copia. Un benvenuto che pretende un accesso prima di far
-  entrare rovescia esattamente quella promessa, e la rovescia nel momento
-  peggiore - quando uno prova l'app per la prima volta, magari senza campo.
-  **"Salta" dev'essere un'opzione di pari dignita'**, non un rimando in
-  grigetto: l'account serve alla sincronizzazione e agli amici, non a mangiare.
-- **Dove vive il segnaposto di "profilo completato" e' una decisione, non un
-  dettaglio.** `settings` si sincronizza, quindi un segnaposto messo li'
-  viaggia e il secondo telefono **non richiede** dati gia' dati - che e' quel
-  che si vuole, visto che il profilo viaggia con lui. Il tema invece parla del
-  dispositivo e va in `LOCAL_ONLY_SETTINGS`: e' la quarta regola della
-  sincronizzazione, e sbagliarla qui vuol dire un telefono che si scurisce da
-  solo perche' l'altro ha scelto cosi'.
-
-### Perche' vale la pena
-
-Non e' cosmesi: e' l'unico momento in cui chiedere quei dati **non e'
-un'interruzione**. Oggi TDEE, obiettivi e piani lavorano su valori di serie finche'
-qualcuno non li corregge a mano, e quasi nessuno lo fa. E' anche l'occasione di
-far vedere che l'app funziona **prima** di chiedere un account, che e' un
-argomento migliore di qualunque schermata di benvenuto.
+**Fatto il 3 settembre 2026.** Sei passi (`src/navigation/onboardingStack.tsx`,
+schermate `Onboarding*Screen` in `src/navigation/screens/`): benvenuto con
+accesso/registrazione o "Salta" di pari dignita', dati base (sesso/data
+nascita/altezza), peso, attivita'/obiettivo, target giornalieri precompilati
+da `suggestTargets` e modificabili, scelta del tema. Rilevazione del primo
+avvio e ripresa dal passo esatto via `onboarding_step`/`onboarding_completed`
+in `settings` (`src/stores/onboardingStore.ts`) - il primo locale, il secondo
+sincronizzato, cosi' un secondo dispositivo sullo stesso account non lo
+rifa'. `STORAGE_KEYS.FIRST_LAUNCH`, l'impalcatura morta che doveva servire a
+questo, e' stata tolta invece di essere riusata.
 
 ---
 
@@ -367,7 +320,7 @@ TypeScript che gira sul dispositivo, come gia' fanno `normalizeQuantities` e
       mai stata configurata (`.env.test` e `.env.prod` non esistono). Le
       migrazioni vanno dritte in produzione. **Se i dati sul server iniziano a
       contare, e' il primo debito da pagare.**
-- [ ] **`accessibilityLabel` sta in 12 file su 122**, e i tocchi sono quasi
+- [ ] **`accessibilityLabel` sta in 13 file su 134**, e i tocchi sono quasi
       tutti a sola icona: TalkBack legge una schermata di pulsanti senza nome.
       Ultima priorita' per un'app personale, ma e' l'unica area senza
       copertura.
