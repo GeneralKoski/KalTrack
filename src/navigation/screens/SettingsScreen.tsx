@@ -1,34 +1,46 @@
+import { Card, ScreenBackground } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
-import { Card, ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { Text } from "@/src/components/ui";
-import { AdminPasswordReset } from "@/src/containers/settings/AdminPasswordReset";
-import { AssistantSettings } from "@/src/containers/settings/AssistantSettings";
-import { HealthConnectSettings } from "@/src/containers/settings/HealthConnectSettings";
-import { ThemePicker } from "@/src/containers/settings/ThemePicker";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { useAccountStore } from "@/src/stores/accountStore";
+import { useThemeStore } from "@/src/stores/themeStore";
 import { theme } from "@/src/styles";
 import {
   ChevronLeft,
   ChevronRight,
+  HeartPulse,
+  Palette,
+  ShieldCheck,
+  Sparkles,
   Stethoscope,
   UtensilsCrossed,
 } from "lucide-react-native";
-import React, { useRef } from "react";
+import React from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
+/**
+ * Le impostazioni sono un elenco di voci, non una pagina che le contiene tutte.
+ *
+ * Ogni riga porta dentro, dove stanno le scelte con la spunta su quella attiva
+ * - la stessa forma della scelta del pasto nel foglio Aggiungi. Prima ogni
+ * sezione era stesa qui sotto la sua etichetta, e bastava aggiungerne una
+ * perche' quella dopo finisse sotto lo scorrimento.
+ *
+ * Il valore corrente si mostra dove la sezione E' una scelta sola (il tema).
+ * Sulle altre no: "Assistente: 2 impostazioni" non dice niente a nessuno.
+ */
 export function SettingsScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { goBack, navigate } = useAppNav();
   const { colors } = useAppTheme();
   const isAdmin = useAccountStore((s) => s.profile?.isAdmin ?? false);
-  const scrollRef = useRef<ScrollView>(null);
+  const themeMode = useThemeStore((s) => s.mode);
 
   return (
     <View style={styles.root}>
@@ -47,72 +59,76 @@ export function SettingsScreen() {
         </View>
 
         <ScrollView
-          ref={scrollRef}
           contentContainerStyle={[
             styles.content,
             { paddingBottom: insets.bottom + theme.spacing.lg },
           ]}
         >
-          <SectionLabel>{t("settings.theme")}</SectionLabel>
-          <ThemePicker />
-
-          <SectionLabel style={styles.section}>
-            {t("settings.assistant")}
-          </SectionLabel>
-          <AssistantSettings />
-
-          <SectionLabel style={styles.section}>
-            {t("settings.health")}
-          </SectionLabel>
-          <HealthConnectSettings />
-
-          <SectionLabel style={styles.section}>
-            {t("meal_types.title")}
-          </SectionLabel>
-          <Card style={styles.rowCard} onPress={() => navigate("MealTypes")}>
-            <UtensilsCrossed size={20} color={colors.textSecondary} />
-            <View style={styles.rowText}>
-              <Text style={[styles.rowTitle, { color: colors.text }]}>
-                {t("meal_types.settings_row")}
-              </Text>
-              <Text style={[styles.rowHint, { color: colors.textFaint }]}>
-                {t("meal_types.settings_hint")}
-              </Text>
-            </View>
-            <ChevronRight size={20} color={colors.textFaint} />
-          </Card>
-
-          <SectionLabel style={styles.section}>
-            {t("diagnostics.title")}
-          </SectionLabel>
-          <Card style={styles.rowCard} onPress={() => navigate("Diagnostics")}>
-            <Stethoscope size={20} color={colors.textSecondary} />
-            <View style={styles.rowText}>
-              <Text style={[styles.rowTitle, { color: colors.text }]}>
-                {t("diagnostics.open")}
-              </Text>
-              <Text style={[styles.rowHint, { color: colors.textFaint }]}>
-                {t("diagnostics.open_hint")}
-              </Text>
-            </View>
-            <ChevronRight size={20} color={colors.textFaint} />
-          </Card>
+          <SettingsRow
+            icon={<Palette size={20} color={colors.textSecondary} />}
+            label={t("settings.theme")}
+            value={t(`settings.theme_${themeMode}`)}
+            onPress={() => navigate("Appearance")}
+          />
+          <SettingsRow
+            icon={<Sparkles size={20} color={colors.textSecondary} />}
+            label={t("settings.assistant")}
+            onPress={() => navigate("AssistantSettings")}
+          />
+          <SettingsRow
+            icon={<HeartPulse size={20} color={colors.textSecondary} />}
+            label={t("settings.health")}
+            onPress={() => navigate("Health")}
+          />
+          <SettingsRow
+            icon={<UtensilsCrossed size={20} color={colors.textSecondary} />}
+            label={t("meal_types.settings_row")}
+            onPress={() => navigate("MealTypes")}
+          />
+          <SettingsRow
+            icon={<Stethoscope size={20} color={colors.textSecondary} />}
+            label={t("diagnostics.title")}
+            onPress={() => navigate("Diagnostics")}
+          />
 
           {/* Solo per l'amministratore. Il server rifiuta comunque gli altri:
               questa e' una comodita', non la difesa. */}
           {isAdmin ? (
-            <>
-              <SectionLabel style={styles.section}>
-                {t("admin.title")}
-              </SectionLabel>
-              <AdminPasswordReset />
-            </>
+            <SettingsRow
+              icon={<ShieldCheck size={20} color={colors.textSecondary} />}
+              label={t("admin.title")}
+              onPress={() => navigate("Admin")}
+            />
           ) : null}
         </ScrollView>
       </SafeAreaView>
     </View>
   );
 }
+
+const SettingsRow: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  value?: string;
+  onPress: () => void;
+}> = ({ icon, label, value, onPress }) => {
+  const { colors } = useAppTheme();
+
+  return (
+    <Card style={styles.rowCard} onPress={onPress}>
+      {icon}
+      <Text style={[styles.rowLabel, { color: colors.text }]} numberOfLines={1}>
+        {label}
+      </Text>
+      {value ? (
+        <Text style={[styles.rowValue, { color: colors.textMuted }]}>
+          {value}
+        </Text>
+      ) : null}
+      <ChevronRight size={20} color={colors.textFaint} />
+    </Card>
+  );
+};
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
@@ -133,16 +149,12 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     gap: theme.spacing.sm,
   },
-  section: {
-    marginTop: theme.spacing.md,
-  },
   rowCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.sm,
     padding: theme.spacing.md,
   },
-  rowText: { flex: 1, gap: 2 },
-  rowTitle: { fontSize: 15, fontWeight: "600" },
-  rowHint: { fontSize: 12 },
+  rowLabel: { flex: 1, fontSize: 15, fontWeight: "600" },
+  rowValue: { fontSize: 14 },
 });

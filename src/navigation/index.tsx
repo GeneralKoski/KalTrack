@@ -22,6 +22,9 @@ import { useAppTheme } from "@/src/components/ThemeContext";
 import { navigationRef } from "@/src/navigation/navigationRef";
 import { Text } from "@/src/components/ui";
 import { AchievementsScreen } from "@/src/navigation/screens/AchievementsScreen";
+import { AdminScreen } from "@/src/navigation/screens/AdminScreen";
+import { AppearanceScreen } from "@/src/navigation/screens/AppearanceScreen";
+import { AssistantSettingsScreen } from "@/src/navigation/screens/AssistantSettingsScreen";
 import { BackupScreen } from "@/src/navigation/screens/BackupScreen";
 import { ComparisonScreen } from "@/src/navigation/screens/ComparisonScreen";
 import { DiagnosticsScreen } from "@/src/navigation/screens/DiagnosticsScreen";
@@ -31,6 +34,7 @@ import { FriendProfileScreen } from "@/src/navigation/screens/FriendProfileScree
 import { FriendsScreen } from "@/src/navigation/screens/FriendsScreen";
 import { MyProfileScreen } from "@/src/navigation/screens/MyProfileScreen";
 import { MealPlanScreen } from "@/src/navigation/screens/MealPlanScreen";
+import { HealthScreen } from "@/src/navigation/screens/HealthScreen";
 import { MealTypesScreen } from "@/src/navigation/screens/MealTypesScreen";
 import { MeasurementsScreen } from "@/src/navigation/screens/MeasurementsScreen";
 import { ProgressPhotosScreen } from "@/src/navigation/screens/ProgressPhotosScreen";
@@ -197,6 +201,22 @@ const RootStack = createNativeStackNavigator({
     MealTypes: {
       screen: MealTypesScreen,
       linking: { path: "tipi-pasto" },
+    },
+    Appearance: {
+      screen: AppearanceScreen,
+      linking: { path: "aspetto" },
+    },
+    AssistantSettings: {
+      screen: AssistantSettingsScreen,
+      linking: { path: "assistente" },
+    },
+    Health: {
+      screen: HealthScreen,
+      linking: { path: "salute" },
+    },
+    Admin: {
+      screen: AdminScreen,
+      linking: { path: "admin" },
     },
     Exercises: {
       screen: ExercisesScreen,

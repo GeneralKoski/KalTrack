@@ -19,7 +19,12 @@ export interface NavParams {
   FoodForm: { id?: string; barcode?: string };
   Recipes: undefined;
   RecipeForm: { id?: string };
-  Settings: { focus?: "aiKey" };
+  Settings: undefined;
+  Appearance: undefined;
+  /** `focus: "aiKey"` arriva da "serve la chiave AI": il cursore parte nel campo. */
+  AssistantSettings: { focus?: "aiKey" };
+  Health: undefined;
+  Admin: undefined;
   Targets: undefined;
   Backup: undefined;
   Diagnostics: undefined;

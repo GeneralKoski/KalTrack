@@ -259,7 +259,7 @@ export const WeeklyCoachCard: React.FC = () => {
                 label={t("ai_key.missing_cta")}
                 variant="outlined"
                 fullWidth={false}
-                onPress={() => navigate("Settings", { focus: "aiKey" })}
+                onPress={() => navigate("AssistantSettings", { focus: "aiKey" })}
               />
             </View>
           ) : (

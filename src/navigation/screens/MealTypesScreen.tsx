@@ -1,5 +1,6 @@
 import { DfAlert } from "@/src/components/DfAlert";
-import { Card, ScreenBackground } from "@/src/components/kal";
+import { SettingsPage } from "@/src/containers/settings/SettingsPage";
+import { Card } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text, TextInput } from "@/src/components/ui";
 import {
@@ -9,26 +10,15 @@ import {
   renameMealType,
   setMealTypeHidden,
 } from "@/src/db/queries/diary";
-import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import type { MealTypeRow } from "@/src/types/nutrition";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
-import { Check, ChevronLeft, Pencil, Plus, Trash2 } from "lucide-react-native";
+import { Check, Pencil, Plus, Trash2 } from "lucide-react-native";
 import React, { useCallback, useState } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Switch,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 
 /**
  * Quali pasti si possono usare.
@@ -38,15 +28,13 @@ import {
  * dove si sceglie - foglio Aggiungi, piano pasti, assistente. Chi non fa mai
  * il brunch lo spegne e non lo vede piu'.
  *
- * I cinque predefiniti si spengono ma non si cancellano: i loro id sono
- * referenziati dal seed, dai test e dai tool dell'assistente. Quelli aggiunti
- * qui si rinominano e si eliminano.
+ * Si rinominano e si cancellano tutti, predefiniti compresi: l'unico vincolo
+ * e' che ne resti uno attivo, o il foglio Aggiungi non avrebbe una
+ * destinazione. Le righe gia' registrate restano nel diario in ogni caso.
  */
 export function MealTypesScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
-  const { goBack } = useAppNav();
-  const insets = useSafeAreaInsets();
 
   const loader = useCallback(() => listAllMealTypes(), []);
   const { data, reload } = useFocusData<MealTypeRow[]>(loader);
@@ -112,138 +100,112 @@ export function MealTypesScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <ScreenBackground />
-      <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={goBack} activeOpacity={0.6} hitSlop={10}>
-            <ChevronLeft size={26} color={colors.textSecondary} />
-          </TouchableOpacity>
-          <Text
-            style={[styles.title, { color: colors.text }]}
-            numberOfLines={1}
-          >
-            {t("meal_types.title")}
-          </Text>
-        </View>
+    <SettingsPage title={t("meal_types.title")}>
+      <Text style={[styles.hint, { color: colors.textMuted }]}>
+        {t("meal_types.hint")}
+      </Text>
 
-        <ScrollView
-          contentContainerStyle={[
-            styles.content,
-            { paddingBottom: insets.bottom + theme.spacing.lg },
-          ]}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text style={[styles.hint, { color: colors.textMuted }]}>
-            {t("meal_types.hint")}
-          </Text>
+      <Card style={styles.card}>
+        {types.map((type) => {
+          const attivo = type.hidden === 0;
+          /* L'ultimo attivo non si spegne e non si cancella: senza, il
+             foglio Aggiungi non ha una destinazione. */
+          const bloccato = attivo && visibili === 1;
 
-          <Card style={styles.card}>
-            {types.map((type) => {
-              const attivo = type.hidden === 0;
-              /* L'ultimo acceso resta acceso: senza un pasto attivo il foglio
-                 Aggiungi non ha una destinazione. */
-              const bloccato = attivo && visibili === 1;
+          if (editingId === type.id) {
+            return (
+              <View key={type.id} style={styles.row}>
+                <TextInput
+                  value={editingName}
+                  onChangeText={setEditingName}
+                  autoFocus
+                  style={[
+                    styles.input,
+                    { color: colors.text, borderColor: colors.border },
+                  ]}
+                  onSubmitEditing={() => void rinomina()}
+                />
+                <TouchableOpacity
+                  onPress={() => void rinomina()}
+                  activeOpacity={0.6}
+                  hitSlop={8}
+                >
+                  <Check size={20} color={colors.accent} />
+                </TouchableOpacity>
+              </View>
+            );
+          }
 
-              if (editingId === type.id) {
-                return (
-                  <View key={type.id} style={styles.row}>
-                    <TextInput
-                      value={editingName}
-                      onChangeText={setEditingName}
-                      autoFocus
-                      style={[
-                        styles.input,
-                        { color: colors.text, borderColor: colors.border },
-                      ]}
-                      onSubmitEditing={() => void rinomina()}
-                    />
-                    <TouchableOpacity
-                      onPress={() => void rinomina()}
-                      activeOpacity={0.6}
-                      hitSlop={8}
-                    >
-                      <Check size={20} color={colors.accent} />
-                    </TouchableOpacity>
-                  </View>
-                );
-              }
+          return (
+            <View key={type.id} style={styles.row}>
+              <Text
+                style={[styles.name, { color: colors.text }]}
+                numberOfLines={1}
+              >
+                {type.name}
+              </Text>
 
-              return (
-                <View key={type.id} style={styles.row}>
-                  <Text
-                    style={[styles.name, { color: colors.text }]}
-                    numberOfLines={1}
-                  >
-                    {type.name}
-                  </Text>
-
-                  <TouchableOpacity
-                    onPress={() => {
-                      setEditingId(type.id);
-                      setEditingName(type.name);
-                    }}
-                    activeOpacity={0.6}
-                    hitSlop={8}
-                    accessibilityLabel={t("meal_types.rename")}
-                  >
-                    <Pencil size={18} color={colors.textFaint} />
-                  </TouchableOpacity>
-                  {/* Anche i predefiniti: l'unico vincolo e' che ne resti uno
+              <TouchableOpacity
+                onPress={() => {
+                  setEditingId(type.id);
+                  setEditingName(type.name);
+                }}
+                activeOpacity={0.6}
+                hitSlop={8}
+                accessibilityLabel={t("meal_types.rename")}
+              >
+                <Pencil size={18} color={colors.textFaint} />
+              </TouchableOpacity>
+              {/* Anche i predefiniti: l'unico vincolo e' che ne resti uno
                       attivo, e chi non fa il brunch non deve tenerselo. */}
-                  <TouchableOpacity
-                    onPress={() => setPendingDelete(type)}
-                    activeOpacity={0.6}
-                    hitSlop={8}
-                    disabled={bloccato}
-                    accessibilityLabel={t("delete")}
-                  >
-                    <Trash2
-                      size={18}
-                      color={bloccato ? colors.textFaint : theme.colors.error}
-                    />
-                  </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setPendingDelete(type)}
+                activeOpacity={0.6}
+                hitSlop={8}
+                disabled={bloccato}
+                accessibilityLabel={t("delete")}
+              >
+                <Trash2
+                  size={18}
+                  color={bloccato ? colors.textFaint : theme.colors.error}
+                />
+              </TouchableOpacity>
 
-                  <Switch
-                    value={attivo}
-                    disabled={bloccato}
-                    onValueChange={(next) => void toggle(type, next)}
-                  />
-                </View>
-              );
-            })}
-          </Card>
-
-          <View style={styles.row}>
-            <TextInput
-              value={draft}
-              onChangeText={setDraft}
-              placeholder={t("meal_types.new_placeholder")}
-              placeholderTextColor={colors.textFaint}
-              style={[
-                styles.input,
-                { color: colors.text, borderColor: colors.border },
-              ]}
-              onSubmitEditing={() => void aggiungi()}
-            />
-            <TouchableOpacity
-              onPress={() => void aggiungi()}
-              activeOpacity={0.6}
-              hitSlop={8}
-              disabled={draft.trim().length === 0}
-              accessibilityLabel={t("meal_types.add")}
-            >
-              <Plus
-                size={22}
-                color={
-                  draft.trim().length === 0 ? colors.textFaint : colors.accent
-                }
+              <Switch
+                value={attivo}
+                disabled={bloccato}
+                onValueChange={(next) => void toggle(type, next)}
               />
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
+            </View>
+          );
+        })}
+      </Card>
 
+      <View style={styles.row}>
+        <TextInput
+          value={draft}
+          onChangeText={setDraft}
+          placeholder={t("meal_types.new_placeholder")}
+          placeholderTextColor={colors.textFaint}
+          style={[
+            styles.input,
+            { color: colors.text, borderColor: colors.border },
+          ]}
+          onSubmitEditing={() => void aggiungi()}
+        />
+        <TouchableOpacity
+          onPress={() => void aggiungi()}
+          activeOpacity={0.6}
+          hitSlop={8}
+          disabled={draft.trim().length === 0}
+          accessibilityLabel={t("meal_types.add")}
+        >
+          <Plus
+            size={22}
+            color={draft.trim().length === 0 ? colors.textFaint : colors.accent}
+          />
+        </TouchableOpacity>
+      </View>
       <DfAlert
         isOpen={pendingDelete !== null}
         title={t("meal_types.delete_title")}
@@ -254,25 +216,11 @@ export function MealTypesScreen() {
         onConfirm={() => void elimina()}
         onClose={() => setPendingDelete(null)}
       />
-    </View>
+    </SettingsPage>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  safe: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    gap: theme.spacing.sm,
-  },
-  title: { flex: 1, fontSize: 18, fontWeight: "700" },
-  content: {
-    padding: theme.spacing.md,
-    gap: theme.spacing.sm,
-  },
   hint: { fontSize: 13, lineHeight: 18 },
   card: { gap: theme.spacing.sm },
   row: {

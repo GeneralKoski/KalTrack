@@ -32,7 +32,7 @@ export const AiKeyPrompt: React.FC<AiKeyPromptProps> = ({ isOpen, onClose }) => 
       verticalFooter
       onConfirm={() => {
         onClose();
-        navigate("Settings", { focus: "aiKey" });
+        navigate("AssistantSettings", { focus: "aiKey" });
       }}
       onClose={onClose}
     />
