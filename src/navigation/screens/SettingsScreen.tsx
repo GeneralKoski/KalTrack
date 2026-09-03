@@ -144,6 +144,8 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: "700",
+    // Vedi SettingsPage: allinea il titolo alla freccia.
+    includeFontPadding: false,
   },
   content: {
     padding: theme.spacing.md,

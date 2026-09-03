@@ -134,16 +134,11 @@ export const DfBottomSheet = forwardRef<BottomSheetModal, DfBottomSheetProps>(
             hitSlop={8}
           >
             {titleText}
-            {/* Alzata di 6: centrata sulla cassa del testo la freccia cade
-                sotto la parola, perche' la cassa comprende lo spazio dei
-                discendenti e un nome di pasto non ne ha. */}
-            <View style={styles.titleChevron}>
-              {titleOpen ? (
-                <ChevronLeft size={20} color={colors.textMuted} />
-              ) : (
-                <ChevronRight size={20} color={colors.textMuted} />
-              )}
-            </View>
+            {titleOpen ? (
+              <ChevronLeft size={20} color={colors.textMuted} />
+            ) : (
+              <ChevronRight size={20} color={colors.textMuted} />
+            )}
           </TouchableOpacity>
         ) : (
           titleText
@@ -228,13 +223,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
   },
-  titleChevron: {
-    marginTop: -6,
-  },
   title: {
     flexShrink: 1,
     fontSize: 24,
     fontWeight: "700",
+    /* Senza, il titolo si porta dietro il padding che Android aggiunge sotto
+       la riga di testo: la cassa scende, e la freccia accanto - centrata sulla
+       cassa - finisce sotto la parola. Stesso rimedio di DfBackButton. */
+    includeFontPadding: false,
   },
   closeButton: {
     width: 32,

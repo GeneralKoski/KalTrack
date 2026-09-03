@@ -343,7 +343,13 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
     gap: theme.spacing.sm,
   },
-  title: { flex: 1, fontSize: 18, fontWeight: "700" },
+  title: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "700",
+    // Vedi SettingsPage: allinea il titolo alla freccia.
+    includeFontPadding: false,
+  },
   content: { padding: theme.spacing.md, gap: theme.spacing.sm },
   explain: { fontSize: 13, lineHeight: 19 },
   section: { marginTop: theme.spacing.md },
