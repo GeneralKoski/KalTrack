@@ -17,7 +17,7 @@
   "no_result_found": "Nessun dato trovato",
   "required_field": "Campo obbligatorio",
   "default_input_placeholder": "Digita",
-  "select_date_placeholder": "Seleziona una data",
+  "select_date_placeholder": "Seleziona",
   "select_placeholder": "Seleziona...",
   "tabs": {
     "today": "Oggi",
@@ -557,6 +557,8 @@
   "progress_photos": {
     "title": "Foto dei progressi",
     "add": "Nuova foto",
+    "date_label": "Data",
+    "pose_label": "Posa",
     "save": "Salva foto",
     "poses": {
       "fronte": "Fronte",
@@ -568,7 +570,10 @@
     "compare_first": "Prima",
     "compare_last": "Ultima",
     "compare_day": "%{count} giorno di distanza",
-    "compare_days": "%{count} giorni di distanza"
+    "compare_days": "%{count} giorni di distanza",
+    "selected_one": "%{count} selezionata",
+    "selected_many": "%{count} selezionate",
+    "delete_selected_title": "Eliminare %{count} foto?"
   },
   "plan": {
     "title": "Piano pasti",

@@ -1,32 +1,28 @@
 import { DfAlert } from "@/src/components/DfAlert";
-import { DfButton } from "@/src/components/form/DfButton";
 import {
   Card,
-  Chip,
   EmptyState,
-  PhotoField,
   ScreenBackground,
   SectionLabel,
 } from "@/src/components/kal";
 import { SyncedPhoto } from "@/src/components/kal/SyncedPhoto";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
+import { ProgressPhotoFormSheet } from "@/src/containers/wellbeing/ProgressPhotoFormSheet";
 import {
-  addProgressPhoto,
   deleteProgressPhoto,
   listProgressPhotos,
   type ProgressPhotoRow,
 } from "@/src/db/queries/wellbeing";
-import { todayIso } from "@/src/domain/date";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
-import { PHOTO_POSES } from "@/src/types/wellbeing";
 import { formatDate } from "@/src/utils/dateUtils";
 import { logger } from "@/src/utils/logger";
-import { Camera, ChevronLeft } from "lucide-react-native";
-import React, { useCallback, useMemo, useState } from "react";
+import type { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { Camera, Check, ChevronLeft, Plus, Trash2, X } from "lucide-react-native";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -58,11 +54,13 @@ export function ProgressPhotosScreen() {
   const { goBack } = useAppNav();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const formRef = useRef<BottomSheetModal>(null);
 
-  const [pendingUri, setPendingUri] = useState<string | null>(null);
-  const [pose, setPose] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState<ProgressPhotoRow | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmDeleteSelection, setConfirmDeleteSelection] = useState(false);
+  const [deletingSelection, setDeletingSelection] = useState(false);
+  const isSelecting = selectedIds.size > 0;
 
   const loader = useCallback(() => listProgressPhotos(), []);
   const { data, loading, reload } = useFocusData<ProgressPhotoRow[]>(loader);
@@ -100,21 +98,6 @@ export function ProgressPhotosScreen() {
   const poseLabel = (value: string) =>
     t(`progress_photos.poses.${value}`, { defaultValue: value });
 
-  const save = async () => {
-    if (!pendingUri || saving) return;
-    setSaving(true);
-    try {
-      await addProgressPhoto(todayIso(), pendingUri, pose);
-      setPendingUri(null);
-      setPose(null);
-      reload();
-    } catch (error) {
-      logger.error("[ProgressPhotosScreen] salvataggio foto fallito", error);
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const remove = async () => {
     if (!selected) return;
     try {
@@ -127,17 +110,84 @@ export function ProgressPhotosScreen() {
     }
   };
 
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const exitSelection = () => setSelectedIds(new Set());
+
+  const onTilePress = (photo: ProgressPhotoRow) => {
+    if (isSelecting) toggleSelection(photo.id);
+    else setSelected(photo);
+  };
+
+  const onTileLongPress = (photo: ProgressPhotoRow) => {
+    if (!isSelecting) toggleSelection(photo.id);
+  };
+
+  const removeSelection = async () => {
+    if (selectedIds.size === 0 || deletingSelection) return;
+    setDeletingSelection(true);
+    try {
+      await Promise.all([...selectedIds].map((id) => deleteProgressPhoto(id)));
+      exitSelection();
+      reload();
+    } catch (error) {
+      logger.error("[ProgressPhotosScreen] eliminazione multipla fallita", error);
+    } finally {
+      setDeletingSelection(false);
+      setConfirmDeleteSelection(false);
+    }
+  };
+
   return (
     <View style={styles.root}>
       <ScreenBackground />
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={goBack} activeOpacity={0.6} hitSlop={10}>
-            <ChevronLeft size={26} color={colors.textSecondary} />
-          </TouchableOpacity>
-          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-            {t("progress_photos.title")}
-          </Text>
+          {isSelecting ? (
+            <>
+              <TouchableOpacity onPress={exitSelection} activeOpacity={0.6} hitSlop={10}>
+                <X size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+              <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+                {t(
+                  selectedIds.size === 1
+                    ? "progress_photos.selected_one"
+                    : "progress_photos.selected_many",
+                  { count: selectedIds.size },
+                )}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setConfirmDeleteSelection(true)}
+                activeOpacity={0.6}
+                hitSlop={10}
+              >
+                <Trash2 size={22} color={theme.colors.error} />
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TouchableOpacity onPress={goBack} activeOpacity={0.6} hitSlop={10}>
+                <ChevronLeft size={26} color={colors.textSecondary} />
+              </TouchableOpacity>
+              <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+                {t("progress_photos.title")}
+              </Text>
+              <TouchableOpacity
+                onPress={() => formRef.current?.present()}
+                activeOpacity={0.6}
+                hitSlop={10}
+              >
+                <Plus size={24} color={colors.text} />
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         {loading && !data ? (
@@ -150,43 +200,9 @@ export function ProgressPhotosScreen() {
               { paddingBottom: insets.bottom + theme.spacing.lg },
             ]}
           >
-            <SectionLabel>{t("progress_photos.add")}</SectionLabel>
-            <Card style={styles.card}>
-              <PhotoField uri={pendingUri} onChange={setPendingUri} prefix="progress" />
-
-              {pendingUri ? (
-                <>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
-                    contentContainerStyle={styles.poses}
-                  >
-                    {PHOTO_POSES.map((value) => (
-                      <Chip
-                        key={value}
-                        label={poseLabel(value)}
-                        active={value === pose}
-                        // Ritoccare la posa scelta la toglie: la posa è facoltativa.
-                        onPress={() => setPose(pose === value ? null : value)}
-                      />
-                    ))}
-                  </ScrollView>
-
-                  <DfButton
-                    label={t("progress_photos.save")}
-                    onPress={save}
-                    loading={saving}
-                  />
-                </>
-              ) : null}
-            </Card>
-
             {comparable ? (
               <>
-                <SectionLabel style={styles.section}>
-                  {t("progress_photos.compare")}
-                </SectionLabel>
+                <SectionLabel>{t("progress_photos.compare")}</SectionLabel>
                 <Card style={styles.card}>
                   <View style={styles.compareRow}>
                     {[comparable.first, comparable.last].map((photo, index) => (
@@ -241,7 +257,8 @@ export function ProgressPhotosScreen() {
                         <TouchableOpacity
                           key={photo.id}
                           activeOpacity={0.6}
-                          onPress={() => setSelected(photo)}
+                          onPress={() => onTilePress(photo)}
+                          onLongPress={() => onTileLongPress(photo)}
                           style={{ width: tileSize }}
                         >
                           <SyncedPhoto
@@ -259,6 +276,33 @@ export function ProgressPhotosScreen() {
                             <Text style={styles.tilePose} numberOfLines={1}>
                               {poseLabel(photo.pose)}
                             </Text>
+                          ) : null}
+                          {isSelecting ? (
+                            <View
+                              style={[
+                                styles.tileOverlay,
+                                selectedIds.has(photo.id) && {
+                                  backgroundColor: "rgba(0,0,0,0.35)",
+                                },
+                              ]}
+                            >
+                              <View
+                                style={[
+                                  styles.tileCheck,
+                                  selectedIds.has(photo.id)
+                                    ? { backgroundColor: colors.accent }
+                                    : {
+                                        backgroundColor: "rgba(0,0,0,0.35)",
+                                        borderWidth: 1,
+                                        borderColor: theme.colors.white,
+                                      },
+                                ]}
+                              >
+                                {selectedIds.has(photo.id) ? (
+                                  <Check size={14} color={theme.colors.white} />
+                                ) : null}
+                              </View>
+                            </View>
                           ) : null}
                         </TouchableOpacity>
                       ))}
@@ -298,6 +342,19 @@ export function ProgressPhotosScreen() {
           </View>
         ) : null}
       </DfAlert>
+
+      <ProgressPhotoFormSheet ref={formRef} onSaved={reload} />
+
+      <DfAlert
+        isOpen={confirmDeleteSelection}
+        title={t("progress_photos.delete_selected_title", { count: selectedIds.size })}
+        confirmLabel={t("delete")}
+        confirmColor={theme.colors.error}
+        cancelLabel={t("cancel")}
+        loading={deletingSelection}
+        onConfirm={removeSelection}
+        onClose={() => setConfirmDeleteSelection(false)}
+      />
     </View>
   );
 }
@@ -316,7 +373,6 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: theme.spacing.md },
   card: { gap: theme.spacing.sm },
   section: { marginTop: theme.spacing.md },
-  poses: { alignItems: "center", gap: theme.spacing.sm },
   compareRow: {
     flexDirection: "row",
     gap: theme.spacing.sm,
@@ -337,6 +393,23 @@ const styles = StyleSheet.create({
   tile: {
     width: "100%",
     borderRadius: theme.radius.lg,
+  },
+  tileOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.xs,
+    alignItems: "flex-end",
+  },
+  tileCheck: {
+    width: 22,
+    height: 22,
+    borderRadius: theme.radius.full,
+    alignItems: "center",
+    justifyContent: "center",
   },
   tilePose: {
     position: "absolute",
