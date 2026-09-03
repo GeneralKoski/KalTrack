@@ -7,7 +7,7 @@ import {
   BottomSheetModal,
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
-import { ChevronDown, X } from "lucide-react-native";
+import { ChevronRight, X } from "lucide-react-native";
 import React, { forwardRef, useCallback, useEffect, useState } from "react";
 import {
   BackHandler,
@@ -118,7 +118,7 @@ export const DfBottomSheet = forwardRef<BottomSheetModal, DfBottomSheetProps>(
             hitSlop={8}
           >
             {titleText}
-            <ChevronDown size={20} color={colors.textMuted} />
+            <ChevronRight size={20} color={colors.textMuted} />
           </TouchableOpacity>
         ) : (
           titleText
