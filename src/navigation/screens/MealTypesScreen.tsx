@@ -1,5 +1,4 @@
 import { DfAlert } from "@/src/components/DfAlert";
-import { DfButton } from "@/src/components/form/DfButton";
 import { Card, ScreenBackground } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text, TextInput } from "@/src/components/ui";
@@ -17,7 +16,7 @@ import { theme } from "@/src/styles";
 import type { MealTypeRow } from "@/src/types/nutrition";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
-import { Check, ChevronLeft, Pencil, Trash2 } from "lucide-react-native";
+import { Check, ChevronLeft, Pencil, Plus, Trash2 } from "lucide-react-native";
 import React, { useCallback, useState } from "react";
 import {
   ScrollView,
@@ -120,7 +119,10 @@ export function MealTypesScreen() {
           <TouchableOpacity onPress={goBack} activeOpacity={0.6} hitSlop={10}>
             <ChevronLeft size={26} color={colors.textSecondary} />
           </TouchableOpacity>
-          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+          <Text
+            style={[styles.title, { color: colors.text }]}
+            numberOfLines={1}
+          >
             {t("meal_types.title")}
           </Text>
         </View>
@@ -176,29 +178,31 @@ export function MealTypesScreen() {
                     {type.name}
                   </Text>
 
-                  {type.is_custom === 1 ? (
-                    <>
-                      <TouchableOpacity
-                        onPress={() => {
-                          setEditingId(type.id);
-                          setEditingName(type.name);
-                        }}
-                        activeOpacity={0.6}
-                        hitSlop={8}
-                        accessibilityLabel={t("meal_types.rename")}
-                      >
-                        <Pencil size={18} color={colors.textFaint} />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => setPendingDelete(type)}
-                        activeOpacity={0.6}
-                        hitSlop={8}
-                        accessibilityLabel={t("delete")}
-                      >
-                        <Trash2 size={18} color={theme.colors.error} />
-                      </TouchableOpacity>
-                    </>
-                  ) : null}
+                  <TouchableOpacity
+                    onPress={() => {
+                      setEditingId(type.id);
+                      setEditingName(type.name);
+                    }}
+                    activeOpacity={0.6}
+                    hitSlop={8}
+                    accessibilityLabel={t("meal_types.rename")}
+                  >
+                    <Pencil size={18} color={colors.textFaint} />
+                  </TouchableOpacity>
+                  {/* Anche i predefiniti: l'unico vincolo e' che ne resti uno
+                      attivo, e chi non fa il brunch non deve tenerselo. */}
+                  <TouchableOpacity
+                    onPress={() => setPendingDelete(type)}
+                    activeOpacity={0.6}
+                    hitSlop={8}
+                    disabled={bloccato}
+                    accessibilityLabel={t("delete")}
+                  >
+                    <Trash2
+                      size={18}
+                      color={bloccato ? colors.textFaint : theme.colors.error}
+                    />
+                  </TouchableOpacity>
 
                   <Switch
                     value={attivo}
@@ -210,7 +214,7 @@ export function MealTypesScreen() {
             })}
           </Card>
 
-          <Card style={styles.card}>
+          <View style={styles.row}>
             <TextInput
               value={draft}
               onChangeText={setDraft}
@@ -222,13 +226,21 @@ export function MealTypesScreen() {
               ]}
               onSubmitEditing={() => void aggiungi()}
             />
-            <DfButton
-              label={t("meal_types.add")}
-              variant="outlined"
-              disabled={draft.trim().length === 0}
+            <TouchableOpacity
               onPress={() => void aggiungi()}
-            />
-          </Card>
+              activeOpacity={0.6}
+              hitSlop={8}
+              disabled={draft.trim().length === 0}
+              accessibilityLabel={t("meal_types.add")}
+            >
+              <Plus
+                size={22}
+                color={
+                  draft.trim().length === 0 ? colors.textFaint : colors.accent
+                }
+              />
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </SafeAreaView>
 

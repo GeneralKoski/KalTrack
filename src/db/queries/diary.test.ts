@@ -380,9 +380,37 @@ describe("tipi di pasto", () => {
     );
   });
 
-  it("i tipi di default non sono cancellabili", async () => {
-    await expect(deleteMealType(MEAL_TYPE_IDS.lunch)).rejects.toThrow();
-    expect((await listMealTypes()).map((t) => t.name)).toContain("Pranzo");
+  it("si può cancellare anche un tipo di default", async () => {
+    await deleteMealType(MEAL_TYPE_IDS.brunch);
+    expect((await listAllMealTypes()).map((t) => t.name)).not.toContain(
+      "Brunch",
+    );
+  });
+
+  it("l'ultimo pasto attivo non si cancella", async () => {
+    const types = await listAllMealTypes();
+    for (const type of types.slice(1)) await deleteMealType(type.id);
+    await expect(deleteMealType(types[0].id)).rejects.toThrow();
+  });
+
+  // Cancellare un pasto e' una scelta su cosa si offre da qui in avanti: quel
+  // che si e' mangiato resta scritto, col suo nome.
+  it("cancellare un tipo non tocca lo storico", async () => {
+    const foodId = await createFood({
+      name: "Cornetto",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 300 },
+    });
+    await addFoodEntry({
+      date: "2026-01-06",
+      mealTypeId: MEAL_TYPE_IDS.brunch,
+      foodId,
+      quantityG: 100,
+    });
+    await deleteMealType(MEAL_TYPE_IDS.brunch);
+
+    const day = await getDayDiary("2026-01-06");
+    expect(day.meals.map((m) => m.type.name)).toContain("Brunch");
+    expect(day.totals.kcal).toBeGreaterThan(0);
   });
 
   it("un tipo nascosto non si offre piu', ma resta fra tutti", async () => {

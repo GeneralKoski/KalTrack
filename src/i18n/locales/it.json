@@ -134,7 +134,7 @@
   },
   "meal_types": {
     "title": "Pasti",
-    "hint": "Spegni i pasti che non usi: spariscono da dove si sceglie, ma quelli gia\u0300 registrati restano nel diario.",
+    "hint": "Spegni i pasti che non usi: spariscono dalla scelta, ma quelli gia\u0300 registrati restano nel diario.",
     "settings_row": "Pasti",
     "settings_hint": "Quali pasti puoi usare",
     "add": "Aggiungi pasto",

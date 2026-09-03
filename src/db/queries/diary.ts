@@ -1,5 +1,6 @@
 import { getDb } from "@/src/db/index";
 import { newId, nowIso } from "@/src/db/ids";
+import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 import { getFood, incrementFoodUsage } from "@/src/db/queries/foods";
 import {
   buildRecipeTree,
@@ -99,6 +100,26 @@ export async function listAllMealTypes(): Promise<MealTypeRow[]> {
 }
 
 /**
+ * Lancia se `id` e' l'ultimo pasto attivo rimasto.
+ *
+ * Vale per chi lo spegne e per chi lo cancella: senza un pasto attivo il foglio
+ * Aggiungi non ha una destinazione, e chi ci prova non vedrebbe nessun errore -
+ * il salvataggio semplicemente non avviene.
+ */
+async function assertAltroPastoAttivo(
+  db: LocalDatabase,
+  id: string,
+): Promise<void> {
+  const row = await db.getFirstAsync<{ visible: number }>(
+    "SELECT COUNT(*) AS visible FROM meal_types WHERE deleted_at IS NULL AND hidden = 0 AND id != ?",
+    [id],
+  );
+  if ((row?.visible ?? 0) === 0) {
+    throw new Error("Deve restare almeno un pasto attivo");
+  }
+}
+
+/**
  * Spegne o riaccende un pasto.
  *
  * L'ultimo acceso non si spegne: senza un pasto attivo il foglio Aggiungi non
@@ -110,15 +131,7 @@ export async function setMealTypeHidden(
   hidden: boolean,
 ): Promise<void> {
   const db = await getDb();
-  if (hidden) {
-    const row = await db.getFirstAsync<{ visible: number }>(
-      "SELECT COUNT(*) AS visible FROM meal_types WHERE deleted_at IS NULL AND hidden = 0 AND id != ?",
-      [id],
-    );
-    if ((row?.visible ?? 0) === 0) {
-      throw new Error("Deve restare almeno un pasto attivo");
-    }
-  }
+  if (hidden) await assertAltroPastoAttivo(db, id);
   await db.runAsync(
     "UPDATE meal_types SET hidden = ?, updated_at = ? WHERE id = ?",
     [hidden ? 1 : 0, nowIso(), id],
@@ -149,19 +162,26 @@ export async function renameMealType(id: string, name: string): Promise<void> {
 }
 
 /**
- * Cancella un tipo di pasto custom. I cinque di default non sono cancellabili:
- * i loro id sono referenziati dal seed, dai test e (in Fase 2) dai tool vocali.
+ * Cancella un tipo di pasto, predefinito o no.
+ *
+ * I cinque predefiniti sono stati intoccabili fino al 3 settembre 2026, perche'
+ * i loro id sono nel seed, nei test e nei tool dell'assistente: nessuno di quei
+ * tre pero' si rompe se la riga non c'e' piu' - il seed gira su un database
+ * nuovo, i test se li ricreano, e i tool cercano fra i pasti che esistono.
+ * Restava un divieto che obbligava a tenersi "Brunch" per sempre.
+ *
+ * L'unico vincolo vero e' che ne resti uno attivo, come per `setMealTypeHidden`.
+ * Le righe gia' registrate non si toccano e continuano a comparire nel diario:
+ * `getDayDiary` risolve il nome del pasto anche fra i tipi cancellati.
  */
 export async function deleteMealType(id: string): Promise<void> {
   const db = await getDb();
-  const row = await db.getFirstAsync<{ is_custom: number }>(
-    "SELECT is_custom FROM meal_types WHERE id = ? AND deleted_at IS NULL",
+  const row = await db.getFirstAsync<{ id: string }>(
+    "SELECT id FROM meal_types WHERE id = ? AND deleted_at IS NULL",
     [id],
   );
   if (!row) throw new Error(`Tipo di pasto ${id} inesistente`);
-  if (row.is_custom !== 1) {
-    throw new Error("I tipi di pasto predefiniti non si possono eliminare");
-  }
+  await assertAltroPastoAttivo(db, id);
   const now = nowIso();
   await db.runAsync(
     "UPDATE meal_types SET deleted_at = ?, updated_at = ? WHERE id = ?",
@@ -193,9 +213,12 @@ export async function getDayDiary(date: string): Promise<DayDiary> {
     return { date, meals: [], totals: { ...EMPTY_NUTRIENTS } };
   }
 
-  /* Tutti i tipi, nascosti compresi: un pasto spento dalle impostazioni non
-     deve portarsi via dallo storico le righe gia' registrate. */
-  const types = await listAllMealTypes();
+  /* Tutti i tipi, nascosti E cancellati compresi: quel che si e' mangiato
+     resta scritto, e un pasto spento o eliminato dalle impostazioni non deve
+     portarsi via dal diario le righe che nominava. */
+  const types = await db.getAllAsync<MealTypeRow>(
+    "SELECT * FROM meal_types ORDER BY sort ASC",
+  );
   const typeById = new Map(types.map((t) => [t.id, t]));
 
   const result: DiaryMeal[] = [];

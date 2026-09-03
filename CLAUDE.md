@@ -253,17 +253,26 @@ registrati, e dai totali di quei giorni. Da qui due letture invece di una:
   scelta**: foglio Aggiungi, piano pasti, `generateMealPlan`, catalogo e tool
   dell'assistente, `defaultMealTypeId`;
 - `listAllMealTypes()` li comprende, ed e' la lettura di chi **disegna righe
-  gia' scritte**: `getDayDiary`, e le colonne del piano - `MealPlanScreen`
-  mostra un pasto spento se quel giorno ha gia' delle righe, ma non lo offre
-  nel foglio Aggiungi.
+  gia' scritte**: le colonne del piano - `MealPlanScreen` mostra un pasto spento
+  se quel giorno ha gia' delle righe, ma non lo offre nel foglio Aggiungi.
 
-Chiunque aggiunga una lettura dei tipi di pasto deve scegliere fra le due, e la
-domanda e' sempre la stessa: sto offrendo una scelta o sto disegnando quel che
-c'e' gia'?
+`getDayDiary` va oltre e legge `meal_types` **senza filtri**, cancellati
+compresi: quel che si e' mangiato resta scritto col suo nome, e nessuna
+operazione fatta nelle impostazioni deve toglierlo dal diario.
 
-**Almeno un pasto resta acceso** (`setMealTypeHidden` lancia): senza, il foglio
-Aggiungi non ha una destinazione. I cinque predefiniti si spengono ma non si
-cancellano - i loro id sono nel seed, nei test e nei tool dell'assistente.
+Chiunque aggiunga una lettura dei tipi di pasto deve scegliere, e la domanda e'
+sempre la stessa: sto offrendo una scelta o sto disegnando quel che c'e' gia'?
+
+**Almeno un pasto attivo resta** (`setMealTypeHidden` e `deleteMealType`
+lanciano): senza, il foglio Aggiungi non ha una destinazione e il salvataggio
+non avviene senza dire niente.
+
+**Anche i predefiniti si rinominano e si cancellano.** Non lo erano fino al 3
+settembre 2026 perche' i loro id stanno nel seed, nei test e nei tool
+dell'assistente: nessuno dei tre pero' si rompe se la riga non c'e' piu' - il
+seed gira su un database nuovo, i test se lo ricreano, e i tool cercano fra i
+pasti che esistono. Restava un divieto che obbligava a tenersi "Brunch" per
+sempre.
 
 ### Le porzioni nel campo quantita'
 
