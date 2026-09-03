@@ -19,7 +19,11 @@ import { Platform, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAppTheme } from "@/src/components/ThemeContext";
+import type { RoutineInput } from "@/src/db/queries/workouts";
+import { ONBOARDING_STEPS } from "@/src/domain/onboarding";
 import { navigationRef } from "@/src/navigation/navigationRef";
+import { OnboardingStack } from "@/src/navigation/onboardingStack";
+import { useOnboardingStore } from "@/src/stores/onboardingStore";
 import { Text } from "@/src/components/ui";
 import { AchievementsScreen } from "@/src/navigation/screens/AchievementsScreen";
 import { AdminScreen } from "@/src/navigation/screens/AdminScreen";
@@ -27,9 +31,11 @@ import { AppearanceScreen } from "@/src/navigation/screens/AppearanceScreen";
 import { BackupScreen } from "@/src/navigation/screens/BackupScreen";
 import { ComparisonScreen } from "@/src/navigation/screens/ComparisonScreen";
 import { DiagnosticsScreen } from "@/src/navigation/screens/DiagnosticsScreen";
+import { ExerciseDetailScreen } from "@/src/navigation/screens/ExerciseDetailScreen";
 import { ExercisesScreen } from "@/src/navigation/screens/ExercisesScreen";
 import { FriendProfileScreen } from "@/src/navigation/screens/FriendProfileScreen";
 import { FriendsScreen } from "@/src/navigation/screens/FriendsScreen";
+import { GenerateRoutineScreen } from "@/src/navigation/screens/GenerateRoutineScreen";
 import { MyProfileScreen } from "@/src/navigation/screens/MyProfileScreen";
 import { MealPlanScreen } from "@/src/navigation/screens/MealPlanScreen";
 import { HealthScreen } from "@/src/navigation/screens/HealthScreen";
@@ -216,6 +222,10 @@ const RootStack = createNativeStackNavigator({
       screen: ExercisesScreen,
       linking: { path: "esercizi" },
     },
+    ExerciseDetail: {
+      screen: ExerciseDetailScreen,
+      linking: { path: "esercizi/dettaglio" },
+    },
     Routines: {
       screen: RoutinesScreen,
       linking: { path: "schede" },
@@ -223,6 +233,10 @@ const RootStack = createNativeStackNavigator({
     RoutineForm: {
       screen: RoutineFormScreen,
       linking: { path: "schede/modifica" },
+    },
+    GenerateRoutine: {
+      screen: GenerateRoutineScreen,
+      linking: { path: "schede/genera" },
     },
     Session: {
       screen: SessionScreen,
@@ -268,6 +282,10 @@ const RootStack = createNativeStackNavigator({
       screen: RemindersScreen,
       linking: { path: "promemoria" },
     },
+    Onboarding: {
+      screen: OnboardingStack,
+      linking: { path: "onboarding" },
+    },
   },
 });
 
@@ -293,6 +311,38 @@ const StaticNavigation = createStaticNavigation(RootStack);
  */
 export function Navigation() {
   const { colors, isDark } = useAppTheme();
+  const { completed, resumeStep } = useOnboardingStore();
+
+  /*
+   * L'onboarding e' un'entrata alternativa a "Tabs", non una schermata come
+   * le altre: va decisa PRIMA del primo render, non raggiunta navigando.
+   * `initialState` e' letto una sola volta al montaggio di
+   * `NavigationContainer` - App.tsx aspetta `useOnboardingStore().hydrate()`
+   * prima di montare `<Navigation />`, quindi qui il valore e' gia' quello
+   * giusto.
+   *
+   * Riparte dal passo salvato ricostruendo TUTTA la cronologia fino a li',
+   * cosi' "Indietro" dentro il wizard funziona anche subito dopo la ripresa.
+   */
+  const initialState = useMemo(() => {
+    if (completed) return undefined;
+    const resumeIndex = ONBOARDING_STEPS.indexOf(resumeStep);
+    return {
+      index: 0,
+      routes: [
+        {
+          name: "Onboarding",
+          state: {
+            index: resumeIndex,
+            routes: ONBOARDING_STEPS.slice(0, resumeIndex + 1).map((name) => ({ name })),
+          },
+        },
+      ],
+    };
+    // Solo al montaggio: cambiare `completed`/`resumeStep` a runtime non deve
+    // ricostruire lo stato di navigazione sotto ai piedi di chi sta navigando.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const navigationTheme = useMemo(
     () => ({
@@ -314,7 +364,13 @@ export function Navigation() {
   // Il ref serve a chi vive FUORI dall'albero di navigazione: l'assistente e'
   // montato sopra <Navigation /> e il suo tool "navigate" non ha altro modo
   // per aprire una schermata.
-  return <StaticNavigation ref={navigationRef} theme={navigationTheme} />;
+  return (
+    <StaticNavigation
+      ref={navigationRef}
+      theme={navigationTheme}
+      initialState={initialState}
+    />
+  );
 }
 
 export type RootStackParamList = StaticParamList<typeof RootStack>;
@@ -326,7 +382,8 @@ declare global {
     interface RootParamList extends RootStackParamList {
       FoodForm: { id?: string; barcode?: string };
       RecipeForm: { id?: string };
-      RoutineForm: { id?: string };
+      ExerciseDetail: { id: string };
+      RoutineForm: { id?: string; generatedRoutine?: RoutineInput };
       Session: { routineId: string; dayIndex: number };
     }
   }

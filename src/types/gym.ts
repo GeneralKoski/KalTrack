@@ -58,6 +58,7 @@ export interface ExerciseRow {
   dislike_level: number;
   notes: string | null;
   instructions: string | null;
+  photo_uri: string | null;
   usage_count: number;
   created_at: string;
   updated_at: string;

@@ -1,5 +1,4 @@
 import { DfAlert } from "@/src/components/DfAlert";
-import { DfButton } from "@/src/components/form/DfButton";
 import { EmptyState, ScreenBackground } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
@@ -117,17 +116,10 @@ export function RoutinesScreen() {
             ]}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
             ListEmptyComponent={
-              <View>
-                <EmptyState
-                  message={t("gym.no_routines_hint")}
-                  icon={<ClipboardList size={40} color={colors.textFaint} />}
-                />
-                <DfButton
-                  label={t("gym.new_routine")}
-                  icon={<Plus size={18} color={colors.text} />}
-                  onPress={() => navigate("RoutineForm")}
-                />
-              </View>
+              <EmptyState
+                message={t("gym.no_routines_hint")}
+                icon={<ClipboardList size={40} color={colors.textFaint} />}
+              />
             }
           />
         )}

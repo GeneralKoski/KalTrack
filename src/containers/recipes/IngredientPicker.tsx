@@ -84,11 +84,12 @@ export const IngredientPicker = forwardRef<
         foods.length === 0 ? (
           <EmptyState message={t("foods.empty")} />
         ) : (
-          foods.map((item) => (
+          foods.map((item, index) => (
             <PickerRow
               key={item.id}
               title={item.name}
               subtitle={`${Math.round(item.kcal)} kcal / 100 ${item.is_liquid === 1 ? "ml" : "g"}`}
+              isLast={index === foods.length - 1}
               onPress={() => onPick({ kind: "food", food: item })}
             />
           ))
@@ -96,11 +97,12 @@ export const IngredientPicker = forwardRef<
       ) : recipes.length === 0 ? (
         <EmptyState message={t("recipes.empty")} />
       ) : (
-        recipes.map((item) => (
+        recipes.map((item, index) => (
           <PickerRow
             key={item.id}
             title={item.name}
             subtitle={t("recipes.servings_count", { count: item.servings })}
+            isLast={index === recipes.length - 1}
             onPress={() => onPick({ kind: "recipe", recipe: item })}
           />
         ))
@@ -142,13 +144,17 @@ const TabButton: React.FC<{
 const PickerRow: React.FC<{
   title: string;
   subtitle: string;
+  isLast: boolean;
   onPress: () => void;
-}> = ({ title, subtitle, onPress }) => {
+}> = ({ title, subtitle, isLast, onPress }) => {
   const { colors } = useAppTheme();
 
   return (
     <TouchableOpacity
-      style={[styles.row, { borderBottomColor: colors.border }]}
+      style={[
+        styles.row,
+        { borderBottomColor: colors.border, borderBottomWidth: isLast ? 0 : 1 },
+      ]}
       onPress={onPress}
       activeOpacity={0.6}
     >
@@ -182,8 +188,9 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
   row: {
-    paddingVertical: theme.spacing.sm,
-    borderBottomWidth: 1,
+    // md e senza bordo sull'ultima riga: stessa altezza e stesso divisore
+    // del drawer di riferimento (scelta pasto in AddEntrySheet).
+    paddingVertical: theme.spacing.md,
   },
   rowTitle: {
     fontSize: 15,

@@ -3,6 +3,7 @@ import { newId, nowIso } from "@/src/db/ids";
 import { normalizeText } from "@/src/domain/text";
 import {
   canDoWith,
+  EQUIPMENT,
   exerciseEquipment,
   type Equipment,
   type ExerciseRow,
@@ -18,6 +19,7 @@ export interface ExerciseInput {
   equipment: Equipment[];
   instructions?: string | null;
   notes?: string | null;
+  photoUri?: string | null;
   isCustom?: boolean;
 }
 
@@ -29,8 +31,8 @@ export async function createExercise(input: ExerciseInput): Promise<string> {
   await db.runAsync(
     `INSERT INTO exercises (id, name, name_norm, muscle_group, secondary_muscles,
        equipment, is_custom, is_banned, dislike_level, notes, instructions,
-       usage_count, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, 0, ?, ?)`,
+       photo_uri, usage_count, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, 0, ?, ?)`,
     [
       id,
       input.name,
@@ -41,6 +43,7 @@ export async function createExercise(input: ExerciseInput): Promise<string> {
       input.isCustom === false ? 0 : 1,
       input.notes ?? null,
       input.instructions ?? null,
+      input.photoUri ?? null,
       now,
       now,
     ],
@@ -96,6 +99,17 @@ export async function toggleExerciseBan(id: string): Promise<void> {
   );
 }
 
+export async function setExerciseBanned(
+  id: string,
+  banned: boolean,
+): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    "UPDATE exercises SET is_banned = ?, updated_at = ? WHERE id = ?",
+    [banned ? 1 : 0, nowIso(), id],
+  );
+}
+
 /** 0 = va bene, 1 = preferirei evitarlo, 2 = solo come ultima risorsa. */
 export async function setExerciseDislike(
   id: string,
@@ -145,8 +159,9 @@ export async function setEquipmentAvailability(
  * Lo stato di OGNI attrezzo, non solo di quelli disponibili.
  *
  * Serve alla schermata che li fa spuntare: un attrezzo mai toccato non e' in
- * tabella, e senza questa distinzione non si potrebbe mostrare la differenza
- * fra "non ce l'ho" e "non l'ho ancora detto".
+ * tabella e conta come disponibile (vedi `listAvailableEquipment`), ma la
+ * schermata deve comunque poter distinguere "esplicitamente si" da
+ * "esplicitamente no" per disegnare i due stati dei chip.
  */
 export async function listEquipmentAvailability(): Promise<
   Record<string, boolean>
@@ -160,12 +175,21 @@ export async function listEquipmentAvailability(): Promise<
   return state;
 }
 
+/**
+ * L'attrezzatura che si puo' usare: tutta, tranne quella tolta a mano.
+ *
+ * E' un elenco per eccezione e non per dichiarazione: un attrezzo mai
+ * toccato conta come disponibile. Il contrario - partire da zero e chiedere
+ * di spuntare quel che si ha - lasciava i chip tutti spenti al primo avvio, e
+ * senza uno stato attivo visibile sembravano non rispondere al tocco.
+ */
 export async function listAvailableEquipment(): Promise<string[]> {
   const db = await getDb();
   const rows = await db.getAllAsync<{ name: string }>(
-    "SELECT name FROM user_equipment WHERE available = 1 AND deleted_at IS NULL",
+    "SELECT name FROM user_equipment WHERE available = 0 AND deleted_at IS NULL",
   );
-  return rows.map((r) => r.name);
+  const unavailable = new Set(rows.map((r) => r.name));
+  return EQUIPMENT.filter((item) => !unavailable.has(item));
 }
 
 /**
@@ -193,15 +217,13 @@ export async function suggestAlternatives(
   let filtered = candidates.filter((row) => row.id !== exerciseId);
 
   if (options.onlyAvailableEquipment) {
+    // `listAvailableEquipment` e' gia' "tutto tranne quello tolto a mano":
+    // non serve un caso speciale per l'elenco vuoto, il filtro si applica
+    // sempre allo stesso modo.
     const available = new Set(await listAvailableEquipment());
-    // Un elenco vuoto significa "non ho ancora detto cosa ho", non "non ho
-    // niente": filtrare su di esso lasciava passare solo il corpo libero e
-    // faceva sembrare che non esistessero alternative.
-    if (available.size > 0) {
-      filtered = filtered.filter((row) =>
-        canDoWith(exerciseEquipment(row), available),
-      );
-    }
+    filtered = filtered.filter((row) =>
+      canDoWith(exerciseEquipment(row), available),
+    );
   }
 
   return filtered
@@ -237,7 +259,7 @@ export async function updateExercise(
   await db.runAsync(
     `UPDATE exercises
         SET name = ?, name_norm = ?, muscle_group = ?, secondary_muscles = ?,
-            equipment = ?, notes = ?, instructions = ?, updated_at = ?
+            equipment = ?, notes = ?, instructions = ?, photo_uri = ?, updated_at = ?
       WHERE id = ?`,
     [
       input.name,
@@ -247,6 +269,7 @@ export async function updateExercise(
       JSON.stringify(input.equipment),
       input.notes ?? null,
       input.instructions ?? null,
+      input.photoUri ?? null,
       nowIso(),
       id,
     ],

@@ -13,15 +13,15 @@ import React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 
 /**
- * Dove si dichiara cosa si ha a disposizione.
+ * Dove si dichiara cosa NON si ha a disposizione.
  *
- * Senza questa schermata la tabella `user_equipment` restava vuota per sempre,
- * e con lei erano inutilizzabili sia "proponi alternativa solo con la mia
- * attrezzatura" sia la generazione della scheda: il filtro non aveva niente su
- * cui lavorare.
+ * E' per eccezione e non per dichiarazione: ogni attrezzo parte spuntato, cioe'
+ * "disponibile", e si tocca solo quello che manca davvero. Partire da zero
+ * chiedeva di spuntare uno per uno tutto quel che si ha, e con nessun chip mai
+ * attivo sembrava che il tocco non facesse niente.
  *
- * Il corpo libero non compare fra i chip: c'e' sempre, e chiedere di spuntarlo
- * inviterebbe a dimenticarlo.
+ * Il corpo libero non compare fra i chip: c'e' sempre, e chiedere di
+ * deselezionarlo non avrebbe senso.
  */
 export const EquipmentPicker: React.FC = () => {
   const { t } = useTranslation();
@@ -43,7 +43,10 @@ export const EquipmentPicker: React.FC = () => {
   }, []);
 
   const toggle = async (item: Equipment) => {
-    const next = !state[item];
+    // Lo stato visivo di partenza non e' `state[item]` ma "!== false": il
+    // toggle deve invertire quello, non il valore grezzo (sempre `undefined`
+    // finche' non lo si tocca).
+    const next = state[item] === false;
     // Ottimistico: il tocco deve rispondere subito, e la scrittura e' locale.
     setState((current) => ({ ...current, [item]: next }));
     try {
@@ -72,7 +75,9 @@ export const EquipmentPicker: React.FC = () => {
           <Chip
             key={item}
             label={t(`gym.equipment.${item}`)}
-            active={state[item] === true}
+            // Un attrezzo mai toccato conta come disponibile: solo "false"
+            // esplicito lo spegne.
+            active={state[item] !== false}
             onPress={() => toggle(item)}
           />
         ))}

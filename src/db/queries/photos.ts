@@ -1,7 +1,7 @@
 import { getDb } from "@/src/db/index";
 
 /**
- * Le quattro colonne che contengono un percorso di foto.
+ * Le cinque colonne che contengono un percorso di foto.
  *
  * Sono qui e non sparse fra i moduli perche' la domanda "quali foto servono
  * ancora" e' una domanda su tutte e quattro insieme: una stessa immagine puo'
@@ -13,6 +13,7 @@ const PHOTO_COLUMNS: { table: string; column: string }[] = [
   { table: "recipes", column: "photo_uri" },
   { table: "meal_entries", column: "photo_uri" },
   { table: "progress_photos", column: "uri" },
+  { table: "exercises", column: "photo_uri" },
 ];
 
 /** Il nome, cioe' l'ultima parte del percorso. */

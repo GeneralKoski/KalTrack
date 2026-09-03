@@ -196,7 +196,8 @@ describe("rankAlternatives, casi limite", () => {
     const source = await addExercise("Zulu esercizio di partenza");
     const corpoLibero = await addExercise("Alpha piegamenti");
     await addExercise("Beta panca", ["bilanciere", "panca"]);
-    await setEquipmentAvailability("bilanciere", true);
+    // Tutto e' disponibile per eccezione: va tolta esplicitamente "panca".
+    await setEquipmentAvailability("panca", false);
     hasAiKeyMock.mockReturnValue(false);
 
     const result = await rankAlternatives({ exerciseId: source });

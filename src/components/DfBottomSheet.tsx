@@ -133,12 +133,9 @@ export const DfBottomSheet = forwardRef<BottomSheetModal, DfBottomSheetProps>(
             activeOpacity={0.6}
             hitSlop={8}
           >
+            {titleOpen && <ChevronLeft size={20} color={colors.textMuted} />}
             {titleText}
-            {titleOpen ? (
-              <ChevronLeft size={20} color={colors.textMuted} />
-            ) : (
-              <ChevronRight size={20} color={colors.textMuted} />
-            )}
+            {!titleOpen && <ChevronRight size={20} color={colors.textMuted} />}
           </TouchableOpacity>
         ) : (
           titleText

@@ -1,4 +1,3 @@
-import { DfAlert } from "@/src/components/DfAlert";
 import {
   EmptyState,
   ScreenBackground,
@@ -10,19 +9,11 @@ import { ExerciseFormSheet } from "@/src/containers/gym/ExerciseFormSheet";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { ExerciseListItem } from "@/src/containers/gym/ExerciseListItem";
-import {
-  deleteExercise,
-  searchExercises,
-  setExerciseDislike,
-  toggleExerciseBan,
-} from "@/src/db/queries/exercises";
+import { searchExercises } from "@/src/db/queries/exercises";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
-import {
-  importCatalog,
-  unpublishExercise,
-} from "@/src/services/exerciseCatalog";
+import { importCatalog } from "@/src/services/exerciseCatalog";
 import { theme } from "@/src/styles";
 import type { ExerciseRow } from "@/src/types/gym";
 import { showToast } from "@/src/utils/toast";
@@ -43,17 +34,13 @@ const SEARCH_DEBOUNCE_MS = 250;
 export function ExercisesScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
-  const { goBack } = useAppNav();
+  const { goBack, navigate } = useAppNav();
   const insets = useSafeAreaInsets();
 
   const formRef = useRef<BottomSheetModal>(null);
   const [term, setTerm] = useState("");
   const [importing, setImporting] = useState(false);
-  /** La voce aperta nel modulo di correzione. Null = se ne crea una nuova. */
-  const [editing, setEditing] = useState<ExerciseRow | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<ExerciseRow | null>(null);
   const [debounced, setDebounced] = useState("");
-  const [selected, setSelected] = useState<ExerciseRow | null>(null);
 
   useEffect(() => {
     const timeout = setTimeout(() => setDebounced(term), SEARCH_DEBOUNCE_MS);
@@ -82,12 +69,6 @@ export function ExercisesScreen() {
     } finally {
       setImporting(false);
     }
-  };
-
-  const act = async (fn: () => Promise<void>) => {
-    await fn();
-    setSelected(null);
-    reload();
   };
 
   return (
@@ -120,10 +101,7 @@ export function ExercisesScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => {
-              setEditing(null);
-              formRef.current?.present();
-            }}
+            onPress={() => formRef.current?.present()}
             activeOpacity={0.6}
             hitSlop={10}
           >
@@ -154,7 +132,10 @@ export function ExercisesScreen() {
             data={data ?? []}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <ExerciseListItem exercise={item} onPress={() => setSelected(item)} />
+              <ExerciseListItem
+                exercise={item}
+                onPress={() => navigate("ExerciseDetail", { id: item.id })}
+              />
             )}
             contentContainerStyle={[
               styles.list,
@@ -172,116 +153,17 @@ export function ExercisesScreen() {
         )}
       </SafeAreaView>
 
+      {/* Solo creazione: correggere ed eliminare vivono nel dettaglio
+          dell'esercizio, che ha anche le preferenze e sa se la voce e'
+          propria. */}
       <ExerciseFormSheet
         ref={formRef}
-        editing={editing}
         onSaved={() => {
           reload();
           // Chi ha salvato ha finito: lasciare aperto un modulo gia' svuotato
           // sembra che il salvataggio non sia andato.
           formRef.current?.dismiss();
         }}
-      />
-
-      <DfAlert
-        isOpen={selected !== null}
-        title={selected?.name}
-        message={selected?.instructions ?? undefined}
-        confirmLabel={
-          selected?.is_banned === 1 ? t("gym.unban") : t("gym.ban")
-        }
-        cancelLabel={t("close")}
-        onConfirm={() =>
-          selected && act(() => toggleExerciseBan(selected.id))
-        }
-        onClose={() => setSelected(null)}
-        /*
-         * In colonna: il footer di default mette tutto in riga, e con i due
-         * comandi in piu' per le voci proprie i bottoni si schiacciavano fino
-         * a uscire dal riquadro.
-         */
-        verticalFooter
-        footerExtra={
-          selected ? (
-            <View style={styles.footerExtra}>
-              <TouchableOpacity
-                onPress={() =>
-                  act(() =>
-                    setExerciseDislike(
-                      selected.id,
-                      selected.dislike_level > 0 ? 0 : 2,
-                    ),
-                  )
-                }
-                activeOpacity={0.6}
-              >
-                <Text style={[styles.dislike, { color: colors.textMuted }]}>
-                  {selected.dislike_level > 0
-                    ? t("gym.undislike")
-                    : t("gym.dislike")}
-                </Text>
-              </TouchableOpacity>
-
-              {/*
-                Correggere ed eliminare solo le voci create qui: quelle del
-                catalogo di partenza sono di tutti, e una modifica locale le
-                farebbe divergere dallo stesso esercizio sugli altri telefoni.
-              */}
-              {selected.is_custom === 1 ? (
-                <View style={styles.ownerActions}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      const voce = selected;
-                      setSelected(null);
-                      setEditing(voce);
-                      formRef.current?.present();
-                    }}
-                    activeOpacity={0.6}
-                  >
-                    <Text style={[styles.dislike, { color: colors.accent }]}>
-                      {t("gym.edit_exercise")}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={() => {
-                      const voce = selected;
-                      setSelected(null);
-                      setConfirmDelete(voce);
-                    }}
-                    activeOpacity={0.6}
-                  >
-                    <Text
-                      style={[styles.dislike, { color: theme.colors.error }]}
-                    >
-                      {t("gym.delete_exercise")}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              ) : null}
-            </View>
-          ) : null
-        }
-      />
-
-      <DfAlert
-        isOpen={confirmDelete !== null}
-        title={confirmDelete?.name}
-        message={t("gym.delete_exercise_message")}
-        confirmLabel={t("delete")}
-        cancelLabel={t("cancel")}
-        onConfirm={async () => {
-          const voce = confirmDelete;
-          if (!voce) return;
-          await deleteExercise(voce.id);
-          // Toglie anche dal catalogo comune, ma solo se la voce e' propria:
-          // il servizio non prova nemmeno a toccare quella di un altro.
-          void unpublishExercise(voce.name);
-          setConfirmDelete(null);
-          reload();
-          showToast.success({ title: t("gym.exercise_deleted") });
-        }}
-        onClose={() => setConfirmDelete(null)}
       />
     </View>
   );
@@ -306,12 +188,4 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: theme.spacing.md },
   separator: { height: theme.spacing.sm },
   loader: { marginTop: theme.spacing.xl },
-  dislike: { fontSize: 13, fontWeight: "600", textAlign: "center", paddingTop: 4 },
-  footerExtra: { width: "100%", gap: theme.spacing.xs },
-  ownerActions: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: theme.spacing.lg,
-    paddingTop: theme.spacing.xs,
-  },
 });

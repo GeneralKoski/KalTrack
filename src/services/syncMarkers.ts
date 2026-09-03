@@ -46,6 +46,14 @@ export const LOCAL_ONLY_SETTINGS = new Set([
   "health.steps_import_enabled",
   "health.steps_last_sync",
   "last_backup_export",
+  /*
+   * `onboarding_step` dice a che punto e' arrivato il wizard SU QUESTO
+   * telefono: e' come si riprende un abbandono a meta', non un fatto sui
+   * dati. `onboarding_completed` invece NON e' qui, apposta: dice che il
+   * profilo e' stato compilato, ed e' quello che deve viaggiare perche' un
+   * secondo dispositivo sullo stesso account non lo richieda daccapo.
+   */
+  "onboarding_step",
 ]);
 
 /**

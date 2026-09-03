@@ -1,3 +1,5 @@
+import type { RoutineInput } from "@/src/db/queries/workouts";
+import { navigationRef } from "@/src/navigation/navigationRef";
 import { StackActions, useNavigation } from "@react-navigation/native";
 
 // Rotte navigabili con i relativi parametri. Centralizza l'unico cast
@@ -28,8 +30,10 @@ export interface NavParams {
   Diagnostics: undefined;
   MealTypes: undefined;
   Exercises: undefined;
+  ExerciseDetail: { id: string };
   Routines: undefined;
-  RoutineForm: { id?: string };
+  RoutineForm: { id?: string; generatedRoutine?: RoutineInput };
+  GenerateRoutine: undefined;
   Session: { routineId: string; dayIndex: number };
   Achievements: undefined;
   Friends: undefined;
@@ -41,6 +45,13 @@ export interface NavParams {
   MealPlan: undefined;
   ShoppingList: undefined;
   Reminders: undefined;
+  Onboarding: undefined;
+  OnboardingWelcome: undefined;
+  OnboardingProfileBasics: undefined;
+  OnboardingWeight: undefined;
+  OnboardingActivityGoal: undefined;
+  OnboardingTargets: undefined;
+  OnboardingTheme: undefined;
 }
 
 type NavigateFn = (name: string, params?: object) => void;
@@ -63,4 +74,18 @@ export function useAppNav() {
       navigation.dispatch(StackActions.replace(name, params)),
     goBack: () => navigation.goBack(),
   };
+}
+
+/**
+ * Chiude l'onboarding: azzera TUTTA la navigazione su Tabs, non solo lo stack
+ * di chi chiama.
+ *
+ * `navigate("Tabs")` da dentro il wizard risalirebbe fino al root e ci
+ * arriverebbe, ma lascerebbe "Onboarding" nella cronologia sotto: il tasto
+ * indietro da Oggi ci farebbe rientrare. Serve la navigazione fuori
+ * dall'albero perché nessuna azione di stack locale puo' toccare la
+ * cronologia del root da dentro un navigatore annidato.
+ */
+export function resetToTabs() {
+  navigationRef.reset({ index: 0, routes: [{ name: "Tabs" }] });
 }

@@ -15,7 +15,6 @@ import {
   type DraftExercise,
 } from "@/src/containers/gym/BlockEditor";
 import { ExercisePickerSheet } from "@/src/containers/gym/ExercisePickerSheet";
-import { GenerateRoutineModal } from "@/src/containers/gym/GenerateRoutineModal";
 import { newId } from "@/src/db/ids";
 import { searchExercises } from "@/src/db/queries/exercises";
 import {
@@ -32,7 +31,11 @@ import { theme } from "@/src/styles";
 import type { ExerciseRow } from "@/src/types/gym";
 import { showToast } from "@/src/utils/toast";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
-import { useRoute, type RouteProp } from "@react-navigation/native";
+import {
+  useNavigation,
+  useRoute,
+  type RouteProp,
+} from "@react-navigation/native";
 import {
   ChevronLeft,
   Pencil,
@@ -83,8 +86,15 @@ const toRestSeconds = (value: string): number | null => {
 export function RoutineFormScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
-  const { goBack } = useAppNav();
-  const route = useRoute<RouteProp<{ params: { id?: string } }, "params">>();
+  const { navigate, goBack } = useAppNav();
+  const navigation = useNavigation();
+  const route =
+    useRoute<
+      RouteProp<
+        { params: { id?: string; generatedRoutine?: RoutineInput } },
+        "params"
+      >
+    >();
   const id = route.params?.id;
   const pickerRef = useRef<BottomSheetModal>(null);
 
@@ -96,7 +106,6 @@ export function RoutineFormScreen() {
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
   const [renameText, setRenameText] = useState<string | null>(null);
   const [confirmDeleteDay, setConfirmDeleteDay] = useState(false);
-  const [aiModalOpen, setAiModalOpen] = useState(false);
 
   const handleGeneratedRoutine = async (routine: RoutineInput) => {
     setName(routine.name);
@@ -127,6 +136,14 @@ export function RoutineFormScreen() {
     setDays(drafts);
     setDayIndex(0);
   };
+
+  useEffect(() => {
+    const generatedRoutine = route.params?.generatedRoutine;
+    if (!generatedRoutine) return;
+    handleGeneratedRoutine(generatedRoutine);
+    navigation.setParams({ generatedRoutine: undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.params?.generatedRoutine]);
 
   useEffect(() => {
     if (!id) return;
@@ -323,7 +340,7 @@ export function RoutineFormScreen() {
           >
             {!id && days.length === 0 ? (
               <TouchableOpacity
-                onPress={() => setAiModalOpen(true)}
+                onPress={() => navigate("GenerateRoutine")}
                 activeOpacity={0.7}
                 style={[
                   styles.aiBanner,
@@ -520,12 +537,6 @@ export function RoutineFormScreen() {
         confirmColor={theme.colors.error}
         onConfirm={removeDay}
         onClose={() => setConfirmDeleteDay(false)}
-      />
-
-      <GenerateRoutineModal
-        isOpen={aiModalOpen}
-        onGenerated={handleGeneratedRoutine}
-        onClose={() => setAiModalOpen(false)}
       />
     </View>
   );

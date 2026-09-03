@@ -111,8 +111,13 @@ export const ExercisePickerSheet = forwardRef<
       {rows.length === 0 ? (
         <EmptyState message={t("gym.no_exercises")} />
       ) : (
-        rows.map((item) => (
-          <PickerRow key={item.id} exercise={item} onPress={() => onPick(item)} />
+        rows.map((item, index) => (
+          <PickerRow
+            key={item.id}
+            exercise={item}
+            isLast={index === rows.length - 1}
+            onPress={() => onPick(item)}
+          />
         ))
       )}
     </DfBottomSheet>
@@ -123,8 +128,9 @@ ExercisePickerSheet.displayName = "ExercisePickerSheet";
 
 const PickerRow: React.FC<{
   exercise: ExerciseRow;
+  isLast: boolean;
   onPress: () => void;
-}> = ({ exercise, onPress }) => {
+}> = ({ exercise, isLast, onPress }) => {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const equipment = exerciseEquipment(exercise);
@@ -133,7 +139,10 @@ const PickerRow: React.FC<{
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.6}
-      style={[styles.row, { borderBottomColor: colors.border }]}
+      style={[
+        styles.row,
+        { borderBottomColor: colors.border, borderBottomWidth: isLast ? 0 : 1 },
+      ]}
     >
       <Text style={[styles.rowTitle, { color: colors.text }]} numberOfLines={1}>
         {exercise.name}
@@ -158,8 +167,9 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.sm,
   },
   row: {
-    paddingVertical: theme.spacing.sm,
-    borderBottomWidth: 1,
+    // md e senza bordo sull'ultima riga: stessa altezza e stesso divisore
+    // del drawer di riferimento (scelta pasto in AddEntrySheet).
+    paddingVertical: theme.spacing.md,
   },
   rowTitle: { fontSize: 15, fontWeight: "500" },
   rowSubtitle: { fontSize: 13, marginTop: 1, textTransform: "capitalize" },

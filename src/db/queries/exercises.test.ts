@@ -146,8 +146,9 @@ describe("suggestAlternatives", () => {
   });
 
   it("con attrezzatura dichiarata scarta ciò che non si può fare", async () => {
-    await setEquipmentAvailability("corpo_libero", true);
-    // Nessuna macchina disponibile: la chest press non deve comparire.
+    // Ogni attrezzo conta come disponibile finche' non lo si toglie a mano:
+    // togliere la macchina e' come dichiarare "non ce l'ho".
+    await setEquipmentAvailability("macchina", false);
     const alternatives = await suggestAlternatives(await idOf("panca"), {
       onlyAvailableEquipment: true,
     });
@@ -198,8 +199,9 @@ describe("attrezzatura e corpo libero", () => {
       secondaryMuscles: [],
       equipment: ["macchina"],
     });
-    await setEquipmentAvailability("manubri", true);
-    await setEquipmentAvailability("panca", true);
+    // Solo la macchina va tolta esplicitamente: manubri e panca sono gia'
+    // disponibili di default.
+    await setEquipmentAvailability("macchina", false);
 
     const ids = (
       await suggestAlternatives(bench, { onlyAvailableEquipment: true })
@@ -209,10 +211,10 @@ describe("attrezzatura e corpo libero", () => {
   });
 
   /**
-   * Un elenco vuoto vuol dire "non ho ancora detto cosa ho", non "non ho
-   * niente": filtrandoci sopra le alternative si riducevano al corpo libero.
+   * L'attrezzatura e' disponibile per eccezione: senza dichiarazioni non si
+   * esclude niente, perche' niente e' stato tolto.
    */
-  it("non filtra finche' l'attrezzatura non e' stata dichiarata", async () => {
+  it("senza dichiarazioni esplicite, tutto conta come disponibile", async () => {
     const bench = await createExercise({
       name: "Panca bilanciere",
       muscleGroup: "petto",

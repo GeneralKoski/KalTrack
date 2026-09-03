@@ -202,11 +202,12 @@ export const AddEntrySheet = forwardRef<BottomSheetModal, AddEntrySheetProps>(
               foods.length === 0 ? (
                 <EmptyState message={t("foods.empty")} />
               ) : (
-                foods.map((item) => (
+                foods.map((item, index) => (
                   <PickerRow
                     key={item.id}
                     title={item.name}
                     subtitle={`${Math.round(item.kcal)} kcal / 100 ${item.is_liquid === 1 ? "ml" : "g"}`}
+                    isLast={index === foods.length - 1}
                     onPress={() => onPick({ kind: "food", food: item })}
                     /* Il tocco sulla riga sceglie, come sempre: i valori stanno
                    dietro un bottone loro, o guardarli vorrebbe dire aggiungere
@@ -221,13 +222,14 @@ export const AddEntrySheet = forwardRef<BottomSheetModal, AddEntrySheetProps>(
               recipes.length === 0 ? (
                 <EmptyState message={t("recipes.empty")} />
               ) : (
-                recipes.map((item) => (
+                recipes.map((item, index) => (
                   <PickerRow
                     key={item.id}
                     title={item.name}
                     subtitle={t("recipes.servings_count", {
                       count: item.servings,
                     })}
+                    isLast={index === recipes.length - 1}
                     onPress={() => onPick({ kind: "recipe", recipe: item })}
                   />
                 ))
@@ -284,14 +286,20 @@ const TabButton: React.FC<{
 const PickerRow: React.FC<{
   title: string;
   subtitle: string;
+  isLast: boolean;
   onPress: () => void;
   onInfo?: () => void;
-}> = ({ title, subtitle, onPress, onInfo }) => {
+}> = ({ title, subtitle, isLast, onPress, onInfo }) => {
   const { colors } = useAppTheme();
   const { t } = useTranslation();
 
   return (
-    <View style={[styles.row, { borderBottomColor: colors.border }]}>
+    <View
+      style={[
+        styles.row,
+        { borderBottomColor: colors.border, borderBottomWidth: isLast ? 0 : 1 },
+      ]}
+    >
       <TouchableOpacity
         style={styles.rowBody}
         onPress={onPress}
@@ -359,8 +367,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.sm,
-    paddingVertical: theme.spacing.sm,
-    borderBottomWidth: 1,
+    // md e senza bordo sull'ultima riga, come mealRow qui sopra: stessa
+    // altezza e stesso divisore in tutti i drawer di scelta.
+    paddingVertical: theme.spacing.md,
   },
   rowBody: { flex: 1 },
   rowTitle: {

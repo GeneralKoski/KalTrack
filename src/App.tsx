@@ -19,6 +19,7 @@ import { runSync } from "@/src/services/sync";
 import { startSyncScheduler } from "@/src/services/syncScheduler";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { configureNotificationHandler } from "@/src/services/reminders";
+import { useOnboardingStore } from "@/src/stores/onboardingStore";
 import { useThemeStore } from "@/src/stores/themeStore";
 import { logger } from "@/src/utils/logger";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
@@ -61,6 +62,9 @@ export function App() {
     (async () => {
       try {
         await initDatabase();
+        // Prima che Navigation monti: sceglie se la prima schermata e' Oggi
+        // o il wizard, e quella scelta si legge una volta sola all'avvio.
+        await useOnboardingStore.getState().hydrate();
       } catch (error) {
         // Sbloccare comunque l'avvio: senza questo l'app resterebbe sulla
         // splash per sempre e non ci sarebbe modo di vedere l'errore.

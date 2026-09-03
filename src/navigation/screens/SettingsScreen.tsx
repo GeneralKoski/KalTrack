@@ -3,7 +3,7 @@ import { DfButton } from "@/src/components/form/DfButton";
 import { Card, ScreenBackground } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
-import { useAppNav } from "@/src/hooks/useAppNav";
+import { resetToTabs, useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { useThemeStore } from "@/src/stores/themeStore";
@@ -130,6 +130,7 @@ export function SettingsScreen() {
         onConfirm={async () => {
           setConfirmSignOut(false);
           await signOut();
+          resetToTabs();
         }}
         onClose={() => setConfirmSignOut(false)}
       />

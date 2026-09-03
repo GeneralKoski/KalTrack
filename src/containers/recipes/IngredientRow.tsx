@@ -12,6 +12,8 @@ interface IngredientRowProps {
   kcal: number;
   /** Le ricette annidate si distinguono a colpo d'occhio dagli alimenti. */
   isRecipe?: boolean;
+  /** L'ultima riga non porta la divisione sotto: non separa da niente. */
+  isLast: boolean;
   onPress: () => void;
   onRemove: () => void;
 }
@@ -21,13 +23,19 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
   quantityLabel,
   kcal,
   isRecipe = false,
+  isLast,
   onPress,
   onRemove,
 }) => {
   const { colors } = useAppTheme();
 
   return (
-    <View style={[styles.row, { borderBottomColor: colors.border }]}>
+    <View
+      style={[
+        styles.row,
+        { borderBottomColor: colors.border, borderBottomWidth: isLast ? 0 : 1 },
+      ]}
+    >
       <TouchableOpacity
         style={styles.main}
         onPress={onPress}
@@ -64,8 +72,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.sm,
-    paddingVertical: theme.spacing.sm,
-    borderBottomWidth: 1,
+    // md e senza bordo sull'ultima riga: stessa altezza e stesso divisore
+    // del drawer di riferimento (scelta pasto in AddEntrySheet).
+    paddingVertical: theme.spacing.md,
   },
   main: {
     flex: 1,

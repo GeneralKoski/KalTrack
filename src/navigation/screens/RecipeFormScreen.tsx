@@ -331,6 +331,7 @@ export function RecipeFormScreen() {
                 }
                 kcal={itemNutrients(item).kcal}
                 isRecipe={item.kind === "recipe"}
+                isLast={index === items.length - 1}
                 onPress={() => setEditingIndex(index)}
                 onRemove={() =>
                   setItems((prev) => prev.filter((_, i) => i !== index))
