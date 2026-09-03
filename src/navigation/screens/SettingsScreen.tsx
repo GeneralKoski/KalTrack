@@ -12,7 +12,6 @@ import {
   HeartPulse,
   Palette,
   ShieldCheck,
-  Sparkles,
   Stethoscope,
   UtensilsCrossed,
 } from "lucide-react-native";
@@ -69,11 +68,6 @@ export function SettingsScreen() {
             label={t("settings.theme")}
             value={t(`settings.theme_${themeMode}`)}
             onPress={() => navigate("Appearance")}
-          />
-          <SettingsRow
-            icon={<Sparkles size={20} color={colors.textSecondary} />}
-            label={t("settings.assistant")}
-            onPress={() => navigate("AssistantSettings")}
           />
           <SettingsRow
             icon={<HeartPulse size={20} color={colors.textSecondary} />}

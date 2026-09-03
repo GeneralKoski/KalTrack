@@ -4,56 +4,33 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 /**
- * Azioni per cui l'utente ha scelto "non chiedere più conferma".
+ * Le preferenze dell'assistente: oggi una sola, la risposta parlata.
  *
- * La preferenza è PER CAPABILITY e non globale: si può rendere istantaneo
- * "aggiungi passi" tenendo la conferma su "aggiungi al diario". Le
- * cancellazioni non sono mai auto-confermabili, indipendentemente da cosa
- * c'è qui dentro: quella regola vive nel codice che decide, non nei dati.
+ * C'e' stata anche l'auto-conferma per tool ("non chiedermelo piu'"), tolta il
+ * 3 settembre 2026: un'azione che scrive nel diario si conferma sempre, e una
+ * preferenza che si poteva accendere per sbaglio da una spunta dentro una
+ * scheda valeva meno del tocco che risparmiava.
  */
-export const NEVER_AUTO_CONFIRM = ["delete_entry"] as const;
-
 interface AssistantStore {
   /** Risposta parlata, attiva salvo diverso volere. */
   voiceReplyEnabled: boolean;
-  /** Nomi dei tool auto-confermati. */
-  autoConfirm: string[];
   isHydrated: boolean;
   setVoiceReplyEnabled: (enabled: boolean) => void;
-  allowAutoConfirm: (toolName: string) => void;
-  revokeAutoConfirm: (toolName: string) => void;
-  isAutoConfirmed: (toolName: string) => boolean;
 }
 
 export const useAssistantStore = create<AssistantStore>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       voiceReplyEnabled: true,
-      autoConfirm: [],
       isHydrated: false,
 
       setVoiceReplyEnabled: (voiceReplyEnabled) => set({ voiceReplyEnabled }),
-
-      allowAutoConfirm: (toolName) => {
-        if ((NEVER_AUTO_CONFIRM as readonly string[]).includes(toolName)) return;
-        const current = get().autoConfirm;
-        if (current.includes(toolName)) return;
-        set({ autoConfirm: [...current, toolName] });
-      },
-
-      revokeAutoConfirm: (toolName) =>
-        set({ autoConfirm: get().autoConfirm.filter((n) => n !== toolName) }),
-
-      isAutoConfirmed: (toolName) =>
-        !(NEVER_AUTO_CONFIRM as readonly string[]).includes(toolName) &&
-        get().autoConfirm.includes(toolName),
     }),
     {
       name: "app_assistant",
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         voiceReplyEnabled: state.voiceReplyEnabled,
-        autoConfirm: state.autoConfirm,
       }),
       onRehydrateStorage: () => (state, error) => {
         if (error) logger.error("[assistant] rilettura preferenze fallita", error);

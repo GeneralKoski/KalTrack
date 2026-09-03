@@ -18,7 +18,6 @@ import { listRoutines } from "@/src/db/queries/workouts";
 import { todayIso } from "@/src/domain/date";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { useAssistantLaunch } from "@/src/services/assistantLaunch";
-import { useAssistantStore } from "@/src/stores/assistantStore";
 import { useDayContextStore } from "@/src/stores/dayContextStore";
 import { theme } from "@/src/styles";
 import { logger } from "@/src/utils/logger";
@@ -58,8 +57,6 @@ export const AssistantButton: React.FC<AssistantButtonProps> = ({
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const [open, setOpen] = useState(false);
-  const isAutoConfirmed = useAssistantStore((s) => s.isAutoConfirmed);
-  const allowAutoConfirm = useAssistantStore((s) => s.allowAutoConfirm);
   const launchRequests = useAssistantLaunch();
   const referenceDate = useDayContextStore((s) => s.referenceDate);
 
@@ -182,26 +179,8 @@ export const AssistantButton: React.FC<AssistantButtonProps> = ({
     [resolvePending, onIntentExecuted, t],
   );
 
-  /**
-   * Le azioni gia' auto-confermate partono da sole appena arrivano.
-   *
-   * Il registro di quelle avviate serve perche' `runIntent` cambia `pending`,
-   * l'effetto rigira, e senza guardia una seconda azione automatica dello
-   * stesso gruppo verrebbe lanciata due volte.
-   */
-  const startedRef = useRef(new Set<ToolIntent>());
-  useEffect(() => {
-    for (const intent of session.pending) {
-      if (!isAutoConfirmed(intent.toolName)) continue;
-      if (startedRef.current.has(intent)) continue;
-      startedRef.current.add(intent);
-      void runIntent(intent);
-    }
-  }, [session.pending, isAutoConfirmed, runIntent]);
-
   const close = () => {
     setOpen(false);
-    startedRef.current = new Set();
     session.reset();
   };
 
@@ -224,18 +203,7 @@ export const AssistantButton: React.FC<AssistantButtonProps> = ({
         visible={open}
         session={session}
         onClose={close}
-        onConfirm={(intent, rememberChoice) => {
-          // Le altre azioni gia' a schermo restano da confermare a mano:
-          // spuntare "non chiedere piu'" su una di esse le faceva partire
-          // tutte insieme, senza che nessuno le avesse guardate.
-          if (rememberChoice) {
-            for (const other of session.pending) {
-              if (other !== intent && other.toolName === intent.toolName) {
-                startedRef.current.add(other);
-              }
-            }
-            allowAutoConfirm(intent.toolName);
-          }
+        onConfirm={(intent) => {
           // Si chiude solo quando non resta piu' niente da decidere: con tre
           // azioni proposte, confermarne una faceva sparire le altre due
           // senza che nessuno le avesse viste.

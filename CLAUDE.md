@@ -494,6 +494,14 @@ della stessa schermata: `SCREEN_FAB_BOTTOM` impila il "+" sopra il microfono e
 `ASSISTANT_FAB_CLEARANCE` e' lo spazio che **solo la lista di Oggi** si lascia
 in fondo. Nessun'altra schermata deve piu' riservare niente.
 
+**Le due preferenze dell'assistente stanno dentro l'assistente**, non nelle
+impostazioni. La voce si zittisce dall'altoparlante in cima all'overlay, dove
+la si cerca nel momento in cui serve - in ufficio, di notte - e non tre
+schermate piu' in la'. L'auto-conferma per tool ("non chiedermelo piu'") non
+c'e' piu' dal 3 settembre 2026: un'azione che scrive nel diario si conferma
+sempre, e una preferenza che si accendeva con una spunta dentro la scheda di
+conferma valeva meno del tocco che risparmiava.
+
 Resta montato anche mentre si guarda un'altra scheda - i tab non si smontano
 dopo la prima visita - quindi la scorciatoia `kaltrack://assistente` sull'icona
 dell'app continua a far partire l'ascolto da qualunque punto.
@@ -599,8 +607,13 @@ supposto.
 
 La chiave sta in `.env` come `EXPO_PUBLIC_GEMINI_API_KEY`, quindi **nel bundle**:
 e' una scelta, non una dimenticanza. Cosi' l'AI e' attiva al primo avvio senza
-configurazione e a costo zero, e l'APK non si distribuisce. Chi vuole la
-propria la mette da Impostazioni e ha la precedenza (`aiKeyStore`, `aiKey()`).
+configurazione e a costo zero, e l'APK non si distribuisce.
+
+**Ce n'e' una sola** (`aiKey()`). C'e' stata anche una chiave personale, messa
+dall'utente da Impostazioni e con la precedenza su quella dell'app: e' stata
+tolta il 3 settembre 2026 perche' al rilascio pubblico si paga a consumo e non
+c'e' piu' una quota da scavalcare. Con lei sono spariti `aiKeyStore`, il campo
+in Impostazioni e la pagina che lo conteneva.
 
 ### La quota, che e' il vincolo vero
 
@@ -645,9 +658,8 @@ oggi:
   microfono nell'app e' un cartello, non una serratura: si aggira
   ripacchettizzando l'APK. Il controllo vive dove vive la chiave, cioe' sul
   server.
-- **`aiKeyStore` resta.** Chi mette la propria chiave continua a pagarsela da
-  solo e non passa dal proxy, ed e' la via d'uscita per chi non si abbona. Non
-  e' codice morto da togliere quando arrivera' il proxy.
+- **una chiave sola, quella del proxy.** Non c'e' una via d'uscita lato utente
+  da mantenere: chi usa l'app usa la chiave del server.
 
 Il piano completo, con quel che manca lato server, sta in `TODO.md` § 3.
 
@@ -737,8 +749,7 @@ riuscite (`ai_calls`). Tre cose da non rompere:
 - **`recordLog` non lancia e non registra i propri errori.** E' chiamata da
   `logger.error`: un guasto che ripassasse di li' si richiamerebbe all'infinito.
 - **`redactSecrets` copre le forme di chiave che l'app usa DAVVERO.** Il
-  registro si condivide come file ed e' dentro il backup: e' la stessa chiave
-  che `aiKeyStore` tiene apposta fuori dal database. Copriva `gsk_`/`sk_` e
+  registro si condivide come file ed e' dentro il backup. Copriva `gsk_`/`sk_` e
   `Bearer`, cioe' Groq e OpenAI, e dal passaggio a Gemini non nascondeva piu'
   niente - una chiave `AIza...` o `AQ....` passava intera. Ora ci sono anche
   quelle due forme e `?key=` in una URL. Chi cambia provider aggiunge la forma

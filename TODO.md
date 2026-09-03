@@ -151,10 +151,6 @@ fuori.
       il budget di tutti - ed e' il proprio budget, non quello di Google.
       `login` e `register` hanno gia' un throttle, il proxy ne vuole uno
       pensato sul costo e non sulle richieste.
-- [ ] **Tenere la chiave personale dell'utente.** `aiKeyStore` esiste e ha la
-      precedenza (`CLAUDE.md` § AI): chi mette la propria continua a pagarsela
-      da solo e non passa dal proxy. E' anche la via d'uscita per chi non vuole
-      abbonarsi.
 
 **Il blocco nell'app e' un cartello, non una serratura.** Disattivare il
 microfono lato client si aggira ripacchettizzando l'APK. L'unico punto dove il

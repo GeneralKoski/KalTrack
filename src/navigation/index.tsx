@@ -24,7 +24,6 @@ import { Text } from "@/src/components/ui";
 import { AchievementsScreen } from "@/src/navigation/screens/AchievementsScreen";
 import { AdminScreen } from "@/src/navigation/screens/AdminScreen";
 import { AppearanceScreen } from "@/src/navigation/screens/AppearanceScreen";
-import { AssistantSettingsScreen } from "@/src/navigation/screens/AssistantSettingsScreen";
 import { BackupScreen } from "@/src/navigation/screens/BackupScreen";
 import { ComparisonScreen } from "@/src/navigation/screens/ComparisonScreen";
 import { DiagnosticsScreen } from "@/src/navigation/screens/DiagnosticsScreen";
@@ -205,10 +204,6 @@ const RootStack = createNativeStackNavigator({
     Appearance: {
       screen: AppearanceScreen,
       linking: { path: "aspetto" },
-    },
-    AssistantSettings: {
-      screen: AssistantSettingsScreen,
-      linking: { path: "assistente" },
     },
     Health: {
       screen: HealthScreen,

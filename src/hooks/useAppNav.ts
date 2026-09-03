@@ -21,8 +21,6 @@ export interface NavParams {
   RecipeForm: { id?: string };
   Settings: undefined;
   Appearance: undefined;
-  /** `focus: "aiKey"` arriva da "serve la chiave AI": il cursore parte nel campo. */
-  AssistantSettings: { focus?: "aiKey" };
   Health: undefined;
   Admin: undefined;
   Targets: undefined;

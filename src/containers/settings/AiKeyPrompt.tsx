@@ -1,5 +1,4 @@
 import { DfAlert } from "@/src/components/DfAlert";
-import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import React from "react";
 
@@ -9,31 +8,29 @@ interface AiKeyPromptProps {
 }
 
 /**
- * Cosa succede quando si chiede all'AI qualcosa senza avere la chiave.
+ * Cosa succede quando si chiede all'AI qualcosa e la chiave non c'e'.
  *
- * Prima era una riga di testo spenta al posto dei pulsanti: diceva che serviva
- * la configurazione e lasciava all'utente il compito di indovinare dove.
- * Questa invece porta dritti al campo, che e' l'unica cosa che chi legge
- * quel messaggio vuole fare.
+ * La chiave e' una sola e sta nel bundle (`EXPO_PUBLIC_GEMINI_API_KEY`), quindi
+ * mancante vuol dire una cosa sola: questa build e' stata fatta senza `.env`.
+ * Non c'e' piu' un campo dove metterla - c'e' stato fino al 3 settembre 2026 -
+ * e quindi non c'e' piu' un pulsante che ci porti: resta da dire che l'AI in
+ * questa copia dell'app non funziona, che e' meglio di un tasto che non fa
+ * niente.
  */
-export const AiKeyPrompt: React.FC<AiKeyPromptProps> = ({ isOpen, onClose }) => {
+export const AiKeyPrompt: React.FC<AiKeyPromptProps> = ({
+  isOpen,
+  onClose,
+}) => {
   const { t } = useTranslation();
-  const { navigate } = useAppNav();
 
   return (
     <DfAlert
       isOpen={isOpen}
       title={t("ai_key.missing_title")}
       message={t("ai_key.missing_message")}
-      confirmLabel={t("ai_key.missing_cta")}
-      /* In riga i due pulsanti si dividono la larghezza e "Aggiungi la chiave"
-         diventa "Aggiungi l...". In colonna ci sta, e l'azione principale
-         resta la prima cosa sotto il testo. */
-      verticalFooter
-      onConfirm={() => {
-        onClose();
-        navigate("AssistantSettings", { focus: "aiKey" });
-      }}
+      confirmLabel={t("close")}
+      hideCancel
+      onConfirm={onClose}
       onClose={onClose}
     />
   );

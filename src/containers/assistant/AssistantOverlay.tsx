@@ -6,8 +6,9 @@ import { Text, TextInput } from "@/src/components/ui";
 import type { AssistantSession } from "@/src/containers/assistant/useAssistantSession";
 import { VoiceOrb } from "@/src/containers/assistant/VoiceOrb";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { useAssistantStore } from "@/src/stores/assistantStore";
 import { theme } from "@/src/styles";
-import { ArrowUp, Check, Mic, VolumeX, X } from "lucide-react-native";
+import { ArrowUp, Mic, Volume2, VolumeX, X } from "lucide-react-native";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -26,7 +27,7 @@ interface AssistantOverlayProps {
   visible: boolean;
   session: AssistantSession;
   onClose: () => void;
-  onConfirm: (intent: ToolIntent, rememberChoice: boolean) => void;
+  onConfirm: (intent: ToolIntent) => void;
   onDiscard: (intent: ToolIntent) => void;
 }
 
@@ -40,7 +41,8 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
-  const [remember, setRemember] = useState<Record<string, boolean>>({});
+  const voiceReplyEnabled = useAssistantStore((s) => s.voiceReplyEnabled);
+  const setVoiceReplyEnabled = useAssistantStore((s) => s.setVoiceReplyEnabled);
   const [inputText, setInputText] = useState("");
 
   const busy = session.phase === "thinking";
@@ -75,6 +77,24 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
         <View
           style={[styles.header, { paddingTop: insets.top + theme.spacing.sm }]}
         >
+          {/* La voce si zittisce da qui e non dalle impostazioni: e' una cosa
+              che si decide mentre l'assistente parla - in ufficio, di notte -
+              e non tre schermate piu' in la'. */}
+          <TouchableOpacity
+            onPress={() => setVoiceReplyEnabled(!voiceReplyEnabled)}
+            activeOpacity={0.6}
+            hitSlop={12}
+            accessibilityLabel={t(
+              voiceReplyEnabled ? "assistant.mute" : "assistant.unmute",
+            )}
+          >
+            {voiceReplyEnabled ? (
+              <Volume2 size={22} color={colors.textMuted} />
+            ) : (
+              <VolumeX size={22} color={colors.textFaint} />
+            )}
+          </TouchableOpacity>
+
           <TouchableOpacity onPress={onClose} activeOpacity={0.6} hitSlop={12}>
             <X size={24} color={colors.textMuted} />
           </TouchableOpacity>
@@ -165,45 +185,6 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
                   </Text>
                 ))}
 
-                {/* Le cancellazioni restano sempre da confermare a mano. */}
-                {intent.riskLevel === "destructive" ? null : (
-                  <TouchableOpacity
-                    style={styles.rememberRow}
-                    onPress={() =>
-                      setRemember((prev) => ({
-                        ...prev,
-                        [intent.toolName]: !prev[intent.toolName],
-                      }))
-                    }
-                    activeOpacity={0.6}
-                  >
-                    <View
-                      style={[
-                        styles.checkbox,
-                        {
-                          borderColor: colors.border,
-                          backgroundColor: remember[intent.toolName]
-                            ? colors.accent
-                            : "transparent",
-                        },
-                      ]}
-                    >
-                      {remember[intent.toolName] ? (
-                        <Check size={12} color={colors.accentOn} />
-                      ) : null}
-                    </View>
-                    <Text
-                      style={[
-                        styles.rememberLabel,
-                        { color: colors.textMuted },
-                      ]}
-                      numberOfLines={2}
-                    >
-                      {t("assistant.dont_ask_again")}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-
                 <View style={styles.actions}>
                   <DfButton
                     label={t("cancel")}
@@ -215,9 +196,7 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
                   <DfButton
                     label={t("confirm")}
                     fullWidth={false}
-                    onPress={() =>
-                      onConfirm(intent, remember[intent.toolName] === true)
-                    }
+                    onPress={() => onConfirm(intent)}
                     style={styles.action}
                   />
                 </View>
@@ -302,8 +281,11 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1 },
   scroll: { flex: 1 },
   header: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    gap: theme.spacing.lg,
     paddingHorizontal: theme.spacing.md,
-    alignItems: "flex-end",
   },
   content: {
     padding: theme.spacing.lg,
@@ -325,21 +307,6 @@ const styles = StyleSheet.create({
   cardInner: { padding: theme.spacing.md, gap: 4 },
   cardTitle: { fontSize: 15, fontWeight: "700" },
   cardLine: { fontSize: 14 },
-  rememberRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-    marginTop: theme.spacing.sm,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: theme.radius.sm,
-    borderWidth: 1.5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  rememberLabel: { flexShrink: 1, fontSize: 13 },
   actions: {
     flexDirection: "row",
     gap: theme.spacing.sm,

@@ -1,24 +1,17 @@
 /**
  * Una chiave finta per i test dell'AI.
  *
- * Prima non serviva, e questo era il problema: `jest-expo` carica i file .env,
- * quindi i test leggevano la chiave VERA dal disco di chi li lanciava. Su un
- * clone pulito - o in CI - fallivano tutti, e sulla macchina di chi l'aveva
- * configurata passavano. Un test che dipende da un segreto locale non dice se
- * il codice funziona, dice chi lo sta eseguendo.
+ * Senza, i test leggerebbero la chiave VERA: `jest-expo` carica i file .env, e
+ * `aiKey()` legge `EXPO_PUBLIC_GEMINI_API_KEY` da li'. Su un clone pulito - o
+ * in CI - fallirebbero tutti, e sulla macchina di chi l'ha configurata
+ * passerebbero. Un test che dipende da un segreto locale non dice se il codice
+ * funziona, dice chi lo sta eseguendo.
+ *
+ * L'assegnazione basta qui in cima perche' `aiKey()` legge `process.env` al
+ * momento della chiamata, non all'import. Fino al 3 settembre 2026 al suo
+ * posto c'era la stessa cosa fatta su `aiKeyStore`, che non esiste piu'.
  *
  * I test che verificano il comportamento SENZA chiave continuano a valere:
- * mockano `hasGroqKey` per conto loro, e quel mock vince su questo.
+ * mockano `hasAiKey` per conto loro, e quel mock vince su questo.
  */
-/*
- * Il require sta DENTRO l'hook, e non in cima al file.
- *
- * I setup girano prima che il file di test venga caricato, quindi prima che i
- * suoi `jest.mock` esistano: caricando lo store qui fuori si porterebbe dietro
- * l'expo-secure-store vero, e i test che lo mockano si troverebbero due moduli
- * diversi. Dentro il beforeEach il caricamento avviene a mock gia' registrati.
- */
-beforeEach(() => {
-  const { useAiKeyStore } = require("../src/stores/aiKeyStore");
-  useAiKeyStore.setState({ key: "gsk_chiave-di-test", isHydrated: true });
-});
+process.env.EXPO_PUBLIC_GEMINI_API_KEY = "AIza-chiave-di-test";

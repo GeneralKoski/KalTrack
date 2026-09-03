@@ -37,8 +37,8 @@ let sinceLastPrune = PRUNE_EVERY;
  *
  * Il registro esce dall'app: si condivide come file e finisce dentro il
  * backup. Un messaggio d'errore che si porta dietro l'header `Authorization`
- * o una chiave la pubblicherebbe, ed e' esattamente la chiave che `aiKeyStore`
- * tiene apposta fuori dal database.
+ * o una chiave la pubblicherebbe: e' la chiave Gemini dell'app, la stessa che
+ * al rilascio pubblico passera' dietro il backend.
  *
  * Le forme coperte sono quattro, e nessuna e' teorica:
  *  - `Bearer ...`, l'header con cui parte ogni chiamata AI;

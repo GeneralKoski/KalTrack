@@ -134,7 +134,7 @@
   },
   "meal_types": {
     "title": "Pasti",
-    "hint": "Spegni i pasti che non usi: spariscono dalla scelta, ma quelli gia\u0300 registrati restano nel diario.",
+    "hint": "Spegni i pasti che non usi: spariscono dalla scelta, ma quelli già registrati restano nel diario.",
     "settings_row": "Pasti",
     "settings_hint": "Quali pasti puoi usare",
     "add": "Aggiungi pasto",
@@ -142,7 +142,7 @@
     "rename": "Rinomina",
     "last_one": "Deve restare almeno un pasto attivo",
     "delete_title": "Eliminare il pasto?",
-    "delete_message": "\"%{name}\" sparisce dall'elenco. Le righe gia\u0300 registrate restano nel diario."
+    "delete_message": "\"%{name}\" sparisce dall'elenco. Le righe già registrate restano nel diario."
   },
   "settings": {
     "title": "Impostazioni",
@@ -150,7 +150,6 @@
     "theme_system": "Come il sistema",
     "theme_light": "Chiaro",
     "theme_dark": "Scuro",
-    "assistant": "Assistente",
     "health": "Salute"
   },
   "diary": {
@@ -426,13 +425,8 @@
     "send": "Invia",
     "transcribing": "Sto trascrivendo",
     "thinking": "Ci sto pensando",
-    "dont_ask_again": "Non chiedere più per questa azione",
     "execute_failed": "Non sono riuscito a eseguire l'azione",
     "no_italian_voice": "Voce italiana non disponibile su questo telefono: risposta solo scritta",
-    "voice_reply": "Risposte parlate",
-    "auto_confirmed": "Azioni senza conferma",
-    "auto_confirmed_empty": "Nessuna: chiedo sempre conferma",
-    "revoke": "Revoca",
     "error": {
       "no-key": "Manca la chiave API: aggiungila nelle Impostazioni per usare l'assistente",
       "offline": "Serve una connessione per l'assistente",
@@ -441,23 +435,10 @@
       "permission": "Serve il permesso del microfono",
       "failed": "Qualcosa è andato storto. Il dettaglio è in Impostazioni > Diagnostica"
     },
-    "tool": {
-      "log_steps": "Registrare i passi",
-      "log_weight": "Registrare il peso",
-      "add_meal_entries": "Aggiungere al diario",
-      "set_target": "Cambiare gli obiettivi",
-      "delete_entry": "Eliminare una voce",
-      "navigate": "Spostarsi tra le schermate",
-      "query_summary": "Rispondere a una domanda",
-      "create_custom_food": "Creare un alimento",
-      "create_recipe": "Creare una ricetta",
-      "create_exercise": "Creare un esercizio",
-      "create_routine": "Creare una scheda",
-      "log_workout": "Registrare un allenamento",
-      "plan_meal_entry": "Aggiungere al piano alimentare"
-    },
     "tap_to_stop": "Tocca per fermare",
-    "stop": "Ferma la registrazione"
+    "stop": "Ferma la registrazione",
+    "mute": "Zittisci le risposte parlate",
+    "unmute": "Attiva le risposte parlate"
   },
   "achievements": {
     "title": "Traguardi",
@@ -853,19 +834,8 @@
     "compare_period_hint": "Su più giorni passi e allenamenti si sommano, le calorie sono la media dei giorni registrati."
   },
   "ai_key": {
-    "title": "Chiave Google AI Studio",
-    "explain": "L'assistente vocale/testuale, la lettura delle etichette, la stima da foto e la creazione schede usano Google Gemini con una chiave tua gratuita di Google AI Studio. Resta su questo telefono: non viene sincronizzata e non arriva al server.",
-    "placeholder": "AIzaSy...",
-    "save": "Salva la chiave",
-    "replace": "Sostituisci la chiave",
-    "configured": "Chiave configurata (termina con %{tail})",
-    "remove": "Rimuovi la chiave",
-    "saved": "Chiave salvata",
-    "removed": "Chiave rimossa",
-    "where": "Dove trovo la chiave gratuita?",
-    "missing_title": "Serve la chiave AI",
-    "missing_message": "Le funzioni AI - assistente vocale/testuale, lettura etichette, generazione schede e stima da foto - girano con una chiave Google AI Studio tua, che resta su questo telefono.",
-    "missing_cta": "Aggiungi la chiave"
+    "missing_title": "Funzioni AI non disponibili",
+    "missing_message": "Questa copia dell'app e' stata compilata senza la chiave Google AI Studio: assistente, lettura etichette, stima da foto e generazione schede non funzionano."
   },
   "admin": {
     "title": "Reimposta password",

@@ -8,12 +8,10 @@ import {
   type WeeklyMetric,
   type WeeklyStats,
 } from "@/src/ai/weeklyCoach";
-import { DfButton } from "@/src/components/form/DfButton";
 import { Card, MetalSurface, targetColor } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { targetStatus } from "@/src/domain/targets";
-import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
@@ -100,7 +98,6 @@ const StatRow: React.FC<{ row: Row; emptyLabel: string }> = ({
  */
 export const WeeklyCoachCard: React.FC = () => {
   const { t } = useTranslation();
-  const { navigate } = useAppNav();
   const { colors } = useAppTheme();
 
   const loader = useCallback(() => weeklyStats(), []);
@@ -249,19 +246,11 @@ export const WeeklyCoachCard: React.FC = () => {
               {t("weekly_coach.status.not_enough_data")}
             </Text>
           ) : !configured ? (
-            /* Una riga che dice "non e' configurato" e basta lascia all'utente
-               il compito di cercare dove: il pulsante ce lo porta. */
-            <View style={styles.noKey}>
-              <Text style={[styles.note, { color: colors.textMuted }]}>
-                {t("weekly_coach.status.no_key")}
-              </Text>
-              <DfButton
-                label={t("ai_key.missing_cta")}
-                variant="outlined"
-                fullWidth={false}
-                onPress={() => navigate("AssistantSettings", { focus: "aiKey" })}
-              />
-            </View>
+            /* Nessun pulsante: la chiave sta nel bundle e non c'e' piu' un
+               campo dove metterla, quindi non c'e' dove mandare chi legge. */
+            <Text style={[styles.note, { color: colors.textMuted }]}>
+              {t("weekly_coach.status.no_key")}
+            </Text>
           ) : (
             <>
               {comment !== null ? (
@@ -357,7 +346,6 @@ const styles = StyleSheet.create({
   empty: { fontSize: 13, fontWeight: "500" },
   divider: { height: StyleSheet.hairlineWidth, marginVertical: 2 },
   note: { fontSize: 12, lineHeight: 17 },
-  noKey: { gap: theme.spacing.sm, alignItems: "flex-start" },
   comment: { gap: theme.spacing.sm },
   summary: { fontSize: 14, fontWeight: "600", lineHeight: 20 },
   bulletRow: { flexDirection: "row", alignItems: "flex-start", gap: theme.spacing.sm },

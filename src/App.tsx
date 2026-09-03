@@ -18,7 +18,6 @@ import { syncSharedStats } from "@/src/services/shareSync";
 import { runSync } from "@/src/services/sync";
 import { startSyncScheduler } from "@/src/services/syncScheduler";
 import { useAccountStore } from "@/src/stores/accountStore";
-import { useAiKeyStore } from "@/src/stores/aiKeyStore";
 import { configureNotificationHandler } from "@/src/services/reminders";
 import { useThemeStore } from "@/src/stores/themeStore";
 import { logger } from "@/src/utils/logger";
@@ -71,10 +70,6 @@ export function App() {
       }
       // Dopo il gate, non dentro: i passi di Health Connect sono un extra e
       // non devono trattenere la splash se il provider è lento a rispondere.
-      // La chiave dell'assistente sta in SecureStore: senza questa riga
-      // `hasAiKey()` direbbe di no fino al primo salvataggio, e i riquadri
-      // dell'AI comparirebbero spenti a chi la chiave ce l'ha gia'.
-      void useAiKeyStore.getState().restore();
       void syncStepsOnStartup();
       // L'account e' facoltativo: senza, `restore` non trova niente e la
       // pubblicazione dei totali non parte nemmeno.

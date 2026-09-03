@@ -1,4 +1,3 @@
-import { useAiKeyStore } from "@/src/stores/aiKeyStore";
 
 /**
  * Configurazione dei modelli AI Google Gemini (Google AI Studio).
@@ -71,20 +70,17 @@ export const TRANSCRIPTION_LANGUAGE = "it";
 export const AI_TIMEOUT_MS = 90_000;
 
 /**
- * Chiave predefinita fornita all'app tramite variabile d'ambiente (per tutti gli utenti).
+ * La chiave Google AI Studio, una sola per tutti: `EXPO_PUBLIC_GEMINI_API_KEY`,
+ * quindi nel bundle.
+ *
+ * C'e' stata anche una chiave personale, che l'utente metteva da Impostazioni
+ * e che aveva la precedenza su questa. E' stata tolta il 3 settembre 2026: al
+ * rilascio pubblico le chiamate passeranno dal backend a consumo, quindi non
+ * c'e' piu' una quota da scavalcare, e chiedere una chiave a chi installa
+ * l'app significava un campo in piu' che nessuno avrebbe compilato.
  */
-const defaultEnvKey = (): string =>
-  process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? "";
-
-/**
- * La chiave Google AI Studio: usa la chiave personalizzata dell'utente (se inserita
- * nelle Impostazioni) oppure la chiave condivisa predefinita dell'app.
- */
-export const aiKey = (): string => {
-  const custom = useAiKeyStore.getState().key?.trim();
-  if (custom && custom.length > 0) return custom;
-  return defaultEnvKey().trim();
-};
+export const aiKey = (): string =>
+  (process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? "").trim();
 
 export const hasAiKey = (): boolean => aiKey().trim().length > 0;
 

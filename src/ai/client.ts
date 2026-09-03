@@ -381,8 +381,7 @@ export async function transcribeAudio(args: {
      *
      * L'endpoint nativo accetta entrambi, ma un errore di rete si porta dietro
      * la URL: quel testo finisce in `app_logs`, che si condivide come file ed
-     * e' dentro il backup del telefono. Era la stessa chiave che `aiKeyStore`
-     * tiene apposta fuori dal database, pubblicata da un'altra porta.
+     * e' dentro il backup del telefono. La chiave uscirebbe di li'.
      */
     const url = `${GEMINI_NATIVE_BASE_URL}/models/${args.model}:generateContent`;
     const response = await withTimeout(url, {
