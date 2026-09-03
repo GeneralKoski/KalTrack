@@ -1,3 +1,5 @@
+import { DfAlert } from "@/src/components/DfAlert";
+import { DfButton } from "@/src/components/form/DfButton";
 import { Card, ScreenBackground } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
@@ -10,12 +12,13 @@ import {
   ChevronLeft,
   ChevronRight,
   HeartPulse,
+  LogOut,
   Palette,
   ShieldCheck,
   Stethoscope,
   UtensilsCrossed,
 } from "lucide-react-native";
-import React from "react";
+import React, { useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import {
   SafeAreaView,
@@ -39,7 +42,11 @@ export function SettingsScreen() {
   const { goBack, navigate } = useAppNav();
   const { colors } = useAppTheme();
   const isAdmin = useAccountStore((s) => s.profile?.isAdmin ?? false);
+  const token = useAccountStore((s) => s.token);
+  const signOut = useAccountStore((s) => s.signOut);
   const themeMode = useThemeStore((s) => s.mode);
+
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
 
   return (
     <View style={styles.root}>
@@ -94,8 +101,38 @@ export function SettingsScreen() {
               onPress={() => navigate("Admin")}
             />
           ) : null}
+
+          {/*
+            L'uscita sta in fondo alle impostazioni e in nessun altro posto:
+            e' dove la si cerca, e non e' una voce dell'elenco - le righe qui
+            portano dentro una pagina, questa fa una cosa e non si torna
+            indietro. Senza sessione non c'e' niente da cui uscire.
+          */}
+          {token ? (
+            <DfButton
+              label={t("social.sign_out")}
+              variant="outlined"
+              color={theme.colors.error}
+              icon={<LogOut size={18} color={theme.colors.error} />}
+              onPress={() => setConfirmSignOut(true)}
+              style={styles.signOut}
+            />
+          ) : null}
         </ScrollView>
       </SafeAreaView>
+
+      <DfAlert
+        isOpen={confirmSignOut}
+        title={t("social.sign_out")}
+        message={t("social.sign_out_message")}
+        confirmLabel={t("social.sign_out")}
+        confirmColor={theme.colors.error}
+        onConfirm={async () => {
+          setConfirmSignOut(false);
+          await signOut();
+        }}
+        onClose={() => setConfirmSignOut(false)}
+      />
     </View>
   );
 }
@@ -138,8 +175,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: "700",
-    // Vedi SettingsPage: allinea il titolo alla freccia.
-    includeFontPadding: false,
   },
   content: {
     padding: theme.spacing.md,
@@ -153,4 +188,5 @@ const styles = StyleSheet.create({
   },
   rowLabel: { flex: 1, fontSize: 15, fontWeight: "600" },
   rowValue: { fontSize: 14 },
+  signOut: { marginTop: theme.spacing.lg },
 });

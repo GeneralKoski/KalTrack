@@ -1,4 +1,5 @@
 import { getDb } from "@/src/db/index";
+import { i18n } from "@/src/i18n";
 import { logger } from "@/src/utils/logger";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
@@ -91,13 +92,6 @@ export function buildCsv(headers: string[], rows: CsvCell[][]): string {
 
 export const CSV_DATASETS = ["diary", "weight", "steps", "workouts"] as const;
 export type CsvDataset = (typeof CSV_DATASETS)[number];
-
-const FILE_BASENAME: Record<CsvDataset, string> = {
-  diary: "diario",
-  weight: "peso",
-  steps: "passi",
-  workouts: "allenamenti",
-};
 
 const yesNo = (flag: number): string => (flag === 1 ? "sì" : "no");
 
@@ -314,22 +308,44 @@ export function buildDatasetCsv(dataset: CsvDataset): Promise<string> {
 }
 
 /**
+ * Tutti gli insiemi di dati in un file solo, uno sotto l'altro.
+ *
+ * Erano quattro pulsanti e quattro file, cioè quattro condivisioni da fare
+ * per avere i propri dati: chi esporta li vuole tutti, non uno. Un CSV non ha
+ * fogli, quindi le "pagine" sono blocchi separati da una riga vuota, ognuno
+ * col suo titolo sopra le intestazioni - è così che un foglio di calcolo li
+ * mostra distinti aprendo il file con un doppio clic.
+ *
+ * Il titolo passa da `csvEscape` come ogni altro campo: senza, un titolo con
+ * un punto e virgola spaccherebbe la riga in due celle.
+ */
+export async function buildFullCsv(): Promise<string> {
+  const sections = await Promise.all(
+    CSV_DATASETS.map(async (dataset) => {
+      const title = csvEscape(i18n.t(`backup.csv_${dataset}`));
+      return `${title}${ROW_SEPARATOR}${await buildDatasetCsv(dataset)}`;
+    }),
+  );
+  return sections.join(`${ROW_SEPARATOR}${ROW_SEPARATOR}`);
+}
+
+/**
  * La data nel nome del file è quella del CALENDARIO LOCALE, non UTC: un export
  * fatto alle 00:30 italiane porterebbe altrimenti la data di ieri.
  */
-export function csvFileName(dataset: CsvDataset, today = new Date()): string {
+export function csvFileName(today = new Date()): string {
   const mm = String(today.getMonth() + 1).padStart(2, "0");
   const dd = String(today.getDate()).padStart(2, "0");
   const date = `${today.getFullYear()}-${mm}-${dd}`;
-  return `kaltrack-${FILE_BASENAME[dataset]}-${date}.csv`;
+  return `kaltrack-dati-${date}.csv`;
 }
 
 /** Scrive il CSV su file e ne ritorna il percorso. */
-export async function exportCsvToFile(dataset: CsvDataset): Promise<string> {
-  const content = await buildDatasetCsv(dataset);
-  const path = `${FileSystem.documentDirectory}${csvFileName(dataset)}`;
+export async function exportCsvToFile(): Promise<string> {
+  const content = await buildFullCsv();
+  const path = `${FileSystem.documentDirectory}${csvFileName()}`;
   await FileSystem.writeAsStringAsync(path, `${UTF8_BOM}${content}`);
-  logger.info(`[csv] esportato ${dataset}`);
+  logger.info("[csv] esportati tutti i dati");
   return path;
 }
 
@@ -339,8 +355,8 @@ export async function exportCsvToFile(dataset: CsvDataset): Promise<string> {
  * Se la condivisione non è disponibile lancia invece di uscire in silenzio:
  * chi ha toccato il pulsante deve vedere un esito, non un nulla di fatto.
  */
-export async function shareCsv(dataset: CsvDataset): Promise<void> {
-  const path = await exportCsvToFile(dataset);
+export async function shareCsv(): Promise<void> {
+  const path = await exportCsvToFile();
   if (!(await Sharing.isAvailableAsync())) {
     throw new Error("La condivisione non è disponibile su questo dispositivo");
   }

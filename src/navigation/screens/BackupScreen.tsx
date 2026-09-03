@@ -13,12 +13,17 @@ import {
   type BackupPayload,
 } from "@/src/services/backup";
 import { readBackupFile, shareBackup } from "@/src/services/backupFile";
-import { CSV_DATASETS, shareCsv, type CsvDataset } from "@/src/services/csvExport";
+import { shareCsv } from "@/src/services/csvExport";
 import { theme } from "@/src/styles";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
 import * as DocumentPicker from "expo-document-picker";
-import { ChevronLeft, Download, Upload } from "lucide-react-native";
+import {
+  ChevronLeft,
+  Download,
+  FileSpreadsheet,
+  Upload,
+} from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import {
@@ -46,12 +51,10 @@ export function BackupScreen() {
   const [pending, setPending] = useState<BackupPayload | null>(null);
   /**
    * QUALE operazione è in corso, non solo se ce n'è una: con un booleano
-   * condiviso tutti e cinque i bottoni giravano insieme e nessuno capiva
-   * cosa stesse davvero succedendo.
+   * condiviso tutti i bottoni giravano insieme e nessuno capiva cosa stesse
+   * davvero succedendo.
    */
-  const [busy, setBusy] = useState<"backup" | "restore" | CsvDataset | null>(
-    null,
-  );
+  const [busy, setBusy] = useState<"backup" | "restore" | "csv" | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -78,10 +81,10 @@ export function BackupScreen() {
     }
   };
 
-  const onExportCsv = async (dataset: CsvDataset) => {
-    setBusy(dataset);
+  const onExportCsv = async () => {
+    setBusy("csv");
     try {
-      await shareCsv(dataset);
+      await shareCsv();
     } catch (error) {
       logger.error("[backup] export CSV fallito", error);
       showToast.error({ title: t("backup.csv_failed") });
@@ -180,19 +183,13 @@ export function BackupScreen() {
           <Text style={[styles.explain, { color: colors.textMuted }]}>
             {t("backup.csv_explain")}
           </Text>
-          <View style={styles.csvRow}>
-            {CSV_DATASETS.map((dataset: CsvDataset) => (
-              <DfButton
-                key={dataset}
-                label={t(`backup.csv_${dataset}`)}
-                variant="outlined"
-                fullWidth={false}
-                loading={busy === dataset}
-                onPress={() => onExportCsv(dataset)}
-                style={styles.csvButton}
-              />
-            ))}
-          </View>
+          <DfButton
+            label={t("backup.csv_export")}
+            variant="outlined"
+            icon={<FileSpreadsheet size={18} color={colors.accent} />}
+            loading={busy === "csv"}
+            onPress={onExportCsv}
+          />
 
           <SectionLabel style={styles.section}>
             {t("backup.restore_section")}
@@ -265,14 +262,6 @@ const styles = StyleSheet.create({
   explain: { fontSize: 14, lineHeight: 20 },
   meta: { fontSize: 12 },
   section: { marginTop: theme.spacing.md },
-  csvRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: theme.spacing.sm,
-  },
-  // Due per riga a larghezza uguale: con flexGrow il quarto bottone si
-  // allargava da solo su tutta la seconda riga, sbilanciando la griglia.
-  csvButton: { flexGrow: 1, flexBasis: "45%" },
   summary: { gap: 4 },
   warning: { fontSize: 14, fontWeight: "600", marginBottom: theme.spacing.xs },
   summaryRow: { flexDirection: "row", justifyContent: "space-between" },

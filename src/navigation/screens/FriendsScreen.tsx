@@ -297,15 +297,6 @@ export function FriendsScreen() {
             style={styles.section}
           />
         ) : null}
-
-        {token ? (
-          <DfButton
-            label={t("social.my_profile")}
-            variant="outlined"
-            onPress={() => navigate("MyProfile")}
-            style={styles.section}
-          />
-        ) : null}
       </>
     );
   };

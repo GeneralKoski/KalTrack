@@ -10,6 +10,7 @@ import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
 import {
   buildCsv,
   buildDatasetCsv,
+  buildFullCsv,
   csvEscape,
   csvFileName,
   CSV_DELIMITER,
@@ -350,28 +351,64 @@ describe("export degli allenamenti", () => {
   });
 });
 
+describe("un file solo con tutti i dati", () => {
+  it("mette i quattro insiemi uno sotto l'altro, ognuno col suo titolo", async () => {
+    await setSteps("2026-08-20", 8500);
+
+    const rows = parseCsv(await buildFullCsv());
+    const flat = rows.map((row) => row[0]);
+
+    expect(flat).toEqual(
+      expect.arrayContaining(["Diario", "Peso", "Passi", "Allenamenti"]),
+    );
+    expect(flat.indexOf("Diario")).toBeLessThan(flat.indexOf("Peso"));
+    expect(flat.indexOf("Peso")).toBeLessThan(flat.indexOf("Passi"));
+    expect(flat.indexOf("Passi")).toBeLessThan(flat.indexOf("Allenamenti"));
+
+    // Ogni blocco porta le sue intestazioni e le sue righe.
+    const passi = flat.indexOf("Passi");
+    expect(rows[passi + 1]).toEqual(["data", "passi", "origine"]);
+    expect(rows[passi + 2]).toEqual(["2026-08-20", "8500", "manual"]);
+
+    // Una riga vuota separa un blocco dal successivo: senza, un foglio di
+    // calcolo leggerebbe il titolo come un dato del blocco precedente.
+    expect(rows[flat.indexOf("Passi") - 1]).toEqual([""]);
+  });
+
+  it("un insieme senza dati resta come titolo e intestazioni", async () => {
+    const rows = parseCsv(await buildFullCsv());
+    const flat = rows.map((row) => row[0]);
+    expect(rows[flat.indexOf("Passi") + 1]).toEqual([
+      "data",
+      "passi",
+      "origine",
+    ]);
+    expect(rows[flat.indexOf("Passi") + 2]).toEqual([""]);
+  });
+});
+
 describe("scrittura del file e condivisione", () => {
   it("scrive il CSV preceduto dal BOM UTF-8", async () => {
     await setSteps("2026-08-20", 8500);
-    const path = await exportCsvToFile("steps");
+    const path = await exportCsvToFile();
 
-    expect(path).toBe(`file:///documents/${csvFileName("steps")}`);
+    expect(path).toBe(`file:///documents/${csvFileName()}`);
     const [, content] = jest.mocked(FileSystem.writeAsStringAsync).mock.calls[0];
     expect(content.startsWith(UTF8_BOM)).toBe(true);
-    expect(content.slice(1)).toBe(await buildDatasetCsv("steps"));
+    expect(content.slice(1)).toBe(await buildFullCsv());
   });
 
   it("il nome del file porta la data dell'export", () => {
-    expect(csvFileName("diary", new Date("2026-08-29T10:00:00.000Z"))).toBe(
-      "kaltrack-diario-2026-08-29.csv",
+    expect(csvFileName(new Date("2026-08-29T10:00:00.000Z"))).toBe(
+      "kaltrack-dati-2026-08-29.csv",
     );
   });
 
   it("apre il foglio di condivisione sul file appena scritto", async () => {
-    await shareCsv("weight");
+    await shareCsv();
 
     expect(Sharing.shareAsync).toHaveBeenCalledWith(
-      `file:///documents/${csvFileName("weight")}`,
+      `file:///documents/${csvFileName()}`,
       expect.objectContaining({ mimeType: "text/csv" }),
     );
   });
@@ -379,7 +416,7 @@ describe("scrittura del file e condivisione", () => {
   it("segnala l'errore se la condivisione non è disponibile", async () => {
     jest.mocked(Sharing.isAvailableAsync).mockResolvedValueOnce(false);
     // Un tocco che non produce nulla è indistinguibile da un'app rotta.
-    await expect(shareCsv("weight")).rejects.toThrow(/condivisione/);
+    await expect(shareCsv()).rejects.toThrow(/condivisione/);
     expect(Sharing.shareAsync).not.toHaveBeenCalled();
   });
 });
@@ -391,8 +428,6 @@ describe("nome del file", () => {
    */
   it("usa la data del calendario locale, non UTC", () => {
     const justAfterMidnightInItaly = new Date(2026, 2, 15, 0, 30);
-    expect(csvFileName("diary", justAfterMidnightInItaly)).toContain(
-      "2026-03-15",
-    );
+    expect(csvFileName(justAfterMidnightInItaly)).toContain("2026-03-15");
   });
 });

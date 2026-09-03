@@ -19,7 +19,7 @@ import { shareLogReport } from "@/src/services/logExport";
 import { theme } from "@/src/styles";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
-import { Check, ChevronLeft, Share2, Trash2, X } from "lucide-react-native";
+import { Check, ChevronLeft, X } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import {
@@ -193,6 +193,75 @@ export function DiagnosticsScreen() {
             {t("diagnostics.explain")}
           </Text>
 
+          {/*
+            Le tre azioni stanno in cima e non in fondo: sono il motivo per cui
+            si apre questa schermata, e in fondo a trecento righe di registro
+            si raggiungevano solo scorrendo.
+          */}
+          <View style={styles.azioni}>
+            <DfButton
+              label={t("diagnostics.models_check")}
+              variant="outlined"
+              compact
+              fullWidth={false}
+              onPress={onCheckModels}
+              loading={busy === "models"}
+              disabled={busy !== null}
+              style={styles.azione}
+            />
+            <DfButton
+              label={t("diagnostics.share")}
+              variant="outlined"
+              compact
+              fullWidth={false}
+              onPress={onShare}
+              loading={busy === "share"}
+              disabled={vuoto || busy !== null}
+              style={styles.azione}
+            />
+            <DfButton
+              label={t("diagnostics.clear")}
+              variant="outlined"
+              color={theme.colors.error}
+              compact
+              fullWidth={false}
+              onPress={onClear}
+              loading={busy === "clear"}
+              disabled={vuoto || busy !== null}
+              style={styles.azione}
+            />
+          </View>
+
+          {/*
+            L'esito della prova compare solo dopo averla chiesta: prima non
+            c'e' niente da dire, e una card vuota sembrerebbe un guasto.
+          */}
+          {checks ? (
+            <Card style={styles.modelli}>
+              {checks.map((check) => (
+                <View key={check.capability} style={styles.modelloRiga}>
+                  {check.served ? (
+                    <Check size={16} color={theme.colors.success} />
+                  ) : (
+                    <X size={16} color={theme.colors.error} />
+                  )}
+                  <Text
+                    style={[styles.modelloNome, { color: colors.text }]}
+                    numberOfLines={1}
+                  >
+                    {t(`diagnostics.capability.${check.capability}`)}
+                  </Text>
+                  <Text
+                    style={[styles.modelloId, { color: colors.textFaint }]}
+                    numberOfLines={1}
+                  >
+                    {check.model}
+                  </Text>
+                </View>
+              ))}
+            </Card>
+          ) : null}
+
           <SectionLabel>{t("diagnostics.usage_section")}</SectionLabel>
           <Card style={styles.modelli}>
             {usage && usage.calls > 0 ? (
@@ -234,43 +303,6 @@ export function DiagnosticsScreen() {
             )}
           </Card>
 
-          <SectionLabel style={styles.section}>
-            {t("diagnostics.models_section")}
-          </SectionLabel>
-          <Card style={styles.modelli}>
-            <Text style={[styles.modelliHint, { color: colors.textFaint }]}>
-              {t("diagnostics.models_hint")}
-            </Text>
-            {checks?.map((check) => (
-              <View key={check.capability} style={styles.modelloRiga}>
-                {check.served ? (
-                  <Check size={16} color={theme.colors.success} />
-                ) : (
-                  <X size={16} color={theme.colors.error} />
-                )}
-                <Text
-                  style={[styles.modelloNome, { color: colors.text }]}
-                  numberOfLines={1}
-                >
-                  {t(`diagnostics.capability.${check.capability}`)}
-                </Text>
-                <Text
-                  style={[styles.modelloId, { color: colors.textFaint }]}
-                  numberOfLines={1}
-                >
-                  {check.model}
-                </Text>
-              </View>
-            ))}
-            <DfButton
-              label={t("diagnostics.models_check")}
-              variant="outlined"
-              onPress={onCheckModels}
-              loading={busy === "models"}
-              disabled={busy !== null}
-            />
-          </Card>
-
           {vuoto ? (
             <EmptyState message={t("diagnostics.empty")} />
           ) : (
@@ -308,25 +340,6 @@ export function DiagnosticsScreen() {
               ) : null}
             </>
           )}
-
-          <View style={styles.azioni}>
-            <DfButton
-              label={t("diagnostics.share")}
-              icon={<Share2 size={18} color={colors.text} />}
-              variant="outlined"
-              onPress={onShare}
-              loading={busy === "share"}
-              disabled={vuoto || busy !== null}
-            />
-            <DfButton
-              label={t("diagnostics.clear")}
-              icon={<Trash2 size={18} color={colors.textSecondary} />}
-              variant="ghost"
-              onPress={onClear}
-              loading={busy === "clear"}
-              disabled={logs.length === 0 || busy !== null}
-            />
-          </View>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -347,8 +360,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: "700",
-    // Vedi SettingsPage: allinea il titolo alla freccia.
-    includeFontPadding: false,
   },
   content: { padding: theme.spacing.md, gap: theme.spacing.sm },
   explain: { fontSize: 13, lineHeight: 19 },
@@ -363,7 +374,10 @@ const styles = StyleSheet.create({
   titolo: { flex: 1, fontSize: 14, fontWeight: "600" },
   sottotitolo: { fontSize: 12 },
   dettaglio: { fontSize: 12, lineHeight: 17, marginTop: 4 },
-  azioni: { marginTop: theme.spacing.md, gap: theme.spacing.sm },
+  azioni: { flexDirection: "row", gap: theme.spacing.sm },
+  // Tre larghezze uguali: con la larghezza dettata dal testo "Svuota" restava
+  // un francobollo accanto agli altri due.
+  azione: { flex: 1 },
   modelli: { padding: theme.spacing.md, gap: theme.spacing.sm },
   modelliHint: { fontSize: 12, lineHeight: 17 },
   consumo: { fontSize: 13, lineHeight: 19 },

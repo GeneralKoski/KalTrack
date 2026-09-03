@@ -1,4 +1,3 @@
-import { DfButton } from "@/src/components/form/DfButton";
 import { Card } from "@/src/components/kal";
 import { Avatar } from "@/src/components/kal/Avatar";
 import { useAppTheme } from "@/src/components/ThemeContext";
@@ -15,8 +14,9 @@ import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { theme } from "@/src/styles";
+import { ChevronRight } from "lucide-react-native";
 import React, { useCallback } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 interface Summary {
   weightKg: number | null;
@@ -90,7 +90,23 @@ export const ProfileSummary: React.FC = () => {
 
   return (
     <Card style={styles.card}>
-      <View style={styles.identity}>
+      {/*
+        L'account si gestisce toccando se stessi: e' la stessa persona di cui
+        si vedono qui nome e foto, e cercarlo fra le impostazioni non lo era.
+        Era un bottone a contorno a tutta riga sotto i numeri - grosso quanto
+        un'azione primaria per una cosa che si apre due volte l'anno. La riga
+        col chevron e' l'idioma che le pagine di Impostazioni usano gia'.
+
+        Senza account si va agli amici, che e' la schermata dove si entra:
+        "Il mio account" mostrerebbe un caricamento che non finisce mai. Per
+        questo la seconda riga diventa l'invito ad accedere, nel colore
+        interattivo: e' quel che si va a fare toccando.
+      */}
+      <TouchableOpacity
+        onPress={() => navigate(account ? "MyProfile" : "Friends")}
+        activeOpacity={0.6}
+        style={styles.identity}
+      >
         <Avatar
           size={56}
           name={account?.displayName}
@@ -104,13 +120,17 @@ export const ProfileSummary: React.FC = () => {
             {account?.displayName ?? t("profile.no_account")}
           </Text>
           <Text
-            style={[styles.handle, { color: colors.textMuted }]}
+            style={[
+              styles.handle,
+              { color: account ? colors.textMuted : colors.accent },
+            ]}
             numberOfLines={1}
           >
-            {account ? `@${account.handle}` : t("profile.no_account_hint")}
+            {account ? `@${account.handle}` : t("profile.sign_in")}
           </Text>
         </View>
-      </View>
+        <ChevronRight size={20} color={colors.textFaint} />
+      </TouchableOpacity>
 
       {account?.bio?.trim() ? (
         <Text
@@ -133,20 +153,6 @@ export const ProfileSummary: React.FC = () => {
           data?.avgKcal == null ? "–" : numero(Math.round(data.avgKcal)),
         )}
       </View>
-
-      {/*
-        L'account si gestisce da qui: è la stessa persona di cui sopra si
-        vedono nome e foto, e cercarlo fra le impostazioni non lo era. Senza
-        account si va agli amici, che è la schermata dove si entra: "Il mio
-        account" mostrerebbe un caricamento che non finisce mai.
-      */}
-      <DfButton
-        label={account ? t("social.my_profile") : t("profile.sign_in")}
-        variant="outlined"
-        fullWidth={false}
-        onPress={() => navigate(account ? "MyProfile" : "Friends")}
-        style={styles.accountButton}
-      />
     </Card>
   );
 };
@@ -171,7 +177,4 @@ const styles = StyleSheet.create({
   stat: { flex: 1, alignItems: "center", gap: 2 },
   statValue: { fontSize: 16, fontWeight: "700" },
   statLabel: { fontSize: 11, textAlign: "center" },
-  /* Un bordo e non solo il testo: l'interattivo qui è quasi nero come il
-     testo normale, e senza contorno "Il mio account" si legge come un titolo. */
-  accountButton: { alignSelf: "flex-start" },
 });

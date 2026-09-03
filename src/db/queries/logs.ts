@@ -42,12 +42,16 @@ let sinceLastPrune = PRUNE_EVERY;
  *
  * Le forme coperte sono quattro, e nessuna e' teorica:
  *  - `Bearer ...`, l'header con cui parte ogni chiamata AI;
- *  - `gsk_`/`sk_`, le chiavi di Groq e OpenAI - resta per i registri scritti
- *    prima del passaggio a Gemini, che sono ancora nel database;
  *  - `AIza...` e `AQ....`, le due forme delle chiavi Google AI Studio;
  *  - `key=...` in una URL, che e' come l'endpoint nativo accettava la chiave
- *    prima del 2 settembre 2026. Le due ultime mancavano: dal passaggio a
- *    Gemini il registro non nascondeva piu' niente.
+ *    prima del 2 settembre 2026. Queste tre mancavano finche' la funzione
+ *    copriva solo le forme di un altro provider: dal passaggio a Gemini il
+ *    registro non nascondeva piu' niente;
+ *  - `gsk_`/`sk_`, la forma con prefisso di altri provider: non c'e' piu' una
+ *    chiave di quel tipo in giro, ma i registri scritti prima del passaggio a
+ *    Gemini sono ancora nel database e vanno letti allo stesso modo.
+ *
+ * Chi cambia provider aggiunge la forma nuova qui, prima di committare.
  */
 export function redactSecrets(text: string): string {
   return text
@@ -154,10 +158,15 @@ export async function recentLogs(limit = MAX_LOG_ROWS): Promise<AppLog[]> {
  * protegge le tabelle che si sincronizzano, dove una riga tolta risorgerebbe
  * al giro dopo. `app_logs` non viaggia, e un registro che si "cancella" senza
  * liberare spazio non serve a niente.
+ *
+ * Porta via anche le chiamate AI non riuscite, perche' in Diagnostica sono la
+ * stessa cosa: due elenchi di guasti sotto un solo pulsante di svuotamento.
+ * Le riuscite restano - sono il conteggio dei consumi, non un guasto.
  */
 export async function clearLogs(): Promise<void> {
   const db = await getDb();
   await db.runAsync("DELETE FROM app_logs");
+  await db.runAsync("DELETE FROM ai_calls WHERE success = 0");
   sinceLastPrune = 0;
 }
 

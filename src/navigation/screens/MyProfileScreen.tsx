@@ -1,5 +1,4 @@
 import * as social from "@/src/api/social";
-import { DfAlert } from "@/src/components/DfAlert";
 import { DfButton } from "@/src/components/form/DfButton";
 import { FormScreen } from "@/src/components/FormScreen";
 import { ScreenBackground, SectionLabel } from "@/src/components/kal";
@@ -12,7 +11,7 @@ import { useAccountStore } from "@/src/stores/accountStore";
 import { theme } from "@/src/styles";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
-import { ChevronLeft, LogOut } from "lucide-react-native";
+import { ChevronLeft } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -23,7 +22,11 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 /**
- * Il proprio account: chi sei, cosa condividi, e come uscire.
+ * Il proprio account: chi sei e cosa condividi.
+ *
+ * L'uscita non e' qui: sta in fondo a **Impostazioni**, che e' l'unico posto
+ * dove si cerca. Averla anche qui voleva dire due porte per la stessa azione,
+ * e questa era quella che nessuno apriva.
  *
  * L'anteprima di cosa vedono gli altri non c'e' e non serve: le condivisioni
  * sono quattro interruttori con la loro etichetta, e una finta vista "come ti
@@ -39,14 +42,12 @@ export function MyProfileScreen() {
   const profile = useAccountStore((s) => s.profile);
   const setProfile = useAccountStore((s) => s.setProfile);
   const refreshProfile = useAccountStore((s) => s.refreshProfile);
-  const signOut = useAccountStore((s) => s.signOut);
 
   const [displayName, setDisplayName] = useState("");
   const [handle, setHandle] = useState("");
   const [email, setEmail] = useState("");
   const [bio, setBio] = useState("");
   const [saving, setSaving] = useState(false);
-  const [confirmSignOut, setConfirmSignOut] = useState(false);
 
   useEffect(() => {
     void refreshProfile();
@@ -211,32 +212,9 @@ export function MyProfileScreen() {
               {t("social.shares")}
             </SectionLabel>
             <ShareSettings />
-
-            <DfButton
-              label={t("social.sign_out")}
-              variant="outlined"
-              color={theme.colors.error}
-              icon={<LogOut size={18} color={theme.colors.error} />}
-              onPress={() => setConfirmSignOut(true)}
-              style={styles.section}
-            />
           </FormScreen>
         )}
       </SafeAreaView>
-
-      <DfAlert
-        isOpen={confirmSignOut}
-        title={t("social.sign_out")}
-        message={t("social.sign_out_message")}
-        confirmLabel={t("social.sign_out")}
-        confirmColor={theme.colors.error}
-        onConfirm={async () => {
-          setConfirmSignOut(false);
-          await signOut();
-          goBack();
-        }}
-        onClose={() => setConfirmSignOut(false)}
-      />
     </View>
   );
 }

@@ -75,8 +75,8 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     padding: 0,
-    // Centra il glifo nei 48px anche su Android (rimuove il padding font extra).
+    // Centra il glifo nei 48px anche su Android; il padding del font lo toglie
+    // gia' il TextInput di ui/.
     textAlignVertical: "center",
-    includeFontPadding: false,
   },
 });

@@ -6,6 +6,7 @@ import {
   clearLogs,
   MAX_LOG_ROWS,
   PRUNE_EVERY,
+  recentFailedAiCalls,
   recentLogs,
   recordLog,
   redactSecrets,
@@ -43,7 +44,7 @@ describe("splitScope", () => {
 });
 
 describe("redactSecrets", () => {
-  it("nasconde una chiave Groq scritta da sola (registri anteriori a Gemini)", () => {
+  it("nasconde una chiave col prefisso, dai registri anteriori a Gemini", () => {
     expect(redactSecrets("chiave gsk_abcdefgh12345678 rifiutata")).toBe(
       "chiave gsk_<nascosta> rifiutata",
     );
@@ -51,7 +52,7 @@ describe("redactSecrets", () => {
 
   it("nasconde le due forme della chiave Google AI Studio", () => {
     // Dal passaggio a Gemini il registro non nascondeva piu' niente: le forme
-    // coperte erano solo quelle di Groq e OpenAI.
+    // coperte erano solo quelle col prefisso di un altro provider.
     expect(
       redactSecrets("chiave rifiutata: AIzaSyD-1a2b3c4d5e6f7g8h9i0jKLMNOP"),
     ).toBe("chiave rifiutata: AIza<nascosta>");
@@ -83,14 +84,14 @@ describe("recordLog", () => {
   it("registra livello, scope, messaggio e dettaglio", async () => {
     await recordLog("error", [
       "[assistant] ciclo fallito",
-      new Error("Groq ha risposto 400"),
+      new Error("il provider ha risposto 400"),
     ]);
 
     const [riga] = await recentLogs();
     expect(riga.level).toBe("error");
     expect(riga.scope).toBe("assistant");
     expect(riga.message).toBe("ciclo fallito");
-    expect(riga.detail).toContain("Groq ha risposto 400");
+    expect(riga.detail).toContain("il provider ha risposto 400");
   });
 
   it("non lascia passare una chiave nemmeno nel dettaglio", async () => {
@@ -135,6 +136,35 @@ describe("recentLogs", () => {
 
     const righe = await recentLogs();
     expect(righe[0].message).toBe("seconda");
+  });
+});
+
+describe("clearLogs", () => {
+  const chiamata = async (success: 0 | 1): Promise<void> => {
+    const now = new Date().toISOString();
+    await db.runAsync(
+      `INSERT INTO ai_calls (id, capability, model, tokens_in, tokens_out,
+         latency_ms, success, error, created_at, updated_at)
+       VALUES (?, 'assistant', 'gemini-3.5-flash-lite', 100, 10, 50, ?, 'boom', ?, ?)`,
+      [`c-${Math.random()}`, success, now, now],
+    );
+  };
+
+  /**
+   * In Diagnostica i due elenchi stanno sotto lo stesso pulsante: uno
+   * svuotamento che lasciasse le chiamate AI non riuscite sembrerebbe non
+   * aver fatto niente.
+   */
+  it("porta via anche le chiamate AI non riuscite, non quelle riuscite", async () => {
+    await recordLog("error", ["[test] guasto"]);
+    await chiamata(0);
+    await chiamata(1);
+
+    await clearLogs();
+
+    expect(await recentLogs()).toEqual([]);
+    expect(await recentFailedAiCalls()).toEqual([]);
+    expect((await aiUsage()).calls).toBe(1);
   });
 });
 

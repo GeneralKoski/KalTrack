@@ -227,10 +227,6 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontSize: 24,
     fontWeight: "700",
-    /* Senza, il titolo si porta dietro il padding che Android aggiunge sotto
-       la riga di testo: la cassa scende, e la freccia accanto - centrata sulla
-       cassa - finisce sotto la parola. Stesso rimedio di DfBackButton. */
-    includeFontPadding: false,
   },
   closeButton: {
     width: 32,

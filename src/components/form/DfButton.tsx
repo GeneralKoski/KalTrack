@@ -30,6 +30,12 @@ interface DfButtonProps {
   style?: StyleProp<ViewStyle>;
   labelStyle?: TextStyle;
   fullWidth?: boolean;
+  /**
+   * Piu' basso e piu' stretto, per una riga di azioni brevi affiancate: con la
+   * spaziatura piena tre bottoni in riga non ci stanno e le etichette si
+   * troncano.
+   */
+  compact?: boolean;
 }
 
 export const DfButton = ({
@@ -43,6 +49,7 @@ export const DfButton = ({
   style,
   labelStyle,
   fullWidth = true,
+  compact = false,
 }: DfButtonProps) => {
   const { colors } = useAppTheme();
   const isFilled = variant === "filled";
@@ -75,6 +82,7 @@ export const DfButton = ({
         numberOfLines={1}
         style={[
           styles.label,
+          compact && styles.labelCompact,
           {
             color: disabled
               ? colors.textFaint
@@ -100,13 +108,17 @@ export const DfButton = ({
       style={[fullWidth && styles.fullWidth, style]}
     >
       {isMetal && !disabled ? (
-        <MetalSurface style={styles.base} radius={theme.radius.xl}>
+        <MetalSurface
+          style={[styles.base, compact && styles.baseCompact]}
+          radius={theme.radius.xl}
+        >
           {content}
         </MetalSurface>
       ) : (
         <View
           style={[
             styles.base,
+            compact && styles.baseCompact,
             { borderRadius: theme.radius.xl },
             isFilled && {
               backgroundColor: disabled ? colors.surfaceMuted : color,
@@ -133,11 +145,19 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 24,
   },
+  baseCompact: {
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
   fullWidth: {
     alignSelf: "stretch",
   },
   label: {
     fontSize: 15,
     fontWeight: "600",
+  },
+  labelCompact: {
+    fontSize: 13,
   },
 });

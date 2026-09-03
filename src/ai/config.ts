@@ -48,9 +48,10 @@ export const GEMINI_NATIVE_BASE_URL =
  * a modelli diversi il budget giornaliero si somma invece di dividersi: e' la
  * leva da usare se un tetto solo non basta, non un residuo storico.
  *
- * La lezione del ritiro di `llama-3.3-70b-versatile`, chiamato per sei
- * settimane dopo essere stato spento, resta: un model id non provato e' un
- * ipotesi. Si controlla da **Impostazioni > Diagnostica**.
+ * La lezione di quel che e' successo una volta resta: un modello ritirato non
+ * da' segno di se' - la capability muore e l'app continua a chiamarlo, qui per
+ * sei settimane senza che nessuno lo notasse. **Un model id non provato e'
+ * un'ipotesi**, e si prova da **Impostazioni > Diagnostica**.
  */
 export const MODELS = {
   /** Trascrizione vocale. */

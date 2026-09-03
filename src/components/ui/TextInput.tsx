@@ -12,6 +12,10 @@ export type TextInputProps = RNTextInputProps;
 
 /**
  * Drop-in replacement di RN TextInput che risolve automaticamente la fontFamily.
+ *
+ * `includeFontPadding: false` come nel `Text`, e per lo stesso motivo: dentro un
+ * campo di altezza fissa il testo scritto finiva piu' in basso del segnaposto
+ * di un'icona accanto. Vedi il commento in `Text.tsx`.
  */
 export const TextInput = React.forwardRef<RNTextInput, TextInputProps>(
   ({ style, ...props }, ref) => {
@@ -28,6 +32,7 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputProps>(
         selectionColor={hexToRgba(colors.accent, 0.5)}
         {...props}
         style={[
+          { includeFontPadding: false },
           flat,
           {
             fontFamily,

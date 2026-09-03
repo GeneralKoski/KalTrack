@@ -2,13 +2,12 @@ import { transcribeAudio } from "@/src/ai/client";
 import { MODELS, TRANSCRIPTION_LANGUAGE } from "@/src/ai/config";
 
 /**
- * Whisper accetta un "prompt" che non è un'istruzione ma un campione di
- * contesto lessicale: le parole che contiene vengono favorite in decodifica.
- * Su clip corte di dominio alimentare cambia sensibilmente il risultato -
- * senza, "bresaola" diventa "brasata", "lat machine" diventa "la maschine" e
- * "due etti" diventa "due etti" solo a volte. L'elenco resta breve di
- * proposito: il prompt è limitato a 224 token e un elenco lungo sposta lo
- * stile della trascrizione invece del solo lessico.
+ * Un campione di contesto lessicale, non un'istruzione: il client lo passa
+ * all'endpoint di trascrizione come le parole da favorire. Su clip corte di
+ * dominio alimentare cambia sensibilmente il risultato - senza, "bresaola"
+ * diventa "brasata", "lat machine" diventa "la maschine" e "due etti" diventa
+ * "due etti" solo a volte. L'elenco resta breve di proposito: un elenco lungo
+ * sposta lo stile della trascrizione invece del solo lessico.
  */
 const DOMAIN_PROMPT =
   "Diario alimentare e palestra. Termini ricorrenti: grammi, etti, chili, " +

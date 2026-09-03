@@ -33,8 +33,9 @@ export interface VoiceRecording {
 
 /**
  * Il preset HIGH_QUALITY produce .m4a su entrambe le piattaforme, che è il
- * formato con cui il client carica il file verso Whisper; LOW_QUALITY su
- * Android scriverebbe un .3gp con un nome e un mime type sbagliati.
+ * formato con cui il client carica il file verso l'endpoint di trascrizione
+ * (`mimeType: "audio/m4a"`); LOW_QUALITY su Android scriverebbe un .3gp con un
+ * nome e un mime type sbagliati.
  */
 const RECORDING_OPTIONS = {
   ...RecordingPresets.HIGH_QUALITY,

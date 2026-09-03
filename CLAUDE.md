@@ -543,6 +543,19 @@ text). NativeWind disponibile ma non prevalente. I componenti `Text` e
 `TextInput` in `src/components/ui/` risolvono automaticamente Poppins da
 fontWeight: **usare sempre quelli**, mai le primitive RN nude.
 
+**Un testo affiancato a qualcos'altro sta allineato in altezza, e non e'
+compito della schermata.** Su Android il testo si porta dietro un padding sopra
+e sotto la riga, dentro la sua cassa: la cassa e' piu' alta del glifo, quindi un
+`alignItems: "center"` centra la cassa e non la parola, e l'etichetta esce
+qualche pixel piu' in basso dell'icona che le sta accanto. `includeFontPadding:
+false` e' quindi il **default** dei due componenti di `ui/`, applicato prima di
+`style`: chi ha un motivo per rivolere il padding passa
+`includeFontPadding: true`, e nessuno deve piu' rimediarlo per conto proprio.
+Lo era in sei file, cioe' solo dove qualcuno se ne era accorto: il "+" di
+`DfBackButton`, i titoli delle pagine di Impostazioni, quello di
+`DfBottomSheet`, il campo di `SearchBar`. Le etichette dei bottoni no, e si
+vedeva.
+
 `theme.colors.macro` (proteine, carboidrati, grassi) sono token: grafici, barre
 e legende devono usarli per non divergere. L'anello delle calorie e' diviso per
 macro con quegli stessi token (`macroSlices` in `src/domain/nutrition.ts`,
@@ -573,6 +586,9 @@ Valgono le guide Dieffetech `docs/react-native/`:
 - Elementi assoluti, overlay e bottoni flottanti ancorati con
   `useSafeAreaInsets()`.
 - Ogni testo visibile via `t("chiave")`, chiavi in `src/i18n/locales/it.json`.
+- Icona e testo sulla stessa riga stanno allineati in altezza: il padding del
+  font lo togliono gia' `Text` e `TextInput` di `ui/` (vedi § Styling), quindi
+  non si aggiunge `includeFontPadding` nelle schermate.
 - Animazioni con `react-native-reanimated`; il suo plugin babel resta l'ultimo.
 - TypeScript strict, mai `any`.
 - Logging solo via `logger`, mai `console.*`.
@@ -596,8 +612,8 @@ testuale) e la stima nutrizionale da foto ed etichette (vision + JSON object
 mode). `expo-speech` per le risposte parlate, on-device.
 
 I model id stanno in **un punto solo** (`src/ai/config.ts`), e non e' una
-comodita': `llama-3.3-70b-versatile` e' stato ritirato e l'app ha continuato a
-chiamarlo per sei settimane senza che nessuno lo notasse. **Un model id non
+comodita': un modello e' stato ritirato e l'app ha continuato a chiamarlo per
+sei settimane senza che nessuno lo notasse. **Un model id non
 provato e' un'ipotesi**, e si prova da **Impostazioni > Diagnostica**, che
 chiede al servizio l'elenco di quel che sta ancora servendo a questa chiave.
 
@@ -749,11 +765,12 @@ riuscite (`ai_calls`). Tre cose da non rompere:
 - **`recordLog` non lancia e non registra i propri errori.** E' chiamata da
   `logger.error`: un guasto che ripassasse di li' si richiamerebbe all'infinito.
 - **`redactSecrets` copre le forme di chiave che l'app usa DAVVERO.** Il
-  registro si condivide come file ed e' dentro il backup. Copriva `gsk_`/`sk_` e
-  `Bearer`, cioe' Groq e OpenAI, e dal passaggio a Gemini non nascondeva piu'
-  niente - una chiave `AIza...` o `AQ....` passava intera. Ora ci sono anche
-  quelle due forme e `?key=` in una URL. Chi cambia provider aggiunge la forma
-  nuova qui, prima di committare.
+  registro si condivide come file ed e' dentro il backup. Copriva le forme di un
+  provider precedente (`gsk_`/`sk_` e `Bearer`) e dal passaggio a Gemini non
+  nascondeva piu' niente - una chiave `AIza...` o `AQ....` passava intera. Ora
+  ci sono anche quelle due forme e `?key=` in una URL; i prefissi vecchi restano
+  per i registri scritti allora, che sono ancora nel database. Chi cambia
+  provider aggiunge la forma nuova qui, prima di committare.
 
 Per lo stesso motivo la chiave dell'endpoint nativo va nell'header
 `x-goog-api-key` e non in `?key=`: un errore di rete si porta dietro la URL, e
@@ -764,4 +781,9 @@ un import: `src/db` importa gia' `logger`, il verso opposto sarebbe un ciclo.
 
 `clearLogs` usa un `DELETE` vero, ed e' l'eccezione consentita alla regola "mai
 `DELETE FROM`": quella protegge le tabelle che si sincronizzano, dove una riga
-tolta risorge al giro dopo. `app_logs` non viaggia.
+tolta risorge al giro dopo. `app_logs` non viaggia, e nemmeno `ai_calls`.
+
+Svuota **anche le chiamate AI non riuscite**, perche' in Diagnostica i due
+elenchi stanno sotto lo stesso pulsante e uno svuotamento che ne lasciasse uno
+sembrerebbe non aver fatto niente. **Le riuscite restano**: sono il conteggio
+dei consumi degli ultimi sette giorni, non un guasto.
