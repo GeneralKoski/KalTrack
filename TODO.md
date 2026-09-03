@@ -17,43 +17,30 @@ Ultimo aggiornamento: 2 settembre 2026.
       `/up` 200 in HTTPS, le rotte protette 401 e non 500,
       `ThrottleRequests:10,1` presente nelle rotte in cache. Backup pre-deploy
       `kaltrack-2026-09-02-090620.sqlite`.
-- [ ] **Costruire la 1.0.4 e provarla sul telefono.**
-      `./scripts/build-apk.sh 1.0.4`. **La build nativa va rifatta, metro non
-      basta**: `app.json` dichiara ora il plugin di `expo-camera`.
-- [ ] **Cambiare la password di `GeneralKoski`.** Dal 31 agosto e' una password
-      nota e scritta in chiaro in `HANDOFF.md`, messa li' per poter provare il
-      modulo di accesso. Reimpostarla disconnette tutti i dispositivi, telefono
-      compreso.
-- [ ] **Copiare il keystore fuori da questo computer.**
-      `credentials/android/kaltrack.keystore` + `credentials.json`, entrambi
-      gitignorati e **non recuperabili**. Perderli vuol dire non poter piu'
-      aggiornare l'app installata, e disinstallare porta via il database.
+- [x] ~~**Costruire la 1.0.4 e provarla sul telefono.**~~ Fatto il 3 settembre
+      2026.
+- [x] ~~**Cambiare la password di `GeneralKoski`.**~~ Fatto il 3 settembre 2026.
+- [x] ~~**Copiare il keystore fuori da questo computer.**~~ Fatto il 3
+      settembre 2026.
 
 ### Da vedere a schermo, con la 1.0.4 in mano
 
-Tutto coperto dai test, **niente visto funzionare**.
+**Tutto visto funzionare sul telefono il 3 settembre 2026**, oltre al flusso
+di primo avvio (sezione 2), mai passato da un emulatore.
 
-- [ ] Lo scanner del codice a barre, con un prodotto vero. I tre esiti sono
-      diversi e vanno visti tutti: prodotto gia' in libreria, prodotto in
-      OpenFoodFacts, codice che nessuno dei due conosce. **Un emulatore non
-      legge codici a barre.**
-- [ ] Il permesso della fotocamera, che viene chiesto per la prima volta.
-- [ ] La ricerca dall'archivio in Alimenti: cercare qualcosa fuori dai seed e
-      vedere comparire la seconda sezione.
-- [ ] Due promemoria personalizzati: cambiare l'orario del primo e verificare
-      che il secondo suoni ancora.
-- [ ] Le foto dei progressi su un secondo dispositivo.
-- [ ] Il ridimensionamento, dal peso dei file in `documentDirectory/photos`.
-- [ ] La trascrizione vocale su `gemini-3.5-flash-lite`.
-- [ ] **La percentuale di cache in Impostazioni > Diagnostica.** E' nuova del 2
-      settembre e nessuno l'ha ancora vista con dati veri. **Attenzione a come
-      si legge**: su `gemini-3.5-flash-lite` il campo non arriva affatto -
-      `prompt_tokens_details` e' assente sull'endpoint OpenAI e
-      `cachedContentTokenCount` su quello nativo, misurato con 8.095 token di
-      prefisso ripetuto a un secondo di distanza - quindi Diagnostica dira'
-      **"non dichiarata"**, che e' il caso previsto e non un difetto. Uno zero
-      vero, quello che vorrebbe dire "prefisso sotto i 4.096", si vedrebbe solo
-      su un modello `-flash`.
+- [x] ~~Lo scanner del codice a barre, con un prodotto vero.~~ I tre esiti
+      diversi - prodotto gia' in libreria, prodotto in OpenFoodFacts, codice
+      che nessuno dei due conosce.
+- [x] ~~Il permesso della fotocamera, che viene chiesto per la prima volta.~~
+- [x] ~~La ricerca dall'archivio in Alimenti.~~
+- [x] ~~Due promemoria personalizzati.~~
+- [x] ~~Le foto dei progressi su un secondo dispositivo.~~
+- [x] ~~Il ridimensionamento, dal peso dei file in `documentDirectory/photos`.~~
+- [x] ~~La trascrizione vocale su `gemini-3.5-flash-lite`.~~
+- [x] ~~**La percentuale di cache in Impostazioni > Diagnostica.**~~ Letta con
+      dati veri: **"non dichiarata"**, il caso previsto per
+      `gemini-3.5-flash-lite` (vedi `CLAUDE.md` § Il prezzo del prompt
+      dell'assistente) e non un difetto.
 
 ---
 
