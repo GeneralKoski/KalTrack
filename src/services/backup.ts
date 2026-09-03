@@ -12,7 +12,7 @@ export const BACKUP_FORMAT_VERSION = 1;
  * L'elenco deve restare completo. Quando ne mancavano sedici su ventisette il
  * backup era una trappola: prometteva "l'unico modo per non perdere tutto" e
  * si portava via solo il diario, lasciando fuori palestra, misure, acqua,
- * digiuni, piano pasti, traguardi e promemoria. Peggio ancora, cancellare
+ * piano pasti, traguardi e promemoria. Peggio ancora, cancellare
  * `foods` senza toccare `meal_plan_entries` faceva fallire il ripristino con
  * una violazione di foreign key: bastava una riga di piano pasti perché il
  * backup non si potesse più ripristinare affatto.
@@ -37,7 +37,6 @@ export const BACKUP_TABLES = [
   "water_logs",
   "body_measurements",
   "progress_photos",
-  "fasting_windows",
   "achievements",
   "reminders",
   "ai_calls",

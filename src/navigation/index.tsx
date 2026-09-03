@@ -28,7 +28,6 @@ import { BackupScreen } from "@/src/navigation/screens/BackupScreen";
 import { ComparisonScreen } from "@/src/navigation/screens/ComparisonScreen";
 import { DiagnosticsScreen } from "@/src/navigation/screens/DiagnosticsScreen";
 import { ExercisesScreen } from "@/src/navigation/screens/ExercisesScreen";
-import { FastingScreen } from "@/src/navigation/screens/FastingScreen";
 import { FriendProfileScreen } from "@/src/navigation/screens/FriendProfileScreen";
 import { FriendsScreen } from "@/src/navigation/screens/FriendsScreen";
 import { MyProfileScreen } from "@/src/navigation/screens/MyProfileScreen";
@@ -232,10 +231,6 @@ const RootStack = createNativeStackNavigator({
     Achievements: {
       screen: AchievementsScreen,
       linking: { path: "traguardi" },
-    },
-    Fasting: {
-      screen: FastingScreen,
-      linking: { path: "digiuno" },
     },
     Measurements: {
       screen: MeasurementsScreen,

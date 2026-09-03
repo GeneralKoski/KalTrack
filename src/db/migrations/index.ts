@@ -14,6 +14,7 @@ import { migration013 } from "@/src/db/migrations/013_reminder_position";
 import { migration014 } from "@/src/db/migrations/014_sync_updated_at_indexes";
 import { migration015 } from "@/src/db/migrations/015_ai_cached_tokens";
 import { migration016 } from "@/src/db/migrations/016_meal_type_hidden";
+import { migration017 } from "@/src/db/migrations/017_drop_fasting";
 import type { Migration } from "@/src/db/migrations/types";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 import { logger } from "@/src/utils/logger";
@@ -38,6 +39,7 @@ export const MIGRATIONS: Migration[] = [
   migration014,
   migration015,
   migration016,
+  migration017,
 ];
 
 /**

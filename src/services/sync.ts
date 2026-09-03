@@ -55,7 +55,6 @@ export const SYNCED_TABLES = [
   "water_logs",
   "body_measurements",
   "progress_photos",
-  "fasting_windows",
   "achievements",
   "reminders",
   "recipe_items",

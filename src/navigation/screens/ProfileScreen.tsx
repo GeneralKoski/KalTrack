@@ -18,7 +18,6 @@ import {
   Salad,
   Settings,
   Target,
-  Timer,
   Trophy,
   Users,
 } from "lucide-react-native";
@@ -61,7 +60,6 @@ const GROUPS: Group[] = [
       { route: "Foods", labelKey: "profile.my_foods", icon: Salad },
       { route: "Recipes", labelKey: "profile.my_recipes", icon: CookingPot },
       { route: "MealPlan", labelKey: "profile.meal_plan", icon: CalendarRange },
-      { route: "Fasting", labelKey: "profile.fasting", icon: Timer },
     ],
   },
   {

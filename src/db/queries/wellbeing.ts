@@ -32,17 +32,6 @@ export interface ProgressPhotoRow {
   deleted_at: string | null;
 }
 
-export interface FastingRow {
-  id: string;
-  started_at: string;
-  ended_at: string | null;
-  target_hours: number | null;
-  note: string | null;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-}
-
 // ─── Acqua ───────────────────────────────────────────────────────────────────
 //
 // A differenza di peso e passi l'acqua NON è una misura unica giornaliera: si
@@ -158,60 +147,5 @@ export async function deleteProgressPhoto(id: string): Promise<void> {
   await db.runAsync(
     "UPDATE progress_photos SET deleted_at = ?, updated_at = ? WHERE id = ?",
     [now, now, id],
-  );
-}
-
-// ─── Digiuno ─────────────────────────────────────────────────────────────────
-
-export async function openFasting(): Promise<FastingRow | null> {
-  const db = await getDb();
-  return db.getFirstAsync<FastingRow>(
-    `SELECT * FROM fasting_windows
-     WHERE ended_at IS NULL AND deleted_at IS NULL
-     ORDER BY started_at DESC LIMIT 1`,
-  );
-}
-
-/**
- * Apre una finestra di digiuno, chiudendo l'eventuale precedente ancora aperta.
- * Due digiuni aperti insieme non hanno significato e romperebbero ogni conteggio.
- */
-export async function startFasting(
-  startedAt: string,
-  targetHours: number | null = null,
-): Promise<string> {
-  const db = await getDb();
-  const id = newId();
-  const now = nowIso();
-
-  await db.withTransactionAsync(async () => {
-    await db.runAsync(
-      "UPDATE fasting_windows SET ended_at = ?, updated_at = ? WHERE ended_at IS NULL AND deleted_at IS NULL",
-      [startedAt, now],
-    );
-    await db.runAsync(
-      `INSERT INTO fasting_windows (id, started_at, target_hours, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?)`,
-      [id, startedAt, targetHours, now, now],
-    );
-  });
-  return id;
-}
-
-export async function endFasting(endedAt: string): Promise<void> {
-  const db = await getDb();
-  await db.runAsync(
-    "UPDATE fasting_windows SET ended_at = ?, updated_at = ? WHERE ended_at IS NULL AND deleted_at IS NULL",
-    [endedAt, nowIso()],
-  );
-}
-
-export async function listFastingHistory(limit = 30): Promise<FastingRow[]> {
-  const db = await getDb();
-  return db.getAllAsync<FastingRow>(
-    `SELECT * FROM fasting_windows
-     WHERE ended_at IS NOT NULL AND deleted_at IS NULL
-     ORDER BY started_at DESC LIMIT ?`,
-    [limit],
   );
 }

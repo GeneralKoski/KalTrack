@@ -4,14 +4,11 @@ import { runMigrations } from "@/src/db/migrations";
 import {
   addProgressPhoto,
   addWater,
-  endFasting,
   getWaterTotal,
   listMeasurements,
   listProgressPhotos,
-  openFasting,
   removeLastWater,
   setMeasurement,
-  startFasting,
 } from "@/src/db/queries/wellbeing";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 
@@ -104,42 +101,5 @@ describe("foto dei progressi", () => {
     await addProgressPhoto("2026-08-20", "file://vecchia.jpg");
     await addProgressPhoto("2026-08-29", "file://nuova.jpg");
     expect((await listProgressPhotos())[0].uri).toBe("file://nuova.jpg");
-  });
-});
-
-describe("digiuno", () => {
-  it("apre una finestra e la ritrova aperta", async () => {
-    await startFasting("2026-08-28T20:00:00.000Z", 16);
-    const open = await openFasting();
-    expect(open?.target_hours).toBe(16);
-    expect(open?.ended_at).toBeNull();
-  });
-
-  it("senza finestre aperte ritorna null", async () => {
-    expect(await openFasting()).toBeNull();
-  });
-
-  it("chiuderla la toglie dalle aperte", async () => {
-    await startFasting("2026-08-28T20:00:00.000Z", 16);
-    await endFasting("2026-08-29T12:00:00.000Z");
-    expect(await openFasting()).toBeNull();
-  });
-
-  it("aprirne una seconda chiude la precedente invece di lasciarne due", async () => {
-    // Due digiuni aperti insieme non hanno senso e romperebbero il conteggio.
-    await startFasting("2026-08-27T20:00:00.000Z", 16);
-    await startFasting("2026-08-28T20:00:00.000Z", 18);
-
-    const open = await openFasting();
-    expect(open?.target_hours).toBe(18);
-
-    const all = await db.getAllAsync<{ n: number }>(
-      "SELECT COUNT(*) AS n FROM fasting_windows WHERE ended_at IS NULL",
-    );
-    expect(all[0].n).toBe(1);
-  });
-
-  it("chiudere senza una finestra aperta non fallisce", async () => {
-    await expect(endFasting("2026-08-29T12:00:00.000Z")).resolves.toBeUndefined();
   });
 });

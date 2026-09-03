@@ -78,7 +78,6 @@
     "meal_plan": "Piano pasti",
     "measurements": "Misure",
     "reminders": "Promemoria",
-    "fasting": "Digiuno",
     "progress_photos": "Foto progressi",
     "no_account": "Il tuo profilo",
     "sign_in": "Crea un account o accedi",
@@ -532,24 +531,6 @@
     "liters": "L",
     "add_ml": "+%{ml} ml",
     "undo": "Annulla l'ultimo bicchiere"
-  },
-  "fasting": {
-    "title": "Digiuno",
-    "none_open": "Nessun digiuno in corso",
-    "start": "Inizia un digiuno",
-    "start_now": "Inizia",
-    "choose_protocol": "Scegli il protocollo",
-    "protocol_explain": "%{fasting} di digiuno, poi %{eating} di finestra alimentare.",
-    "percent": "%{value}%",
-    "of_target": "su %{target}",
-    "no_target": "Senza obiettivo",
-    "reached": "Obiettivo raggiunto",
-    "started_at": "Iniziato il %{date} alle %{time}",
-    "end": "Termina digiuno",
-    "end_confirm": "La finestra si chiude adesso e passa nello storico.",
-    "history": "Storico",
-    "history_empty": "Nessun digiuno concluso",
-    "window": "%{from} - %{to}"
   },
   "measurements": {
     "title": "Misure",

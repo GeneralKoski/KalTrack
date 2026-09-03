@@ -32,7 +32,6 @@ export interface NavParams {
   RoutineForm: { id?: string };
   Session: { routineId: string; dayIndex: number };
   Achievements: undefined;
-  Fasting: undefined;
   Friends: undefined;
   FriendProfile: { handle: string };
   Comparison: undefined;
