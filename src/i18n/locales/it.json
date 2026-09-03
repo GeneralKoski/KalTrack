@@ -202,7 +202,7 @@
       "male": "Uomo",
       "female": "Donna"
     },
-    "birthdate": "Data di nascita (AAAA-MM-GG)",
+    "birthdate": "Data di nascita",
     "height": "Altezza (cm)",
     "activity": "Livello di attività",
     "activity_value": {
@@ -222,8 +222,8 @@
     "steps": "Passi",
     "compute": "Calcola dai tuoi dati",
     "explain": "Con %{weight} kg il tuo metabolismo basale è circa %{bmr} kcal, che con il tuo livello di attività diventano %{tdee} kcal al giorno.",
-    "explain_missing": "Inserisci data di nascita, altezza e almeno una pesata per calcolare gli obiettivi in automatico.",
     "cannot_compute": "Servono data di nascita, altezza e una pesata",
+    "missing_weight": "Registra prima un peso",
     "kcal_required": "Imposta almeno le calorie",
     "saved": "Obiettivi salvati"
   },

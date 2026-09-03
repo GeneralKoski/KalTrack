@@ -1,3 +1,4 @@
+import { DfBottomSheet } from "@/src/components/DfBottomSheet";
 import { FormScreen } from "@/src/components/FormScreen";
 import { DfButton } from "@/src/components/form/DfButton";
 import { MetalPanel, ScreenBackground, SectionLabel } from "@/src/components/kal";
@@ -5,7 +6,7 @@ import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text, TextInput } from "@/src/components/ui";
 import { getProfile, getTargetsFor, saveProfile, saveTargets } from "@/src/db/queries/settings";
 import { latestWeight } from "@/src/db/queries/tracking";
-import { todayIso } from "@/src/domain/date";
+import { todayIso, toIsoDate } from "@/src/domain/date";
 import {
   ACTIVITY_FACTORS,
   ageAt,
@@ -19,17 +20,33 @@ import {
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
+import { formatDate } from "@/src/utils/dateUtils";
 import { showToast } from "@/src/utils/toast";
-import { ChevronLeft, Sparkles } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
+import type { BottomSheetModal } from "@gorhom/bottom-sheet";
+import DateTimePicker, {
+  DateTimePickerAndroid,
+} from "@react-native-community/datetimepicker";
+import { Calendar, Check, ChevronDown, ChevronLeft } from "lucide-react-native";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  ScrollView,
+  Modal,
+  Platform,
+  Pressable,
   StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+type PickerKind = "sex" | "activity" | "goal";
+
+// Copia locale come in ProgressPhotoFormSheet: la data è sempre YYYY-MM-DD e
+// non merita un parser condiviso per una riga.
+function parseIso(iso: string): Date {
+  const [year, month, day] = iso.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
 
 const SEXES: Sex[] = ["male", "female"];
 const ACTIVITIES = Object.keys(ACTIVITY_FACTORS) as ActivityLevel[];
@@ -52,6 +69,8 @@ export function TargetsScreen() {
   const [heightCm, setHeightCm] = useState("");
   const [activity, setActivity] = useState<ActivityLevel>("moderate");
   const [goal, setGoal] = useState<Goal>("maintain");
+  const [pickerKind, setPickerKind] = useState<PickerKind | null>(null);
+  const pickerSheetRef = useRef<BottomSheetModal>(null);
 
   const [kcal, setKcal] = useState("");
   const [proteinG, setProteinG] = useState("");
@@ -59,6 +78,8 @@ export function TargetsScreen() {
   const [fatG, setFatG] = useState("");
   const [steps, setSteps] = useState("");
   const [weightKg, setWeightKg] = useState<number | null>(null);
+  const [showIosDatePicker, setShowIosDatePicker] = useState(false);
+  const [tempDate, setTempDate] = useState<Date>(new Date());
 
   useEffect(() => {
     let active = true;
@@ -102,7 +123,30 @@ export function TargetsScreen() {
       : null;
   const daily = basal !== null ? tdee(basal, activity) : null;
 
+  const openBirthdatePicker = () => {
+    const base = birthdate.length === 10 ? parseIso(birthdate) : new Date();
+    if (Platform.OS === "android") {
+      DateTimePickerAndroid.open({
+        value: base,
+        mode: "date",
+        maximumDate: new Date(),
+        onChange: (event, selected) => {
+          // Su Android onChange scatta anche all'annullamento (type
+          // "dismissed") passando comunque una data: committa solo su "set".
+          if (event.type === "set" && selected) setBirthdate(toIsoDate(selected));
+        },
+      });
+    } else {
+      setTempDate(base);
+      setShowIosDatePicker(true);
+    }
+  };
+
   const compute = () => {
+    if (weightKg === null) {
+      showToast.error({ title: t("targets.missing_weight") });
+      return;
+    }
     if (!canCompute || age === null) {
       showToast.error({ title: t("targets.cannot_compute") });
       return;
@@ -167,44 +211,50 @@ export function TargetsScreen() {
     />
   );
 
-  const options = <T extends string>(
-    values: readonly T[],
-    selected: T,
-    onSelect: (v: T) => void,
-    labelKey: string,
-  ) => (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      // Non si eredita dalla ScrollView esterna: senza, col tastierino aperto
-      // il primo tocco su un chip viene consumato per chiudere la tastiera.
-      keyboardShouldPersistTaps="handled"
-      contentContainerStyle={styles.options}
+  const pickerFor = (kind: PickerKind) => {
+    if (kind === "sex")
+      return {
+        title: t("targets.sex"),
+        values: SEXES as readonly string[],
+        selected: sex,
+        labelKey: "targets.sex_value",
+        onSelect: (v: string) => setSex(v as Sex),
+      };
+    if (kind === "activity")
+      return {
+        title: t("targets.activity"),
+        values: ACTIVITIES as readonly string[],
+        selected: activity,
+        labelKey: "targets.activity_value",
+        onSelect: (v: string) => setActivity(v as ActivityLevel),
+      };
+    return {
+      title: t("targets.goal"),
+      values: GOALS as readonly string[],
+      selected: goal,
+      labelKey: "targets.goal_value",
+      onSelect: (v: string) => setGoal(v as Goal),
+    };
+  };
+
+  const activePicker = pickerKind ? pickerFor(pickerKind) : null;
+
+  const openPicker = (kind: PickerKind) => {
+    setPickerKind(kind);
+    pickerSheetRef.current?.present();
+  };
+
+  const selectField = (kind: PickerKind, currentValue: string, labelKey: string) => (
+    <TouchableOpacity
+      onPress={() => openPicker(kind)}
+      activeOpacity={0.6}
+      style={[styles.selectBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
     >
-      {values.map((value) => {
-        const active = value === selected;
-        return (
-          <TouchableOpacity
-            key={value}
-            onPress={() => onSelect(value)}
-            activeOpacity={0.6}
-            style={[
-              styles.option,
-              { backgroundColor: active ? colors.accent : colors.surfaceMuted },
-            ]}
-          >
-            <Text
-              style={[
-                styles.optionLabel,
-                { color: active ? colors.accentOn : colors.textMuted },
-              ]}
-            >
-              {t(`${labelKey}.${value}`)}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </ScrollView>
+      <Text style={[styles.selectBtnText, { color: colors.text }]}>
+        {t(`${labelKey}.${currentValue}`)}
+      </Text>
+      <ChevronDown size={18} color={colors.textMuted} />
+    </TouchableOpacity>
   );
 
   return (
@@ -227,41 +277,62 @@ export function TargetsScreen() {
           <ActivityIndicator style={styles.loader} color={colors.accent} />
         ) : (
           <FormScreen contentContainerStyle={styles.content} bottomSpacing={theme.spacing.lg}>
-            <SectionLabel>{t("targets.profile")}</SectionLabel>
-
             <Text style={[styles.label, { color: colors.textMuted }]}>
               {t("targets.sex")}
             </Text>
-            {options(SEXES, sex, setSex, "targets.sex_value")}
+            {selectField("sex", sex, "targets.sex_value")}
 
-            <Text style={[styles.label, { color: colors.textMuted }]}>
-              {t("targets.birthdate")}
-            </Text>
-            {input(birthdate, setBirthdate, false, "1995-06-15")}
+            <View style={styles.row}>
+              <View style={styles.col}>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  {t("targets.birthdate")}
+                </Text>
+                <TouchableOpacity
+                  onPress={openBirthdatePicker}
+                  activeOpacity={0.6}
+                  style={[
+                    styles.datePickerBtn,
+                    { backgroundColor: colors.surface, borderColor: colors.border },
+                  ]}
+                >
+                  <Calendar size={16} color={colors.textMuted} />
+                  <Text
+                    style={[
+                      styles.datePickerText,
+                      { color: birthdate ? colors.text : colors.textFaint },
+                    ]}
+                  >
+                    {birthdate ? formatDate(birthdate) : t("select_date_placeholder")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
-            <Text style={[styles.label, { color: colors.textMuted }]}>
-              {t("targets.height")}
-            </Text>
-            {input(heightCm, setHeightCm)}
+              <View style={styles.col}>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  {t("targets.height")}
+                </Text>
+                {input(heightCm, setHeightCm, true, "175")}
+              </View>
+            </View>
 
             <Text style={[styles.label, { color: colors.textMuted }]}>
               {t("targets.activity")}
             </Text>
-            {options(ACTIVITIES, activity, setActivity, "targets.activity_value")}
+            {selectField("activity", activity, "targets.activity_value")}
 
             <Text style={[styles.label, { color: colors.textMuted }]}>
               {t("targets.goal")}
             </Text>
-            {options(GOALS, goal, setGoal, "targets.goal_value")}
+            {selectField("goal", goal, "targets.goal_value")}
 
             <SectionLabel style={styles.section}>
               {t("targets.daily")}
             </SectionLabel>
 
             {/* Il numero suggerito va spiegato, non calato dall'alto. */}
-            <MetalPanel radius={theme.radius.xl} style={styles.explain}>
-              <View style={styles.explainInner}>
-                {basal !== null && daily !== null ? (
+            {basal !== null && daily !== null && (
+              <MetalPanel radius={theme.radius.xl} style={styles.explain}>
+                <View style={styles.explainInner}>
                   <Text style={[styles.explainText, { color: colors.textSecondary }]}>
                     {t("targets.explain", {
                       bmr: Math.round(basal),
@@ -269,18 +340,13 @@ export function TargetsScreen() {
                       weight: weightKg,
                     })}
                   </Text>
-                ) : (
-                  <Text style={[styles.explainText, { color: colors.textMuted }]}>
-                    {t("targets.explain_missing")}
-                  </Text>
-                )}
-              </View>
-            </MetalPanel>
+                </View>
+              </MetalPanel>
+            )}
 
             <DfButton
               label={t("targets.compute")}
               variant="outlined"
-              icon={<Sparkles size={18} color={colors.accent} />}
               onPress={compute}
               style={styles.compute}
             />
@@ -320,6 +386,73 @@ export function TargetsScreen() {
           </FormScreen>
         )}
       </SafeAreaView>
+
+      {showIosDatePicker && (
+        <Modal
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowIosDatePicker(false)}
+        >
+          <Pressable
+            style={styles.iosModalOverlay}
+            onPress={() => setShowIosDatePicker(false)}
+          >
+            <Pressable
+              style={[styles.iosModalContent, { backgroundColor: colors.surface }]}
+            >
+              <View style={[styles.iosModalHeader, { borderBottomColor: colors.border }]}>
+                <Pressable onPress={() => setShowIosDatePicker(false)}>
+                  <Text style={[styles.iosModalCancel, { color: colors.textMuted }]}>
+                    {t("cancel")}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    setBirthdate(toIsoDate(tempDate));
+                    setShowIosDatePicker(false);
+                  }}
+                >
+                  <Text style={[styles.iosModalConfirm, { color: colors.accent }]}>
+                    {t("confirm")}
+                  </Text>
+                </Pressable>
+              </View>
+              <DateTimePicker
+                value={tempDate}
+                mode="date"
+                display="spinner"
+                locale="it"
+                maximumDate={new Date()}
+                onChange={(_event, selected) => {
+                  if (selected) setTempDate(selected);
+                }}
+              />
+            </Pressable>
+          </Pressable>
+        </Modal>
+      )}
+
+      <DfBottomSheet ref={pickerSheetRef} title={activePicker?.title}>
+        {activePicker?.values.map((value) => {
+          const isSelected = value === activePicker.selected;
+          return (
+            <TouchableOpacity
+              key={value}
+              activeOpacity={0.6}
+              style={styles.pickerRow}
+              onPress={() => {
+                activePicker.onSelect(value);
+                pickerSheetRef.current?.dismiss();
+              }}
+            >
+              <Text style={[styles.pickerRowText, { color: colors.text }]}>
+                {t(`${activePicker.labelKey}.${value}`)}
+              </Text>
+              {isSelected && <Check size={18} color={colors.accent} />}
+            </TouchableOpacity>
+          );
+        })}
+      </DfBottomSheet>
     </View>
   );
 }
@@ -351,13 +484,57 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
     fontSize: 15,
   },
-  options: { flexDirection: "row", gap: theme.spacing.xs },
-  option: {
+  row: { flexDirection: "row", gap: theme.spacing.sm },
+  col: { flex: 1 },
+  datePickerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    borderWidth: 1,
+    borderRadius: theme.radius.lg,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: 7,
-    borderRadius: theme.radius.full,
+    paddingVertical: theme.spacing.sm,
   },
-  optionLabel: { fontSize: 13, fontWeight: "600" },
+  datePickerText: { fontSize: 15 },
+  iosModalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  iosModalContent: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingBottom: 32,
+    alignItems: "center",
+  },
+  iosModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    alignSelf: "stretch",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  iosModalCancel: { fontSize: 16 },
+  iosModalConfirm: { fontSize: 16, fontWeight: "600" },
+  selectBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderRadius: theme.radius.lg,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+  },
+  selectBtnText: { fontSize: 15 },
+  pickerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: theme.spacing.md,
+  },
+  pickerRowText: { fontSize: 15, fontWeight: "500" },
   section: { marginTop: theme.spacing.lg },
   explain: { marginTop: theme.spacing.sm },
   explainInner: { padding: theme.spacing.md },
