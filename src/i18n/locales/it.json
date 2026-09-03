@@ -829,6 +829,8 @@
     "profile_saved": "Profilo aggiornato",
     "sign_out": "Esci",
     "sign_out_message": "I tuoi dati restano sul telefono. Esci solo da questo dispositivo.",
+    "login_success": "Accesso effettuato con successo",
+    "sign_out_success": "Uscita effettuata con successo",
     "not_friend_yet": "Diventate amici per vedere cosa condivide.",
     "shares_nothing": "Non condivide ancora niente.",
     "latest": "Ultimo giorno",

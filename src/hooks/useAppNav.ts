@@ -7,6 +7,13 @@ import { StackActions, useNavigation } from "@react-navigation/native";
 // ripetono negli stack per-tab), mantenendo la type-safety dei parametri.
 // È anche la superficie su cui si appoggerà il tool `navigate` dell'assistente.
 export interface NavParams {
+  /**
+   * "TodayTab" e' una rotta del Tab navigator annidato dentro "Tabs": da uno
+   * screen del root stack (es. `FriendsScreen`) va raggiunta cosi', non con
+   * `navigate("TodayTab")`, che fallisce perche' quella rotta non esiste nel
+   * root stack.
+   */
+  Tabs: { screen: "TodayTab" };
   TodayTab: undefined;
   ProgressTab: undefined;
   GymTab: undefined;

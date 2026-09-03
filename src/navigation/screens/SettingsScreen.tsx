@@ -3,11 +3,12 @@ import { DfButton } from "@/src/components/form/DfButton";
 import { Card, ScreenBackground } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
-import { resetToTabs, useAppNav } from "@/src/hooks/useAppNav";
+import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { useThemeStore } from "@/src/stores/themeStore";
 import { theme } from "@/src/styles";
+import { showToast } from "@/src/utils/toast";
 import {
   ChevronLeft,
   ChevronRight,
@@ -130,7 +131,16 @@ export function SettingsScreen() {
         onConfirm={async () => {
           setConfirmSignOut(false);
           await signOut();
-          resetToTabs();
+          // Settings si raggiunge solo da ProfileScreen, quindi "Tabs" e' gia'
+          // montato un livello sotto: goBack() ci torna senza smontare il Tab
+          // navigator, a differenza di resetToTabs() (pensato per l'uscita
+          // dall'onboarding, dove serve azzerare tutta la cronologia). Uno
+          // smontaggio del Tab navigator rilascia il registratore audio
+          // dell'assistente mentre expo-audio sta ancora facendo polling sul
+          // suo stato, e produce "Cannot use shared object that was already
+          // released" in console.
+          goBack();
+          showToast.success({ title: t("social.sign_out_success") });
         }}
         onClose={() => setConfirmSignOut(false)}
       />

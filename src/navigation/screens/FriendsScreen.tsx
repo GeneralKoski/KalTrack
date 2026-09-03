@@ -20,7 +20,7 @@ import { theme } from "@/src/styles";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
 import { Check, ChevronLeft, UserPlus, Users, X } from "lucide-react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -49,6 +49,18 @@ export function FriendsScreen() {
 
   const token = useAccountStore((s) => s.token);
   const isHydrated = useAccountStore((s) => s.isHydrated);
+  const hadToken = useRef(token !== null);
+
+  // Si arriva qui per accedere (dalla card "Il tuo profilo" quando non si è
+  // ancora loggati), non per restare fra gli amici: appena l'accesso riesce
+  // si torna su Oggi, invece di lasciare la schermata di Amici a schermo.
+  useEffect(() => {
+    if (!hadToken.current && token !== null) {
+      navigate("Tabs", { screen: "TodayTab" });
+    }
+    hadToken.current = token !== null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   const [term, setTerm] = useState("");
   const [results, setResults] = useState<social.FoundUser[] | null>(null);

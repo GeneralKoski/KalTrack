@@ -58,6 +58,7 @@ export const AccountForm: React.FC = () => {
         ? await social.register({ email, password, handle, displayName })
         : await social.login({ login, password });
       await signIn(result.token);
+      showToast.success({ title: t("social.login_success") });
       // Subito, non al prossimo giro: chi entra su un telefono nuovo si
       // aspetta di ritrovare i suoi dati adesso, non fra un quarto d'ora.
       void runSync();
