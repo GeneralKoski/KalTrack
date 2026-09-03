@@ -380,14 +380,6 @@ TypeScript che gira sul dispositivo, come gia' fanno `normalizeQuantities` e
 
 ## 6. Decisioni aperte
 
-- [ ] **Il microfono in palestra.** `registry.ts` ha tredici strumenti e tre
-      riguardano gli allenamenti (`create_exercise`, `create_routine`,
-      `log_workout`), ma `AssistantButton` sta solo su Oggi. **La premessa con
-      cui era stato messo li' non vale piu'**: con le mani sul bilanciere "tre
-      per otto a sessanta" e' piu' veloce di qualunque campo. Prima di
-      spostarlo, leggere `CLAUDE.md` § Dove vive il microfono, che spiega
-      perche' montarlo sopra il navigatore non e' gratis: i due bottoni si
-      misurano da fondi diversi.
 - [ ] **La palla dell'assistente che si muove con la voce.** Il microfono
       virtuale dell'emulatore riporta `0.000` fisso anche con
       `-allow-host-audio`: il collegamento e' verificato, la reazione al volume
@@ -414,3 +406,8 @@ Non sono dimenticanze e non vanno riaperte senza una ragione nuova.
   elencate in `CLAUDE.md` § Lingua. L'app e' personale.
 - **Il target web.** Niente `react-native-web`, ed e' il motivo per cui
   `expo-doctor` resta a 18 su 20 di proposito.
+- **Il microfono in palestra, e con lui l'inserimento vocale delle serie.**
+  Deciso il 3 settembre 2026: l'AI in palestra resta solo `create_routine`
+  (generazione scheda su richiesta, gia' com'e' oggi da `GenerateRoutineScreen`).
+  `AssistantButton` resta su Oggi. `create_exercise` e `log_workout` restano
+  nel registro degli strumenti ma non diventano un percorso da costruire.
