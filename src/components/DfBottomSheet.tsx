@@ -7,7 +7,7 @@ import {
   BottomSheetModal,
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
-import { ChevronRight, X } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, X } from "lucide-react-native";
 import React, { forwardRef, useCallback, useEffect, useState } from "react";
 import {
   BackHandler,
@@ -32,6 +32,11 @@ interface DfBottomSheetProps {
    * toccabile.
    */
   onPressTitle?: () => void;
+  /**
+   * La sotto-vista aperta dal titolo e' a schermo: la freccia si gira, perche'
+   * un altro tocco sul titolo ora torna indietro invece di entrare.
+   */
+  titleOpen?: boolean;
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   onDismiss?: () => void;
@@ -44,7 +49,18 @@ interface DfBottomSheetProps {
 }
 
 export const DfBottomSheet = forwardRef<BottomSheetModal, DfBottomSheetProps>(
-  ({ title, onPressTitle, children, style, onDismiss, onAndroidBack }, ref) => {
+  (
+    {
+      title,
+      onPressTitle,
+      titleOpen,
+      children,
+      style,
+      onDismiss,
+      onAndroidBack,
+    },
+    ref,
+  ) => {
     const { colors } = useAppTheme();
     const insets = useSafeAreaInsets();
     const { t } = useTranslation();
@@ -118,14 +134,27 @@ export const DfBottomSheet = forwardRef<BottomSheetModal, DfBottomSheetProps>(
             hitSlop={8}
           >
             {titleText}
-            <ChevronRight size={20} color={colors.textMuted} />
+            {/* Alzata di 6: centrata sulla cassa del testo la freccia cade
+                sotto la parola, perche' la cassa comprende lo spazio dei
+                discendenti e un nome di pasto non ne ha. */}
+            <View style={styles.titleChevron}>
+              {titleOpen ? (
+                <ChevronLeft size={20} color={colors.textMuted} />
+              ) : (
+                <ChevronRight size={20} color={colors.textMuted} />
+              )}
+            </View>
           </TouchableOpacity>
         ) : (
           titleText
         )}
         {/* Solo la X: accanto a un'icona già inequivocabile la parola
             "Chiudi" era rumore, e rubava larghezza al titolo. */}
-        <Pressable onPress={dismiss} hitSlop={12} accessibilityLabel={t("close")}>
+        <Pressable
+          onPress={dismiss}
+          hitSlop={12}
+          accessibilityLabel={t("close")}
+        >
           {({ pressed }) => (
             <View
               style={[
@@ -198,6 +227,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+  },
+  titleChevron: {
+    marginTop: -6,
   },
   title: {
     flexShrink: 1,

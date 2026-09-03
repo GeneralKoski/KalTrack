@@ -83,6 +83,7 @@ export const AddEntrySheet = forwardRef<BottomSheetModal, AddEntrySheetProps>(
             ? () => setPickingMeal((open) => !open)
             : undefined
         }
+        titleOpen={pickingMeal}
         onAndroidBack={onAndroidBack}
         onDismiss={() => setPickingMeal(false)}
       >
