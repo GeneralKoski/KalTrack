@@ -322,6 +322,22 @@ TypeScript che gira sul dispositivo, come gia' fanno `normalizeQuantities` e
       funzioni piu' recenti). Chi le usa in inglese vede la chiave grezza o il
       fallback, non una frase. Da completare, e da tenere a mente ogni volta
       che si aggiunge una chiave nuova (vedi `CLAUDE.md` § Lingua).
+- [ ] **Aggiungere una lingua non finisce in `src/i18n/`.** I messaggi di
+      validazione del backend passano da `lang/it/` e `lang/en/`, scelti da
+      `SetLocaleFromHeader` in base a `Accept-Language` - che oggi accetta solo
+      `en`/`it` (`backend/app/Http/Middleware/SetLocaleFromHeader.php:31`).
+      Una lingua nuova va aggiunta li' **e** in un `lang/<lingua>/validation.php`
+      **completo**: Laravel ha un default di serie solo per l'inglese
+      (`vendor/laravel/framework/.../lang/en`), per qualunque altra lingua
+      senza quel file ogni chiave assente cade sul `fallback_locale` e mischia
+      le lingue nello stesso messaggio - si parte copiando la struttura di
+      `lang/it/validation.php`, gia' completo.
+      Due messaggi bypassano comunque il sistema e restano in italiano a
+      prescindere da `Accept-Language`, da sistemare insieme (chiave di
+      traduzione invece di stringa hardcoded):
+      `backend/app/Http/Requests/RegisterRequest.php:42-45`
+      (`handle.regex`/`handle.unique`) e `backend/app/Rules/UniqueHandle.php:30`
+      (`$fail('Questo nome utente e\' gia\' preso.')`).
 
 ---
 
