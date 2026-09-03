@@ -57,6 +57,7 @@ import {
   setWeight,
 } from "@/src/db/queries/tracking";
 import { todayIso } from "@/src/domain/date";
+import { defaultMealTypeId } from "@/src/domain/mealTime";
 import { EMPTY_NUTRIENTS, type Nutrients } from "@/src/domain/nutrition";
 import { rowNutrients, type EstimateRow } from "@/src/domain/photoEstimate";
 import { useAppNav } from "@/src/hooks/useAppNav";
@@ -167,7 +168,11 @@ export function TodayScreen() {
   const { data, loading, reload } = useFocusData<DayData>(loader);
 
   const openAdd = (typeId?: string) => {
-    setMealTypeId(typeId ?? data?.mealTypes[0]?.id ?? null);
+    /* Senza una sezione di partenza decide l'ora: il primo pasto dell'elenco
+       e' colazione a qualunque ora, e alle 20 andava sempre cambiato. */
+    setMealTypeId(
+      typeId ?? defaultMealTypeId(data?.mealTypes ?? [], new Date()),
+    );
     addSheetRef.current?.present();
   };
 

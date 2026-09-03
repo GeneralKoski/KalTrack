@@ -7,7 +7,7 @@ import {
   BottomSheetModal,
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
-import { X } from "lucide-react-native";
+import { ChevronDown, X } from "lucide-react-native";
 import React, { forwardRef, useCallback, useEffect, useState } from "react";
 import {
   BackHandler,
@@ -17,6 +17,7 @@ import {
   Pressable,
   StyleProp,
   StyleSheet,
+  TouchableOpacity,
   View,
   ViewStyle,
 } from "react-native";
@@ -24,6 +25,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface DfBottomSheetProps {
   title?: string;
+  /**
+   * Rende il titolo toccabile: serve ai fogli in cui il titolo e' anche la
+   * scelta corrente (il pasto di destinazione), e al tap apre la sotto-vista
+   * che la cambia. Il chevron compare solo qui, o un titolo fermo sembrerebbe
+   * toccabile.
+   */
+  onPressTitle?: () => void;
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   onDismiss?: () => void;
@@ -36,7 +44,7 @@ interface DfBottomSheetProps {
 }
 
 export const DfBottomSheet = forwardRef<BottomSheetModal, DfBottomSheetProps>(
-  ({ title, children, style, onDismiss, onAndroidBack }, ref) => {
+  ({ title, onPressTitle, children, style, onDismiss, onAndroidBack }, ref) => {
     const { colors } = useAppTheme();
     const insets = useSafeAreaInsets();
     const { t } = useTranslation();
@@ -94,11 +102,27 @@ export const DfBottomSheet = forwardRef<BottomSheetModal, DfBottomSheetProps>(
 
     const safeBottomInset = insets.bottom + 16;
 
+    const titleText = (
+      <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+        {title}
+      </Text>
+    );
+
     const header = (
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-          {title}
-        </Text>
+        {onPressTitle ? (
+          <TouchableOpacity
+            style={styles.titleButton}
+            onPress={onPressTitle}
+            activeOpacity={0.6}
+            hitSlop={8}
+          >
+            {titleText}
+            <ChevronDown size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+        ) : (
+          titleText
+        )}
         {/* Solo la X: accanto a un'icona già inequivocabile la parola
             "Chiudi" era rumore, e rubava larghezza al titolo. */}
         <Pressable onPress={dismiss} hitSlop={12} accessibilityLabel={t("close")}>
@@ -169,8 +193,14 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
     marginBottom: theme.spacing.lg,
   },
-  title: {
+  titleButton: {
     flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  title: {
+    flexShrink: 1,
     fontSize: 24,
     fontWeight: "700",
   },

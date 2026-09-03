@@ -10,10 +10,9 @@ import { FoodFacts } from "@/src/containers/foods/FoodFacts";
 import { theme } from "@/src/styles";
 import type { FoodRow, MealTypeRow, RecipeRow } from "@/src/types/nutrition";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
-import { Info } from "lucide-react-native";
-import React, { forwardRef, useEffect, useState } from "react";
+import { Check, Info } from "lucide-react-native";
+import React, { forwardRef, useCallback, useEffect, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { ScrollView } from "react-native-gesture-handler";
 
 export type DiaryPick =
   | { kind: "food"; food: FoodRow }
@@ -39,6 +38,8 @@ export const AddEntrySheet = forwardRef<BottomSheetModal, AddEntrySheetProps>(
     const { t } = useTranslation();
     const { colors } = useAppTheme();
     const [tab, setTab] = useState<Tab>("foods");
+    /** Aperta la sotto-vista che cambia il pasto: il corpo lascia il posto. */
+    const [pickingMeal, setPickingMeal] = useState(false);
     const [term, setTerm] = useState("");
     const [foods, setFoods] = useState<FoodRow[]>([]);
     const [recipes, setRecipes] = useState<RecipeRow[]>([]);
@@ -61,156 +62,178 @@ export const AddEntrySheet = forwardRef<BottomSheetModal, AddEntrySheetProps>(
       };
     }, [tab, term]);
 
-    return (
-      <DfBottomSheet ref={ref} title={t("diary.add_title")}>
-        {/*
-          Il tipo di pasto è la prima scelta: dice dove finisce la riga.
+    const mealType = mealTypes.find((type) => type.id === mealTypeId) ?? null;
 
-          ScrollView di gesture-handler e non quella di react-native: dentro un
-          BottomSheetScrollView di gorhom (che è costruito su gesture-handler)
-          una ScrollView nuda non riceve i gesti, e la striscia dei pasti
-          restava ferma con l'ultimo chip tagliato fuori. I margini negativi le
-          fanno attraversare il padding del foglio, così l'ultimo chip finisce
-          contro il bordo dello schermo invece che sotto il padding.
+    /* Il back di Android chiude prima la sotto-vista dei pasti, poi il foglio. */
+    const onAndroidBack = useCallback(() => {
+      if (!pickingMeal) return false;
+      setPickingMeal(false);
+      return true;
+    }, [pickingMeal]);
+
+    return (
+      <DfBottomSheet
+        ref={ref}
+        /* Il titolo e' la destinazione della riga, non la parola "Aggiungi":
+           e' il dato che si cambia piu' spesso, e da titolo non occupa una
+           riga sua. */
+        title={mealType?.name ?? t("diary.add_title")}
+        onPressTitle={
+          mealTypes.length > 0
+            ? () => setPickingMeal((open) => !open)
+            : undefined
+        }
+        onAndroidBack={onAndroidBack}
+        onDismiss={() => setPickingMeal(false)}
+      >
+        {/*
+          Il pasto sceglie dove finisce la riga, ed e' il titolo del foglio:
+          qui si cambia, e finche' questa sotto-vista e' aperta il corpo lascia
+          il posto invece di scorrere sotto.
         */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          style={styles.mealTypesStrip}
-          contentContainerStyle={styles.mealTypes}
-        >
-          {mealTypes.map((type) => {
-            const selected = type.id === mealTypeId;
-            return (
-              <TouchableOpacity
-                key={type.id}
-                onPress={() => onChangeMealType(type.id)}
-                activeOpacity={0.6}
-                style={[
-                  styles.mealType,
-                  {
-                    backgroundColor: selected
-                      ? colors.accent
-                      : colors.surfaceMuted,
-                  },
-                ]}
-              >
-                <Text
+        {pickingMeal ? (
+          <View>
+            {mealTypes.map((type, index) => {
+              const selected = type.id === mealTypeId;
+              return (
+                <TouchableOpacity
+                  key={type.id}
+                  onPress={() => {
+                    onChangeMealType(type.id);
+                    setPickingMeal(false);
+                  }}
+                  activeOpacity={0.6}
                   style={[
-                    styles.mealTypeLabel,
-                    { color: selected ? colors.accentOn : colors.textMuted },
+                    styles.mealRow,
+                    {
+                      borderBottomColor: colors.border,
+                      /* L'ultima riga non porta la riga sotto: non separa da
+                         niente, e resta appesa in fondo al foglio. */
+                      borderBottomWidth: index === mealTypes.length - 1 ? 0 : 1,
+                    },
                   ]}
                 >
-                  {type.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-
-        <View style={styles.tabs}>
-          <TabButton
-            label={t("diary.tab_foods")}
-            active={tab === "foods"}
-            onPress={() => setTab("foods")}
-          />
-          <TabButton
-            label={t("diary.tab_recipes")}
-            active={tab === "recipes"}
-            onPress={() => setTab("recipes")}
-          />
-          <TabButton
-            label={t("diary.tab_free")}
-            active={tab === "free"}
-            onPress={() => setTab("free")}
-          />
-        </View>
-
-        {tab !== "free" ? (
-          <View style={styles.search}>
-            <SearchBar value={term} onChangeText={setTerm} />
+                  <Text
+                    style={[
+                      styles.mealName,
+                      { color: selected ? colors.accent : colors.text },
+                    ]}
+                  >
+                    {type.name}
+                  </Text>
+                  {selected ? <Check size={18} color={colors.accent} /> : null}
+                </TouchableOpacity>
+              );
+            })}
           </View>
-        ) : null}
+        ) : (
+          <>
+            <View style={styles.tabs}>
+              <TabButton
+                label={t("diary.tab_foods")}
+                active={tab === "foods"}
+                onPress={() => setTab("foods")}
+              />
+              <TabButton
+                label={t("diary.tab_recipes")}
+                active={tab === "recipes"}
+                onPress={() => setTab("recipes")}
+              />
+              <TabButton
+                label={t("diary.tab_free")}
+                active={tab === "free"}
+                onPress={() => setTab("free")}
+              />
+            </View>
 
-        {tab === "free" ? (
-          <View style={styles.freeChoices}>
-            <TouchableOpacity
-              style={[styles.freeRow, { borderColor: colors.border }]}
-              onPress={() => onPick({ kind: "free" })}
-              activeOpacity={0.6}
-            >
-              <Text style={[styles.freeTitle, { color: colors.text }]}>
-                {t("diary.free_entry")}
-              </Text>
-              <Text style={[styles.freeHint, { color: colors.textMuted }]}>
-                {t("diary.free_entry_hint")}
-              </Text>
-            </TouchableOpacity>
+            {tab !== "free" ? (
+              <View style={styles.search}>
+                <SearchBar value={term} onChangeText={setTerm} />
+              </View>
+            ) : null}
 
-            <TouchableOpacity
-              style={[styles.freeRow, { borderColor: colors.border }]}
-              onPress={() => onPick({ kind: "photo", source: "camera" })}
-              activeOpacity={0.6}
-            >
-              <Text style={[styles.freeTitle, { color: colors.text }]}>
-                {t("photo_entry.from_camera")}
-              </Text>
-              <Text style={[styles.freeHint, { color: colors.textMuted }]}>
-                {t("photo_entry.entry_hint")}
-              </Text>
-            </TouchableOpacity>
+            {tab === "free" ? (
+              <View style={styles.freeChoices}>
+                <TouchableOpacity
+                  style={[styles.freeRow, { borderColor: colors.border }]}
+                  onPress={() => onPick({ kind: "free" })}
+                  activeOpacity={0.6}
+                >
+                  <Text style={[styles.freeTitle, { color: colors.text }]}>
+                    {t("diary.free_entry")}
+                  </Text>
+                  <Text style={[styles.freeHint, { color: colors.textMuted }]}>
+                    {t("diary.free_entry_hint")}
+                  </Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.freeRow, { borderColor: colors.border }]}
-              onPress={() => onPick({ kind: "photo", source: "library" })}
-              activeOpacity={0.6}
-            >
-              <Text style={[styles.freeTitle, { color: colors.text }]}>
-                {t("photo_entry.from_library")}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        ) : null}
+                <TouchableOpacity
+                  style={[styles.freeRow, { borderColor: colors.border }]}
+                  onPress={() => onPick({ kind: "photo", source: "camera" })}
+                  activeOpacity={0.6}
+                >
+                  <Text style={[styles.freeTitle, { color: colors.text }]}>
+                    {t("photo_entry.from_camera")}
+                  </Text>
+                  <Text style={[styles.freeHint, { color: colors.textMuted }]}>
+                    {t("photo_entry.entry_hint")}
+                  </Text>
+                </TouchableOpacity>
 
-        {/*
+                <TouchableOpacity
+                  style={[styles.freeRow, { borderColor: colors.border }]}
+                  onPress={() => onPick({ kind: "photo", source: "library" })}
+                  activeOpacity={0.6}
+                >
+                  <Text style={[styles.freeTitle, { color: colors.text }]}>
+                    {t("photo_entry.from_library")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
+            {/*
           Righe con map() e non FlatList: DfBottomSheet avvolge già i figli in
           un BottomSheetScrollView e annidarci una lista virtualizzata rompe lo
           scroll. I risultati sono al massimo PICKER_LIMIT.
         */}
-        {tab === "foods" ? (
-          foods.length === 0 ? (
-            <EmptyState message={t("foods.empty")} />
-          ) : (
-            foods.map((item) => (
-              <PickerRow
-                key={item.id}
-                title={item.name}
-                subtitle={`${Math.round(item.kcal)} kcal / 100 ${item.is_liquid === 1 ? "ml" : "g"}`}
-                onPress={() => onPick({ kind: "food", food: item })}
-                /* Il tocco sulla riga sceglie, come sempre: i valori stanno
+            {tab === "foods" ? (
+              foods.length === 0 ? (
+                <EmptyState message={t("foods.empty")} />
+              ) : (
+                foods.map((item) => (
+                  <PickerRow
+                    key={item.id}
+                    title={item.name}
+                    subtitle={`${Math.round(item.kcal)} kcal / 100 ${item.is_liquid === 1 ? "ml" : "g"}`}
+                    onPress={() => onPick({ kind: "food", food: item })}
+                    /* Il tocco sulla riga sceglie, come sempre: i valori stanno
                    dietro un bottone loro, o guardarli vorrebbe dire aggiungere
                    l'alimento per sbaglio. */
-                onInfo={() => setDetail(item)}
-              />
-            ))
-          )
-        ) : null}
+                    onInfo={() => setDetail(item)}
+                  />
+                ))
+              )
+            ) : null}
 
-        {tab === "recipes" ? (
-          recipes.length === 0 ? (
-            <EmptyState message={t("recipes.empty")} />
-          ) : (
-            recipes.map((item) => (
-              <PickerRow
-                key={item.id}
-                title={item.name}
-                subtitle={t("recipes.servings_count", { count: item.servings })}
-                onPress={() => onPick({ kind: "recipe", recipe: item })}
-              />
-            ))
-          )
-        ) : null}
+            {tab === "recipes" ? (
+              recipes.length === 0 ? (
+                <EmptyState message={t("recipes.empty")} />
+              ) : (
+                recipes.map((item) => (
+                  <PickerRow
+                    key={item.id}
+                    title={item.name}
+                    subtitle={t("recipes.servings_count", {
+                      count: item.servings,
+                    })}
+                    onPress={() => onPick({ kind: "recipe", recipe: item })}
+                  />
+                ))
+              )
+            ) : null}
+          </>
+        )}
 
         <DfAlert
           isOpen={detail !== null}
@@ -240,7 +263,7 @@ const TabButton: React.FC<{
     <TouchableOpacity
       style={[
         styles.tab,
-        { backgroundColor: active ? colors.accent : colors.surfaceMuted },
+        { borderBottomColor: active ? colors.accent : colors.border },
       ]}
       onPress={onPress}
       activeOpacity={0.6}
@@ -248,7 +271,7 @@ const TabButton: React.FC<{
       <Text
         style={[
           styles.tabLabel,
-          { color: active ? colors.accentOn : colors.textMuted },
+          { color: active ? colors.accent : colors.textMuted },
         ]}
       >
         {label}
@@ -303,34 +326,26 @@ const PickerRow: React.FC<{
 
 const styles = StyleSheet.create({
   freeChoices: { gap: theme.spacing.sm },
-  mealTypesStrip: {
-    marginHorizontal: -theme.spacing.md,
+  mealRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing.sm,
+    paddingVertical: theme.spacing.md,
   },
-  mealTypes: {
-    gap: theme.spacing.xs,
-    paddingHorizontal: theme.spacing.md,
-    paddingBottom: theme.spacing.sm,
-  },
-  mealType: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: 6,
-    borderRadius: theme.radius.full,
-  },
-  mealTypeLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    textTransform: "capitalize",
+  mealName: {
+    fontSize: 16,
+    fontWeight: "500",
   },
   tabs: {
     flexDirection: "row",
-    gap: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
   },
   tab: {
     flex: 1,
     paddingVertical: theme.spacing.sm,
-    borderRadius: theme.radius.full,
     alignItems: "center",
+    borderBottomWidth: 2,
   },
   tabLabel: {
     fontSize: 14,
