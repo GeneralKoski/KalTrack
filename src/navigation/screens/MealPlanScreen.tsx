@@ -435,6 +435,7 @@ export function MealPlanScreen() {
               weekday={WEEKDAYS[index]}
               dayNumber={Number(day.slice(8, 10))}
               selected={day === selectedDate}
+              isToday={day === todayIso()}
               planned={(data?.entries ?? []).some((e) => e.row.date === day)}
               onPress={() => setSelectedDate(day)}
             />
@@ -485,12 +486,6 @@ export function MealPlanScreen() {
                 onPress={openApply}
                 disabled={dayEntries.length === 0}
                 icon={<CheckCheck size={16} color={colors.text} />}
-              />
-              <DfButton
-                label={t("plan.ai_generate")}
-                variant="outlined"
-                onPress={() => setAiModalOpen(true)}
-                icon={<Sparkles size={16} color={colors.accent} />}
               />
               <DfButton
                 label={t("plan.copy_days")}
@@ -938,9 +933,10 @@ const DayChip: React.FC<{
   weekday: string;
   dayNumber: number;
   selected: boolean;
+  isToday: boolean;
   planned: boolean;
   onPress: () => void;
-}> = ({ weekday, dayNumber, selected, planned, onPress }) => {
+}> = ({ weekday, dayNumber, selected, isToday, planned, onPress }) => {
   const { colors } = useAppTheme();
 
   return (
@@ -951,6 +947,8 @@ const DayChip: React.FC<{
         styles.dayChip,
         {
           backgroundColor: selected ? colors.accent : colors.surfaceMuted,
+          borderWidth: 2,
+          borderColor: isToday ? theme.colors.white : "transparent",
         },
       ]}
     >
