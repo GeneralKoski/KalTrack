@@ -32,6 +32,7 @@ import { BackupScreen } from "@/src/navigation/screens/BackupScreen";
 import { ComparisonScreen } from "@/src/navigation/screens/ComparisonScreen";
 import { DiagnosticsScreen } from "@/src/navigation/screens/DiagnosticsScreen";
 import { ExerciseDetailScreen } from "@/src/navigation/screens/ExerciseDetailScreen";
+import { EquipmentScreen } from "@/src/navigation/screens/EquipmentScreen";
 import { ExercisesScreen } from "@/src/navigation/screens/ExercisesScreen";
 import { FriendProfileScreen } from "@/src/navigation/screens/FriendProfileScreen";
 import { FriendsScreen } from "@/src/navigation/screens/FriendsScreen";
@@ -39,6 +40,7 @@ import { GenerateRoutineScreen } from "@/src/navigation/screens/GenerateRoutineS
 import { MyProfileScreen } from "@/src/navigation/screens/MyProfileScreen";
 import { MealPlanScreen } from "@/src/navigation/screens/MealPlanScreen";
 import { HealthScreen } from "@/src/navigation/screens/HealthScreen";
+import { LanguageScreen } from "@/src/navigation/screens/LanguageScreen";
 import { MealTypesScreen } from "@/src/navigation/screens/MealTypesScreen";
 import { MeasurementsScreen } from "@/src/navigation/screens/MeasurementsScreen";
 import { ProgressPhotosScreen } from "@/src/navigation/screens/ProgressPhotosScreen";
@@ -47,6 +49,8 @@ import { RoutineFormScreen } from "@/src/navigation/screens/RoutineFormScreen";
 import { RoutinesScreen } from "@/src/navigation/screens/RoutinesScreen";
 import { SessionScreen } from "@/src/navigation/screens/SessionScreen";
 import { ShoppingListScreen } from "@/src/navigation/screens/ShoppingListScreen";
+import { StepsHistoryScreen } from "@/src/navigation/screens/StepsHistoryScreen";
+import { WeightHistoryScreen } from "@/src/navigation/screens/WeightHistoryScreen";
 import { FoodFormScreen } from "@/src/navigation/screens/FoodFormScreen";
 import { FoodScanScreen } from "@/src/navigation/screens/FoodScanScreen";
 import { FoodsScreen } from "@/src/navigation/screens/FoodsScreen";
@@ -210,6 +214,10 @@ const RootStack = createNativeStackNavigator({
       screen: AppearanceScreen,
       linking: { path: "aspetto" },
     },
+    Language: {
+      screen: LanguageScreen,
+      linking: { path: "lingua" },
+    },
     Health: {
       screen: HealthScreen,
       linking: { path: "salute" },
@@ -221,6 +229,10 @@ const RootStack = createNativeStackNavigator({
     Exercises: {
       screen: ExercisesScreen,
       linking: { path: "esercizi" },
+    },
+    Equipment: {
+      screen: EquipmentScreen,
+      linking: { path: "attrezzatura" },
     },
     ExerciseDetail: {
       screen: ExerciseDetailScreen,
@@ -249,6 +261,14 @@ const RootStack = createNativeStackNavigator({
     Measurements: {
       screen: MeasurementsScreen,
       linking: { path: "misure" },
+    },
+    WeightHistory: {
+      screen: WeightHistoryScreen,
+      linking: { path: "peso/storico" },
+    },
+    StepsHistory: {
+      screen: StepsHistoryScreen,
+      linking: { path: "passi/storico" },
     },
     ProgressPhotos: {
       screen: ProgressPhotosScreen,

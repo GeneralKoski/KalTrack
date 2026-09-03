@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.radius.lg,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: theme.spacing.md,
     fontSize: 16,
   },
   bio: { minHeight: 80, textAlignVertical: "top" },

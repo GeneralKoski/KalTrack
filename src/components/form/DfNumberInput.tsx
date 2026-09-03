@@ -87,69 +87,62 @@ export const DfNumberInput = ({
           }
 
           return (
-            <>
-              <View style={styles.inputWrapper}>
-                {showCurrency && currencyPosition === "left" && (
-                  <Text
-                    style={[
-                      styles.currencySymbol,
-                      styles.currencyLeft,
-                      { color: colors.textMuted },
-                    ]}
-                  >
-                    {currencySymbol}
-                  </Text>
-                )}
-                <InputComponent
+            <View style={styles.inputWrapper}>
+              {showCurrency && currencyPosition === "left" && (
+                <Text
                   style={[
-                    styles.input,
-                    {
-                      color: colors.text,
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                    },
-                    readOnly && {
-                      backgroundColor: colors.surfaceMuted,
-                      color: colors.textMuted,
-                    },
-                    error && styles.inputError,
-                    showCurrency &&
-                      currencyPosition === "left" &&
-                      styles.inputWithCurrencyLeft,
-                    showCurrency &&
-                      currencyPosition === "right" &&
-                      styles.inputWithCurrencyRight,
-                    style,
+                    styles.currencySymbol,
+                    styles.currencyLeft,
+                    { color: colors.textMuted },
                   ]}
-                  placeholder={placeholder}
-                  placeholderTextColor={colors.textFaint}
-                  autoCapitalize="none"
-                  onChangeText={handleChangeText}
-                  onBlur={onBlur}
-                  value={displayValue}
-                  onFocus={() => clearErrors(name)}
-                  editable={!readOnly}
-                  keyboardType="decimal-pad"
-                  {...props}
-                />
-                {showCurrency && currencyPosition === "right" && (
-                  <Text
-                    style={[
-                      styles.currencySymbol,
-                      styles.currencyRight,
-                      { color: colors.textMuted },
-                    ]}
-                  >
-                    {currencySymbol}
-                  </Text>
-                )}
-              </View>
-              {error && (
-                <Text style={styles.errorText}>
-                  {error.message?.toString()}
+                >
+                  {currencySymbol}
                 </Text>
               )}
-            </>
+              <InputComponent
+                style={[
+                  styles.input,
+                  {
+                    color: colors.text,
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                  readOnly && {
+                    backgroundColor: colors.surfaceMuted,
+                    color: colors.textMuted,
+                  },
+                  error && styles.inputError,
+                  showCurrency &&
+                    currencyPosition === "left" &&
+                    styles.inputWithCurrencyLeft,
+                  showCurrency &&
+                    currencyPosition === "right" &&
+                    styles.inputWithCurrencyRight,
+                  style,
+                ]}
+                placeholder={placeholder}
+                placeholderTextColor={colors.textFaint}
+                autoCapitalize="none"
+                onChangeText={handleChangeText}
+                onBlur={onBlur}
+                value={displayValue}
+                onFocus={() => clearErrors(name)}
+                editable={!readOnly}
+                keyboardType="decimal-pad"
+                {...props}
+              />
+              {showCurrency && currencyPosition === "right" && (
+                <Text
+                  style={[
+                    styles.currencySymbol,
+                    styles.currencyRight,
+                    { color: colors.textMuted },
+                  ]}
+                >
+                  {currencySymbol}
+                </Text>
+              )}
+            </View>
           );
         }}
       />
@@ -174,17 +167,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderRadius: theme.radius.md,
-    paddingVertical: 12,
+    paddingVertical: theme.spacing.md,
     paddingHorizontal: 14,
-    minHeight: 48,
   },
   inputError: {
     borderColor: theme.colors.error,
-  },
-  errorText: {
-    fontSize: 12,
-    color: theme.colors.error,
-    marginTop: 4,
   },
   currencySymbol: {
     position: "absolute",

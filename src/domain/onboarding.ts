@@ -4,6 +4,7 @@
  * `onboardingStore`, non qui.
  */
 export const ONBOARDING_STEPS = [
+  "OnboardingLanguage",
   "OnboardingWelcome",
   "OnboardingProfileBasics",
   "OnboardingWeight",

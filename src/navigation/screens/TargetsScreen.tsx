@@ -22,6 +22,7 @@ import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import { formatDate } from "@/src/utils/dateUtils";
 import { showToast } from "@/src/utils/toast";
+import { sanitizeDecimalInput } from "@/src/utils/utils";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import DateTimePicker, {
   DateTimePickerAndroid,
@@ -166,6 +167,25 @@ export function TargetsScreen() {
     setFatG(String(suggestion.fatG));
   };
 
+  // Modificare un macro ricalcola le calorie dalla somma (4/4/9 kcal per
+  // grammo, come suggestTargets). Il verso opposto no: modificare le calorie
+  // non tocca i macro, che restano quello che l'utente ha scritto.
+  const onChangeMacro = (protein: number, carbs: number, fat: number) => {
+    setKcal(String(Math.round(protein * 4 + carbs * 4 + fat * 9)));
+  };
+  const onChangeProteinG = (text: string) => {
+    setProteinG(text);
+    onChangeMacro(num(text), num(carbsG), num(fatG));
+  };
+  const onChangeCarbsG = (text: string) => {
+    setCarbsG(text);
+    onChangeMacro(num(proteinG), num(text), num(fatG));
+  };
+  const onChangeFatG = (text: string) => {
+    setFatG(text);
+    onChangeMacro(num(proteinG), num(carbsG), num(text));
+  };
+
   const save = async () => {
     if (num(kcal) <= 0) {
       showToast.error({ title: t("targets.kcal_required") });
@@ -200,7 +220,7 @@ export function TargetsScreen() {
   ) => (
     <TextInput
       value={value}
-      onChangeText={onChangeText}
+      onChangeText={numeric ? (text) => onChangeText(sanitizeDecimalInput(text)) : onChangeText}
       keyboardType={numeric ? "decimal-pad" : "default"}
       placeholder={placeholder}
       placeholderTextColor={colors.textFaint}
@@ -361,19 +381,19 @@ export function TargetsScreen() {
                 <Text style={[styles.label, { color: colors.textMuted }]}>
                   {t("diary.protein_short")}
                 </Text>
-                {input(proteinG, setProteinG)}
+                {input(proteinG, onChangeProteinG)}
               </View>
               <View style={styles.macro}>
                 <Text style={[styles.label, { color: colors.textMuted }]}>
                   {t("diary.carbs_short")}
                 </Text>
-                {input(carbsG, setCarbsG)}
+                {input(carbsG, onChangeCarbsG)}
               </View>
               <View style={styles.macro}>
                 <Text style={[styles.label, { color: colors.textMuted }]}>
                   {t("diary.fat_short")}
                 </Text>
-                {input(fatG, setFatG)}
+                {input(fatG, onChangeFatG)}
               </View>
             </View>
 
@@ -481,7 +501,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.radius.lg,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: theme.spacing.md,
     fontSize: 15,
   },
   row: { flexDirection: "row", gap: theme.spacing.sm },
@@ -493,7 +513,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.radius.lg,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: theme.spacing.md,
   },
   datePickerText: { fontSize: 15 },
   iosModalOverlay: {
@@ -525,7 +545,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.radius.lg,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: theme.spacing.md,
   },
   selectBtnText: { fontSize: 15 },
   pickerRow: {

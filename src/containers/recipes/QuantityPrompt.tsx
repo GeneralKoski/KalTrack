@@ -11,6 +11,7 @@ import {
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import type { FoodRow } from "@/src/types/nutrition";
+import { sanitizeDecimalInput } from "@/src/utils/utils";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -89,7 +90,7 @@ export const QuantityPrompt: React.FC<QuantityPromptProps> = ({
       <View style={styles.row}>
         <TextInput
           value={text}
-          onChangeText={setText}
+          onChangeText={(value) => setText(sanitizeDecimalInput(value))}
           keyboardType="decimal-pad"
           selectTextOnFocus
           autoFocus
@@ -178,12 +179,11 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: 28,
-    fontWeight: "700",
-    textAlign: "center",
+    fontSize: 16,
     borderWidth: 1,
     borderRadius: theme.radius.lg,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: 14,
   },
   unit: {
     fontSize: 16,

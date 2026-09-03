@@ -71,20 +71,15 @@ const DfCheckboxWithForm = ({
         control={control}
         name={name}
         defaultValue={initialValue}
-        render={({ field: { onChange, value }, fieldState: { error } }) => (
-          <>
-            <BasicDfCheckbox
-              initialValue={value}
-              onValueChange={(newValue) => {
-                onChange(newValue);
-                onValueChange?.(newValue);
-              }}
-              {...props}
-            />
-            {error && (
-              <Text style={styles.errorText}>{error.message?.toString()}</Text>
-            )}
-          </>
+        render={({ field: { onChange, value } }) => (
+          <BasicDfCheckbox
+            initialValue={value}
+            onValueChange={(newValue) => {
+              onChange(newValue);
+              onValueChange?.(newValue);
+            }}
+            {...props}
+          />
         )}
       />
     </View>
@@ -99,10 +94,5 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     fontSize: 14,
     marginBottom: 6,
-  },
-  errorText: {
-    fontSize: 12,
-    color: theme.colors.error,
-    marginTop: 4,
   },
 });

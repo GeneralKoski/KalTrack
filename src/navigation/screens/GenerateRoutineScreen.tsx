@@ -68,7 +68,7 @@ const DEFAULT_VALUES: GenerateRoutineFormValues = {
 export function GenerateRoutineScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
-  const { navigate, goBack } = useAppNav();
+  const { popTo, goBack } = useAppNav();
   const formRef = useRef<DfFormRef>(null);
   const [loading, setLoading] = useState(false);
 
@@ -111,7 +111,7 @@ export function GenerateRoutineScreen() {
       };
       const routine = await generateRoutine(preferences);
       showToast.success({ title: t("gym.generate_success") });
-      navigate("RoutineForm", { generatedRoutine: routine });
+      popTo("RoutineForm", { generatedRoutine: routine });
     } finally {
       setLoading(false);
     }

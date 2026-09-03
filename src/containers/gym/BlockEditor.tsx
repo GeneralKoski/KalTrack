@@ -31,6 +31,15 @@ export interface DraftBlock {
 
 const BLOCK_KINDS: BlockKind[] = ["single", "superset", "circuit", "dropset"];
 
+/**
+ * Altezza esplicita, non affidata a padding+contenuto: un `TextInput` e un
+ * `TouchableOpacity` con la stessa imbottitura non arrivano comunque alla
+ * stessa altezza, perché la metrica del font di un input a riga singola non
+ * coincide con quella di una riga icona+testo. Con l'altezza fissata qui, e
+ * uguale sui due, il confronto non dipende più da quella differenza.
+ */
+const MINI_CONTROL_HEIGHT = 52;
+
 /** Un blocco con più esercizi da eseguire insieme, non uno dopo l'altro. */
 export const isGrouped = (kind: BlockKind): boolean => kind !== "single";
 
@@ -211,16 +220,27 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           width={112}
           onChangeText={(value) => onChange({ ...block, rest: value })}
         />
-        <TouchableOpacity
-          onPress={onAddExercise}
-          activeOpacity={0.6}
-          style={[styles.add, { borderColor: colors.border }]}
-        >
-          <Plus size={16} color={colors.text} />
-          <Text style={[styles.addLabel, { color: colors.text }]} numberOfLines={1}>
-            {t("gym.add_exercise")}
+        <View style={styles.addColumn}>
+          {/* Stessa etichetta di MiniField ma invisibile: il pulsante non ne
+              ha una propria, e senza questo spazio il bottone risultava alto
+              quanto etichetta+campo insieme invece che quanto il solo campo. */}
+          <Text
+            style={[styles.fieldLabel, styles.addSpacer]}
+            numberOfLines={1}
+          >
+            {" "}
           </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={onAddExercise}
+            activeOpacity={0.6}
+            style={[styles.add, { borderColor: colors.border }]}
+          >
+            <Plus size={16} color={colors.text} />
+            <Text style={[styles.addLabel, { color: colors.text }]} numberOfLines={1}>
+              {t("gym.add_exercise")}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </>
   );
@@ -356,12 +376,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   field: {
+    height: MINI_CONTROL_HEIGHT,
     borderWidth: 1,
     borderRadius: theme.radius.md,
     paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 6,
     fontSize: 15,
     textAlign: "center",
+    // Su Android un TextInput con altezza fissa allinea il testo in alto di
+    // default: senza questo il numero non sarebbe centrato nel campo.
+    textAlignVertical: "center",
   },
   muscle: { flexShrink: 1, fontSize: 12, paddingBottom: 8 },
   footer: {
@@ -369,16 +392,23 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     gap: theme.spacing.sm,
   },
-  add: {
+  addColumn: {
     flexGrow: 1,
     flexShrink: 1,
+  },
+  // Stessa altezza di riga di fieldLabel, resa invisibile: allinea il
+  // pulsante al campo accanto invece che al blocco etichetta+campo.
+  addSpacer: {
+    opacity: 0,
+  },
+  add: {
+    height: MINI_CONTROL_HEIGHT,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: theme.spacing.xs,
     borderWidth: 1,
     borderRadius: theme.radius.md,
-    paddingVertical: 8,
     paddingHorizontal: theme.spacing.sm,
   },
   addLabel: { flexShrink: 1, fontSize: 13, fontWeight: "600" },

@@ -25,9 +25,10 @@ import {
  * gia' un account, e qui l'account si crea una volta sola in tutta la vita
  * dell'app.
  *
- * Gli errori del server si mostrano SOTTO il campo che li ha causati: "Questo
- * nome utente e' gia' preso" in cima alla pagina lascia a chi legge il compito
- * di indovinare quale dei quattro campi riscrivere.
+ * Gli errori del server si mostrano in un toast (il messaggio) e sul campo che
+ * li ha causati (il bordo rosso, senza testo sotto): un errore in cima alla
+ * pagina senza indicare il campo lascerebbe a chi legge il compito di
+ * indovinare quale dei quattro riscrivere.
  */
 export const AccountForm: React.FC = () => {
   const { t } = useTranslation();
@@ -66,11 +67,12 @@ export const AccountForm: React.FC = () => {
       logger.warn("[account] accesso non riuscito", error);
       if (error instanceof ApiError) {
         setErrors(error.errors);
-        // Un errore senza dettagli per campo non ha dove andare se non in un
-        // toast: senza, il tocco sembrerebbe non essere arrivato.
-        if (Object.keys(error.errors).length === 0) {
-          showToast.error({ title: error.message });
-        }
+        // Il messaggio va sempre nel toast, non piu' sotto il campo: qui resta
+        // solo il bordo rosso a dire quale campo l'ha causato. Il server ha
+        // gia' scelto quale mostrare quando i campi sbagliati sono piu' di
+        // uno (vedi `ValidationMessage::summarize` nel backend): non lo si
+        // rifa' qui prendendo "il primo campo che capita".
+        showToast.error({ title: error.message });
       } else {
         showToast.error({ title: t("general_error") });
       }
@@ -144,11 +146,7 @@ export const AccountForm: React.FC = () => {
           </TouchableOpacity>
         ) : null}
       </View>
-      {errors[key] ? (
-        <Text style={[styles.error, { color: theme.colors.error }]}>
-          {errors[key][0]}
-        </Text>
-      ) : options.hint ? (
+      {options.hint ? (
         <Text style={[styles.hint, { color: colors.textFaint }]}>
           {options.hint}
         </Text>
@@ -242,11 +240,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.radius.lg,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: theme.spacing.md,
     fontSize: 16,
   },
   inputWithEye: { paddingRight: 44 },
-  error: { fontSize: 12, lineHeight: 16 },
   hint: { fontSize: 12, lineHeight: 16 },
   submit: { marginTop: theme.spacing.sm },
   switch: { alignSelf: "center", paddingVertical: theme.spacing.sm },

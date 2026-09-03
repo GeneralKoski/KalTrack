@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.radius.lg,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: theme.spacing.md,
   },
   itemBody: { flex: 1 },
   name: { flexShrink: 1, fontSize: 15, fontWeight: "600" },

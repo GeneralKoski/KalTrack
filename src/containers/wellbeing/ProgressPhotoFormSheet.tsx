@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.radius.lg,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: 12,
+    paddingVertical: theme.spacing.md,
   },
   datePickerText: { fontSize: 15, fontWeight: "500" },
   poses: {

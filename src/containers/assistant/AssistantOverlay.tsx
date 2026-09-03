@@ -326,11 +326,11 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    height: 52,
     borderRadius: 26,
     borderWidth: 1,
     paddingLeft: theme.spacing.md,
     paddingRight: theme.spacing.xs,
+    paddingVertical: theme.spacing.md,
   },
   textInput: {
     flex: 1,

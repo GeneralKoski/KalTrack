@@ -10,7 +10,10 @@ export function createTestDb(): LocalDatabase {
   const db = new Database(":memory:");
   db.pragma("foreign_keys = ON");
 
-  return {
+  // better-sqlite3 e' sincrono e su un'unica connessione: non ha il problema
+  // di concorrenza di expo-sqlite, quindi non serve simulare ne' la coda ne'
+  // la connessione dedicata della transazione.
+  const bare: LocalDatabase = {
     execAsync: async (sql) => {
       db.exec(sql);
     },
@@ -39,4 +42,5 @@ export function createTestDb(): LocalDatabase {
       db.close();
     },
   };
+  return bare;
 }

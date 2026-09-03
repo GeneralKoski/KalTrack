@@ -312,6 +312,22 @@ export async function endSession(sessionId: string): Promise<void> {
   );
 }
 
+/**
+ * Cancella una sessione. Le sue serie non si toccano: ogni lettura aggregata
+ * (`recentSessions`, `dailyExerciseSummary`, `exerciseSummaryInRange`) fa gia'
+ * `JOIN` con `workout_sessions` e filtra `w.deleted_at IS NULL`, quindi
+ * spariscono da sole appena la sessione e' cancellata - come i pasti con un
+ * tipo cancellato in `getDayDiary`.
+ */
+export async function deleteSession(sessionId: string): Promise<void> {
+  const db = await getDb();
+  const now = nowIso();
+  await db.runAsync(
+    "UPDATE workout_sessions SET deleted_at = ?, updated_at = ? WHERE id = ?",
+    [now, now, sessionId],
+  );
+}
+
 export async function logSet(args: {
   sessionId: string;
   exerciseId: string;

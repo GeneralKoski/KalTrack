@@ -24,6 +24,7 @@ export const DfInput = ({
   placeholder,
   rules,
   readOnly = false,
+  style,
   ...textInputProps
 }: DfInputProps) => {
   const { control } = useFormContext();
@@ -44,33 +45,29 @@ export const DfInput = ({
           field: { onChange, onBlur, value },
           fieldState: { error },
         }) => (
-          <>
-            <TextInput
-              value={value ?? ""}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              placeholder={placeholder ?? t("default_input_placeholder")}
-              placeholderTextColor={colors.textFaint}
-              editable={!readOnly}
-              style={[
-                styles.input,
-                {
-                  color: colors.text,
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-                error && styles.inputError,
-                readOnly && {
-                  backgroundColor: colors.surfaceMuted,
-                  color: colors.textMuted,
-                },
-              ]}
-              {...textInputProps}
-            />
-            {error?.message && (
-              <Text style={styles.errorText}>{error.message as string}</Text>
-            )}
-          </>
+          <TextInput
+            value={value ?? ""}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            placeholder={placeholder ?? t("default_input_placeholder")}
+            placeholderTextColor={colors.textFaint}
+            editable={!readOnly}
+            style={[
+              styles.input,
+              {
+                color: colors.text,
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+              },
+              error && styles.inputError,
+              readOnly && {
+                backgroundColor: colors.surfaceMuted,
+                color: colors.textMuted,
+              },
+              style,
+            ]}
+            {...textInputProps}
+          />
         )}
       />
     </View>
@@ -90,16 +87,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderRadius: theme.radius.xl,
-    paddingVertical: 8,
+    paddingVertical: theme.spacing.md,
     paddingHorizontal: 14,
-    minHeight: 48,
   },
   inputError: {
     borderColor: theme.colors.error,
-  },
-  errorText: {
-    fontSize: 12,
-    color: theme.colors.error,
-    marginTop: 4,
   },
 });

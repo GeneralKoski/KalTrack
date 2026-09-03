@@ -12,6 +12,7 @@ import {
 import { toGrams } from "@/src/domain/serving";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
+import { sanitizeDecimalInput } from "@/src/utils/utils";
 import { Check, Square } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
@@ -131,7 +132,8 @@ export const PhotoEstimateSheet: React.FC<PhotoEstimateSheetProps> = ({
               <View style={styles.gramsBox}>
                 <TextInput
                   value={gramsText[row.key] ?? ""}
-                  onChangeText={(text) => {
+                  onChangeText={(raw) => {
+                    const text = sanitizeDecimalInput(raw);
                     setGramsText((current) => ({
                       ...current,
                       [row.key]: text,
@@ -190,7 +192,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.radius.md,
     paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: theme.spacing.md,
     fontSize: 15,
     minWidth: 64,
     textAlign: "right",

@@ -87,7 +87,19 @@ export function RoutinesScreen() {
             {t("gym.routines")}
           </Text>
           <TouchableOpacity
-            onPress={() => navigate("RoutineForm")}
+            onPress={() =>
+              // Prima scheda: si dichiara l'attrezzatura prima di costruirla,
+              // o "genera con IA"/le alternative non hanno su cosa lavorare.
+              // Con schede gia' esistenti l'attrezzatura si modifica dal
+              // profilo, e "+" va dritto al modulo come sempre.
+              (data ?? []).length === 0
+                ? navigate("Equipment", { setupForRoutine: true })
+                : navigate("RoutineForm")
+            }
+            // Finche' il primo caricamento non e' arrivato non si sa ancora
+            // se ci sono gia' schede: senza questo un tocco troppo rapido
+            // manderebbe chi ne ha gia' una a rifare l'attrezzatura da capo.
+            disabled={loading && data === null}
             activeOpacity={0.6}
             hitSlop={10}
           >

@@ -42,6 +42,18 @@ export function setAuthTokenProvider(provider: TokenProvider): void {
   tokenProvider = provider;
 }
 
+type LanguageProvider = () => string;
+
+// Default prima che `translationStore` si registri (vedi in fondo a quel
+// file): coincide con l'inglese di serie del server, quindi anche una
+// richiesta partita in quella finestra minuscola resta corretta.
+let languageProvider: LanguageProvider = () => "en";
+
+/** Idem per la lingua: la manda il server nei messaggi di validazione. */
+export function setLanguageProvider(provider: LanguageProvider): void {
+  languageProvider = provider;
+}
+
 const instance: AxiosInstance = axios.create({
   timeout: API_TIMEOUT_MS,
   headers: { Accept: "application/json" },
@@ -50,6 +62,7 @@ const instance: AxiosInstance = axios.create({
 instance.interceptors.request.use((config) => {
   const token = tokenProvider();
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  config.headers["Accept-Language"] = languageProvider();
   return config;
 });
 

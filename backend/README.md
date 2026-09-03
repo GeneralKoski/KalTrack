@@ -191,6 +191,25 @@ Reimpostare una password **cancella i token di quell'utente**: una password si
 cambia anche perche' si teme che qualcuno la conosca, e lasciare aperte le
 sessioni gia' avviate renderebbe il cambio una formalita'.
 
+## Localizzazione dei messaggi
+
+I messaggi che il server genera da solo (errori di validazione, credenziali
+non corrette) seguono la lingua dell'app, non una lingua fissa del server:
+l'app manda l'header `Accept-Language` con la lingua scelta in
+`translationStore` (`src/api/client.ts`), e il middleware
+`SetLocaleFromHeader` sceglie la piu' vicina fra `it` ed `en` con
+`App::setLocale` - **solo per quella richiesta**, perche' un worker PHP-FPM
+serve utenti diversi in sequenza e lasciarla scritta farebbe leggere a uno la
+lingua di chi era passato prima. Le traduzioni stanno in `lang/it/` e
+`lang/en/`.
+
+Ogni risposta 422 (`ValidationException` su `api/*`) aggiunge un campo
+`message`: gli errori per-campo restano in `errors` come sempre, ma
+`App\Support\ValidationMessage::summarize()` li riduce a **una frase sola**,
+pensata per un toast che non puo' mostrarli tutti. Se i campi vuoti hanno
+tutti lo stesso messaggio generico lo mostra una volta; se c'e' un messaggio
+piu' specifico (password non sicura, handle gia' preso) vince quello.
+
 ## Avvio in sviluppo
 
 ```bash

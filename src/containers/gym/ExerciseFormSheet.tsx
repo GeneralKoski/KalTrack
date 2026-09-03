@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.radius.sm,
     paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs,
+    paddingVertical: theme.spacing.md,
     fontSize: 15,
   },
   fieldButton: {

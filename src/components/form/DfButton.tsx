@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    paddingVertical: 12,
+    paddingVertical: theme.spacing.md,
     paddingHorizontal: 24,
   },
   baseCompact: {

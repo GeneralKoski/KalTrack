@@ -32,8 +32,6 @@ import { MealSection } from "@/src/containers/diary/MealSection";
 import { PhotoEstimateSheet } from "@/src/containers/diary/PhotoEstimateSheet";
 import { QuantityPrompt } from "@/src/containers/recipes/QuantityPrompt";
 import { AiKeyPrompt } from "@/src/containers/settings/AiKeyPrompt";
-import { DayStatCard } from "@/src/containers/tracking/DayStatCard";
-import { QuickLogSheet } from "@/src/containers/tracking/QuickLogSheet";
 import { WaterCard } from "@/src/containers/wellbeing/WaterCard";
 import {
   addFoodEntry,
@@ -48,14 +46,6 @@ import {
 } from "@/src/db/queries/diary";
 import { getFood } from "@/src/db/queries/foods";
 import { getTargetsFor } from "@/src/db/queries/settings";
-import {
-  deleteSteps,
-  deleteWeight,
-  getSteps,
-  getWeight,
-  setSteps,
-  setWeight,
-} from "@/src/db/queries/tracking";
 import { todayIso } from "@/src/domain/date";
 import { defaultMealTypeId } from "@/src/domain/mealTime";
 import { EMPTY_NUTRIENTS, type Nutrients } from "@/src/domain/nutrition";
@@ -78,7 +68,7 @@ import { showToast } from "@/src/utils/toast";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useFocusEffect } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
-import { Footprints, Plus, Scale, UtensilsCrossed } from "lucide-react-native";
+import { Plus, UtensilsCrossed } from "lucide-react-native";
 import React, { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -96,9 +86,6 @@ interface DayData {
   mealTypes: MealTypeRow[];
   /** Obiettivo in vigore in quel giorno, non quello di oggi. */
   targets: TargetRow | null;
-  /** Null, non zero, quando il giorno non ha una misura. */
-  steps: number | null;
-  weightKg: number | null;
 }
 
 export function TodayScreen() {
@@ -125,8 +112,6 @@ export function TodayScreen() {
   /** La voce di cui si sta modificando la composizione. */
   const [composing, setComposing] = useState<MealEntryRow | null>(null);
   const [askKey, setAskKey] = useState(false);
-  const [stepsOpen, setStepsOpen] = useState(false);
-  const [weightOpen, setWeightOpen] = useState(false);
   const [mealTypeId, setMealTypeId] = useState<string | null>(null);
   const addSheetRef = useRef<BottomSheetModal>(null);
   const dayPickerRef = useRef<BottomSheetModal>(null);
@@ -155,24 +140,15 @@ export function TodayScreen() {
   );
 
   const loader = useCallback(async (): Promise<DayData> => {
-    const [diary, mealTypes, targets, stepRow, weightRow] = await Promise.all([
+    const [diary, mealTypes, targets] = await Promise.all([
       getDayDiary(date),
       listMealTypes(),
       getTargetsFor(date),
-      getSteps(date),
-      getWeight(date),
     ]);
 
     const names = await entryDisplayNames(diary);
 
-    return {
-      diary,
-      names,
-      mealTypes,
-      targets,
-      steps: stepRow?.steps ?? null,
-      weightKg: weightRow?.weight_kg ?? null,
-    };
+    return { diary, names, mealTypes, targets };
   }, [date]);
 
   const { data, loading, reload } = useFocusData<DayData>(loader);
@@ -443,28 +419,8 @@ export function TodayScreen() {
               />
             </Card>
 
-            <View style={styles.stats}>
-              <DayStatCard
-                icon={Footprints}
-                label={t("tracking.steps")}
-                value={data?.steps ?? null}
-                unit={t("tracking.steps_unit")}
-                target={data?.targets?.steps ?? null}
-                emptyLabel={t("tracking.not_recorded")}
-                onPress={() => setStepsOpen(true)}
-              />
-              <DayStatCard
-                icon={Scale}
-                label={t("tracking.weight")}
-                value={data?.weightKg ?? null}
-                unit="kg"
-                emptyLabel={t("tracking.not_recorded")}
-                onPress={() => setWeightOpen(true)}
-              />
-            </View>
-
-            {/* L'acqua e' un dato del giorno come i passi: sta qui, dove si
-                guarda ogni volta, non dietro una voce di menu. */}
+            {/* L'acqua e' un dato del giorno: sta qui, dove si guarda ogni
+                volta, non dietro una voce di menu. */}
             <WaterCard date={date} />
 
             {data && data.diary.meals.length === 0 ? (
@@ -571,49 +527,6 @@ export function TodayScreen() {
         onClose={() => void closePhotoEstimate()}
       />
 
-      <QuickLogSheet
-        isOpen={stepsOpen}
-        title={t("tracking.steps")}
-        unit={t("tracking.steps_unit")}
-        initialValue={data?.steps ?? null}
-        onConfirm={async (value) => {
-          await setSteps(date, value);
-          setStepsOpen(false);
-          reload();
-        }}
-        onDelete={
-          data?.steps != null
-            ? async () => {
-                await deleteSteps(date);
-                setStepsOpen(false);
-                reload();
-              }
-            : undefined
-        }
-        onClose={() => setStepsOpen(false)}
-      />
-
-      <QuickLogSheet
-        isOpen={weightOpen}
-        title={t("tracking.weight")}
-        unit="kg"
-        initialValue={data?.weightKg ?? null}
-        onConfirm={async (value) => {
-          await setWeight(date, value);
-          setWeightOpen(false);
-          reload();
-        }}
-        onDelete={
-          data?.weightKg != null
-            ? async () => {
-                await deleteWeight(date);
-                setWeightOpen(false);
-                reload();
-              }
-            : undefined
-        }
-        onClose={() => setWeightOpen(false)}
-      />
     </View>
   );
 }
@@ -626,10 +539,6 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   summary: {
-    gap: theme.spacing.sm,
-  },
-  stats: {
-    flexDirection: "row",
     gap: theme.spacing.sm,
   },
   setTarget: {

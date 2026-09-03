@@ -118,10 +118,6 @@ export const DfSelect = ({
                 </SelectContent>
               </SelectPortal>
             </Select>
-
-            {error && (
-              <Text style={styles.errorText}>{error.message?.toString()}</Text>
-            )}
           </View>
         );
       }}
@@ -141,9 +137,8 @@ const styles = StyleSheet.create({
   trigger: {
     borderWidth: 1,
     borderRadius: theme.radius.md,
-    paddingVertical: 12,
+    paddingVertical: theme.spacing.md,
     paddingHorizontal: 4,
-    minHeight: 48,
     flexDirection: "row",
     alignItems: "center",
   },
@@ -158,10 +153,5 @@ const styles = StyleSheet.create({
   },
   triggerError: {
     borderColor: theme.colors.error,
-  },
-  errorText: {
-    fontSize: 12,
-    color: theme.colors.error,
-    marginTop: 4,
   },
 });

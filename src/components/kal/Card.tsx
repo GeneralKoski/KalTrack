@@ -12,6 +12,7 @@ import {
 interface CardProps {
   children: ReactNode;
   onPress?: () => void;
+  onLongPress?: () => void;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -23,7 +24,12 @@ interface CardProps {
  * premibile non arrivavano mai al touchable, e la stessa card si comportava in
  * due modi diversi a seconda che avesse onPress o no.
  */
-export const Card: React.FC<CardProps> = ({ children, onPress, style }) => {
+export const Card: React.FC<CardProps> = ({
+  children,
+  onPress,
+  onLongPress,
+  style,
+}) => {
   const { colors, isDark } = useAppTheme();
   const cardStyle = [
     styles.card,
@@ -36,11 +42,16 @@ export const Card: React.FC<CardProps> = ({ children, onPress, style }) => {
     style,
   ];
 
-  if (onPress) {
+  if (onPress || onLongPress) {
     // TouchableOpacity (non Pressable con style-as-function): NativeWind v4 non
     // applica lo style-funzione sui Pressable, lasciando la card senza feedback.
     return (
-      <TouchableOpacity onPress={onPress} activeOpacity={0.6} style={cardStyle}>
+      <TouchableOpacity
+        onPress={onPress}
+        onLongPress={onLongPress}
+        activeOpacity={0.6}
+        style={cardStyle}
+      >
         {children}
       </TouchableOpacity>
     );

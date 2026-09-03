@@ -1,17 +1,27 @@
 import { Card, ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
+import { MetricEntrySheet } from "@/src/containers/progress/MetricEntrySheet";
 import { Sparkline } from "@/src/containers/progress/Sparkline";
 import { WeeklyCoachCard } from "@/src/containers/progress/WeeklyCoachCard";
 import { getDayDiary } from "@/src/db/queries/diary";
-import { listSteps, listWeights } from "@/src/db/queries/tracking";
+import { listSteps, listWeights, setSteps, setWeight } from "@/src/db/queries/tracking";
 import { addDays, todayIso } from "@/src/domain/date";
 import { average } from "@/src/domain/stats";
+import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
-import React, { useCallback } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
+import type { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { Plus } from "lucide-react-native";
+import React, { useCallback, useRef } from "react";
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -33,6 +43,9 @@ export function ProgressScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { colors } = useAppTheme();
+  const { navigate } = useAppNav();
+  const weightSheetRef = useRef<BottomSheetModal>(null);
+  const stepsSheetRef = useRef<BottomSheetModal>(null);
 
   const loader = useCallback(async (): Promise<ProgressData> => {
     const today = todayIso();
@@ -66,14 +79,13 @@ export function ProgressScreen() {
     };
   }, []);
 
-  const { data, loading } = useFocusData<ProgressData>(loader);
+  const { data, loading, reload } = useFocusData<ProgressData>(loader);
 
+  // null quando la finestra non ha dati: niente da mostrare qui, lo dice già
+  // il messaggio dedicato dentro Sparkline, sotto. Le due cose insieme
+  // ripetevano lo stesso "non c'è niente" con due frasi diverse.
   const stat = (value: number | null, unit: string) =>
-    value === null ? (
-      <Text style={[styles.statEmpty, { color: colors.textFaint }]}>
-        {t("progress.no_data")}
-      </Text>
-    ) : (
+    value === null ? null : (
       <Text style={[styles.statValue, { color: colors.text }]}>
         {Math.round(value).toLocaleString("it-IT")}
         <Text style={[styles.statUnit, { color: colors.textMuted }]}>
@@ -101,10 +113,26 @@ export function ProgressScreen() {
           >
             <WeeklyCoachCard />
 
-            <SectionLabel style={styles.section}>
+            <SectionLabel
+              style={styles.section}
+              right={
+                <TouchableOpacity
+                  onPress={() => weightSheetRef.current?.present()}
+                  activeOpacity={0.6}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("tracking.add_weight")}
+                >
+                  <Plus size={18} color={colors.accent} />
+                </TouchableOpacity>
+              }
+            >
               {t("progress.weight")}
             </SectionLabel>
-            <Card style={styles.card}>
+            <Card
+              style={styles.card}
+              onPress={() => navigate("WeightHistory")}
+            >
               {stat(data?.latestWeight ?? null, "kg")}
               <Sparkline
                 values={data?.weights ?? []}
@@ -112,10 +140,23 @@ export function ProgressScreen() {
               />
             </Card>
 
-            <SectionLabel style={styles.section}>
+            <SectionLabel
+              style={styles.section}
+              right={
+                <TouchableOpacity
+                  onPress={() => stepsSheetRef.current?.present()}
+                  activeOpacity={0.6}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("tracking.add_steps")}
+                >
+                  <Plus size={18} color={colors.accent} />
+                </TouchableOpacity>
+              }
+            >
               {t("progress.steps_weekly")}
             </SectionLabel>
-            <Card style={styles.card}>
+            <Card style={styles.card} onPress={() => navigate("StepsHistory")}>
               {stat(data?.stepsAverage ?? null, t("tracking.steps_unit"))}
               <Sparkline
                 values={(data?.stepsByDay ?? []).filter(
@@ -140,6 +181,26 @@ export function ProgressScreen() {
           </ScrollView>
         )}
       </SafeAreaView>
+
+      <MetricEntrySheet
+        ref={weightSheetRef}
+        title={t("tracking.add_weight")}
+        unit="kg"
+        onSave={async (date, value) => {
+          await setWeight(date, value);
+          reload();
+        }}
+      />
+
+      <MetricEntrySheet
+        ref={stepsSheetRef}
+        title={t("tracking.add_steps")}
+        unit={t("tracking.steps_unit")}
+        onSave={async (date, value) => {
+          await setSteps(date, value);
+          reload();
+        }}
+      />
     </View>
   );
 }
@@ -170,9 +231,6 @@ const styles = StyleSheet.create({
   statUnit: {
     fontSize: 14,
     fontWeight: "500",
-  },
-  statEmpty: {
-    fontSize: 15,
   },
   loader: {
     marginTop: theme.spacing.xl,

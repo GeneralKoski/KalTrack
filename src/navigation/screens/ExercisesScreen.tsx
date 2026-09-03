@@ -2,9 +2,7 @@ import {
   EmptyState,
   ScreenBackground,
   SearchBar,
-  SectionLabel,
 } from "@/src/components/kal";
-import { EquipmentPicker } from "@/src/containers/gym/EquipmentPicker";
 import { ExerciseFormSheet } from "@/src/containers/gym/ExerciseFormSheet";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
@@ -109,14 +107,6 @@ export function ExercisesScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* L'attrezzatura sta qui perche' e' il presupposto di tutto il resto:
-            senza dichiararla, "proponi alternativa con la mia attrezzatura" e
-            la generazione della scheda non hanno su cosa lavorare. */}
-        <SectionLabel style={styles.equipmentLabel}>
-          {t("gym.equipment_title")}
-        </SectionLabel>
-        <EquipmentPicker />
-
         <View style={styles.searchWrap}>
           <SearchBar
             value={term}
@@ -180,7 +170,6 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   title: { flex: 1, fontSize: 18, fontWeight: "700" },
-  equipmentLabel: { paddingHorizontal: theme.spacing.md },
   searchWrap: {
     paddingHorizontal: theme.spacing.md,
     paddingBottom: theme.spacing.sm,

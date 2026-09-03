@@ -105,9 +105,6 @@ export const DfDatePicker = ({
             placeholder={placeholder}
           />
         </View>
-        {error && (
-          <Text style={styles.errorText}>{error.message?.toString()}</Text>
-        )}
       </>
     );
   };
@@ -243,9 +240,6 @@ export const DfDatePicker = ({
             </Pressable>
           </Modal>
         )}
-        {error && (
-          <Text style={styles.errorText}>{error.message?.toString()}</Text>
-        )}
       </>
     );
   };
@@ -285,9 +279,8 @@ const styles = StyleSheet.create({
   picker: {
     borderWidth: 1,
     borderRadius: theme.radius.md,
-    paddingVertical: 12,
+    paddingVertical: theme.spacing.md,
     paddingHorizontal: 14,
-    minHeight: 48,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -297,11 +290,6 @@ const styles = StyleSheet.create({
   },
   inputError: {
     borderColor: theme.colors.error,
-  },
-  errorText: {
-    fontSize: 12,
-    color: theme.colors.error,
-    marginTop: 4,
   },
   modalOverlay: {
     flex: 1,

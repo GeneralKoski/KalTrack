@@ -15,3 +15,25 @@
  * mockano `hasAiKey` per conto loro, e quel mock vince su questo.
  */
 process.env.EXPO_PUBLIC_GEMINI_API_KEY = "AIza-chiave-di-test";
+
+/**
+ * Lingua del dispositivo finta, sempre italiano.
+ *
+ * Senza, `getLocales()` gira sulla macchina che esegue i test (Mac, CI) e
+ * ritorna la SUA lingua di sistema: un test che si aspetta stringhe italiane
+ * passerebbe o fallirebbe a seconda di chi lo lancia, esattamente il difetto
+ * che il commento sopra descrive per la chiave AI.
+ */
+jest.mock("expo-localization", () => ({
+  getLocales: () => [{ languageCode: "it" }],
+}));
+
+/**
+ * Nell'app vera `translationStore` si carica prestissimo (ogni schermata usa
+ * `useTranslation`) e porta `i18n.locale` sulla lingua rilevata prima che
+ * qualunque cosa chiami `i18n.t()`. Un test che importa un modulo isolato
+ * (es. `csvExport.ts`, che chiama `i18n.t()` direttamente) non passa mai da
+ * li': senza questo require resterebbe sul default statico di `i18n/index.ts`
+ * invece che sulla lingua rilevata sopra.
+ */
+require("@/src/stores/translationStore");

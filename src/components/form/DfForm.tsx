@@ -11,6 +11,7 @@ import {
   FormProvider,
   useForm,
   type DefaultValues,
+  type FieldErrors,
   type FieldValues,
   type UseFormReturn,
 } from "react-hook-form";
@@ -78,9 +79,20 @@ export function DfForm<T extends FieldValues>({
     }
   };
 
+  /**
+   * Campi obbligatori mancanti: niente messaggio sotto il campo, solo il
+   * bordo rosso (gia' disegnato da ogni Df* dal proprio `fieldState.error`) e
+   * un toast unico che dice di guardare i campi evidenziati.
+   */
+  const handleInvalid = (errors: FieldErrors<T>) => {
+    if (Object.keys(errors).length > 0) {
+      showToast.error({ title: t("form_missing_fields") });
+    }
+  };
+
   useImperativeHandle(ref, () => ({
     reset: () => form.reset(),
-    submit: () => form.handleSubmit(handleSubmit)(),
+    submit: () => form.handleSubmit(handleSubmit, handleInvalid)(),
   }));
 
   return (
@@ -92,7 +104,7 @@ export function DfForm<T extends FieldValues>({
           <DfButton
             label={resolvedSubmitLabel}
             loading={isSubmitting}
-            onPress={form.handleSubmit(handleSubmit)}
+            onPress={form.handleSubmit(handleSubmit, handleInvalid)}
           />
         )}
       </View>

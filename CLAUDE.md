@@ -114,6 +114,17 @@ Il layer `src/db/` è l'unico che conosce SQL:
 - `queries/` — funzioni tipizzate per dominio. **Le schermate non contengono
   SQL.**
 
+**`sqliteAdapter.ts` serializza le query su expo-sqlite.** Piu' chiamate non
+transazionali partite in parallelo (es. un `Promise.all` di query indipendenti
+in una schermata) mandavano in crash Android con "Cannot use shared object
+that was already released": una coda seriale le accoda tutte su un'unica
+connessione. Le transazioni usano
+`db.withExclusiveTransactionAsync` e non `withTransactionAsync` - era proprio
+la non-esclusivita' la causa vera del crash, non l'assenza della coda - e una
+transazione annidata fallisce esplicitamente invece di restare appesa.
+**Solo per expo-sqlite**: `betterSqliteAdapter.ts`, usato dai test, e'
+sincrono su connessione unica e non ha questo problema.
+
 ### La composizione di una voce del diario
 
 `meal_entries.components` (migrazione 10), JSON. Una voce nata da una ricetta
@@ -241,8 +252,9 @@ convenzione e' meglio che averne due per lo stesso tipo di voce.
 
 ### I pasti che si possono usare
 
-Impostazioni > Pasti (`MealTypesScreen`) spegne i pasti che non si usano - chi
-non fa mai il brunch lo spegne - e aggiunge, rinomina, elimina i propri.
+Profilo > Alimentazione > Pasti (`MealTypesScreen`) spegne i pasti che non si
+usano - chi non fa mai il brunch lo spegne - e aggiunge, rinomina, elimina i
+propri.
 
 **Spegnere non e' cancellare, ed e' per questo che `hidden` (migrazione 16) non
 riusa `deleted_at`.** `getDayDiary` salta i pasti il cui tipo non e' piu' in
@@ -441,20 +453,40 @@ conto proprio.
 
 ### Lingua
 
-**Solo italiano.** L'app è personale, l'inglese sarebbe stato lavoro doppio su
-ogni stringa per un utente che non esiste. La struttura i18n resta in piedi
-(`i18n-js`, `useTranslation`, `translationStore`), quindi ogni testo visibile va
-comunque scritto come `t("chiave")` e mai come stringa letterale nel JSX.
+**Italiano e inglese, dal 4 settembre 2026.** Non e' piu' un'app a lingua
+singola: `SUPPORTED_LANGUAGES` (`src/stores/translationStore.ts`) e'
+`["it", "en"]`, `src/i18n/locales/en.json` esiste, e `app.json` >
+`expo-localization` > `supportedLocales` elenca entrambe. Ogni testo visibile
+resta comunque `t("chiave")`, mai una stringa letterale nel JSX.
 
-Per reintrodurre una lingua servono tre modifiche e nient'altro:
+**L'inglese e' il default**, non l'italiano: `i18n.defaultLocale` e la lingua
+di fallback dello store sono `"en"`. Un dispositivo la cui lingua non e' fra
+quelle supportate ottiene l'inglese, non l'italiano - il contrario di come
+funzionava prima. Il primo passo dell'onboarding e' `OnboardingLanguage`
+(§ Il primo avvio) apposta per questo: la schermata di benvenuto subito dopo
+deve gia' uscire nella lingua giusta, e non si puo' dedurla in tempo dal
+dispositivo per ogni caso.
 
-1. tradurre una copia di `src/i18n/locales/it.json` (le chiavi ci sono già tutte)
-2. registrarla in `src/i18n/index.ts` e in `SUPPORTED_LANGUAGES`
-   (`src/stores/translationStore.ts`)
-3. aggiungerla a `app.json` > plugin `expo-localization` > `supportedLocales`
+Impostazioni > Lingua (`LanguageScreen`) e il primo passo dell'onboarding
+condividono lo stesso selettore (`LanguagePicker`,
+`src/containers/settings/`).
 
-Lo store rileva già la lingua del dispositivo e la persiste: con più lingue
-disponibili quel comportamento torna attivo da solo.
+**`en.json` non e' ancora completo**: le chiavi delle funzioni piu' recenti
+(attrezzatura, storico peso/passi, storico misure, storico sessioni) non ci
+sono tutte. Chi aggiunge una chiave nuova in `it.json` la aggiunge anche li',
+o quella stringa non si traduce mai piu' finche' qualcuno non se ne accorge.
+
+**Il server segue la lingua dell'app, non una sua**. `src/api/client.ts` manda
+`Accept-Language` con la lingua di `translationStore`
+(`setLanguageProvider`/`languageProvider`); il middleware
+`SetLocaleFromHeader` (`backend/`) lo legge e chiama `App::setLocale` **per
+quella sola richiesta** - non persiste, perche' un worker PHP-FPM serve utenti
+diversi in sequenza e lasciarla scritta farebbe leggere a uno la lingua di
+chi era passato prima. Serve ai messaggi che il server genera da solo (errori
+di validazione, credenziali non corrette): `backend/lang/it/` e
+`backend/lang/en/` hanno le traduzioni, e le risposte 422 aggiungono un campo
+`message` gia' riassunto in una frase sola (`App\Support\ValidationMessage`),
+pensato per un toast che non puo' mostrare tutti gli errori insieme.
 
 ### Path alias
 
@@ -469,9 +501,11 @@ centralizza l'unico cast necessario.
 
 ### Il primo avvio
 
-Sei passi (`src/navigation/onboardingStack.tsx`, `OnboardingStep` in
-`src/domain/onboarding.ts`), annidati in `RootStack` come "Onboarding" - stesso
-schema di `Tab`. `App.tsx` idrata `onboardingStore` **prima** di montare
+Sette passi (`src/navigation/onboardingStack.tsx`, `OnboardingStep` in
+`src/domain/onboarding.ts`), il primo dei quali (`OnboardingLanguage`) sceglie
+la lingua prima ancora del benvenuto - vedi § Lingua. Annidati in `RootStack`
+come "Onboarding" - stesso schema di `Tab`. `App.tsx` idrata `onboardingStore`
+**prima** di montare
 `<Navigation />`: la scelta fra atterrare su Oggi o sul wizard si legge una
 volta sola all'avvio, passata a `StaticNavigation` come `initialState`, che
 React Navigation rispetta solo al primo montaggio.
@@ -536,6 +570,38 @@ Resta montato anche mentre si guarda un'altra scheda - i tab non si smontano
 dopo la prima visita - quindi la scorciatoia `kaltrack://assistente` sull'icona
 dell'app continua a far partire l'ascolto da qualunque punto.
 
+### L'attrezzatura
+
+`EquipmentScreen` (Profilo > Palestra > Attrezzatura) non e' piu' un widget
+incorporato in cima a Esercizi - lo era fino al 4 settembre 2026
+(`EquipmentPicker`, tolto): e' una schermata a se', perche' non e' una scelta
+che si fa mentre si cerca un esercizio, e' una scelta che si fa una volta e
+resta.
+
+**"Le mie schede" ci passa in mezzo quando non esiste ancora una scheda**:
+il "+" apre `Equipment` con `{ setupForRoutine: true }` invece di
+`RoutineForm` direttamente, e in quel caso la schermata aggiunge in fondo un
+bottone "Continua" che sostituisce (`replace`, non `navigate`) verso
+`RoutineForm` - senza lasciare `Equipment` in pila, altrimenti "Indietro" da
+li' ci tornerebbe.
+
+### Il quick-log di peso e passi
+
+Non sta piu' su Oggi. Fino al 4 settembre 2026 due card (`DayStatCard`,
+`QuickLogSheet`) permettevano di leggere e impostare **solo il valore di
+oggi**, direttamente dalla schermata Oggi. Oggi quel bottone "+" sta su
+**Progressi**, accanto alle sezioni Peso e Passi, e apre `MetricEntrySheet`
+- che ha un selettore di data: **si registra anche per un giorno passato**,
+non solo per oggi.
+
+Toccare la card (invece del "+") apre `WeightHistoryScreen` /
+`StepsHistoryScreen`: lo storico completo da `earliestRecordedDate()`, con
+selezione multipla a pressione lunga ed eliminazione in blocco - lo stesso
+schema gia' usato dalle sessioni di `GymScreen` e dalle misure di
+`MeasurementsScreen`. Nessuna nuova migrazione: la cancellazione riusa
+`deleted_at`, gia' presente sulle tabelle coinvolte (regola 1 della
+sincronizzazione).
+
 ### Organizzazione dei componenti
 
 - `src/components/` — generici, presentazionali, riusabili (`ui/`, `form/`,
@@ -564,6 +630,13 @@ giusti.
 
 Chi sposta i provider deve riaprire un `DfAlert` in tema scuro prima di
 dichiarare fatto.
+
+**Un secondo difetto, distinto da questo**: `GluestackUIProvider` va anche
+avvertito ESPLICITAMENTE del tema con la prop `mode`, o resta fisso su
+`"light"` a prescindere da dove sta `ThemeProvider` nell'albero - i suoi
+componenti basati su classi NativeWind (l'Actionsheet di `DfSelect`, per
+esempio) restavano bianchi in tema scuro. `ThemedGluestackProvider` in
+`App.tsx` legge `useAppTheme()` e passa `mode={isDark ? "dark" : "light"}`.
 
 ### Styling
 
@@ -615,7 +688,15 @@ Valgono le guide Dieffetech `docs/react-native/`:
 - Token da `@/src/styles`, mai hex o numeri magici inline.
 - Elementi assoluti, overlay e bottoni flottanti ancorati con
   `useSafeAreaInsets()`.
-- Ogni testo visibile via `t("chiave")`, chiavi in `src/i18n/locales/it.json`.
+- Ogni testo visibile via `t("chiave")`, chiavi in `src/i18n/locales/it.json`
+  e `en.json` (vedi § Lingua).
+- **Un campo con errore di validazione prende il bordo rosso, mai un testo
+  sotto il campo.** Il messaggio va nel toast unico che `DfForm` mostra al
+  fallimento della validazione (`handleInvalid`); i componenti `form/` non
+  renderizzano piu' `error.message`. Gli errori del server seguono la stessa
+  regola - vanno nel toast, mai sotto un campo - ed e' per questo che il
+  server riassume gia' i suoi in una frase sola (vedi `backend/README.md`
+  § Localizzazione dei messaggi).
 - Icona e testo sulla stessa riga stanno allineati in altezza: il padding del
   font lo togliono gia' `Text` e `TextInput` di `ui/` (vedi § Styling), quindi
   non si aggiunge `includeFontPadding` nelle schermate.

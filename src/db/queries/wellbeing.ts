@@ -116,6 +116,15 @@ export async function listMeasurementSites(): Promise<string[]> {
   return rows.map((r) => r.site);
 }
 
+export async function deleteMeasurement(id: string): Promise<void> {
+  const db = await getDb();
+  const now = nowIso();
+  await db.runAsync(
+    "UPDATE body_measurements SET deleted_at = ?, updated_at = ? WHERE id = ?",
+    [now, now, id],
+  );
+}
+
 // ─── Foto dei progressi ──────────────────────────────────────────────────────
 
 export async function addProgressPhoto(

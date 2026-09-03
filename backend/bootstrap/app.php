@@ -1,9 +1,12 @@
 <?php
 
+use App\Http\Middleware\SetLocaleFromHeader;
+use App\Support\ValidationMessage;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -24,9 +27,27 @@ return Application::configure(basePath: dirname(__DIR__))
          * 401 JSON.
          */
         $middleware->redirectGuestsTo(fn () => null);
+
+        $middleware->api(append: [SetLocaleFromHeader::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        /*
+         * `errors` resta quello di sempre - i bordi rossi per campo lato app
+         * non cambiano. Cambia solo `message`, il riepilogo per il toast:
+         * vedi `ValidationMessage::summarize`.
+         */
+        $exceptions->render(function (ValidationException $e, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return response()->json([
+                'message' => ValidationMessage::summarize($e->errors()),
+                'errors' => $e->errors(),
+            ], $e->status);
+        });
     })->create();

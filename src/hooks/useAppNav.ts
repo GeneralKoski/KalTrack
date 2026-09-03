@@ -30,6 +30,7 @@ export interface NavParams {
   RecipeForm: { id?: string };
   Settings: undefined;
   Appearance: undefined;
+  Language: undefined;
   Health: undefined;
   Admin: undefined;
   Targets: undefined;
@@ -38,6 +39,11 @@ export interface NavParams {
   MealTypes: undefined;
   Exercises: undefined;
   ExerciseDetail: { id: string };
+  /**
+   * `setupForRoutine` arriva da "Le mie schede" quando non esiste ancora una
+   * scheda: aggiunge in fondo il bottone "Continua" verso `RoutineForm`.
+   */
+  Equipment: { setupForRoutine?: boolean } | undefined;
   Routines: undefined;
   RoutineForm: { id?: string; generatedRoutine?: RoutineInput };
   GenerateRoutine: undefined;
@@ -48,11 +54,14 @@ export interface NavParams {
   Comparison: undefined;
   MyProfile: undefined;
   Measurements: undefined;
+  WeightHistory: undefined;
+  StepsHistory: undefined;
   ProgressPhotos: undefined;
   MealPlan: undefined;
   ShoppingList: undefined;
   Reminders: undefined;
   Onboarding: undefined;
+  OnboardingLanguage: undefined;
   OnboardingWelcome: undefined;
   OnboardingProfileBasics: undefined;
   OnboardingWeight: undefined;
@@ -79,6 +88,18 @@ export function useAppNav() {
      */
     replace: <K extends keyof NavParams>(name: K, params?: NavParams[K]) =>
       navigation.dispatch(StackActions.replace(name, params)),
+    /**
+     * Torna a un'istanza gia' in pila invece di impilarne una nuova.
+     *
+     * In React Navigation 7 `navigate` impila una nuova schermata ogni volta
+     * che il nome target non e' quello a fuoco, anche se esiste gia' piu' in
+     * basso nello stack: e' cosi' che tornare da `GenerateRoutine` a
+     * `RoutineForm` con `navigate` lasciava un `RoutineForm` vuoto orfano
+     * sotto e un `GenerateRoutine` sopra, e il `goBack()` del salvataggio
+     * riportava a "Genera scheda con IA" invece che alla lista.
+     */
+    popTo: <K extends keyof NavParams>(name: K, params?: NavParams[K]) =>
+      navigation.dispatch(StackActions.popTo(name, params)),
     goBack: () => navigation.goBack(),
   };
 }

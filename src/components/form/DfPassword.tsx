@@ -55,45 +55,40 @@ export const DfPassword = ({
           field: { onChange, onBlur, value },
           fieldState: { error },
         }) => (
-          <>
-            <View style={styles.inputContainer}>
-              <TextInput
-                value={value ?? ""}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                placeholder={placeholder ?? t("default_input_placeholder")}
-                placeholderTextColor={colors.textFaint}
-                secureTextEntry={!visible}
-                autoComplete="password"
-                textContentType="password"
-                autoCapitalize="none"
-                autoCorrect={false}
-                style={[
-                  styles.input,
-                  {
-                    color: colors.text,
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                  error && styles.inputError,
-                ]}
-              />
-              <Pressable
-                onPress={() => setVisible((v) => !v)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={styles.eyeButton}
-              >
-                {visible ? (
-                  <EyeOff size={20} color={colors.textFaint} />
-                ) : (
-                  <Eye size={20} color={colors.textFaint} />
-                )}
-              </Pressable>
-            </View>
-            {error?.message && (
-              <Text style={styles.errorText}>{error.message as string}</Text>
-            )}
-          </>
+          <View style={styles.inputContainer}>
+            <TextInput
+              value={value ?? ""}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder={placeholder ?? t("default_input_placeholder")}
+              placeholderTextColor={colors.textFaint}
+              secureTextEntry={!visible}
+              autoComplete="password"
+              textContentType="password"
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={[
+                styles.input,
+                {
+                  color: colors.text,
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                },
+                error && styles.inputError,
+              ]}
+            />
+            <Pressable
+              onPress={() => setVisible((v) => !v)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={styles.eyeButton}
+            >
+              {visible ? (
+                <EyeOff size={20} color={colors.textFaint} />
+              ) : (
+                <Eye size={20} color={colors.textFaint} />
+              )}
+            </Pressable>
+          </View>
         )}
       />
     </View>
@@ -117,10 +112,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderRadius: theme.radius.xl,
-    paddingVertical: 8,
+    paddingVertical: theme.spacing.md,
     paddingLeft: 14,
     paddingRight: 44,
-    minHeight: 48,
   },
   inputError: {
     borderColor: theme.colors.error,
@@ -131,10 +125,5 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     justifyContent: "center",
-  },
-  errorText: {
-    fontSize: 12,
-    color: theme.colors.error,
-    marginTop: 4,
   },
 });

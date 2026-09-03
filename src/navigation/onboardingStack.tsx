@@ -1,6 +1,7 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import { OnboardingActivityGoalScreen } from "@/src/navigation/screens/OnboardingActivityGoalScreen";
+import { OnboardingLanguageScreen } from "@/src/navigation/screens/OnboardingLanguageScreen";
 import { OnboardingProfileBasicsScreen } from "@/src/navigation/screens/OnboardingProfileBasicsScreen";
 import { OnboardingTargetsScreen } from "@/src/navigation/screens/OnboardingTargetsScreen";
 import { OnboardingThemeScreen } from "@/src/navigation/screens/OnboardingThemeScreen";
@@ -10,12 +11,16 @@ import { OnboardingWelcomeScreen } from "@/src/navigation/screens/OnboardingWelc
 /**
  * Il flusso del primo avvio, annidato dentro `RootStack` come "Onboarding"
  * (stesso schema di `Tab`, anch'esso un navigatore intero passato come
- * `screen`). I sei nomi qui devono combaciare con `ONBOARDING_STEPS` in
+ * `screen`). I sette nomi qui devono combaciare con `ONBOARDING_STEPS` in
  * `src/domain/onboarding.ts`.
  */
 export const OnboardingStack = createNativeStackNavigator({
   screenOptions: { headerShown: false },
   screens: {
+    OnboardingLanguage: {
+      screen: OnboardingLanguageScreen,
+      linking: { path: "lingua" },
+    },
     OnboardingWelcome: {
       screen: OnboardingWelcomeScreen,
       linking: { path: "benvenuto" },

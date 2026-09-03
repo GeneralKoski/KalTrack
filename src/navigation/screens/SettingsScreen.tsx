@@ -7,17 +7,18 @@ import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { useThemeStore } from "@/src/stores/themeStore";
+import { useTranslationStore } from "@/src/stores/translationStore";
 import { theme } from "@/src/styles";
 import { showToast } from "@/src/utils/toast";
 import {
   ChevronLeft,
   ChevronRight,
+  Globe,
   HeartPulse,
   LogOut,
   Palette,
   ShieldCheck,
   Stethoscope,
-  UtensilsCrossed,
 } from "lucide-react-native";
 import React, { useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
@@ -46,6 +47,7 @@ export function SettingsScreen() {
   const token = useAccountStore((s) => s.token);
   const signOut = useAccountStore((s) => s.signOut);
   const themeMode = useThemeStore((s) => s.mode);
+  const language = useTranslationStore((s) => s.language);
 
   const [confirmSignOut, setConfirmSignOut] = useState(false);
 
@@ -78,14 +80,15 @@ export function SettingsScreen() {
             onPress={() => navigate("Appearance")}
           />
           <SettingsRow
+            icon={<Globe size={20} color={colors.textSecondary} />}
+            label={t("settings.language")}
+            value={t(`settings.language_${language}`)}
+            onPress={() => navigate("Language")}
+          />
+          <SettingsRow
             icon={<HeartPulse size={20} color={colors.textSecondary} />}
             label={t("settings.health")}
             onPress={() => navigate("Health")}
-          />
-          <SettingsRow
-            icon={<UtensilsCrossed size={20} color={colors.textSecondary} />}
-            label={t("meal_types.settings_row")}
-            onPress={() => navigate("MealTypes")}
           />
           <SettingsRow
             icon={<Stethoscope size={20} color={colors.textSecondary} />}

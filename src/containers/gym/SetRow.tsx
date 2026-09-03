@@ -2,6 +2,7 @@ import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text, TextInput } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
+import { sanitizeDecimalInput, sanitizeIntegerInput } from "@/src/utils/utils";
 import { Check } from "lucide-react-native";
 import React, { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
@@ -74,7 +75,7 @@ export const SetRow: React.FC<SetRowProps> = ({
           <View style={styles.field}>
             <TextInput
               value={weight}
-              onChangeText={onChangeWeight}
+              onChangeText={(text) => onChangeWeight(sanitizeDecimalInput(text))}
               onFocus={() => setFocused("weight")}
               onBlur={() => setFocused(null)}
               editable={!done}
@@ -94,7 +95,7 @@ export const SetRow: React.FC<SetRowProps> = ({
           <View style={styles.field}>
             <TextInput
               value={reps}
-              onChangeText={onChangeReps}
+              onChangeText={(text) => onChangeReps(sanitizeIntegerInput(text))}
               onFocus={() => setFocused("reps")}
               onBlur={() => setFocused(null)}
               editable={!done}
@@ -155,13 +156,11 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     minWidth: 0,
-    fontSize: 22,
-    fontWeight: "700",
-    textAlign: "center",
+    fontSize: 16,
     borderWidth: 1.5,
     borderRadius: theme.radius.lg,
-    paddingVertical: 6,
-    paddingHorizontal: 2,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: 14,
   },
   unit: { fontSize: 12, fontWeight: "600" },
   times: { fontSize: 14, fontWeight: "600" },

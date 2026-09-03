@@ -1,37 +1,26 @@
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
-import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import { formatDate } from "@/src/utils/dateUtils";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 
-/** Un centimetro e mezzo è una differenza reale: il decimo di cm no, è rumore del metro. */
-export function formatCm(value: number): string {
-  return value.toLocaleString("it-IT", { maximumFractionDigits: 1 });
-}
-
-/** Delta con segno esplicito: senza il "+" un aumento si legge come un valore assoluto. */
-export function formatDelta(delta: number): string {
-  const rounded = Math.round(delta * 10) / 10;
-  return `${rounded > 0 ? "+" : ""}${formatCm(rounded)}`;
-}
-
-interface MeasurementRowProps {
+interface HistoryRowProps {
   date: string;
-  valueCm: number;
-  /** Differenza rispetto alla misura precedente; null sulla prima della serie. */
-  deltaCm: number | null;
+  /** Già formattato con la sua unità (es. "72,4 kg", "8.412 passi"). */
+  value: string;
+  /** Già formattato (es. "+0,4", "prima"): il significato del delta dipende dal dominio. */
+  delta: string;
   note?: string | null;
 }
 
-export const MeasurementRow: React.FC<MeasurementRowProps> = ({
+/** Riga di uno storico data/valore/delta, riusata da misure, peso e passi. */
+export const HistoryRow: React.FC<HistoryRowProps> = ({
   date,
-  valueCm,
-  deltaCm,
+  value,
+  delta,
   note,
 }) => {
-  const { t } = useTranslation();
   const { colors } = useAppTheme();
 
   return (
@@ -51,11 +40,11 @@ export const MeasurementRow: React.FC<MeasurementRowProps> = ({
       </View>
 
       <Text style={[styles.value, { color: colors.text }]} numberOfLines={1}>
-        {`${formatCm(valueCm)} ${t("measurements.unit")}`}
+        {value}
       </Text>
 
       <Text style={[styles.delta, { color: colors.textMuted }]} numberOfLines={1}>
-        {deltaCm === null ? t("measurements.first") : formatDelta(deltaCm)}
+        {delta}
       </Text>
     </View>
   );

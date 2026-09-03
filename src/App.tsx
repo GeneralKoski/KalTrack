@@ -30,6 +30,19 @@ function ThemedStatusBar() {
   return <StatusBar style={isDark ? "light" : "dark"} />;
 }
 
+// GluestackUIProvider senza `mode` resta bloccato su "light": i suoi
+// componenti basati su classi NativeWind (es. l'Actionsheet di DfSelect)
+// restano bianchi anche a tema scuro. Va dentro ThemeProvider per leggere
+// useAppTheme(), che l'App non ha ancora sopra.
+function ThemedGluestackProvider({ children }: { children: React.ReactNode }) {
+  const { isDark } = useAppTheme();
+  return (
+    <GluestackUIProvider mode={isDark ? "dark" : "light"}>
+      {children}
+    </GluestackUIProvider>
+  );
+}
+
 export function App() {
   const [dbReady, setDbReady] = useState(false);
   // Senza questo gate l'app mostrerebbe un lampo di tema chiaro prima che la
@@ -126,7 +139,7 @@ export function App() {
      */
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
-        <GluestackUIProvider>
+        <ThemedGluestackProvider>
           <SafeAreaProvider>
             <ThemedStatusBar />
             <BottomSheetModalProvider>
@@ -137,7 +150,7 @@ export function App() {
               <Toast config={toastConfig} />
             </BottomSheetModalProvider>
           </SafeAreaProvider>
-        </GluestackUIProvider>
+        </ThemedGluestackProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );

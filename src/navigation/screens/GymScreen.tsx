@@ -1,8 +1,10 @@
+import { DfAlert } from "@/src/components/DfAlert";
 import { DfButton } from "@/src/components/form/DfButton";
 import { Card, EmptyState, ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import {
+  deleteSession,
   getActiveRoutine,
   listRoutineDays,
   recentSessions,
@@ -13,19 +15,24 @@ import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import type { RoutineDayRow, RoutineRow } from "@/src/types/gym";
+import { logger } from "@/src/utils/logger";
+import { showToast } from "@/src/utils/toast";
 import { useNavigation } from "@react-navigation/native";
 import {
+  Check,
   ChevronRight,
   ClipboardList,
   Dumbbell,
   Play,
-  Settings2,
+  Trash2,
+  X,
 } from "lucide-react-native";
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
   StyleSheet,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -76,19 +83,85 @@ export function GymScreen() {
     return { routine, days, sessions };
   }, []);
 
-  const { data, loading } = useFocusData<GymData>(loader);
+  const { data, loading, reload } = useFocusData<GymData>(loader);
 
   // Una sessione senza fine e' aperta: si riprende, non se ne apre un'altra.
   const open = data?.sessions.find((s) => s.endedAt === null) ?? null;
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const isSelecting = selectedIds.size > 0;
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const exitSelection = () => setSelectedIds(new Set());
+
+  const onSessionPress = (id: string) => {
+    if (isSelecting) toggleSelection(id);
+  };
+
+  const onSessionLongPress = (id: string) => {
+    if (!isSelecting) toggleSelection(id);
+  };
+
+  const removeSelected = async () => {
+    if (selectedIds.size === 0 || deleting) return;
+    setDeleting(true);
+    try {
+      await Promise.all([...selectedIds].map((id) => deleteSession(id)));
+      exitSelection();
+      reload();
+      showToast.success({ title: t("gym.sessions_deleted") });
+    } catch (error) {
+      logger.error("[palestra] eliminazione allenamenti fallita", error);
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  };
 
   return (
     <View style={styles.root}>
       <ScreenBackground />
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-            {t("tabs.gym")}
-          </Text>
+          {isSelecting ? (
+            <>
+              <TouchableOpacity onPress={exitSelection} activeOpacity={0.6} hitSlop={10}>
+                <X size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+              <Text
+                style={[styles.title, { color: colors.text }]}
+                numberOfLines={1}
+              >
+                {t(
+                  selectedIds.size === 1
+                    ? "gym.sessions_selected_one"
+                    : "gym.sessions_selected_many",
+                  { count: selectedIds.size },
+                )}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setConfirmDelete(true)}
+                activeOpacity={0.6}
+                hitSlop={10}
+              >
+                <Trash2 size={22} color={theme.colors.error} />
+              </TouchableOpacity>
+            </>
+          ) : (
+            <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+              {t("tabs.gym")}
+            </Text>
+          )}
         </View>
 
         {loading && !data ? (
@@ -165,39 +238,73 @@ export function GymScreen() {
             </SectionLabel>
 
             {data && data.sessions.length > 0 ? (
-              data.sessions.map((session) => (
-                <Card key={session.id} style={styles.sessionRow}>
-                  <View style={styles.sessionText}>
-                    <Text
-                      style={[styles.sessionName, { color: colors.text }]}
-                      numberOfLines={1}
-                    >
-                      {session.dayName ?? t("gym.free_workout")}
-                    </Text>
-                    <Text
-                      style={[styles.sessionMeta, { color: colors.textMuted }]}
-                      numberOfLines={1}
-                    >
-                      {shortDate(session.date)} - {t("gym.sets_count", {
-                        count: session.workingSets,
-                      })}
-                      {session.volumeKg > 0
-                        ? ` - ${Math.round(session.volumeKg).toLocaleString("it-IT")} kg`
-                        : ""}
-                    </Text>
-                  </View>
-                </Card>
-              ))
+              data.sessions.map((session) => {
+                const selected = selectedIds.has(session.id);
+                return (
+                  <Card
+                    key={session.id}
+                    onPress={() => onSessionPress(session.id)}
+                    onLongPress={() => onSessionLongPress(session.id)}
+                    style={[
+                      styles.sessionRow,
+                      selected && {
+                        borderWidth: 1.5,
+                        borderColor: colors.accent,
+                      },
+                    ]}
+                  >
+                    <View style={styles.sessionText}>
+                      <Text
+                        style={[styles.sessionName, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
+                        {session.dayName ?? t("gym.free_workout")}
+                      </Text>
+                      <Text
+                        style={[styles.sessionMeta, { color: colors.textMuted }]}
+                        numberOfLines={1}
+                      >
+                        {shortDate(session.date)} - {t("gym.sets_count", {
+                          count: session.workingSets,
+                        })}
+                        {session.volumeKg > 0
+                          ? ` - ${Math.round(session.volumeKg).toLocaleString("it-IT")} kg`
+                          : ""}
+                      </Text>
+                    </View>
+                    {isSelecting ? (
+                      <View
+                        style={[
+                          styles.sessionCheck,
+                          selected
+                            ? { backgroundColor: colors.accent }
+                            : {
+                                backgroundColor: "transparent",
+                                borderWidth: 1,
+                                borderColor: colors.border,
+                              },
+                        ]}
+                      >
+                        {selected ? (
+                          <Check size={14} color={colors.accentOn} />
+                        ) : null}
+                      </View>
+                    ) : null}
+                  </Card>
+                );
+              })
             ) : (
               <Text style={[styles.hint, { color: colors.textMuted }]}>
                 {t("gym.no_sessions")}
               </Text>
             )}
 
-            {/* In fondo perche' sono le mete di secondo livello: il gesto
-                quotidiano e' toccare il giorno di scheda qui sopra. */}
-            <View style={[styles.links, styles.section]}>
-              {data?.routine ? (
+            {/* In fondo perche' e' la meta di secondo livello: il gesto
+                quotidiano e' toccare il giorno di scheda qui sopra. Gli
+                esercizi si raggiungono dal profilo, non serve un secondo
+                accesso qui. */}
+            {data?.routine ? (
+              <View style={[styles.links, styles.section]}>
                 <DfButton
                   label={t("gym.routines")}
                   variant="outlined"
@@ -206,19 +313,23 @@ export function GymScreen() {
                   onPress={() => openRoutines("Routines")}
                   style={styles.link}
                 />
-              ) : null}
-              <DfButton
-                label={t("gym.exercises")}
-                variant="outlined"
-                fullWidth={false}
-                icon={<Settings2 size={18} color={colors.accent} />}
-                onPress={() => navigate("Exercises")}
-                style={styles.link}
-              />
-            </View>
+              </View>
+            ) : null}
           </ScrollView>
         )}
       </SafeAreaView>
+
+      <DfAlert
+        isOpen={confirmDelete}
+        title={t("gym.delete_sessions_title", { count: selectedIds.size })}
+        message={t("gym.delete_sessions_message")}
+        confirmLabel={t("delete")}
+        confirmColor={theme.colors.error}
+        cancelLabel={t("cancel")}
+        loading={deleting}
+        onConfirm={removeSelected}
+        onClose={() => setConfirmDelete(false)}
+      />
     </View>
   );
 }
@@ -246,10 +357,17 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   dayName: { flex: 1, fontSize: 15, fontWeight: "500" },
-  sessionRow: { flexDirection: "row", alignItems: "center" },
+  sessionRow: { flexDirection: "row", alignItems: "center", gap: theme.spacing.sm },
   sessionText: { flex: 1, gap: 2 },
   sessionName: { fontSize: 15, fontWeight: "600" },
   sessionMeta: { fontSize: 13 },
+  sessionCheck: {
+    width: 22,
+    height: 22,
+    borderRadius: theme.radius.full,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   hint: { fontSize: 13, lineHeight: 18 },
   empty: { gap: theme.spacing.sm },
   links: { flexDirection: "row", gap: theme.spacing.sm },

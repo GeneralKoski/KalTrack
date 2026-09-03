@@ -33,6 +33,7 @@ import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import { foodNutrients, type RecipeItemInput } from "@/src/types/nutrition";
 import { showToast } from "@/src/utils/toast";
+import { sanitizeDecimalInput } from "@/src/utils/utils";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useRoute, type RouteProp } from "@react-navigation/native";
 import { ChevronLeft, Plus, Trash2 } from "lucide-react-native";
@@ -299,7 +300,7 @@ export function RecipeFormScreen() {
             </Text>
             <TextInput
               value={servingsText}
-              onChangeText={setServingsText}
+              onChangeText={(text) => setServingsText(sanitizeDecimalInput(text))}
               keyboardType="decimal-pad"
               placeholderTextColor={colors.textFaint}
               style={[
@@ -473,7 +474,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.lg,
     borderWidth: 1,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: theme.spacing.md,
     fontSize: 15,
   },
   notes: {

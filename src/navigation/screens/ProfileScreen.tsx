@@ -19,7 +19,9 @@ import {
   Settings,
   Target,
   Trophy,
+  UtensilsCrossed,
   Users,
+  Wrench,
 } from "lucide-react-native";
 import React from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
@@ -60,6 +62,11 @@ const GROUPS: Group[] = [
       { route: "Foods", labelKey: "profile.my_foods", icon: Salad },
       { route: "Recipes", labelKey: "profile.my_recipes", icon: CookingPot },
       { route: "MealPlan", labelKey: "profile.meal_plan", icon: CalendarRange },
+      {
+        route: "MealTypes",
+        labelKey: "meal_types.settings_row",
+        icon: UtensilsCrossed,
+      },
     ],
   },
   {
@@ -67,6 +74,7 @@ const GROUPS: Group[] = [
     voices: [
       { route: "Routines", labelKey: "gym.routines", icon: Dumbbell },
       { route: "Exercises", labelKey: "profile.exercises", icon: ListChecks },
+      { route: "Equipment", labelKey: "profile.equipment", icon: Wrench },
     ],
   },
   {

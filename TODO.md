@@ -4,7 +4,7 @@ Quel che manca, in ordine di quanto blocca il resto. `HANDOFF.md` racconta lo
 **stato** e come ci si e' arrivati; qui ci sono solo le **cose da fare**, con il
 rimando a li' dove il contesto e' lungo.
 
-Ultimo aggiornamento: 2 settembre 2026.
+Ultimo aggiornamento: 4 settembre 2026.
 
 ---
 
@@ -46,16 +46,18 @@ di primo avvio (sezione 2), mai passato da un emulatore.
 
 ## 2. Il primo avvio
 
-**Fatto il 3 settembre 2026.** Sei passi (`src/navigation/onboardingStack.tsx`,
-schermate `Onboarding*Screen` in `src/navigation/screens/`): benvenuto con
-accesso/registrazione o "Salta" di pari dignita', dati base (sesso/data
-nascita/altezza), peso, attivita'/obiettivo, target giornalieri precompilati
-da `suggestTargets` e modificabili, scelta del tema. Rilevazione del primo
-avvio e ripresa dal passo esatto via `onboarding_step`/`onboarding_completed`
-in `settings` (`src/stores/onboardingStore.ts`) - il primo locale, il secondo
-sincronizzato, cosi' un secondo dispositivo sullo stesso account non lo
-rifa'. `STORAGE_KEYS.FIRST_LAUNCH`, l'impalcatura morta che doveva servire a
-questo, e' stata tolta invece di essere riusata.
+**Fatto il 3 settembre 2026**, esteso a sette passi il 4 settembre con la
+scelta della lingua (`OnboardingLanguage`, vedi `CLAUDE.md` § Lingua).
+Passi (`src/navigation/onboardingStack.tsx`, schermate `Onboarding*Screen` in
+`src/navigation/screens/`): lingua, benvenuto con accesso/registrazione o
+"Salta" di pari dignita', dati base (sesso/data nascita/altezza), peso,
+attivita'/obiettivo, target giornalieri precompilati da `suggestTargets` e
+modificabili, scelta del tema. Rilevazione del primo avvio e ripresa dal passo
+esatto via `onboarding_step`/`onboarding_completed` in `settings`
+(`src/stores/onboardingStore.ts`) - il primo locale, il secondo sincronizzato,
+cosi' un secondo dispositivo sullo stesso account non lo rifa'.
+`STORAGE_KEYS.FIRST_LAUNCH`, l'impalcatura morta che doveva servire a questo,
+e' stata tolta invece di essere riusata.
 
 ---
 
@@ -315,6 +317,11 @@ TypeScript che gira sul dispositivo, come gia' fanno `normalizeQuantities` e
       tutti e ciascuno corregge solo le proprie: un amministratore non puo'
       togliere una voce altrui scritta male. Con un utente solo non e' un
       problema, con dieci lo diventa.
+- [ ] **`src/i18n/locales/en.json` non ha ancora tutte le chiavi di
+      `it.json`** (attrezzatura, storico peso/passi/misure/sessioni - le
+      funzioni piu' recenti). Chi le usa in inglese vede la chiave grezza o il
+      fallback, non una frase. Da completare, e da tenere a mente ogni volta
+      che si aggiunge una chiave nuova (vedi `CLAUDE.md` § Lingua).
 
 ---
 
@@ -342,8 +349,6 @@ Non sono dimenticanze e non vanno riaperte senza una ragione nuova.
 - **Classifiche fra piu' persone**, e un vincitore sul confronto delle calorie.
   Vedi la sezione 9.2 della spec: mangiare piu' o meno di un'altra persona non
   e' meglio ne' peggio, e una spunta sarebbe un consiglio sbagliato.
-- **Una seconda lingua.** La struttura i18n regge, servono tre modifiche
-  elencate in `CLAUDE.md` § Lingua. L'app e' personale.
 - **Il target web.** Niente `react-native-web`, ed e' il motivo per cui
   `expo-doctor` resta a 18 su 20 di proposito.
 - **Il microfono in palestra, e con lui l'inserimento vocale delle serie.**

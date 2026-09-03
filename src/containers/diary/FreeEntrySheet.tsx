@@ -4,6 +4,7 @@ import { Text, TextInput } from "@/src/components/ui";
 import { EMPTY_NUTRIENTS, type Nutrients } from "@/src/domain/nutrition";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
+import { sanitizeDecimalInput } from "@/src/utils/utils";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
@@ -77,7 +78,7 @@ export const FreeEntrySheet: React.FC<FreeEntrySheetProps> = ({
       </Text>
       <TextInput
         value={value}
-        onChangeText={onChangeText}
+        onChangeText={(text) => onChangeText(sanitizeDecimalInput(text))}
         placeholder={t("diary.free_macro_placeholder")}
         placeholderTextColor={colors.textFaint}
         keyboardType="decimal-pad"
@@ -113,7 +114,7 @@ export const FreeEntrySheet: React.FC<FreeEntrySheetProps> = ({
 
         <TextInput
           value={kcal}
-          onChangeText={setKcal}
+          onChangeText={(text) => setKcal(sanitizeDecimalInput(text))}
           placeholder={t("diary.free_kcal_placeholder")}
           placeholderTextColor={colors.textFaint}
           keyboardType="decimal-pad"
@@ -145,7 +146,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.radius.lg,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: theme.spacing.md,
     fontSize: 15,
   },
   optional: {

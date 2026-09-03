@@ -16,6 +16,7 @@
   "warning": "Attenzione",
   "no_result_found": "Nessun dato trovato",
   "required_field": "Campo obbligatorio",
+  "form_missing_fields": "Compila i campi evidenziati",
   "default_input_placeholder": "Digita",
   "select_date_placeholder": "Seleziona",
   "select_placeholder": "Seleziona...",
@@ -89,7 +90,8 @@
     "group_gym": "Palestra",
     "group_progress": "Progressi",
     "group_app": "App",
-    "exercises": "Esercizi"
+    "exercises": "Esercizi",
+    "equipment": "Attrezzatura"
   },
   "recipes": {
     "title": "I miei pasti",
@@ -148,7 +150,10 @@
     "theme_system": "Come il sistema",
     "theme_light": "Chiaro",
     "theme_dark": "Scuro",
-    "health": "Salute"
+    "health": "Salute",
+    "language": "Lingua",
+    "language_it": "Italiano",
+    "language_en": "English"
   },
   "diary": {
     "day_today": "Oggi",
@@ -228,10 +233,24 @@
     "saved": "Obiettivi salvati"
   },
   "tracking": {
-    "steps": "Passi",
     "steps_unit": "passi",
     "weight": "Peso",
-    "not_recorded": "Non registrato"
+    "add_weight": "Nuovo peso",
+    "add_steps": "Nuovi passi",
+    "date_label": "Data",
+    "first_entry": "prima",
+    "weight_history": "Storico peso",
+    "steps_history": "Storico passi",
+    "weight_selected_one": "%{count} selezionato",
+    "weight_selected_many": "%{count} selezionati",
+    "delete_weight_title": "Eliminare %{count} pesate?",
+    "delete_weight_message": "L'eliminazione non si può annullare.",
+    "weight_deleted": "Pesate eliminate",
+    "steps_selected_one": "%{count} selezionato",
+    "steps_selected_many": "%{count} selezionati",
+    "delete_steps_title": "Eliminare %{count} giorni?",
+    "delete_steps_message": "L'eliminazione non si può annullare.",
+    "steps_deleted": "Passi eliminati"
   },
   "progress": {
     "weight": "Peso",
@@ -239,8 +258,7 @@
     "steps_weekly": "Passi, media di 14 giorni",
     "steps_empty": "Nessun passo registrato",
     "kcal_weekly": "Calorie, media di 14 giorni",
-    "kcal_empty": "Nessun pasto registrato",
-    "no_data": "Nessun dato"
+    "kcal_empty": "Nessun pasto registrato"
   },
   "weekly_coach": {
     "title": "Coach settimanale",
@@ -380,6 +398,7 @@
     "alternatives": "Proponi alternativa",
     "no_alternatives": "Nessuna alternativa disponibile",
     "equipment_title": "La mia attrezzatura",
+    "equipment_continue": "Continua",
     "block_superset": "Superset",
     "block_circuit": "Circuito",
     "block_dropset": "Dropset",
@@ -424,6 +443,11 @@
     "routine_without_days": "Questa scheda non ha ancora giorni: aprila per aggiungerli.",
     "recent_sessions": "Ultimi allenamenti",
     "no_sessions": "Nessun allenamento registrato.",
+    "sessions_selected_one": "%{count} selezionato",
+    "sessions_selected_many": "%{count} selezionati",
+    "delete_sessions_title": "Eliminare %{count} allenamenti?",
+    "delete_sessions_message": "Le serie di questi allenamenti vengono eliminate con loro.",
+    "sessions_deleted": "Allenamenti eliminati",
     "session_open": "Allenamento in corso",
     "free_workout": "Allenamento libero",
     "sets_count": "%{count} serie",
@@ -572,7 +596,8 @@
   "measurements": {
     "title": "Misure",
     "unit": "cm",
-    "placeholder": "84,5",
+    "add": "Aggiungi misura",
+    "add_for": "Aggiungi misura: %{site}",
     "sites": {
       "vita": "Vita",
       "fianchi": "Fianchi",
@@ -586,10 +611,13 @@
     "chart_empty": "Serve più di una misura per vedere l'andamento",
     "since_first": "%{delta} cm dalla prima misura del %{date}",
     "only_one": "Una sola misura: la differenza si vede dalla prossima",
-    "new": "Nuova misura di oggi",
-    "today_replace": "Oggi hai già registrato %{value} cm: salvando la sostituisci",
     "history": "Storico",
-    "first": "prima"
+    "first": "prima",
+    "selected_one": "%{count} selezionata",
+    "selected_many": "%{count} selezionate",
+    "delete_title": "Eliminare %{count} misure?",
+    "delete_message": "L'eliminazione non si può annullare.",
+    "deleted": "Misure eliminate"
   },
   "progress_photos": {
     "title": "Foto dei progressi",
@@ -935,6 +963,7 @@
     "open_settings": "Apri le impostazioni"
   },
   "onboarding": {
+    "language_title": "Scegli la lingua",
     "welcome_title": "Benvenuto in KalTrack",
     "welcome_body": "Tieni traccia di alimentazione, peso, passi e allenamento. Il telefono resta tuo: funziona anche senza rete, e senza account.",
     "skip": "Salta per ora",

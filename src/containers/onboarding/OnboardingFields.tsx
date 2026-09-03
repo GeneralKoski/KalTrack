@@ -121,7 +121,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.radius.lg,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    // md come i bottoni-select/data qui sotto: stessa altezza per ogni campo
+    // del wizard.
+    paddingVertical: theme.spacing.md,
     fontSize: 15,
   },
   selectBtn: {

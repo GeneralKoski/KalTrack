@@ -25,6 +25,7 @@ import { theme } from "@/src/styles";
 import { foodNutrients, type FoodRow } from "@/src/types/nutrition";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
+import { sanitizeDecimalInput } from "@/src/utils/utils";
 import { ChevronLeft, Plus, Trash2 } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
@@ -247,7 +248,8 @@ export const EntryCompositionSheet: React.FC<EntryCompositionSheetProps> = ({
 
                 <TextInput
                   value={gramsText[index] ?? ""}
-                  onChangeText={(text) => {
+                  onChangeText={(raw) => {
+                    const text = sanitizeDecimalInput(raw);
                     setGramsText((current) => ({ ...current, [index]: text }));
                     if (composition) {
                       setComposition(
@@ -415,7 +417,7 @@ export const EntryCompositionSheet: React.FC<EntryCompositionSheetProps> = ({
               <TextInput
                 key={placeholder}
                 value={value}
-                onChangeText={setValue}
+                onChangeText={(text) => setValue(sanitizeDecimalInput(text))}
                 placeholder={placeholder}
                 placeholderTextColor={colors.textFaint}
                 keyboardType="decimal-pad"
@@ -463,7 +465,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.radius.md,
     paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: theme.spacing.md,
     fontSize: 14,
     minWidth: 56,
     textAlign: "right",
@@ -477,7 +479,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.radius.lg,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: theme.spacing.md,
     fontSize: 15,
   },
   macros: { flexDirection: "row", gap: theme.spacing.sm },

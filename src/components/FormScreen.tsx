@@ -43,7 +43,12 @@ export const FormScreen = ({
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      // Su Android il manifest ha gia' `windowSoftInputMode="adjustResize"`
+      // (vedi AndroidManifest.xml): la finestra si restringe gia' da sola
+      // quando appare la tastiera. `behavior="height"` qui sopra lo rifarebbe
+      // una seconda volta, comprimendo il contenuto due volte e spingendo il
+      // footer (es. il pulsante "Avanti" dell'onboarding) sotto lo schermo.
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
         contentContainerStyle={contentContainerStyle}

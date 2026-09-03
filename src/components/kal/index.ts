@@ -1,6 +1,7 @@
 export { Avatar } from "./Avatar";
 export { Card } from "./Card";
 export { GradientHeader, HeaderCircleButton } from "./GradientHeader";
+export { HistoryRow } from "./HistoryRow";
 export {
   Chip,
   EmptyState,

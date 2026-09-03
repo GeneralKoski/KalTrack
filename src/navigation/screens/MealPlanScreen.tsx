@@ -1069,7 +1069,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.radius.lg,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: theme.spacing.md,
   },
   modalBody: {
     gap: theme.spacing.sm,
@@ -1104,7 +1104,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.radius.lg,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: 12,
+    paddingVertical: theme.spacing.md,
     marginTop: 2,
   },
   datePickerText: {

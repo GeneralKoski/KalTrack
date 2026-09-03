@@ -1059,7 +1059,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.radius.md,
     paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 8,
+    paddingVertical: theme.spacing.md,
   },
   timeLabel: { flexShrink: 1, fontSize: 13 },
   timeValue: { fontSize: 16, fontWeight: "700", marginLeft: "auto" },
@@ -1079,7 +1079,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.radius.md,
     paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 8,
+    paddingVertical: theme.spacing.md,
   },
   iconSelectorRow: {
     gap: 8,
@@ -1100,7 +1100,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.radius.md,
     paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 10,
+    paddingVertical: theme.spacing.md,
   },
   modalTimeText: {
     fontSize: 16,

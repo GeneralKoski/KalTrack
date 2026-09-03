@@ -246,9 +246,6 @@ export const DfDateMaskInput = ({
               end: displayValue.length,
             }}
           />
-          {error && (
-            <Text style={styles.errorText}>{error.message?.toString()}</Text>
-          )}
         </View>
       )}
     />
@@ -268,16 +265,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderRadius: theme.radius.md,
-    paddingVertical: 12,
+    paddingVertical: theme.spacing.md,
     paddingHorizontal: 14,
-    minHeight: 48,
   },
   inputError: {
     borderColor: theme.colors.error,
-  },
-  errorText: {
-    fontSize: 12,
-    color: theme.colors.error,
-    marginTop: 4,
   },
 });

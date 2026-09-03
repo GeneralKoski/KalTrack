@@ -1,12 +1,14 @@
 import { I18n } from "i18n-js";
 
+import en from "./locales/en.json";
 import it from "./locales/it.json";
 
-// App a lingua singola (italiano): è un'app personale, l'inglese non serve.
-// La struttura i18n resta perché reintrodurre una lingua costa poco - le chiavi
-// esistono già tutte, va tradotto un solo file. Vedi CLAUDE.md.
-export const i18n = new I18n({ it });
+// Italiano se il dispositivo lo parla, altrimenti inglese di default (vedi
+// `translationStore`, che sceglie e persiste la lingua effettiva). L'inglese
+// resta il fallback: una chiave mancante in it.json non lascia lo schermo
+// vuoto.
+export const i18n = new I18n({ it, en });
 
-i18n.defaultLocale = "it";
-i18n.locale = "it";
+i18n.defaultLocale = "en";
+i18n.locale = "en";
 i18n.enableFallback = true;

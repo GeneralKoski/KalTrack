@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
     borderRadius: theme.radius.full,
     paddingHorizontal: theme.spacing.md,
-    height: 48,
+    paddingVertical: theme.spacing.md,
   },
   light: { borderWidth: 1 },
   dark: { backgroundColor: "rgba(255,255,255,0.15)" },
