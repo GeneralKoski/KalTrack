@@ -17,6 +17,7 @@ import { getSteps } from "@/src/db/queries/tracking";
 import { listRoutines } from "@/src/db/queries/workouts";
 import { todayIso } from "@/src/domain/date";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { checkAchievements } from "@/src/services/achievements";
 import { useAssistantLaunch } from "@/src/services/assistantLaunch";
 import { useDayContextStore } from "@/src/stores/dayContextStore";
 import { theme } from "@/src/styles";
@@ -171,6 +172,10 @@ export const AssistantButton: React.FC<AssistantButtonProps> = ({
         const result = await intent.execute();
         showToast.success({ title: result.message });
         onIntentExecuted?.();
+        // Un obiettivo si puo' sbloccare anche da qui: l'assistente e' il modo
+        // principale di scrivere nel diario, e prima l'avviso arrivava solo
+        // aprendo Traguardi.
+        void checkAchievements();
       } catch (error) {
         logger.error("[assistant] esecuzione fallita", error);
         showToast.error({ title: t("assistant.execute_failed") });

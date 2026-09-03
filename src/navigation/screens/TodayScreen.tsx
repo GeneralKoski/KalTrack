@@ -63,6 +63,7 @@ import { rowNutrients, type EstimateRow } from "@/src/domain/photoEstimate";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { checkAchievements } from "@/src/services/achievements";
 import { discardPhoto, persistPhoto } from "@/src/services/photoStorage";
 import { useDayContextStore } from "@/src/stores/dayContextStore";
 import { theme } from "@/src/styles";
@@ -142,6 +143,15 @@ export function TodayScreen() {
       setReferenceDate(date);
       return () => setReferenceDate(null);
     }, [date, setReferenceDate]),
+  );
+
+  // Oggi e' la scheda a cui si torna dopo qualunque azione: un traguardo
+  // raggiunto a mano su un'altra scheda (peso, allenamento...) lo si scopre
+  // qui, non solo aprendo Traguardi.
+  useFocusEffect(
+    useCallback(() => {
+      void checkAchievements();
+    }, []),
   );
 
   const loader = useCallback(async (): Promise<DayData> => {

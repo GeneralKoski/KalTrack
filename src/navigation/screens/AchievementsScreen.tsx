@@ -5,11 +5,7 @@ import {
   AchievementCard,
   type AchievementView,
 } from "@/src/containers/progress/AchievementCard";
-import {
-  collectStats,
-  listUnlocked,
-  syncAchievements,
-} from "@/src/db/queries/achievements";
+import { collectStats, listUnlocked } from "@/src/db/queries/achievements";
 import {
   ACHIEVEMENTS,
   currentStreak,
@@ -21,8 +17,8 @@ import { todayIso } from "@/src/domain/date";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { checkAchievements } from "@/src/services/achievements";
 import { theme } from "@/src/styles";
-import { showToast } from "@/src/utils/toast";
 import { ChevronLeft, Flame } from "lucide-react-native";
 import React, { useCallback } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
@@ -97,15 +93,9 @@ export function AchievementsScreen() {
   const loader = useCallback(async (): Promise<AchievementsData> => {
     // Sync prima di leggere: i traguardi maturano mentre si usa l'app, quindi
     // devono essere già aggiornati quando la schermata li mostra.
-    const fresh = await syncAchievements();
+    const fresh = await checkAchievements();
     const freshCodes = new Set(fresh.map((a) => a.code));
     const [stats, rows] = await Promise.all([collectStats(), listUnlocked()]);
-
-    if (fresh.length > 0) {
-      showToast.success({
-        title: t("achievements.new_unlocked", { count: fresh.length }),
-      });
-    }
 
     const unlockedRows = new Map(rows.map((row) => [row.code, row]));
 
@@ -126,7 +116,7 @@ export function AchievementsScreen() {
         }),
       })),
     };
-  }, [t]);
+  }, []);
 
   const { data, loading } = useFocusData<AchievementsData>(loader);
 
