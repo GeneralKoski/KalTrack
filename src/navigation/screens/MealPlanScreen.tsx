@@ -10,7 +10,7 @@ import {
 import { GenerateMealPlanModal } from "@/src/containers/planning/GenerateMealPlanModal";
 import { PlanDayColumn } from "@/src/containers/planning/PlanDayColumn";
 import { QuantityPrompt } from "@/src/containers/recipes/QuantityPrompt";
-import { listMealTypes } from "@/src/db/queries/diary";
+import { listAllMealTypes } from "@/src/db/queries/diary";
 import {
   addPlanEntry,
   applyPlanToDiary,
@@ -196,7 +196,7 @@ export function MealPlanScreen() {
   const loader = useCallback(async (): Promise<WeekData> => {
     const [entries, mealTypes, currentTargets] = await Promise.all([
       listPlanEntries(weekStart, weekEnd),
-      listMealTypes(),
+      listAllMealTypes(),
       getTargetsFor(selectedDate),
     ]);
     const applied: Record<string, boolean> = {};
@@ -225,6 +225,18 @@ export function MealPlanScreen() {
     .filter((entry) => entry.kcal !== null)
     .reduce((sum, entry) => sum + (entry.kcal ?? 0), 0);
   const hasUnknown = dayEntries.some((entry) => entry.kcal === null);
+  /* Le colonne sono i pasti attivi, piu' quelli spenti che in questo giorno
+     hanno gia' delle righe: spegnere un pasto toglie una scelta, non nasconde
+     quel che era gia' pianificato. Il foglio Aggiungi invece offre solo gli
+     attivi. */
+  const activeMealTypes = (data?.mealTypes ?? []).filter(
+    (type) => type.hidden === 0,
+  );
+  const columnMealTypes = (data?.mealTypes ?? []).filter(
+    (type) =>
+      type.hidden === 0 ||
+      dayEntries.some((entry) => entry.row.meal_type_id === type.id),
+  );
   const isApplied = data?.applied[selectedDate] ?? false;
 
   const openAdd = (mealTypeId: string) => {
@@ -461,7 +473,7 @@ export function MealPlanScreen() {
             </View>
 
             <PlanDayColumn
-              mealTypes={data?.mealTypes ?? []}
+              mealTypes={columnMealTypes}
               entries={dayEntries}
               onAdd={openAdd}
               onDelete={setPendingDelete}
@@ -493,7 +505,7 @@ export function MealPlanScreen() {
 
       <AddEntrySheet
         ref={addSheetRef}
-        mealTypes={data?.mealTypes ?? []}
+        mealTypes={activeMealTypes}
         mealTypeId={pendingMealTypeId}
         onChangeMealType={setPendingMealTypeId}
         onPick={onPick}

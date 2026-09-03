@@ -112,6 +112,8 @@ export interface MealTypeRow {
   icon: string | null;
   sort: number;
   is_custom: number;
+  /** Spento dalle impostazioni: non si offre piu', ma lo storico lo tiene. */
+  hidden: number;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;

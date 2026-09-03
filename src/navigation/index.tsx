@@ -31,6 +31,7 @@ import { FriendProfileScreen } from "@/src/navigation/screens/FriendProfileScree
 import { FriendsScreen } from "@/src/navigation/screens/FriendsScreen";
 import { MyProfileScreen } from "@/src/navigation/screens/MyProfileScreen";
 import { MealPlanScreen } from "@/src/navigation/screens/MealPlanScreen";
+import { MealTypesScreen } from "@/src/navigation/screens/MealTypesScreen";
 import { MeasurementsScreen } from "@/src/navigation/screens/MeasurementsScreen";
 import { ProgressPhotosScreen } from "@/src/navigation/screens/ProgressPhotosScreen";
 import { RemindersScreen } from "@/src/navigation/screens/RemindersScreen";
@@ -192,6 +193,10 @@ const RootStack = createNativeStackNavigator({
     Diagnostics: {
       screen: DiagnosticsScreen,
       linking: { path: "diagnostica" },
+    },
+    MealTypes: {
+      screen: MealTypesScreen,
+      linking: { path: "tipi-pasto" },
     },
     Exercises: {
       screen: ExercisesScreen,

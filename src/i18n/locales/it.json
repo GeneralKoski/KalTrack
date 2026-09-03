@@ -132,6 +132,18 @@
     "take": "Scatta foto",
     "camera_denied": "Serve il permesso della fotocamera: concedilo dalle impostazioni di sistema."
   },
+  "meal_types": {
+    "title": "Pasti",
+    "hint": "Spegni i pasti che non usi: spariscono da dove si sceglie, ma quelli gia\u0300 registrati restano nel diario.",
+    "settings_row": "Pasti",
+    "settings_hint": "Quali pasti puoi usare",
+    "add": "Aggiungi pasto",
+    "new_placeholder": "Nome del pasto",
+    "rename": "Rinomina",
+    "last_one": "Deve restare almeno un pasto attivo",
+    "delete_title": "Eliminare il pasto?",
+    "delete_message": "\"%{name}\" sparisce dall'elenco. Le righe gia\u0300 registrate restano nel diario."
+  },
   "settings": {
     "title": "Impostazioni",
     "theme": "Aspetto",

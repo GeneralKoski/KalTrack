@@ -11,9 +11,11 @@ import {
   deleteMealType,
   getDayDiary,
   getEntryComposition,
+  listAllMealTypes,
   listMealTypes,
   materializeComposition,
   renameMealType,
+  setMealTypeHidden,
   saveEntryComposition,
   updateEntryQuantity,
 } from "@/src/db/queries/diary";
@@ -381,6 +383,49 @@ describe("tipi di pasto", () => {
   it("i tipi di default non sono cancellabili", async () => {
     await expect(deleteMealType(MEAL_TYPE_IDS.lunch)).rejects.toThrow();
     expect((await listMealTypes()).map((t) => t.name)).toContain("Pranzo");
+  });
+
+  it("un tipo nascosto non si offre piu', ma resta fra tutti", async () => {
+    await setMealTypeHidden(MEAL_TYPE_IDS.brunch, true);
+    expect((await listMealTypes()).map((t) => t.name)).not.toContain("Brunch");
+    expect((await listAllMealTypes()).map((t) => t.name)).toContain("Brunch");
+  });
+
+  it("si riaccende", async () => {
+    await setMealTypeHidden(MEAL_TYPE_IDS.brunch, true);
+    await setMealTypeHidden(MEAL_TYPE_IDS.brunch, false);
+    expect((await listMealTypes()).map((t) => t.name)).toContain("Brunch");
+  });
+
+  // Senza un pasto acceso il foglio Aggiungi non ha una destinazione, e la
+  // schermata delle impostazioni non avrebbe piu' niente da riaccendere.
+  it("l'ultimo pasto acceso non si spegne", async () => {
+    const types = await listAllMealTypes();
+    for (const type of types.slice(1)) {
+      await setMealTypeHidden(type.id, true);
+    }
+    await expect(setMealTypeHidden(types[0].id, true)).rejects.toThrow();
+    expect(await listMealTypes()).toHaveLength(1);
+  });
+
+  // Spegnere un pasto e' una scelta su cosa si offre, non una cancellazione:
+  // i pasti gia' registrati restano nel diario e nei totali del giorno.
+  it("nascondere un tipo non tocca lo storico", async () => {
+    const foodId = await createFood({
+      name: "Uovo",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 155 },
+    });
+    await addFoodEntry({
+      date: "2026-01-05",
+      mealTypeId: MEAL_TYPE_IDS.brunch,
+      foodId,
+      quantityG: 100,
+    });
+    await setMealTypeHidden(MEAL_TYPE_IDS.brunch, true);
+
+    const day = await getDayDiary("2026-01-05");
+    expect(day.meals.map((m) => m.type.name)).toContain("Brunch");
+    expect(day.totals.kcal).toBeGreaterThan(0);
   });
 });
 

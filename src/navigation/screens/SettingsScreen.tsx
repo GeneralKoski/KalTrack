@@ -9,7 +9,12 @@ import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { theme } from "@/src/styles";
-import { ChevronLeft, ChevronRight, Stethoscope } from "lucide-react-native";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Stethoscope,
+  UtensilsCrossed,
+} from "lucide-react-native";
 import React, { useRef } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import {
@@ -60,6 +65,22 @@ export function SettingsScreen() {
             {t("settings.health")}
           </SectionLabel>
           <HealthConnectSettings />
+
+          <SectionLabel style={styles.section}>
+            {t("meal_types.title")}
+          </SectionLabel>
+          <Card style={styles.rowCard} onPress={() => navigate("MealTypes")}>
+            <UtensilsCrossed size={20} color={colors.textSecondary} />
+            <View style={styles.rowText}>
+              <Text style={[styles.rowTitle, { color: colors.text }]}>
+                {t("meal_types.settings_row")}
+              </Text>
+              <Text style={[styles.rowHint, { color: colors.textFaint }]}>
+                {t("meal_types.settings_hint")}
+              </Text>
+            </View>
+            <ChevronRight size={20} color={colors.textFaint} />
+          </Card>
 
           <SectionLabel style={styles.section}>
             {t("diagnostics.title")}

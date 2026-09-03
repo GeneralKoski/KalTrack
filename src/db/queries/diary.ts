@@ -75,10 +75,53 @@ const FREE_ENTRY_BASE_QUANTITY = 1;
 
 // ─── Tipi di pasto ───────────────────────────────────────────────────────────
 
+/**
+ * I pasti fra cui si sceglie: i nascosti non ci sono.
+ *
+ * E' la lettura di chi OFFRE una scelta - foglio Aggiungi, piano pasti,
+ * catalogo dell'assistente. Chi invece disegna righe gia' scritte usa
+ * `listAllMealTypes`, o spegnere un pasto ne cancellerebbe lo storico dalla
+ * vista.
+ */
 export async function listMealTypes(): Promise<MealTypeRow[]> {
   const db = await getDb();
   return db.getAllAsync<MealTypeRow>(
+    "SELECT * FROM meal_types WHERE deleted_at IS NULL AND hidden = 0 ORDER BY sort ASC",
+  );
+}
+
+/** Tutti i pasti vivi, nascosti compresi: serve a leggere quel che c'e' gia'. */
+export async function listAllMealTypes(): Promise<MealTypeRow[]> {
+  const db = await getDb();
+  return db.getAllAsync<MealTypeRow>(
     "SELECT * FROM meal_types WHERE deleted_at IS NULL ORDER BY sort ASC",
+  );
+}
+
+/**
+ * Spegne o riaccende un pasto.
+ *
+ * L'ultimo acceso non si spegne: senza un pasto attivo il foglio Aggiungi non
+ * ha una destinazione, e la schermata non avrebbe piu' modo di riaccenderne
+ * uno se non ce ne fosse rimasto nessuno.
+ */
+export async function setMealTypeHidden(
+  id: string,
+  hidden: boolean,
+): Promise<void> {
+  const db = await getDb();
+  if (hidden) {
+    const row = await db.getFirstAsync<{ visible: number }>(
+      "SELECT COUNT(*) AS visible FROM meal_types WHERE deleted_at IS NULL AND hidden = 0 AND id != ?",
+      [id],
+    );
+    if ((row?.visible ?? 0) === 0) {
+      throw new Error("Deve restare almeno un pasto attivo");
+    }
+  }
+  await db.runAsync(
+    "UPDATE meal_types SET hidden = ?, updated_at = ? WHERE id = ?",
+    [hidden ? 1 : 0, nowIso(), id],
   );
 }
 
@@ -150,7 +193,9 @@ export async function getDayDiary(date: string): Promise<DayDiary> {
     return { date, meals: [], totals: { ...EMPTY_NUTRIENTS } };
   }
 
-  const types = await listMealTypes();
+  /* Tutti i tipi, nascosti compresi: un pasto spento dalle impostazioni non
+     deve portarsi via dallo storico le righe gia' registrate. */
+  const types = await listAllMealTypes();
   const typeById = new Map(types.map((t) => [t.id, t]));
 
   const result: DiaryMeal[] = [];

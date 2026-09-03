@@ -239,6 +239,32 @@ I grammi di una voce libera **non si salvano**: congela il totale e memorizza
 quantita' 1. E' come funziona la voce scritta dall'assistente, e seguire quella
 convenzione e' meglio che averne due per lo stesso tipo di voce.
 
+### I pasti che si possono usare
+
+Impostazioni > Pasti (`MealTypesScreen`) spegne i pasti che non si usano - chi
+non fa mai il brunch lo spegne - e aggiunge, rinomina, elimina i propri.
+
+**Spegnere non e' cancellare, ed e' per questo che `hidden` (migrazione 16) non
+riusa `deleted_at`.** `getDayDiary` salta i pasti il cui tipo non e' piu' in
+elenco: cancellando "brunch" sparirebbero dallo storico i brunch gia'
+registrati, e dai totali di quei giorni. Da qui due letture invece di una:
+
+- `listMealTypes()` esclude i nascosti, ed e' la lettura di chi **offre una
+  scelta**: foglio Aggiungi, piano pasti, `generateMealPlan`, catalogo e tool
+  dell'assistente, `defaultMealTypeId`;
+- `listAllMealTypes()` li comprende, ed e' la lettura di chi **disegna righe
+  gia' scritte**: `getDayDiary`, e le colonne del piano - `MealPlanScreen`
+  mostra un pasto spento se quel giorno ha gia' delle righe, ma non lo offre
+  nel foglio Aggiungi.
+
+Chiunque aggiunga una lettura dei tipi di pasto deve scegliere fra le due, e la
+domanda e' sempre la stessa: sto offrendo una scelta o sto disegnando quel che
+c'e' gia'?
+
+**Almeno un pasto resta acceso** (`setMealTypeHidden` lancia): senza, il foglio
+Aggiungi non ha una destinazione. I cinque predefiniti si spengono ma non si
+cancellano - i loro id sono nel seed, nei test e nei tool dell'assistente.
+
 ### Le porzioni nel campo quantita'
 
 `foods.default_serving_g` e' **il numero gia' scritto** quando aggiungi un
