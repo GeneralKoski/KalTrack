@@ -10,7 +10,7 @@ import { Text } from "@/src/components/ui";
 import { FoodListItem } from "@/src/containers/foods/FoodListItem";
 import { OffResultItem } from "@/src/containers/foods/OffResultItem";
 import { useOffSearch } from "@/src/containers/foods/useOffSearch";
-import { createFood, searchFoods, toggleFoodFavorite } from "@/src/db/queries/foods";
+import { createFood, searchMyFoods, toggleFoodFavorite } from "@/src/db/queries/foods";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
@@ -45,7 +45,7 @@ export function FoodsScreen() {
     return () => clearTimeout(timeout);
   }, [term]);
 
-  const loader = useCallback(() => searchFoods(debounced), [debounced]);
+  const loader = useCallback(() => searchMyFoods(debounced), [debounced]);
   const { data, loading, reload } = useFocusData<FoodRow[]>(loader);
 
   // Memoizzato e non `data ?? []` inline: un array nuovo a ogni render
@@ -167,18 +167,20 @@ export function FoodsScreen() {
                 <OffResultItem food={item} onPress={() => onImportOff(item)} />
               )
             }
-            renderSectionHeader={({ section }) => (
-              <View style={styles.sectionHeader}>
-                <Text
-                  style={[styles.sectionTitle, { color: colors.textFaint }]}
-                >
-                  {section.title}
-                </Text>
-                {section.key === "off" && off.loading ? (
-                  <ActivityIndicator size="small" color={colors.textFaint} />
-                ) : null}
-              </View>
-            )}
+            renderSectionHeader={({ section }) =>
+              section.key === "library" ? null : (
+                <View style={styles.sectionHeader}>
+                  <Text
+                    style={[styles.sectionTitle, { color: colors.textFaint }]}
+                  >
+                    {section.title}
+                  </Text>
+                  {off.loading ? (
+                    <ActivityIndicator size="small" color={colors.textFaint} />
+                  ) : null}
+                </View>
+              )
+            }
             contentContainerStyle={[
               styles.list,
               { paddingBottom: fabBottom + SCREEN_FAB_SIZE + theme.spacing.md },

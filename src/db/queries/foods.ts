@@ -31,6 +31,32 @@ export async function searchFoods(
   );
 }
 
+/**
+ * Come `searchFoods`, ma esclude i seed: la libreria diventa "quelli che ho
+ * aggiunto io" (creati a mano, importati dall'archivio o stimati dall'AI),
+ * non i predefiniti dell'app. `searchFoods` resta cosi' com'e' perche' la
+ * usano anche l'assistente e la generazione del piano, che sui seed devono
+ * poter contare.
+ */
+export async function searchMyFoods(
+  term: string,
+  limit = 50,
+): Promise<FoodRow[]> {
+  const db = await getDb();
+  const normalized = normalizeText(term);
+
+  if (normalized === "") {
+    return db.getAllAsync<FoodRow>(
+      `${SELECT_FOOD} AND source != 'seed' ${ORDER}`,
+      [limit],
+    );
+  }
+  return db.getAllAsync<FoodRow>(
+    `${SELECT_FOOD} AND source != 'seed' AND name_norm LIKE ? ${ORDER}`,
+    [`%${normalized}%`, limit],
+  );
+}
+
 export async function getFood(id: string): Promise<FoodRow | null> {
   const db = await getDb();
   return db.getFirstAsync<FoodRow>(`${SELECT_FOOD} AND id = ?`, [id]);
