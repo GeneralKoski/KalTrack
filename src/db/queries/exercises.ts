@@ -122,14 +122,6 @@ export async function setExerciseDislike(
   );
 }
 
-export async function incrementExerciseUsage(id: string): Promise<void> {
-  const db = await getDb();
-  await db.runAsync(
-    "UPDATE exercises SET usage_count = usage_count + 1, updated_at = ? WHERE id = ?",
-    [nowIso(), id],
-  );
-}
-
 export async function setEquipmentAvailability(
   name: Equipment | string,
   available: boolean,

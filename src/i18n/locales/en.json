@@ -1,7 +1,5 @@
 {
-  "loading": "Loading...",
   "general_error": "Something went wrong",
-  "retry": "Retry",
   "cancel": "Cancel",
   "confirm": "Confirm",
   "save": "Save",
@@ -10,11 +8,8 @@
   "close": "Close",
   "search": "Search",
   "send": "Send",
-  "yes": "Yes",
   "no": "No",
   "ok": "Ok",
-  "warning": "Warning",
-  "no_result_found": "No data found",
   "required_field": "Required field",
   "form_missing_fields": "Fill in the highlighted fields",
   "default_input_placeholder": "Type",
@@ -135,7 +130,6 @@
     "title": "Meals",
     "hint": "Turn off the meals you don't use: they disappear from the picker, but the ones already logged stay in the diary.",
     "settings_row": "Meals",
-    "settings_hint": "Which meals you can use",
     "add": "Add meal",
     "new_placeholder": "Meal name",
     "rename": "Rename",
@@ -232,10 +226,8 @@
     "saved": "Targets saved"
   },
   "tracking": {
-    "steps": "Steps",
     "steps_unit": "steps",
-    "weight": "Weight",
-    "not_recorded": "Not recorded"
+    "weight": "Weight"
   },
   "progress": {
     "weight": "Weight",
@@ -243,8 +235,7 @@
     "steps_weekly": "Steps, 14-day average",
     "steps_empty": "No steps recorded",
     "kcal_weekly": "Calories, 14-day average",
-    "kcal_empty": "No meals recorded",
-    "no_data": "No data"
+    "kcal_empty": "No meals recorded"
   },
   "weekly_coach": {
     "title": "Weekly coach",
@@ -574,7 +565,6 @@
   "measurements": {
     "title": "Measurements",
     "unit": "cm",
-    "placeholder": "84.5",
     "sites": {
       "vita": "Waist",
       "fianchi": "Hips",
@@ -588,8 +578,6 @@
     "chart_empty": "You need more than one measurement to see a trend",
     "since_first": "%{delta} cm since your first measurement on %{date}",
     "only_one": "Just one measurement: the difference will show from the next one",
-    "new": "New measurement for today",
-    "today_replace": "You've already logged %{value} cm today: saving replaces it",
     "history": "History",
     "first": "first"
   },
@@ -635,15 +623,8 @@
     "kcal_unknown": "kcal unknown",
     "servings_short": "%{count} srv.",
     "grams_unit": "g",
-    "shopping_list": "Shopping list",
-    "copy_week": "Copy to next week",
-    "copy_week_title": "Copy the week?",
-    "copy_week_message": "Next week's plan will be replaced with this one.",
-    "copy_week_done": "Week copied",
-    "copy_week_empty": "This week has no plan to copy",
     "apply": "Send to diary",
     "apply_title": "Send to diary",
-    "apply_message": "The entries become diary entries. The plan stays where it is, so you can compare it with what you actually ate.",
     "apply_done": {
       "one": "1 entry sent to the diary",
       "other": "%{count} entries sent to the diary"
@@ -670,10 +651,8 @@
     "copy_days_done": "%{count} foods copied successfully",
     "copy_days_empty": "No foods found in the selected days",
     "copy_days_failed": "Copying the plan failed",
-    "copy_week_failed": "Copying the week failed",
     "all_week": "The whole week",
     "current_day": "Current day",
-    "ai_generate": "Generate with AI",
     "ai_generate_title": "Generate plan with AI",
     "ai_generate_action": "Generate plan",
     "ai_generate_done": "%{count} foods added to the plan",
@@ -763,7 +742,6 @@
     "custom_body": "It's time for your reminder!"
   },
   "health_connect": {
-    "section": "Automatic steps",
     "import_steps": "Import steps from Health Connect",
     "manual_wins": "Steps you enter yourself stay as you wrote them: the import only fills in days you left uncovered.",
     "last_sync": "Last sync",

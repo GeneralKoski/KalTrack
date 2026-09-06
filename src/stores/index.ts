@@ -1,1 +1,0 @@
-export { useTranslationStore } from "./translationStore";

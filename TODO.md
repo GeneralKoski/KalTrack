@@ -313,6 +313,24 @@ TypeScript che gira sul dispositivo, come gia' fanno `normalizeQuantities` e
       tutti a sola icona: TalkBack legge una schermata di pulsanti senza nome.
       Ultima priorita' per un'app personale, ma e' l'unica area senza
       copertura.
+- [ ] **Il catalogo alimenti si pubblica ma non si scarica.**
+      `importFoodCatalog` (`src/services/foodCatalog.ts`) e' scritta e non e'
+      chiamata da nessuna schermata. L'equivalente per gli esercizi,
+      `importCatalog`, sta dietro un pulsante in `ExercisesScreen`: per gli
+      alimenti quel pulsante non c'e', quindi le voci comuni escono da questo
+      telefono e non ci rientrano mai. Da cablare in `FoodsScreen` con le
+      stesse chiavi (`gym.imported_none`/`imported_some` hanno bisogno del
+      gemello lato alimenti).
+- [ ] **`usage_count` non la scrive piu' nessuno.** Le tre tabelle che ce
+      l'hanno (`foods`, `recipes`, `exercises`) la dichiarano dalla migrazione
+      1, e `foods` ci tiene sopra pure un indice
+      (`idx_foods_usage`): nessuna query la incrementa. L'ultimo scrittore era
+      `incrementExerciseUsage`, mai chiamato e tolto il 6 settembre 2026. O si
+      cabla l'incremento dove si registra un pasto o un allenamento, o la
+      colonna e il suo indice se ne vanno con una migrazione - ma non prima di
+      aver deciso se l'ordinamento per utilizzi serve davvero (§ Il prezzo del
+      prompt dell'assistente in `CLAUDE.md` spiega perche' `namedList` ordina
+      per id e non per utilizzi).
 - [ ] **Il catalogo non ha moderazione.** Chiunque aggiunge voci all'elenco di
       tutti e ciascuno corregge solo le proprie: un amministratore non puo'
       togliere una voce altrui scritta male. Con un utente solo non e' un

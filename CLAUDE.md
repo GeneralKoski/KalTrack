@@ -717,10 +717,9 @@ qualche pixel piu' in basso dell'icona che le sta accanto. `includeFontPadding:
 false` e' quindi il **default** dei due componenti di `ui/`, applicato prima di
 `style`: chi ha un motivo per rivolere il padding passa
 `includeFontPadding: true`, e nessuno deve piu' rimediarlo per conto proprio.
-Lo era in sei file, cioe' solo dove qualcuno se ne era accorto: il "+" di
-`DfBackButton`, i titoli delle pagine di Impostazioni, quello di
-`DfBottomSheet`, il campo di `SearchBar`. Le etichette dei bottoni no, e si
-vedeva.
+Lo era in sei file, cioe' solo dove qualcuno se ne era accorto: i titoli delle
+pagine di Impostazioni, quello di `DfBottomSheet`, il campo di `SearchBar`. Le
+etichette dei bottoni no, e si vedeva.
 
 `theme.colors.macro` (proteine, carboidrati, grassi) sono token: grafici, barre
 e legende devono usarli per non divergere. L'anello delle calorie e' diviso per

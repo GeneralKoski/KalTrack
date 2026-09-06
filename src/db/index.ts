@@ -44,14 +44,3 @@ export async function initDatabase(): Promise<void> {
   await applySeeds(db);
   await applyExerciseSeeds(db);
 }
-
-export async function closeDb(): Promise<void> {
-  if (!dbPromise) return;
-  const current = dbPromise;
-  dbPromise = null;
-  try {
-    await (await current).closeAsync();
-  } catch (error) {
-    logger.error("[db] errore chiusura", error);
-  }
-}

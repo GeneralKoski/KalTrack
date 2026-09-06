@@ -233,13 +233,6 @@ export function getHealthProvider(): HealthProvider {
   return currentProvider;
 }
 
-/** Sostituisce il provider nei test. Passare null ripristina quello reale. */
-export function __setHealthProviderForTesting(
-  provider: HealthProvider | null,
-): void {
-  currentProvider = provider;
-}
-
 // ─── Impostazioni persistite ─────────────────────────────────────────────────
 
 const ENABLED_KEY = "health.steps_import_enabled";
