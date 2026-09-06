@@ -1,4 +1,5 @@
 import { hasBackend } from "@/src/api/config";
+import { alreadyLogged } from "@/src/api/errors";
 import * as social from "@/src/api/social";
 import { createFood, findFoodByName } from "@/src/db/queries/foods";
 import { normalizeText } from "@/src/domain/text";
@@ -72,7 +73,7 @@ export async function publishFood(input: FoodInput): Promise<void> {
     if (!attivo()) return;
     await social.addCatalogFood(toCatalog(input));
   } catch (error) {
-    logger.warn("[alimenti] non proposto al catalogo", error);
+    if (!alreadyLogged(error)) logger.warn("[alimenti] non proposto al catalogo", error);
   }
 }
 
@@ -101,7 +102,7 @@ export async function updatePublishedFood(
 
     await social.updateCatalogFood(voce.id, toCatalog(input));
   } catch (error) {
-    logger.warn("[alimenti] catalogo non aggiornato", error);
+    if (!alreadyLogged(error)) logger.warn("[alimenti] catalogo non aggiornato", error);
   }
 }
 
@@ -113,7 +114,7 @@ export async function unpublishFood(name: string): Promise<void> {
     const voce = await miaInCatalogo(name);
     if (voce) await social.deleteCatalogFood(voce.id);
   } catch (error) {
-    logger.warn("[alimenti] non tolto dal catalogo", error);
+    if (!alreadyLogged(error)) logger.warn("[alimenti] non tolto dal catalogo", error);
   }
 }
 
@@ -164,7 +165,7 @@ export async function importFoodCatalog(term = ""): Promise<number> {
 
     return aggiunti;
   } catch (error) {
-    logger.warn("[alimenti] catalogo non importato", error);
+    if (!alreadyLogged(error)) logger.warn("[alimenti] catalogo non importato", error);
     return 0;
   }
 }

@@ -1093,3 +1093,37 @@ Svuota **anche le chiamate AI non riuscite**, perche' in Diagnostica i due
 elenchi stanno sotto lo stesso pulsante e uno svuotamento che ne lasciasse uno
 sembrerebbe non aver fatto niente. **Le riuscite restano**: sono il conteggio
 dei consumi degli ultimi sette giorni, non un guasto.
+
+### Come si legge, dal 7 settembre 2026
+
+Tre difetti resi evidenti dal blocco della sincronizzazione del 6 settembre,
+che aveva scritto ventinove righe identiche e una schermata inservibile.
+
+**I guasti uguali si contano, non si elencano** (`groupLogs` in
+`src/domain/logs.ts`). Un gruppo porta `×N` e da quando si ripete. Si raggruppa
+su tutto l'elenco e non solo sulle righe adiacenti: un guasto che torna ogni
+quarto d'ora ha in mezzo tutto il resto, e i vicini non basterebbero a unirne
+due. Il dettaglio tenuto e' quello dell'**ultima** volta, perche' descrive lo
+stato in cui l'app si trova adesso; il file di `shareLogReport` continua a
+portarli tutti.
+
+**Un guasto di rete si scrive una volta sola.** `apiRequest` registra gia'
+metodo, percorso e messaggio del server; il `catch` di chi l'aveva chiamata
+aggiungeva "e' fallito", e ogni errore compariva in coppia - `[api] post
+/sync: ...` seguito da `[sync] giro non riuscito`. Chi non ha niente da
+aggiungere oltre al percorso passa da `alreadyLogged(error)` e sta zitto.
+**Chi cattura anche errori che `apiRequest` non ha visto continua a
+scriverli**, ed e' il motivo per cui la guardia e' una domanda e non una
+rimozione: `photoSync` per esempio nomina il file, che nel percorso non c'e'.
+
+`ApiError` e `alreadyLogged` stanno in `src/api/errors.ts` e non in
+`client.ts`: quel modulo i test lo sostituiscono con `jest.mock` per non
+parlare davvero con la rete, e quel che sta dentro sparisce con lui.
+`client.ts` li ri-esporta, cosi' chi li importava non cambia.
+
+**L'errore di una chiamata AI e' il dettaglio, non il titolo.** Era il titolo,
+troncato a due righe, con `dettaglio` a `null` - quindi la riga non si apriva
+nemmeno, e il corpo della risposta del provider restava illeggibile. Ora il
+titolo e' la capacita' e il dettaglio e' l'errore intero. Le sette capacita'
+di `AiCapability` hanno tutte la loro etichetta: ne mancavano quattro, e per
+quelle si leggeva la chiave grezza.

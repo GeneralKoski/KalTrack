@@ -1,5 +1,6 @@
 import { hasBackend } from "@/src/api/config";
 import { apiRequest } from "@/src/api/client";
+import { alreadyLogged } from "@/src/api/errors";
 import { getDb } from "@/src/db/index";
 import { getSetting, setSetting } from "@/src/db/queries/settings";
 import { useAccountStore } from "@/src/stores/accountStore";
@@ -477,7 +478,9 @@ export async function runSync(): Promise<{
     if (pulled > 0) useSyncStore.getState().bumpRevision();
     return { pushed, pulled };
   } catch (error) {
-    logger.warn("[sync] giro non riuscito", error);
+    // Un errore di rete l'ha gia' scritto `apiRequest`, con metodo e
+    // percorso: "/sync" dice tutto quel che direbbe questa riga.
+    if (!alreadyLogged(error)) logger.warn("[sync] giro non riuscito", error);
     return null;
   } finally {
     running = false;

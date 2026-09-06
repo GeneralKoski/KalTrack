@@ -1,37 +1,10 @@
 import { API_TIMEOUT_MS, API_URL, hasBackend } from "@/src/api/config";
+import { ApiError, BackendNotConfiguredError } from "@/src/api/errors";
 import { logger } from "@/src/utils/logger";
 import axios, { AxiosError, type AxiosInstance } from "axios";
 
-/**
- * L'unica istanza che parla col backend.
- *
- * Bearer e non cookie: siamo su mobile, non c'e' un browser che tenga una
- * sessione. Il token lo fornisce chi chiama `setAuthTokenProvider`, cosi'
- * questo file non dipende dallo store e lo store non dipende da axios.
- */
-export class ApiError extends Error {
-  constructor(
-    message: string,
-    readonly status: number | null,
-    /** Errori di validazione per campo, come li manda Laravel. */
-    readonly errors: Record<string, string[]> = {},
-  ) {
-    super(message);
-    this.name = "ApiError";
-  }
-
-  /** True quando il token non vale piu': chi ascolta deve disconnettere. */
-  get isUnauthenticated(): boolean {
-    return this.status === 401;
-  }
-}
-
-export class BackendNotConfiguredError extends Error {
-  constructor() {
-    super("Nessun indirizzo del backend configurato");
-    this.name = "BackendNotConfiguredError";
-  }
-}
+// Ri-esportati perche' erano dichiarati qui: chi li importava non deve cambiare.
+export { ApiError, BackendNotConfiguredError } from "@/src/api/errors";
 
 type TokenProvider = () => string | null;
 
@@ -54,6 +27,13 @@ export function setLanguageProvider(provider: LanguageProvider): void {
   languageProvider = provider;
 }
 
+/**
+ * L'unica istanza che parla col backend.
+ *
+ * Bearer e non cookie: siamo su mobile, non c'e' un browser che tenga una
+ * sessione. Il token lo fornisce chi chiama `setAuthTokenProvider`, cosi'
+ * questo file non dipende dallo store e lo store non dipende da axios.
+ */
 const instance: AxiosInstance = axios.create({
   timeout: API_TIMEOUT_MS,
   headers: { Accept: "application/json" },

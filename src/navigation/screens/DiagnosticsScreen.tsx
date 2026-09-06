@@ -1,7 +1,7 @@
 import { MissingApiKeyError } from "@/src/ai/errors";
 import { checkModels, type ModelCheck } from "@/src/ai/health";
 import { DfButton } from "@/src/components/form/DfButton";
-import { Card, EmptyState, ScreenBackground, SectionLabel } from "@/src/components/kal";
+import { Card, Chip, EmptyState, ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import {
@@ -13,7 +13,9 @@ import {
   type AppLog,
   type FailedAiCall,
 } from "@/src/db/queries/logs";
+import { groupLogs, type LogGroup } from "@/src/domain/logs";
 import { useAppNav } from "@/src/hooks/useAppNav";
+import { i18n } from "@/src/i18n";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { shareLogReport } from "@/src/services/logExport";
 import { theme } from "@/src/styles";
@@ -27,12 +29,17 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
-/** Data e ora leggibili, senza secondi: la precisione al secondo qui non serve. */
+/**
+ * Data e ora leggibili, senza secondi: la precisione al secondo qui non serve.
+ *
+ * Segue la lingua dell'app e non una fissa: aveva `it-IT` scritto dentro, e
+ * chi usa l'app in inglese leggeva le date in italiano.
+ */
 const quando = (iso: string): string => {
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? iso
-    : d.toLocaleString("it-IT", {
+    : d.toLocaleString(i18n.locale, {
         day: "2-digit",
         month: "2-digit",
         hour: "2-digit",
@@ -65,7 +72,9 @@ const RigaApribile: React.FC<{
   sottotitolo: string;
   dettaglio: string | null;
   colore: string;
-}> = ({ titolo, sottotitolo, dettaglio, colore }) => {
+  /** Quante volte lo stesso guasto: mostrato solo da due in su. */
+  conteggio?: number;
+}> = ({ titolo, sottotitolo, dettaglio, colore, conteggio = 1 }) => {
   const { colors } = useAppTheme();
   const [aperta, setAperta] = useState(false);
 
@@ -79,6 +88,11 @@ const RigaApribile: React.FC<{
         <Text style={[styles.titolo, { color: colors.text }]} numberOfLines={2}>
           {titolo}
         </Text>
+        {conteggio > 1 ? (
+          <View style={[styles.conteggio, { backgroundColor: colore }]}>
+            <Text style={styles.conteggioTesto}>{`\u00d7${conteggio}`}</Text>
+          </View>
+        ) : null}
       </View>
       <Text style={[styles.sottotitolo, { color: colors.textFaint }]}>
         {sottotitolo}
@@ -103,6 +117,9 @@ export function DiagnosticsScreen() {
   const [usage, setUsage] = useState<AiUsage | null>(null);
   const [busy, setBusy] = useState<"share" | "clear" | "models" | null>(null);
   const [checks, setChecks] = useState<ModelCheck[] | null>(null);
+  // I `warn` sono la maggioranza e quasi sempre innocui: chi cerca un guasto
+  // vero vuole poterli togliere di mezzo senza scorrere.
+  const [soloErrori, setSoloErrori] = useState(false);
 
   const ricarica = useCallback(async () => {
     const [righe, chiamate, consumo] = await Promise.all([
@@ -169,6 +186,23 @@ export function DiagnosticsScreen() {
   };
 
   const vuoto = logs.length === 0 && aiCalls.length === 0;
+
+  /*
+   * I guasti uguali si contano invece di elencarli: il blocco della
+   * sincronizzazione ne ha scritti ventinove identici, e per capire che erano
+   * sempre lo stesso bisognava scorrerli tutti.
+   */
+  const gruppi = groupLogs(logs).filter(
+    (gruppo) => !soloErrori || gruppo.level === "error",
+  );
+
+  /** Quando, di chi, e - da due in su - da quando si ripete. */
+  const sottotitolo = (gruppo: LogGroup): string => {
+    const testa = `${quando(gruppo.lastAt)}${gruppo.scope ? ` \u00b7 ${gruppo.scope}` : ""}`;
+    return gruppo.count > 1
+      ? `${testa} \u00b7 ${t("diagnostics.repeated_since", { first: quando(gruppo.firstAt) })}`
+      : testa;
+  };
 
   return (
     <View style={styles.root}>
@@ -311,11 +345,17 @@ export function DiagnosticsScreen() {
                 <>
                   <SectionLabel>{t("diagnostics.ai_section")}</SectionLabel>
                   {aiCalls.map((call) => (
+                    /*
+                      L'errore del provider e' il corpo JSON della risposta:
+                      come titolo veniva troncato a due righe, e con
+                      `dettaglio` a null la riga non si apriva nemmeno. Il dato
+                      c'era in `ai_calls` e la schermata lo riseppelliva.
+                    */
                     <RigaApribile
                       key={call.id}
-                      titolo={call.error ?? t("diagnostics.no_message")}
-                      sottotitolo={`${quando(call.createdAt)} · ${call.capability} · ${call.model}`}
-                      dettaglio={null}
+                      titolo={t(`diagnostics.capability.${call.capability}`)}
+                      sottotitolo={`${quando(call.createdAt)} \u00b7 ${call.model}`}
+                      dettaglio={call.error ?? t("diagnostics.no_message")}
                       colore={theme.colors.error}
                     />
                   ))}
@@ -327,15 +367,38 @@ export function DiagnosticsScreen() {
                   <SectionLabel style={styles.section}>
                     {t("diagnostics.log_section")}
                   </SectionLabel>
-                  {logs.map((log) => (
-                    <RigaApribile
-                      key={log.id}
-                      titolo={log.message}
-                      sottotitolo={`${quando(log.createdAt)}${log.scope ? ` · ${log.scope}` : ""}`}
-                      dettaglio={log.detail}
-                      colore={log.level === "error" ? theme.colors.error : theme.colors.warning}
+                  <View style={styles.filtri}>
+                    <Chip
+                      label={t("diagnostics.filter_all")}
+                      active={!soloErrori}
+                      onPress={() => setSoloErrori(false)}
                     />
-                  ))}
+                    <Chip
+                      label={t("diagnostics.filter_errors")}
+                      active={soloErrori}
+                      onPress={() => setSoloErrori(true)}
+                    />
+                  </View>
+                  {gruppi.length === 0 ? (
+                    <Text style={[styles.explain, { color: colors.textFaint }]}>
+                      {t("diagnostics.no_errors")}
+                    </Text>
+                  ) : (
+                    gruppi.map((gruppo) => (
+                      <RigaApribile
+                        key={gruppo.key}
+                        titolo={gruppo.message}
+                        sottotitolo={sottotitolo(gruppo)}
+                        conteggio={gruppo.count}
+                        dettaglio={gruppo.detail}
+                        colore={
+                          gruppo.level === "error"
+                            ? theme.colors.error
+                            : theme.colors.warning
+                        }
+                      />
+                    ))
+                  )}
                 </>
               ) : null}
             </>
@@ -373,6 +436,19 @@ const styles = StyleSheet.create({
   pallino: { width: 8, height: 8, borderRadius: 4 },
   titolo: { flex: 1, fontSize: 14, fontWeight: "600" },
   sottotitolo: { fontSize: 12 },
+  conteggio: {
+    minWidth: 26,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: theme.radius.full,
+    alignItems: "center",
+  },
+  conteggioTesto: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: theme.colors.white,
+  },
+  filtri: { flexDirection: "row", gap: theme.spacing.xs },
   dettaglio: { fontSize: 12, lineHeight: 17, marginTop: 4 },
   azioni: { flexDirection: "row", gap: theme.spacing.sm },
   // Tre larghezze uguali: con la larghezza dettata dal testo "Svuota" restava

@@ -1,4 +1,5 @@
 import { hasBackend } from "@/src/api/config";
+import { alreadyLogged } from "@/src/api/errors";
 import * as social from "@/src/api/social";
 import {
   createExercise,
@@ -96,7 +97,7 @@ export async function publishToCatalog(input: {
       equipment: equipmentToString(input.equipment),
     });
   } catch (error) {
-    logger.warn("[palestra] esercizio non proposto al catalogo", error);
+    if (!alreadyLogged(error)) logger.warn("[palestra] esercizio non proposto al catalogo", error);
   }
 }
 
@@ -135,7 +136,7 @@ export async function updatePublishedExercise(
 
     await social.updateCatalogExercise(voce.id, payload);
   } catch (error) {
-    logger.warn("[palestra] catalogo non aggiornato", error);
+    if (!alreadyLogged(error)) logger.warn("[palestra] catalogo non aggiornato", error);
   }
 }
 
@@ -148,7 +149,7 @@ export async function unpublishExercise(name: string): Promise<void> {
     const voce = await miaInCatalogo(name);
     if (voce) await social.deleteCatalogExercise(voce.id);
   } catch (error) {
-    logger.warn("[palestra] non tolto dal catalogo", error);
+    if (!alreadyLogged(error)) logger.warn("[palestra] non tolto dal catalogo", error);
   }
 }
 
@@ -199,7 +200,7 @@ export async function importCatalog(term = ""): Promise<number> {
 
     return aggiunti;
   } catch (error) {
-    logger.warn("[palestra] catalogo non importato", error);
+    if (!alreadyLogged(error)) logger.warn("[palestra] catalogo non importato", error);
     return 0;
   }
 }

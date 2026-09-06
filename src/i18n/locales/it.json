@@ -911,8 +911,16 @@
     "capability": {
       "transcription": "Trascrizione",
       "assistant": "Assistente",
-      "vision": "Foto"
-    }
+      "vision": "Foto",
+      "food_estimate": "Stima da foto",
+      "exercise_alternatives": "Alternative esercizio",
+      "routine_generation": "Generazione scheda",
+      "meal_plan_generation": "Generazione piano"
+    },
+    "repeated_since": "la prima alle %{first}",
+    "filter_all": "Tutto",
+    "filter_errors": "Solo errori",
+    "no_errors": "Nessun errore: solo avvisi."
   },
   "photo_entry": {
     "from_camera": "Scatta una foto",

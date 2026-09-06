@@ -1,4 +1,5 @@
 import { hasBackend } from "@/src/api/config";
+import { alreadyLogged } from "@/src/api/errors";
 import * as social from "@/src/api/social";
 import { getDayDiary } from "@/src/db/queries/diary";
 import { getSteps, getWeight } from "@/src/db/queries/tracking";
@@ -163,7 +164,9 @@ export async function syncSharedStats(): Promise<number | null> {
 
     return synced;
   } catch (error) {
-    logger.warn("[social] pubblicazione dei totali non riuscita", error);
+    if (!alreadyLogged(error)) {
+      logger.warn("[social] pubblicazione dei totali non riuscita", error);
+    }
     return null;
   }
 }
