@@ -1,19 +1,14 @@
 import { DfAlert } from "@/src/components/DfAlert";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text, TextInput } from "@/src/components/ui";
-import { FoodFacts } from "@/src/containers/foods/FoodFacts";
-import {
-  activeMultiplier,
-  formatGrams,
-  SERVING_MULTIPLIERS,
-  servingGrams,
-} from "@/src/domain/serving";
+import { FoodThumb, MacroTriple } from "@/src/containers/foods/FoodFacts";
+import { formatGrams } from "@/src/domain/serving";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import type { FoodRow } from "@/src/types/nutrition";
 import { sanitizeDecimalInput } from "@/src/utils/utils";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 interface QuantityPromptProps {
   isOpen: boolean;
@@ -21,14 +16,6 @@ interface QuantityPromptProps {
   /** "g" per un alimento, "porzioni" per una ricetta annidata. */
   unit: string;
   initialValue: number;
-  /**
-   * La porzione dell'alimento, quando ne ha una: apre le scorciatoie.
-   *
-   * Solo per gli alimenti. Per una ricetta il valore e' GIA' in porzioni, e
-   * delle scorciatoie "porzione" sarebbero un moltiplicatore di un
-   * moltiplicatore.
-   */
-  serving?: { grams: number; label: string | null } | null;
   /**
    * L'alimento che si sta pesando, quando e' un alimento.
    *
@@ -41,20 +28,25 @@ interface QuantityPromptProps {
   onClose: () => void;
 }
 
-/** Come si scrive mezza porzione: "1/2" e non "0,5". */
-const MULTIPLIER_LABEL: Record<string, string> = {
-  "0.5": "\u00bd",
-};
-
-const multiplierLabel = (multiplier: number): string =>
-  MULTIPLIER_LABEL[String(multiplier)] ?? String(multiplier);
-
+/**
+ * Quanto se ne prende.
+ *
+ * Un numero solo si scrive, e uno solo si legge: sopra il campo c'e' cosa si
+ * sta pesando (foto, marca, il riferimento per cento), sotto quel che ne viene
+ * fuori. I valori per cento e quelli della quantita' scritta stavano tutti e
+ * due nel corpo della finestra, in due riquadri distinti, e a colpo d'occhio
+ * non si sapeva quale delle due basi si stesse guardando.
+ *
+ * **La grammatura si scrive e basta.** Sotto il campo c'erano quattro
+ * scorciatoie (1/2, 1, 2, 3) che moltiplicavano la porzione dell'alimento: la
+ * porzione resta scritta sopra come promemoria - e resta il numero gia' nel
+ * campo all'apertura - ma i grammi si digitano.
+ */
 export const QuantityPrompt: React.FC<QuantityPromptProps> = ({
   isOpen,
   title,
   unit,
   initialValue,
-  serving = null,
   food = null,
   onConfirm,
   onClose,
@@ -69,9 +61,18 @@ export const QuantityPrompt: React.FC<QuantityPromptProps> = ({
 
   const parsed = Number(text.replace(",", "."));
   const valid = Number.isFinite(parsed) && parsed > 0;
+  /** Quanto vale il campo per chi disegna: un campo vuoto e' zero, non nulla. */
+  const quantity = valid ? parsed : 0;
 
-  const servingG = serving?.grams ?? 0;
-  const attivo = valid ? activeMultiplier(parsed, servingG) : null;
+  /** La porzione dell'alimento, scritta per esteso: e' un promemoria, non un
+      bottone. */
+  const servingHint = food?.default_serving_g
+    ? food.serving_label?.trim()
+      ? food.serving_label
+      : t("quantity.serving_is", {
+          grams: formatGrams(food.default_serving_g),
+        })
+    : null;
 
   return (
     <DfAlert
@@ -82,8 +83,32 @@ export const QuantityPrompt: React.FC<QuantityPromptProps> = ({
       onClose={onClose}
     >
       {food ? (
-        <View style={styles.facts}>
-          <FoodFacts food={food} compact />
+        <View style={styles.head}>
+          <FoodThumb food={food} size={44} />
+          <View style={styles.headText}>
+            {food.brand ? (
+              <Text
+                style={[styles.brand, { color: colors.textMuted }]}
+                numberOfLines={1}
+              >
+                {food.brand}
+              </Text>
+            ) : null}
+            <Text style={[styles.reference, { color: colors.textSecondary }]}>
+              {t("quantity.reference", {
+                kcal: Math.round(food.kcal),
+                unit: food.is_liquid === 1 ? "ml" : "g",
+              })}
+            </Text>
+            {servingHint ? (
+              <Text
+                style={[styles.reference, { color: colors.textFaint }]}
+                numberOfLines={1}
+              >
+                {servingHint}
+              </Text>
+            ) : null}
+          </View>
         </View>
       ) : null}
 
@@ -103,67 +128,21 @@ export const QuantityPrompt: React.FC<QuantityPromptProps> = ({
         <Text style={[styles.unit, { color: colors.textMuted }]}>{unit}</Text>
       </View>
 
-      {food && valid ? (
-        <View
-          style={[
-            styles.scaledBox,
-            {
-              backgroundColor: colors.surfaceMuted,
-              borderColor: colors.border,
-            },
-          ]}
-        >
+      {/*
+        A campo vuoto i numeri vanno a zero, non via: il blocco che sparisce
+        fa saltare l'altezza della finestra mentre si cancella per riscrivere,
+        e i bottoni si spostano sotto il dito.
+      */}
+      {food ? (
+        <View style={styles.scaled}>
           <Text style={[styles.scaledKcal, { color: colors.text }]}>
-            {Math.round((food.kcal * parsed) / 100)} kcal
+            {Math.round((food.kcal * quantity) / 100)} kcal
           </Text>
-          <Text style={[styles.scaledMacros, { color: colors.textMuted }]}>
-            P {formatGrams((food.protein * parsed) / 100)}g • C{" "}
-            {formatGrams((food.carbs * parsed) / 100)}g • G{" "}
-            {formatGrams((food.fat * parsed) / 100)}g
-          </Text>
-        </View>
-      ) : null}
-
-      {servingG > 0 ? (
-        <View style={styles.serving}>
-          <Text style={[styles.servingHint, { color: colors.textMuted }]}>
-            {serving?.label?.trim()
-              ? serving.label
-              : t("quantity.serving_is", { grams: formatGrams(servingG) })}
-          </Text>
-
-          <View style={styles.chips}>
-            {SERVING_MULTIPLIERS.map((multiplier) => {
-              const selected = attivo === multiplier;
-              return (
-                <TouchableOpacity
-                  key={multiplier}
-                  onPress={() =>
-                    setText(formatGrams(servingGrams(servingG, multiplier)))
-                  }
-                  activeOpacity={0.6}
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: selected
-                        ? colors.accent
-                        : colors.surfaceMuted,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.chipLabel,
-                      { color: selected ? colors.accentOn : colors.textMuted },
-                    ]}
-                  >
-                    {multiplierLabel(multiplier)}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          <MacroTriple
+            protein={(food.protein * quantity) / 100}
+            carbs={(food.carbs * quantity) / 100}
+            fat={(food.fat * quantity) / 100}
+          />
         </View>
       ) : null}
     </DfAlert>
@@ -171,7 +150,15 @@ export const QuantityPrompt: React.FC<QuantityPromptProps> = ({
 };
 
 const styles = StyleSheet.create({
-  facts: { marginBottom: theme.spacing.md },
+  head: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
+  },
+  headText: { flex: 1 },
+  brand: { fontSize: 13 },
+  reference: { fontSize: 12 },
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -190,36 +177,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     minWidth: 64,
   },
-  serving: {
+  scaled: {
     marginTop: theme.spacing.md,
-    gap: theme.spacing.sm,
     alignItems: "center",
+    gap: theme.spacing.xs,
   },
-  servingHint: { fontSize: 12 },
-  chips: { flexDirection: "row", gap: theme.spacing.sm },
-  chip: {
-    borderWidth: 1,
-    borderRadius: theme.radius.lg,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs,
-    minWidth: 52,
-    alignItems: "center",
-  },
-  chipLabel: { fontSize: 15, fontWeight: "700" },
-  scaledBox: {
-    marginTop: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs,
-    paddingHorizontal: theme.spacing.sm,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    alignItems: "center",
-    gap: 2,
-  },
-  scaledKcal: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  scaledMacros: {
-    fontSize: 12,
-  },
+  scaledKcal: { fontSize: 20, fontWeight: "700" },
 });

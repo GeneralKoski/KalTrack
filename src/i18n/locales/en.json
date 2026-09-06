@@ -921,7 +921,8 @@
     "failed": "I couldn't read the photo"
   },
   "quantity": {
-    "serving_is": "One serving = %{grams} g"
+    "serving_is": "One serving = %{grams} g",
+    "reference": "%{kcal} kcal / 100 %{unit}"
   },
   "exit_app_confirm": "Quit",
   "password_show": "Show password",

@@ -945,7 +945,8 @@
     "failed": "Non sono riuscito a leggere la foto"
   },
   "quantity": {
-    "serving_is": "Una porzione = %{grams} g"
+    "serving_is": "Una porzione = %{grams} g",
+    "reference": "%{kcal} kcal / 100 %{unit}"
   },
   "exit_app_confirm": "Esci",
   "password_show": "Mostra la password",

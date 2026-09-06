@@ -294,18 +294,29 @@ La seconda esisteva dalla migrazione 1, con una cinquantina di frasi nei seed, e
 non era mostrata da nessuna parte: rispondeva alla domanda che ti fai mentre
 digiti i grammi, e mancava nell'unico momento utile.
 
-Sotto il campo ci sono quattro scorciatoie (1/2, 1, 2, 3) che **scrivono nel
-campo**, non sono una modalita': non esiste uno stato "porzioni" che possa
-discordare da quel che c'e' scritto, e digitando 180 a mano nessuna si accende -
-180 non e' un numero di vasetti (`activeMultiplier` torna `null`, ed e' la
-risposta giusta il piu' delle volte).
+**La quantita' si digita, e basta.** Sotto il campo c'erano quattro scorciatoie
+(1/2, 1, 2, 3) che moltiplicavano la porzione scrivendo nel campo; sono state
+tolte il 5 settembre 2026, e con loro `SERVING_MULTIPLIERS`, `servingGrams` e
+`activeMultiplier` in `src/domain/serving.ts` e la prop `serving` di
+`QuantityPrompt`. Restano `formatGrams` e `toGrams`, che li' non c'entravano.
+
+Quel che la porzione fa e' rimasto: riempie il campo all'apertura
+(`initialValue`) e sta scritta sopra come promemoria. Non decide piu' niente
+altro.
 
 Il calcolo dai valori per 100 g avviene **sempre**, porzione o no: la porzione
 decide solo da quale numero parti.
 
-Non compaiono per le ricette - li' il valore e' gia' in porzioni - ne'
-modificando una voce gia' nel diario, che porta la quantita' e non la porzione
-dell'alimento da cui e' nata.
+**I valori della quantita' scritta non spariscono a campo vuoto**, vanno a
+zero. Il blocco che si smontava faceva accorciare la finestra mentre si
+cancellava per riscrivere, e i bottoni Annulla/Conferma salivano sotto il dito.
+
+Il pannello per cento grammi (`FoodFacts`) **non** sta in questa finestra: due
+basi di lettura vicine - per 100 g e per la quantita' scritta - e non si sapeva
+piu' quale si stesse guardando. Resta nel dialogo Info dell'elenco alimenti, che
+e' il posto dove quella domanda te la fai davvero. Dentro `FoodFacts.tsx`
+`FoodThumb` e `MacroTriple` sono esportati apposta perche' la finestra dei
+grammi li riusi senza ridisegnarli.
 
 ### Sincronizzazione
 

@@ -11,27 +11,55 @@ import { StyleSheet, View } from "react-native";
 
 interface FoodFactsProps {
   food: FoodRow;
-  /** Compatto: foto piccola e i soli quattro numeri che si guardano sempre. */
-  compact?: boolean;
 }
 
 /**
- * Cosa c'e' dentro un alimento, per cento grammi.
+ * La foto dell'alimento, o il segnaposto quando non ce n'e' una.
  *
- * Serve in due posti - l'elenco da cui si sceglie e la finestra in cui si
- * scrivono i grammi - e per questo e' un componente e non due blocchi di JSX:
- * due copie degli stessi numeri divergono al primo campo aggiunto.
- *
- * I valori sono SEMPRE per cento: quelli della quantita' scelta si vedono un
- * momento dopo nel diario, e mescolare le due basi qui vorrebbe dire non
- * sapere piu' quale delle due si sta leggendo.
+ * Esce da qui perche' la usa anche la finestra dei grammi, che il resto del
+ * pannello non lo mostra piu'.
  */
-export const FoodFacts: React.FC<FoodFactsProps> = ({ food, compact }) => {
-  const { t } = useTranslation();
+export const FoodThumb: React.FC<{ food: FoodRow; size: number }> = ({
+  food,
+  size,
+}) => {
   const { colors } = useAppTheme();
 
-  const unit = food.is_liquid === 1 ? "ml" : "g";
-  const photoSize = compact ? 44 : 88;
+  if (food.image_uri) {
+    return (
+      <SyncedPhoto
+        uri={food.image_uri}
+        style={{ width: size, height: size, borderRadius: theme.radius.lg }}
+      />
+    );
+  }
+
+  return (
+    <View
+      style={[
+        styles.photoEmpty,
+        { width: size, height: size, backgroundColor: colors.surfaceMuted },
+      ]}
+    >
+      <Salad size={size < 60 ? 20 : 32} color={colors.textFaint} />
+    </View>
+  );
+};
+
+/**
+ * I tre macro con il loro pallino colorato.
+ *
+ * Anche questi servono in due posti - qui per cento grammi, nella finestra dei
+ * grammi per la quantita' scritta - e per questo prendono i valori gia'
+ * calcolati invece dell'alimento: chi li disegna decide su quale base stanno.
+ */
+export const MacroTriple: React.FC<{
+  protein: number;
+  carbs: number;
+  fat: number;
+}> = ({ protein, carbs, fat }) => {
+  const { t } = useTranslation();
+  const { colors } = useAppTheme();
 
   const macro = (label: string, value: number, color: string) => (
     <View style={styles.macro}>
@@ -47,6 +75,29 @@ export const FoodFacts: React.FC<FoodFactsProps> = ({ food, compact }) => {
       </Text>
     </View>
   );
+
+  return (
+    <View style={styles.macros}>
+      {macro(t("diary.protein_short"), protein, theme.colors.macroProtein)}
+      {macro(t("diary.carbs_short"), carbs, theme.colors.macroCarbs)}
+      {macro(t("diary.fat_short"), fat, theme.colors.macroFat)}
+    </View>
+  );
+};
+
+/**
+ * Cosa c'e' dentro un alimento, per cento grammi.
+ *
+ * I valori sono SEMPRE per cento, ed e' la ragione per cui questo pannello non
+ * sta piu' nella finestra dei grammi: li' accanto ai valori della quantita'
+ * scritta erano due basi di lettura vicine, e non si sapeva piu' quale si
+ * stesse leggendo.
+ */
+export const FoodFacts: React.FC<FoodFactsProps> = ({ food }) => {
+  const { t } = useTranslation();
+  const { colors } = useAppTheme();
+
+  const unit = food.is_liquid === 1 ? "ml" : "g";
 
   const minor = (label: string, value: number) => (
     <View style={styles.minorRow}>
@@ -65,29 +116,7 @@ export const FoodFacts: React.FC<FoodFactsProps> = ({ food, compact }) => {
   return (
     <View style={styles.root}>
       <View style={styles.head}>
-        {food.image_uri ? (
-          <SyncedPhoto
-            uri={food.image_uri}
-            style={{
-              width: photoSize,
-              height: photoSize,
-              borderRadius: theme.radius.lg,
-            }}
-          />
-        ) : (
-          <View
-            style={[
-              styles.photoEmpty,
-              {
-                width: photoSize,
-                height: photoSize,
-                backgroundColor: colors.surfaceMuted,
-              },
-            ]}
-          >
-            <Salad size={compact ? 20 : 32} color={colors.textFaint} />
-          </View>
-        )}
+        <FoodThumb food={food} size={88} />
 
         {/* Il nome NON si ripete qui: chi mostra questo pannello lo ha già
             scritto sopra - il titolo della finestra o la riga scelta. */}
@@ -121,26 +150,14 @@ export const FoodFacts: React.FC<FoodFactsProps> = ({ food, compact }) => {
         </View>
       </View>
 
-      <View style={styles.macros}>
-        {macro(
-          t("diary.protein_short"),
-          food.protein,
-          theme.colors.macroProtein,
-        )}
-        {macro(t("diary.carbs_short"), food.carbs, theme.colors.macroCarbs)}
-        {macro(t("diary.fat_short"), food.fat, theme.colors.macroFat)}
-      </View>
+      <MacroTriple protein={food.protein} carbs={food.carbs} fat={food.fat} />
 
-      {/* Il resto solo per esteso: in un elenco sarebbero otto numeri per
-          riga, e nessuno li legge. */}
-      {!compact ? (
-        <View style={[styles.minor, { borderTopColor: colors.border }]}>
-          {minor(t("foods.sugars_short"), food.sugars)}
-          {minor(t("foods.saturated_fat_short"), food.saturated_fat)}
-          {minor(t("foods.fiber_short"), food.fiber)}
-          {minor(t("foods.salt_short"), food.salt)}
-        </View>
-      ) : null}
+      <View style={[styles.minor, { borderTopColor: colors.border }]}>
+        {minor(t("foods.sugars_short"), food.sugars)}
+        {minor(t("foods.saturated_fat_short"), food.saturated_fat)}
+        {minor(t("foods.fiber_short"), food.fiber)}
+        {minor(t("foods.salt_short"), food.salt)}
+      </View>
     </View>
   );
 };
