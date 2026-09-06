@@ -19,6 +19,22 @@ const parseDate = (date: Date | string): Date | null => {
 };
 
 /**
+ * Data ISO -> "gio 28 ago", per riconoscere una giornata a colpo d'occhio.
+ *
+ * Segue la lingua dell'app e non una fissa: stava in `GymScreen` con `it-IT`
+ * scritto dentro, e il secondo chiamante avrebbe copiato anche quello.
+ */
+export const formatShortDate = (iso: string): string => {
+  const [year, month, day] = iso.split("-").map(Number);
+  if (!year || !month || !day) return iso;
+  return new Date(year, month - 1, day).toLocaleDateString(getLocale(), {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+};
+
+/**
  * Formatta una data in formato locale breve (DD/MM/YYYY)
  */
 export const formatDate = (date?: Date | string) => {

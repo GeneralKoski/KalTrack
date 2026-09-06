@@ -477,6 +477,126 @@ export async function recentSessions(limit = 5): Promise<RecentSession[]> {
   );
 }
 
+/** Una serie svolta, come si rilegge dopo: niente da modificare. */
+export interface SessionSetDetail {
+  setIndex: number;
+  reps: number | null;
+  weight: number | null;
+  rpe: number | null;
+  isWarmup: boolean;
+}
+
+export interface SessionExerciseDetail {
+  exerciseId: string;
+  name: string;
+  sets: SessionSetDetail[];
+}
+
+export interface SessionDetail {
+  id: string;
+  date: string;
+  dayName: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  notes: string | null;
+  /** Serie di lavoro: gli stessi numeri che l'elenco mostra sulla card. */
+  workingSets: number;
+  volumeKg: number;
+  /** Gli esercizi nell'ordine in cui sono stati fatti, non alfabetico. */
+  exercises: SessionExerciseDetail[];
+}
+
+/**
+ * Un allenamento passato, per rileggerlo serie per serie.
+ *
+ * Due cose che lo distinguono dalle letture aggregate qui sopra:
+ *
+ * - **i riscaldamenti ci sono**, marcati. Altrove sono esclusi sistematicamente
+ *   perche' falserebbero un calcolo (volume, massimale, confronto); qui non si
+ *   calcola niente, si racconta cos'e' successo, e una sessione che comincia
+ *   con tre serie leggere le ha fatte davvero. Nei totali pero' non entrano,
+ *   o non combacerebbero con quelli della card.
+ * - **l'esercizio non e' filtrato per `deleted_at`**. E' la stessa regola dei
+ *   tipi di pasto in `getDayDiary`: quel che si e' fatto resta scritto col suo
+ *   nome, e togliere un esercizio dall'elenco non deve svuotare gli
+ *   allenamenti in cui compare.
+ */
+export async function sessionDetail(id: string): Promise<SessionDetail | null> {
+  const db = await getDb();
+
+  const head = await db.getFirstAsync<{
+    id: string;
+    date: string;
+    dayName: string | null;
+    startedAt: string | null;
+    endedAt: string | null;
+    notes: string | null;
+  }>(
+    `SELECT w.id,
+            w.date,
+            d.name AS dayName,
+            w.started_at AS startedAt,
+            w.ended_at AS endedAt,
+            w.notes
+       FROM workout_sessions w
+       LEFT JOIN routine_days d
+         ON d.id = w.routine_day_id AND d.deleted_at IS NULL
+      WHERE w.id = ? AND w.deleted_at IS NULL`,
+    [id],
+  );
+  if (!head) return null;
+
+  const rows = await db.getAllAsync<{
+    exerciseId: string;
+    name: string;
+    setIndex: number;
+    reps: number | null;
+    weight: number | null;
+    rpe: number | null;
+    isWarmup: number;
+  }>(
+    `SELECT s.exercise_id AS exerciseId,
+            e.name,
+            s.set_index AS setIndex,
+            s.reps,
+            s.weight,
+            s.rpe,
+            s.is_warmup AS isWarmup
+       FROM session_sets s
+       JOIN exercises e ON e.id = s.exercise_id
+      WHERE s.workout_session_id = ? AND s.deleted_at IS NULL
+      ORDER BY s.done_at ASC, s.set_index ASC`,
+    [id],
+  );
+
+  const exercises: SessionExerciseDetail[] = [];
+  const byExercise = new Map<string, SessionExerciseDetail>();
+  let workingSets = 0;
+  let volumeKg = 0;
+
+  for (const row of rows) {
+    let group = byExercise.get(row.exerciseId);
+    if (!group) {
+      group = { exerciseId: row.exerciseId, name: row.name, sets: [] };
+      byExercise.set(row.exerciseId, group);
+      exercises.push(group);
+    }
+    const isWarmup = row.isWarmup === 1;
+    group.sets.push({
+      setIndex: row.setIndex,
+      reps: row.reps,
+      weight: row.weight,
+      rpe: row.rpe,
+      isWarmup,
+    });
+    if (isWarmup) continue;
+    workingSets++;
+    volumeKg += (row.weight ?? 0) * (row.reps ?? 0);
+  }
+
+  return { ...head, workingSets, volumeKg, exercises };
+}
+
 /** Un esercizio di un giorno, gia' aggregato per essere condiviso. */
 export interface DailyExerciseSummary {
   name: string;

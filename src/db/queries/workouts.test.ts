@@ -1,12 +1,13 @@
 import { createTestDb } from "@/src/db/__testing__/betterSqliteAdapter";
 import { __setDbForTesting } from "@/src/db/index";
 import { runMigrations } from "@/src/db/migrations";
-import { createExercise } from "@/src/db/queries/exercises";
+import { createExercise, deleteExercise } from "@/src/db/queries/exercises";
 import {
   activateRoutine,
   endSession,
   createRoutine,
   dailyExerciseSummary,
+  deleteSession,
   exerciseSummaryInRange,
   sessionCountInRange,
   getActiveRoutine,
@@ -17,6 +18,7 @@ import {
   logSet,
   personalBest,
   recentSessions,
+  sessionDetail,
   startSession,
   updateRoutine,
 } from "@/src/db/queries/workouts";
@@ -521,3 +523,88 @@ describe("sessionCountInRange", () => {
     expect(await sessionCountInRange("2026-08-24", "2026-08-30")).toBe(0);
   });
 });
+
+describe("sessionDetail", () => {
+  it("raggruppa le serie per esercizio, nell'ordine in cui sono state fatte", async () => {
+    const id = await startSession({ date: "2026-09-06" });
+    await logSet({ sessionId: id, exerciseId: squatId, setIndex: 0, reps: 5, weight: 100 });
+    await logSet({ sessionId: id, exerciseId: benchId, setIndex: 0, reps: 10, weight: 60 });
+    await logSet({ sessionId: id, exerciseId: squatId, setIndex: 1, reps: 5, weight: 100 });
+
+    const detail = await sessionDetail(id);
+    expect(detail?.exercises.map((e) => e.name)).toEqual(["Squat", "Panca piana"]);
+    expect(detail?.exercises[0].sets).toHaveLength(2);
+    expect(detail?.exercises[0].sets[0].weight).toBe(100);
+    expect(detail?.workingSets).toBe(3);
+    expect(detail?.volumeKg).toBe(1600);
+  });
+
+  it("mostra i riscaldamenti ma non li conta nei totali", async () => {
+    const id = await startSession({ date: "2026-09-06" });
+    await logSet({ sessionId: id, exerciseId: benchId, setIndex: 0, reps: 12, weight: 20, isWarmup: true });
+    await logSet({ sessionId: id, exerciseId: benchId, setIndex: 1, reps: 10, weight: 60 });
+
+    const detail = await sessionDetail(id);
+    expect(detail?.exercises[0].sets).toHaveLength(2);
+    expect(detail?.exercises[0].sets[0].isWarmup).toBe(true);
+    // 12x20 = 240 kg che non entrano nel volume, e una serie che non conta.
+    expect(detail?.workingSets).toBe(1);
+    expect(detail?.volumeKg).toBe(600);
+  });
+
+  /**
+   * Stessa regola dei tipi di pasto in `getDayDiary`: quel che si e' fatto
+   * resta scritto col suo nome, e cancellare un esercizio dall'elenco non deve
+   * svuotare gli allenamenti in cui compare.
+   */
+  it("conserva il nome di un esercizio cancellato", async () => {
+    const id = await startSession({ date: "2026-09-06" });
+    await logSet({ sessionId: id, exerciseId: benchId, setIndex: 0, reps: 10, weight: 60 });
+    await deleteExercise(benchId);
+
+    const detail = await sessionDetail(id);
+    expect(detail?.exercises.map((e) => e.name)).toEqual(["Panca piana"]);
+  });
+
+  it("salta le serie cancellate", async () => {
+    const id = await startSession({ date: "2026-09-06" });
+    const setId = await logSet({ sessionId: id, exerciseId: benchId, setIndex: 0, reps: 10, weight: 60 });
+    await logSet({ sessionId: id, exerciseId: benchId, setIndex: 1, reps: 9, weight: 60 });
+    await db.runAsync("UPDATE session_sets SET deleted_at = ? WHERE id = ?", [
+      "2026-09-06T10:00:00.000Z",
+      setId,
+    ]);
+
+    const detail = await sessionDetail(id);
+    expect(detail?.exercises[0].sets).toHaveLength(1);
+    expect(detail?.workingSets).toBe(1);
+  });
+
+  it("una sessione senza serie esiste, con l'elenco vuoto", async () => {
+    const id = await startSession({ date: "2026-09-06" });
+
+    const detail = await sessionDetail(id);
+    expect(detail?.exercises).toEqual([]);
+    expect(detail?.workingSets).toBe(0);
+    expect(detail?.volumeKg).toBe(0);
+  });
+
+  it("porta il nome del giorno di scheda quando la sessione lo segue", async () => {
+    await createRoutine(pushDay());
+    const routines = await listRoutines();
+    await activateRoutine(routines[0].id);
+    const days = await listRoutineDays(routines[0].id);
+    const id = await startSession({ date: "2026-09-06", routineDayId: days[0].id });
+
+    expect((await sessionDetail(id))?.dayName).toBe("Push A");
+  });
+
+  it("una sessione cancellata o inesistente e' null", async () => {
+    const id = await startSession({ date: "2026-09-06" });
+    await deleteSession(id);
+
+    expect(await sessionDetail(id)).toBeNull();
+    expect(await sessionDetail("non-esiste")).toBeNull();
+  });
+});
+

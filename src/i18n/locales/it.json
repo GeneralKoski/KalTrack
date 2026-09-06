@@ -468,7 +468,12 @@
     "no_secondary_selected": "Nessuno",
     "no_equipment_selected": "Nessuna",
     "exercise_not_found": "Esercizio non trovato",
-    "photo_label": "Foto"
+    "photo_label": "Foto",
+    "session_not_found": "Allenamento non trovato.",
+    "session_no_sets": "Nessuna serie registrata in questo allenamento.",
+    "session_notes": "Note",
+    "session_duration": "%{minutes} min",
+    "warmup": "Riscaldamento"
   },
   "assistant": {
     "open": "Parla con l'assistente",

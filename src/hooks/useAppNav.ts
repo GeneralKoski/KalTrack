@@ -48,6 +48,8 @@ export interface NavParams {
   RoutineForm: { id?: string; generatedRoutine?: RoutineInput };
   GenerateRoutine: undefined;
   Session: { routineId: string; dayIndex: number };
+  /** Un allenamento gia' fatto, in sola lettura. */
+  SessionDetail: { id: string };
   Achievements: undefined;
   Friends: undefined;
   FriendProfile: { handle: string };

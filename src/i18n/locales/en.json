@@ -445,7 +445,12 @@
     "no_secondary_selected": "None",
     "no_equipment_selected": "None",
     "exercise_not_found": "Exercise not found",
-    "photo_label": "Photo"
+    "photo_label": "Photo",
+    "session_not_found": "Workout not found.",
+    "session_no_sets": "No sets recorded in this workout.",
+    "session_notes": "Notes",
+    "session_duration": "%{minutes} min",
+    "warmup": "Warm-up"
   },
   "assistant": {
     "open": "Talk to the assistant",

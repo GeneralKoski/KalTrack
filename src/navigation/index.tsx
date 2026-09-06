@@ -48,6 +48,7 @@ import { ProgressPhotosScreen } from "@/src/navigation/screens/ProgressPhotosScr
 import { RemindersScreen } from "@/src/navigation/screens/RemindersScreen";
 import { RoutineFormScreen } from "@/src/navigation/screens/RoutineFormScreen";
 import { RoutinesScreen } from "@/src/navigation/screens/RoutinesScreen";
+import { SessionDetailScreen } from "@/src/navigation/screens/SessionDetailScreen";
 import { SessionScreen } from "@/src/navigation/screens/SessionScreen";
 import { ShoppingListScreen } from "@/src/navigation/screens/ShoppingListScreen";
 import { StepsHistoryScreen } from "@/src/navigation/screens/StepsHistoryScreen";
@@ -259,6 +260,10 @@ const RootStack = createNativeStackNavigator({
       screen: SessionScreen,
       linking: { path: "allenamento" },
     },
+    SessionDetail: {
+      screen: SessionDetailScreen,
+      linking: { path: "allenamento/:id" },
+    },
     Achievements: {
       screen: AchievementsScreen,
       linking: { path: "traguardi" },
@@ -416,6 +421,7 @@ declare global {
       ExerciseDetail: { id: string };
       RoutineForm: { id?: string; generatedRoutine?: RoutineInput };
       Session: { routineId: string; dayIndex: number };
+      SessionDetail: { id: string };
     }
   }
 }

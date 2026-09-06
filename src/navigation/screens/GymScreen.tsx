@@ -14,6 +14,7 @@ import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
+import { formatShortDate } from "@/src/utils/dateUtils";
 import type { RoutineDayRow, RoutineRow } from "@/src/types/gym";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
@@ -42,17 +43,6 @@ interface GymData {
   days: RoutineDayRow[];
   sessions: RecentSession[];
 }
-
-/** Data ISO -> "gio 28 ago", per riconoscere l'allenamento a colpo d'occhio. */
-const shortDate = (iso: string): string => {
-  const [year, month, day] = iso.split("-").map(Number);
-  if (!year || !month || !day) return iso;
-  return new Date(year, month - 1, day).toLocaleDateString("it-IT", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  });
-};
 
 /**
  * La schermata della palestra: da qui si comincia ad allenarsi.
@@ -104,8 +94,12 @@ export function GymScreen() {
 
   const exitSelection = () => setSelectedIds(new Set());
 
+  // In selezione il tocco spunta, altrimenti apre il dettaglio in sola
+  // lettura. Vale anche per la sessione ancora aperta: li' si legge quel che
+  // ha registrato finora, e si riprende dalla card in cima alla pagina.
   const onSessionPress = (id: string) => {
     if (isSelecting) toggleSelection(id);
+    else navigate("SessionDetail", { id });
   };
 
   const onSessionLongPress = (id: string) => {
@@ -180,7 +174,7 @@ export function GymScreen() {
                   {t("gym.session_open")}
                 </Text>
                 <Text style={[styles.openMeta, { color: colors.textMuted }]}>
-                  {open.dayName ?? t("gym.free_workout")} - {shortDate(open.date)}
+                  {open.dayName ?? t("gym.free_workout")} - {formatShortDate(open.date)}
                 </Text>
               </Card>
             ) : null}
@@ -247,10 +241,7 @@ export function GymScreen() {
                     onLongPress={() => onSessionLongPress(session.id)}
                     style={[
                       styles.sessionRow,
-                      selected && {
-                        borderWidth: 1.5,
-                        borderColor: colors.accent,
-                      },
+                      selected && { borderColor: colors.accent },
                     ]}
                   >
                     <View style={styles.sessionText}>
@@ -264,7 +255,7 @@ export function GymScreen() {
                         style={[styles.sessionMeta, { color: colors.textMuted }]}
                         numberOfLines={1}
                       >
-                        {shortDate(session.date)} - {t("gym.sets_count", {
+                        {formatShortDate(session.date)} - {t("gym.sets_count", {
                           count: session.workingSets,
                         })}
                         {session.volumeKg > 0
@@ -357,7 +348,16 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   dayName: { flex: 1, fontSize: 15, fontWeight: "500" },
-  sessionRow: { flexDirection: "row", alignItems: "center", gap: theme.spacing.sm },
+  // Il bordo c'e' sempre, trasparente finche' la riga non e' selezionata: se
+  // comparisse solo alla selezione, la card si restringerebbe di 1.5 px per
+  // lato e tutte le altre scatterebbero in su.
+  sessionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    borderWidth: 1.5,
+    borderColor: "transparent",
+  },
   sessionText: { flex: 1, gap: 2 },
   sessionName: { fontSize: 15, fontWeight: "600" },
   sessionMeta: { fontSize: 13 },
