@@ -596,6 +596,22 @@ bottone "Continua" che sostituisce (`replace`, non `navigate`) verso
 `RoutineForm` - senza lasciare `Equipment` in pila, altrimenti "Indietro" da
 li' ci tornerebbe.
 
+**Quella dichiarazione e' l'unica, e chi genera una scheda la legge invece di
+richiederla.** `GenerateRoutineScreen` aveva tre preset propri ("Palestra
+completa", "Manubri e panca", "Corpo libero") indipendenti da `user_equipment`:
+chi aveva segnato di non avere i cavi si ritrovava una scheda coi cavi
+lasciando il preset predefinito, e nessuna delle due schermate aveva torto -
+erano due domande sulla stessa cosa. Dal 5 settembre 2026 la schermata chiama
+`listAvailableEquipment()` e mostra il risultato in sola lettura, con un link a
+`Equipment`; rilegge a ogni ritorno (`useFocusEffect`), o tornando dal link il
+numero sarebbe ancora quello vecchio.
+
+Vale la pena ricordare **perche' l'elenco e' per eccezione** (§
+`listAvailableEquipment`): tutto conta come disponibile tranne quel che si e'
+tolto a mano. Su un telefono appena installato il risultato e' quindi
+l'attrezzatura completa - cioe' esattamente il vecchio preset predefinito, e
+nessuno vede un comportamento diverso da prima finche' non dichiara qualcosa.
+
 ### Il quick-log di peso e passi
 
 Non sta piu' su Oggi. Fino al 4 settembre 2026 due card (`DayStatCard`,
