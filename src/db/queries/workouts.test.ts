@@ -7,6 +7,7 @@ import {
   endSession,
   createRoutine,
   dailyExerciseSummary,
+  deleteRoutine,
   deleteSession,
   deleteSet,
   exerciseSummaryInRange,
@@ -715,5 +716,70 @@ describe("loggedSetsOf", () => {
     await deleteSet(setId);
 
     expect(await loggedSetsOf(id)).toEqual([]);
+  });
+});
+describe("deleteRoutine", () => {
+  const activeRoutine = async () => {
+    const id = await createRoutine(pushDay());
+    await activateRoutine(id);
+    return id;
+  };
+
+  it("la scheda cancellata smette di essere attiva", async () => {
+    const id = await activeRoutine();
+    await deleteRoutine(id);
+
+    expect(await getActiveRoutine()).toBeNull();
+    const row = await db.getFirstAsync<{ is_active: number }>(
+      "SELECT is_active FROM routines WHERE id = ?",
+      [id],
+    );
+    expect(row?.is_active).toBe(0);
+  });
+
+  /**
+   * Il difetto che questo test blocca: cancellata la scheda, la palestra
+   * continuava a mostrare "Allenamento in corso" per una sessione aperta su un
+   * giorno che non esisteva piu', e non c'era piu' modo di chiuderla.
+   */
+  it("chiude un allenamento rimasto aperto su quella scheda", async () => {
+    const id = await activeRoutine();
+    const days = await listRoutineDays(id);
+    const session = await startSession({
+      date: "2026-09-06",
+      routineDayId: days[0].id,
+    });
+
+    await deleteRoutine(id);
+
+    const list = await recentSessions();
+    expect(list.find((s) => s.id === session)?.endedAt).not.toBeNull();
+  });
+
+  it("non tocca gli allenamenti gia' chiusi, ne' il nome del giorno che portano", async () => {
+    const id = await activeRoutine();
+    const days = await listRoutineDays(id);
+    const session = await startSession({
+      date: "2026-09-06",
+      routineDayId: days[0].id,
+    });
+    await logSet({ sessionId: session, exerciseId: benchId, setIndex: 0, reps: 10, weight: 60 });
+    await endSession(session);
+
+    await deleteRoutine(id);
+
+    // La scheda non c'e' piu', ma quel che si e' fatto resta scritto col nome
+    // del giorno che si e' seguito.
+    expect((await sessionDetail(session))?.dayName).toBe("Push A");
+    expect((await recentSessions())[0].workingSets).toBe(1);
+  });
+
+  it("lascia in pace un allenamento aperto che non segue quella scheda", async () => {
+    const id = await activeRoutine();
+    const libero = await startSession({ date: "2026-09-06" });
+
+    await deleteRoutine(id);
+
+    expect((await recentSessions()).find((s) => s.id === libero)?.endedAt).toBeNull();
   });
 });

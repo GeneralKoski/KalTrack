@@ -714,6 +714,23 @@ una riga che mente.
 blocco puo' contenere lo stesso esercizio due volte - e' cosi' che si scrive un
 dropset - e li' blocco, esercizio e indice non bastano a distinguere due righe.
 
+### La scheda cancellata
+
+`deleteRoutine` fa tre cose e non una:
+
+- `deleted_at`, ovviamente;
+- **`is_active = 0`**. `getActiveRoutine` filtra gia' i cancellati, ma una riga
+  cancellata e ancora marcata attiva e' uno stato che non esiste, e sull'altro
+  telefono arriva cosi';
+- **chiude l'allenamento rimasto aperto** su un giorno di quella scheda. La
+  palestra mostrava "Allenamento in corso" per una sessione il cui giorno non
+  c'era piu', e non restava un modo per chiuderla. Si chiude, non si cancella:
+  quelle serie sono state fatte davvero.
+
+I giorni invece **non** si cancellano, ed e' deliberato: `recentSessions` e
+`sessionDetail` li leggono per il nome, e cosi' un allenamento passato continua
+a dire quale giorno di scheda seguiva anche dopo che la scheda non c'e' piu'.
+
 ### Il quick-log di peso e passi
 
 Non sta piu' su Oggi. Fino al 4 settembre 2026 due card (`DayStatCard`,

@@ -210,13 +210,40 @@ export async function updateRoutine(
   });
 }
 
+/**
+ * Cancella una scheda, e chiude quel che le restava attaccato.
+ *
+ * `is_active = 0` non e' ridondante con `deleted_at`: `getActiveRoutine` filtra
+ * gia' i cancellati, ma una riga cancellata e ancora marcata attiva e' uno
+ * stato che non esiste, e sull'altro telefono arriva cosi'.
+ *
+ * L'allenamento **aperto** su un giorno di questa scheda va chiuso, non
+ * cancellato: la palestra continuava a mostrare "Allenamento in corso" per una
+ * sessione il cui giorno non c'era piu', e non restava un modo per chiuderla.
+ * Chiuderla la lascia nello storico, che e' dove deve stare - le serie sono
+ * state fatte davvero.
+ *
+ * I giorni NON si cancellano, ed e' il motivo per cui `recentSessions` e
+ * `sessionDetail` continuano a mostrare il nome del giorno seguito: quel che si
+ * e' fatto resta scritto col suo nome, anche quando la scheda non c'e' piu'.
+ */
 export async function deleteRoutine(id: string): Promise<void> {
   const db = await getDb();
   const now = nowIso();
-  await db.runAsync(
-    "UPDATE routines SET deleted_at = ?, updated_at = ? WHERE id = ?",
-    [now, now, id],
-  );
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      "UPDATE routines SET deleted_at = ?, is_active = 0, updated_at = ? WHERE id = ?",
+      [now, now, id],
+    );
+    await db.runAsync(
+      `UPDATE workout_sessions SET ended_at = ?, updated_at = ?
+        WHERE ended_at IS NULL AND deleted_at IS NULL
+          AND routine_day_id IN (
+            SELECT id FROM routine_days WHERE routine_id = ?
+          )`,
+      [now, now, id],
+    );
+  });
 }
 
 export async function listRoutineDays(
