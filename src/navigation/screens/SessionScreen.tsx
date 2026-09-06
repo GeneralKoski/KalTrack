@@ -16,6 +16,8 @@ import {
   endSession,
   getRoutineDay,
   lastSetsFor,
+  deleteSet,
+  loggedSetsOf,
   logSet,
   personalBest,
   startSession,
@@ -24,6 +26,7 @@ import {
   type ResolvedDay,
 } from "@/src/db/queries/workouts";
 import { todayIso } from "@/src/domain/date";
+import { matchLoggedSets } from "@/src/domain/session";
 import { suggestNextWeight } from "@/src/domain/strength";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
@@ -181,7 +184,12 @@ export function SessionScreen() {
   const [loading, setLoading] = useState(true);
   const [infos, setInfos] = useState<Record<string, ExerciseInfo>>({});
   const [values, setValues] = useState<Record<string, SetValues>>({});
-  const [done, setDone] = useState<Record<string, boolean>>({});
+  /**
+   * Chiave della riga -> id della serie scritta. Sostituisce un `done`
+   * booleano: l'id serve a disfare la serie, e due stati separati potevano
+   * discordare - una riga spuntata di cui non si sapeva piu' cosa cancellare.
+   */
+  const [logged, setLogged] = useState<Record<string, string>>({});
   /** Serie in corso di scrittura: impedisce il doppio invio da doppio tocco. */
   const inFlight = useRef<Set<string>>(new Set());
 
@@ -221,6 +229,52 @@ export function SessionScreen() {
     setInfos((prev) => ({ ...prev, [exerciseId]: { lastSets: sets, best } }));
   }, []);
 
+  /**
+   * Rimette le spunte sulle serie gia' scritte quando la sessione viene
+   * RIPRESA. `startSession` ritrovava la sessione aperta, ma lo schermo
+   * ripartiva vuoto: le serie gia' fatte sembravano da fare, e rispuntarle ne
+   * scriveva di doppie.
+   *
+   * Ripristina anche i valori, non solo le spunte: una riga spuntata ha i campi
+   * bloccati, e mostrarci dentro il carico dell'ultima volta invece di quello
+   * appena registrato sarebbe una riga che mente.
+   */
+  const restoreLogged = useCallback(
+    async (id: string, resolved: ResolvedDay) => {
+      const already = await loggedSetsOf(id);
+      if (already.length === 0) return;
+
+      // Nessuna sostituzione puo' essere ancora avvenuta: si e' appena entrati.
+      const refs = resolved.blocks.flatMap((block) =>
+        planBlock(block, (_blockExerciseId, fallback) => fallback).map(
+          (entry) => ({
+            key: entry.key,
+            blockId: entry.blockId,
+            exerciseId: entry.exercise.id,
+            setIndex: entry.setIndex,
+          }),
+        ),
+      );
+      const matched = matchLoggedSets(refs, already);
+      const byId = new Map(already.map((set) => [set.id, set]));
+
+      setLogged(matched);
+      setValues((prev) => {
+        const next = { ...prev };
+        for (const [key, setId] of Object.entries(matched)) {
+          const set = byId.get(setId);
+          if (!set) continue;
+          next[key] = {
+            weight: set.weight === null ? "" : formatNumber(set.weight),
+            reps: set.reps === null ? "" : String(set.reps),
+          };
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
   useEffect(() => {
     let active = true;
     (async () => {
@@ -236,7 +290,9 @@ export function SessionScreen() {
             date: todayIso(),
             routineDayId: resolved.day.id,
           });
-          if (active) setSessionId(id);
+          if (!active) return;
+          setSessionId(id);
+          await restoreLogged(id, resolved);
         }
 
         const ids = new Set<string>();
@@ -323,7 +379,7 @@ export function SessionScreen() {
     if (inFlight.current.has(planned.key)) return;
     inFlight.current.add(planned.key);
     try {
-      await logSet({
+      const id = await logSet({
         sessionId,
         exerciseId: planned.exercise.id,
         setIndex: planned.setIndex,
@@ -331,7 +387,7 @@ export function SessionScreen() {
         weight: parseNumber(current.weight),
         blockRef: planned.blockId,
       });
-      setDone((prev) => ({ ...prev, [planned.key]: true }));
+      setLogged((prev) => ({ ...prev, [planned.key]: id }));
       if (planned.closesRound) {
         // Chiave nuova a ogni serie: il timer riparte da capo invece di
         // riprendere il conteggio della serie precedente.
@@ -342,6 +398,33 @@ export function SessionScreen() {
       showToast.error({ message: t("general_error") });
     } finally {
       inFlight.current.delete(planned.key);
+    }
+  };
+
+  /**
+   * Disfa una serie appena spuntata, per correggere un numero.
+   *
+   * La serie scritta si cancella davvero (logicamente): finche' resta, conta
+   * nel volume e nei carichi, e una riga tornata modificabile sopra una serie
+   * ancora registrata sarebbe la bugia che questa schermata evitava bloccando
+   * il campo. Rispuntando se ne scrive una nuova.
+   *
+   * Il recupero non si tocca: chi despunta sta correggendo un numero, non
+   * annullando il riposo che ha gia' fatto.
+   */
+  const undoSet = async (key: string) => {
+    const setId = logged[key];
+    if (setId === undefined) return;
+    try {
+      await deleteSet(setId);
+      setLogged((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    } catch (error) {
+      logger.error("[SessionScreen] errore annullamento serie", error);
+      showToast.error({ message: t("general_error") });
     }
   };
 
@@ -569,7 +652,7 @@ export function SessionScreen() {
                           targetReps={source?.row.target_reps ?? null}
                           weight={current.weight}
                           reps={current.reps}
-                          done={done[entry.key] === true}
+                          done={logged[entry.key] !== undefined}
                           onChangeWeight={(value) =>
                             setValue(entry.key, { weight: value }, current)
                           }
@@ -579,6 +662,7 @@ export function SessionScreen() {
                           onDone={() =>
                             completeSet(entry, current, restSeconds)
                           }
+                          onUndo={() => undoSet(entry.key)}
                         />
                       </React.Fragment>
                     );

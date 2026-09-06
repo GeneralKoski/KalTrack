@@ -8,11 +8,13 @@ import {
   createRoutine,
   dailyExerciseSummary,
   deleteSession,
+  deleteSet,
   exerciseSummaryInRange,
   sessionCountInRange,
   getActiveRoutine,
   getRoutineDay,
   lastSetsFor,
+  loggedSetsOf,
   lastWorkingWeights,
   listRoutineDays,
   listRoutines,
@@ -642,5 +644,76 @@ describe("lastWorkingWeights", () => {
 
   it("con un elenco vuoto non interroga niente", async () => {
     expect(await lastWorkingWeights([])).toEqual(new Map());
+  });
+});
+
+describe("deleteSet", () => {
+  it("toglie la serie da dettaglio, volume e carichi", async () => {
+    const id = await startSession({ date: "2026-09-06" });
+    const first = await logSet({ sessionId: id, exerciseId: benchId, setIndex: 0, reps: 10, weight: 60 });
+    await logSet({ sessionId: id, exerciseId: benchId, setIndex: 1, reps: 8, weight: 80 });
+
+    await deleteSet(first);
+
+    expect((await sessionDetail(id))?.exercises[0].sets).toHaveLength(1);
+    expect((await sessionDetail(id))?.volumeKg).toBe(640);
+    expect((await recentSessions())[0].workingSets).toBe(1);
+    expect(await lastWorkingWeights([benchId])).toEqual(new Map([[benchId, 80]]));
+  });
+
+  it("riporta indietro il contatore di utilizzi, senza scendere sotto zero", async () => {
+    const id = await startSession({ date: "2026-09-06" });
+    const setId = await logSet({ sessionId: id, exerciseId: benchId, setIndex: 0, reps: 10, weight: 60 });
+
+    const usage = async () =>
+      (await db.getFirstAsync<{ usage_count: number }>(
+        "SELECT usage_count FROM exercises WHERE id = ?",
+        [benchId],
+      ))?.usage_count;
+
+    expect(await usage()).toBe(1);
+    await deleteSet(setId);
+    expect(await usage()).toBe(0);
+    // Una seconda cancellazione non fa niente: la riga e' gia' via.
+    await deleteSet(setId);
+    expect(await usage()).toBe(0);
+  });
+
+  it("non cancella davvero la riga, o tornerebbe dalla sincronizzazione", async () => {
+    const id = await startSession({ date: "2026-09-06" });
+    const setId = await logSet({ sessionId: id, exerciseId: benchId, setIndex: 0, reps: 10, weight: 60 });
+    await deleteSet(setId);
+
+    const row = await db.getFirstAsync<{ deleted_at: string | null }>(
+      "SELECT deleted_at FROM session_sets WHERE id = ?",
+      [setId],
+    );
+    expect(row?.deleted_at).not.toBeNull();
+  });
+});
+
+describe("loggedSetsOf", () => {
+  it("torna le serie scritte, con i valori per ridisegnarle", async () => {
+    const id = await startSession({ date: "2026-09-06" });
+    await logSet({ sessionId: id, exerciseId: benchId, setIndex: 0, reps: 10, weight: 60, blockRef: "blocco-1" });
+
+    expect(await loggedSetsOf(id)).toEqual([
+      {
+        id: expect.any(String),
+        exerciseId: benchId,
+        setIndex: 0,
+        blockRef: "blocco-1",
+        reps: 10,
+        weight: 60,
+      },
+    ]);
+  });
+
+  it("non torna quelle disfatte", async () => {
+    const id = await startSession({ date: "2026-09-06" });
+    const setId = await logSet({ sessionId: id, exerciseId: benchId, setIndex: 0, reps: 10, weight: 60 });
+    await deleteSet(setId);
+
+    expect(await loggedSetsOf(id)).toEqual([]);
   });
 });

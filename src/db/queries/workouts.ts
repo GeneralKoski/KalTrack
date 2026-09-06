@@ -368,6 +368,74 @@ export async function logSet(args: {
 }
 
 /**
+ * Disfa una serie registrata.
+ *
+ * Soft delete, come tutto quel che si sincronizza: una riga tolta davvero non
+ * avrebbe modo di dire all'altro telefono che e' stata tolta, e tornerebbe al
+ * giro dopo. Ogni lettura filtra gia' `deleted_at IS NULL`, quindi la serie
+ * sparisce da volume, storico, record e carichi senza altre modifiche.
+ *
+ * `usage_count` torna indietro perche' `logSet` lo aveva incrementato:
+ * spuntare e despuntare la stessa serie tre volte gonfierebbe il contatore che
+ * ordina l'elenco degli esercizi. Il pavimento a zero non e' teorico - i seed
+ * partono da zero e una serie scritta prima di questa colonna non l'aveva
+ * incrementata.
+ */
+export async function deleteSet(setId: string): Promise<void> {
+  const db = await getDb();
+  const now = nowIso();
+  const row = await db.getFirstAsync<{ exercise_id: string }>(
+    "SELECT exercise_id FROM session_sets WHERE id = ? AND deleted_at IS NULL",
+    [setId],
+  );
+  if (!row) return;
+
+  await db.runAsync(
+    "UPDATE session_sets SET deleted_at = ?, updated_at = ? WHERE id = ?",
+    [now, now, setId],
+  );
+  await db.runAsync(
+    `UPDATE exercises SET usage_count = MAX(usage_count - 1, 0), updated_at = ?
+      WHERE id = ?`,
+    [now, row.exercise_id],
+  );
+}
+
+/** Una serie gia' scritta, quel tanto che basta a riagganciarla alla riga. */
+export interface LoggedSet {
+  id: string;
+  exerciseId: string;
+  setIndex: number;
+  blockRef: string | null;
+  reps: number | null;
+  weight: number | null;
+}
+
+/**
+ * Le serie gia' registrate in una sessione, per ridisegnarle spuntate quando
+ * la si riprende.
+ *
+ * Senza, uscire e rientrare a meta' allenamento faceva sembrare da fare le
+ * serie gia' fatte, e rispuntarle ne scriveva di doppie: la sessione veniva
+ * ripresa (`startSession`), lo schermo no.
+ */
+export async function loggedSetsOf(sessionId: string): Promise<LoggedSet[]> {
+  const db = await getDb();
+  return db.getAllAsync<LoggedSet>(
+    `SELECT id,
+            exercise_id AS exerciseId,
+            set_index AS setIndex,
+            block_ref AS blockRef,
+            reps,
+            weight
+       FROM session_sets
+      WHERE workout_session_id = ? AND deleted_at IS NULL
+      ORDER BY done_at ASC, set_index ASC`,
+    [sessionId],
+  );
+}
+
+/**
  * Le serie dell'ULTIMA sessione in cui l'esercizio è stato fatto, non tutte:
  * servono a precompilare la prossima volta, e la storia intera sarebbe rumore.
  * Il riscaldamento è escluso: non racconta nulla sui carichi di lavoro.

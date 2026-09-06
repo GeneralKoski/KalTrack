@@ -683,6 +683,37 @@ generata **non si salva da sola**: atterra in `RoutineForm` coi campi
 modificabili, che e' la ragione per cui un numero immaginato dal modello e'
 accettabile li' dentro.
 
+### La serie spuntata
+
+Il tondo verde di `SetRow` e' un **interruttore**, non un punto di non ritorno:
+ritoccarlo disfa la serie e restituisce i campi. Il numero sbagliato ci si
+accorge di averlo scritto un secondo dopo averlo confermato, e fino al 6
+settembre 2026 non c'era modo di correggerlo - la riga si bloccava perche'
+`logSet` aveva gia' scritto, e non esisteva una query per disfare.
+
+Ora c'e' `deleteSet`, che e' un soft delete come tutto quel che si sincronizza
+e riporta indietro `usage_count` (con pavimento a zero): spuntare e despuntare
+tre volte gonfierebbe il contatore che ordina l'elenco esercizi. Rispuntando si
+scrive una serie **nuova**, con un id nuovo: la vecchia e' cancellata e non c'e'
+niente da riconciliare.
+
+`SessionScreen` tiene un solo stato, `logged: Record<chiave riga, id serie>`, e
+non un `done` booleano accanto: l'id serve per disfare, e due stati separati
+potevano discordare - una riga spuntata di cui non si sapeva piu' cosa
+cancellare.
+
+**Riprendendo un allenamento a meta' le spunte tornano.** `startSession`
+ritrovava gia' la sessione aperta, ma lo schermo ripartiva vuoto: le serie gia'
+fatte sembravano da fare e rispuntarle ne scriveva di doppie. `loggedSetsOf` +
+`matchLoggedSets` (`src/domain/session.ts`) le riagganciano alle righe, e
+tornano anche i **valori** - una riga spuntata ha i campi bloccati, e mostrarci
+dentro il carico dell'ultima volta invece di quello appena registrato sarebbe
+una riga che mente.
+
+`matchLoggedSets` consuma ogni serie **una volta sola**, e non e' pedanteria: un
+blocco puo' contenere lo stesso esercizio due volte - e' cosi' che si scrive un
+dropset - e li' blocco, esercizio e indice non bastano a distinguere due righe.
+
 ### Il quick-log di peso e passi
 
 Non sta piu' su Oggi. Fino al 4 settembre 2026 due card (`DayStatCard`,

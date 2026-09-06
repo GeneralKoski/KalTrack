@@ -20,14 +20,19 @@ interface SetRowProps {
   onChangeWeight: (value: string) => void;
   onChangeReps: (value: string) => void;
   onDone: () => void;
+  /** Disfa la serie: torna modificabile e quel che era scritto si cancella. */
+  onUndo: () => void;
 }
 
 /**
  * Una serie da spuntare. I campi sono precompilati dal chiamante con l'ultima
  * volta: qui dentro non c'è storico, solo testo modificabile.
  *
- * Una volta spuntata la riga si blocca: `logSet` ha già scritto la serie e non
- * esiste una query per disfarla, quindi un campo ancora editabile mentirebbe.
+ * Spuntata, la riga si blocca: `logSet` ha già scritto la serie, e un campo
+ * ancora editabile sopra una serie registrata mentirebbe. Il tondo pero' e' un
+ * interruttore e non un punto di non ritorno: ritoccarlo disfa la serie
+ * (`deleteSet`) e restituisce i campi, perche' il numero sbagliato ci si
+ * accorge di averlo scritto un secondo dopo averlo confermato.
  */
 export const SetRow: React.FC<SetRowProps> = ({
   setNumber,
@@ -39,6 +44,7 @@ export const SetRow: React.FC<SetRowProps> = ({
   onChangeWeight,
   onChangeReps,
   onDone,
+  onUndo,
 }) => {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
@@ -113,8 +119,7 @@ export const SetRow: React.FC<SetRowProps> = ({
       </View>
 
       <TouchableOpacity
-        onPress={onDone}
-        disabled={done}
+        onPress={done ? onUndo : onDone}
         activeOpacity={0.6}
         hitSlop={8}
         style={[
