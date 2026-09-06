@@ -348,6 +348,42 @@ che sembrano dettagli e sono ognuna un difetto già pagato:
    semplicemente non arrivavano sul secondo telefono, e niente lo diceva.
    `BACKUP_TABLES` aveva il controllo dalla Fase 3; qui mancava.
 
+### Il confronto delle foto progressi
+
+**Si sceglie, non si subisce.** Fino al 6 settembre 2026 una card in cima
+all'elenco affiancava d'ufficio la foto piu' vecchia e la piu' recente, quali
+che fossero le pose: un fronte accanto a un retro non dice niente di come sei
+cambiato. Ora il tasto accanto al "+" apre `ComparePickerSheet`, si scelgono
+due giornate e si arriva a `PhotoCompareScreen`.
+
+Tre cose da non rompere:
+
+- **Si confronta posa con posa.** Le linguette in cima sono le pose presenti in
+  **entrambe** le giornate; quelle che stanno in una sola restano in elenco ma
+  spente - toglierle nasconderebbe che quella posa esiste, e chi la cerca
+  penserebbe di non averla mai scattata.
+- **Le foto senza posa fanno gruppo a se'** (`NO_POSE`), non restano fuori. Chi
+  non etichetta gli scatti troverebbe un confronto vuoto, che e' il modo
+  peggiore di dirgli che avrebbe dovuto etichettarli.
+- **Le giornate si scelgono fra quelle che hanno foto**, non da un calendario:
+  un confronto con un giorno vuoto e' una schermata aperta per dire che li' non
+  c'e' niente. E `first` e' sempre la piu' vecchia, in qualunque ordine siano
+  state toccate.
+
+**Due modi di guardare, e si sceglie.** L'interruttore in fondo alla schermata
+passa fra cursore e affiancate, e la scelta resta (`compareViewStore`, AsyncStorage
+come il tema - e' una frase su come si guarda l'app, non un dato da mandare al
+server). Nessuna delle due e' migliore: il cursore rende evidente la differenza
+quando le inquadrature combaciano, l'affiancata regge anche quando no ed e'
+l'unica che le mostra insieme invece che una alla volta.
+
+Il cursore e' un `Gesture.Pan` di gesture-handler su un valore reanimated: la
+foto sotto e' quella recente per intero, quella sopra e' la vecchia dentro una
+cornice che si stringe. **L'immagine nella cornice tiene la larghezza piena del
+riquadro**, o si schiaccerebbe invece di scoprirsi. Il taglio si **ricentra
+quando cambia la larghezza del riquadro** - cambio modalita', rotazione - o
+resterebbe misurato su un riquadro che non c'e' piu'.
+
 ### Le foto
 
 La sincronizzazione porta le **righe**, non i file. Quattro colonne contengono

@@ -43,6 +43,7 @@ import { HealthScreen } from "@/src/navigation/screens/HealthScreen";
 import { LanguageScreen } from "@/src/navigation/screens/LanguageScreen";
 import { MealTypesScreen } from "@/src/navigation/screens/MealTypesScreen";
 import { MeasurementsScreen } from "@/src/navigation/screens/MeasurementsScreen";
+import { PhotoCompareScreen } from "@/src/navigation/screens/PhotoCompareScreen";
 import { ProgressPhotosScreen } from "@/src/navigation/screens/ProgressPhotosScreen";
 import { RemindersScreen } from "@/src/navigation/screens/RemindersScreen";
 import { RoutineFormScreen } from "@/src/navigation/screens/RoutineFormScreen";
@@ -124,7 +125,11 @@ const Tab = createBottomTabNavigator({
       options: {
         title: i18n.t("tabs.today"),
         tabBarIcon: ({ color, focused }) => (
-          <CalendarDays color={color} size={24} strokeWidth={focused ? 2.5 : 2} />
+          <CalendarDays
+            color={color}
+            size={24}
+            strokeWidth={focused ? 2.5 : 2}
+          />
         ),
       },
     },
@@ -274,6 +279,10 @@ const RootStack = createNativeStackNavigator({
       screen: ProgressPhotosScreen,
       linking: { path: "foto" },
     },
+    PhotoCompare: {
+      screen: PhotoCompareScreen,
+      linking: { path: "foto/confronto" },
+    },
     MealPlan: {
       screen: MealPlanScreen,
       linking: { path: "piano" },
@@ -354,7 +363,9 @@ export function Navigation() {
           name: "Onboarding",
           state: {
             index: resumeIndex,
-            routes: ONBOARDING_STEPS.slice(0, resumeIndex + 1).map((name) => ({ name })),
+            routes: ONBOARDING_STEPS.slice(0, resumeIndex + 1).map((name) => ({
+              name,
+            })),
           },
         },
       ],

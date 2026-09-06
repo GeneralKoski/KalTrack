@@ -12,12 +12,7 @@ import { Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { X } from "lucide-react-native";
 import React from "react";
-import {
-  Dimensions,
-  Pressable,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Dimensions, Pressable, StyleSheet, View } from "react-native";
 
 interface DfAlertProps {
   isOpen: boolean;
@@ -41,6 +36,15 @@ interface DfAlertProps {
   onConfirm: () => void;
   onClose: () => void;
   onDismiss?: () => void;
+  /**
+   * Cosa fa il bottone di sinistra, quando non e' "annulla".
+   *
+   * Senza, l'unico modo di metterci un'azione era passarla come `onClose`, che
+   * pero' e' anche la via d'uscita di chi tocca fuori: la finestra si sarebbe
+   * chiusa facendo quell'azione. Qui il bottone e la chiusura restano due cose
+   * distinte.
+   */
+  onCancel?: () => void;
 }
 
 export function DfAlert({
@@ -65,6 +69,7 @@ export function DfAlert({
   onConfirm,
   onClose,
   onDismiss,
+  onCancel,
 }: DfAlertProps) {
   const { colors, isDark } = useAppTheme();
   const { t } = useTranslation();
@@ -73,7 +78,15 @@ export function DfAlert({
     confirmColor === "danger" ? colors.error : confirmColor;
 
   const handleCancel = () => {
-    if (loading || !dismissable) return;
+    if (loading) return;
+    // `dismissable` parla di chi tocca fuori, non di un bottone che si e'
+    // scelto di mettere: un'azione dichiarata con `onCancel` deve rispondere
+    // anche in una finestra da cui non si esce toccando lo sfondo.
+    if (onCancel) {
+      onCancel();
+      return;
+    }
+    if (!dismissable) return;
     onClose();
   };
 

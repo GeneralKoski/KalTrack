@@ -9,19 +9,40 @@ import { Camera, ImagePlus, X } from "lucide-react-native";
 import React from "react";
 import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
 
+/**
+ * Il ritaglio, verticale per tutti.
+ *
+ * Era `[4, 3]` - orizzontale - e non era una decisione: il componente e' nato
+ * per gli alimenti e le ricette, dove un piatto sta bene disteso, ed e' quello
+ * l'esempio nella documentazione di expo-image-picker. Poi lo hanno riusato
+ * esercizi e foto progressi senza riaprire la domanda, e un corpo fotografato
+ * in 4:3 lo si taglia alle ginocchia.
+ *
+ * L'anteprima segue questo stesso rapporto (`height` decide quanto e' alta, la
+ * larghezza viene di conseguenza): prima era larga quanto la schermata e alta
+ * 160, cioe' circa 2:1, e non corrispondeva ne' al ritaglio vecchio ne' a
+ * questo.
+ */
+const PHOTO_ASPECT: [number, number] = [3, 4];
+
 interface PhotoFieldProps {
   uri: string | null;
   onChange: (uri: string | null) => void;
-  /** Altezza dell'anteprima. Più bassa dove la foto è un dettaglio. */
+  /**
+   * Altezza dell'anteprima. Più bassa dove la foto è un dettaglio.
+   *
+   * Decide anche la larghezza, che segue `PHOTO_ASPECT`: prima l'anteprima
+   * prendeva tutta la riga e questo numero era solo la sua altezza.
+   */
   height?: number;
   /** Prefisso del file archiviato, per riconoscerlo: "food", "recipe", "progress". */
   prefix?: string;
 }
 
 /**
- * Selettore foto con anteprima, usato da alimenti e pasti. Offre sia galleria
- * sia fotocamera: un prodotto lo si fotografa sul momento, un piatto quasi
- * sempre lo si ha già in galleria.
+ * Selettore foto con anteprima: alimenti, ricette, esercizi, foto progressi.
+ * Offre sia galleria sia fotocamera - un prodotto lo si fotografa sul momento,
+ * un piatto quasi sempre lo si ha già in galleria.
  */
 export const PhotoField: React.FC<PhotoFieldProps> = ({
   uri,
@@ -51,7 +72,7 @@ export const PhotoField: React.FC<PhotoFieldProps> = ({
       mediaTypes: ["images"],
       quality: 0.7,
       allowsEditing: true,
-      aspect: [4, 3],
+      aspect: PHOTO_ASPECT,
     });
     if (!result.canceled && result.assets[0]) await store(result.assets[0].uri);
   };
@@ -68,26 +89,38 @@ export const PhotoField: React.FC<PhotoFieldProps> = ({
     const result = await ImagePicker.launchCameraAsync({
       quality: 0.7,
       allowsEditing: true,
-      aspect: [4, 3],
+      aspect: PHOTO_ASPECT,
     });
     if (!result.canceled && result.assets[0]) await store(result.assets[0].uri);
   };
 
   if (uri) {
     return (
-      <View>
-        <Image source={{ uri }} style={[styles.image, { height }]} />
-        <TouchableOpacity
-          style={styles.remove}
-          onPress={() => {
-            void discardPhoto(uri);
-            onChange(null);
+      <View style={styles.preview}>
+        {/*
+          La cornice si dimensiona sull'immagine e non sulla schermata: la "X"
+          e' ancorata a lei, e su un contenitore a tutta larghezza sarebbe
+          finita nel vuoto accanto alla foto.
+        */}
+        <View
+          style={{
+            height,
+            width: (height * PHOTO_ASPECT[0]) / PHOTO_ASPECT[1],
           }}
-          activeOpacity={0.6}
-          hitSlop={8}
         >
-          <X size={16} color={theme.colors.white} />
-        </TouchableOpacity>
+          <Image source={{ uri }} style={styles.image} />
+          <TouchableOpacity
+            style={styles.remove}
+            onPress={() => {
+              void discardPhoto(uri);
+              onChange(null);
+            }}
+            activeOpacity={0.6}
+            hitSlop={8}
+          >
+            <X size={16} color={theme.colors.white} />
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -120,8 +153,10 @@ export const PhotoField: React.FC<PhotoFieldProps> = ({
 };
 
 const styles = StyleSheet.create({
+  preview: { alignItems: "center" },
   image: {
     width: "100%",
+    height: "100%",
     borderRadius: theme.radius.xl,
   },
   remove: {

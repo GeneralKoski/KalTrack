@@ -9,6 +9,7 @@ import {
   listProgressPhotos,
   removeLastWater,
   setMeasurement,
+  updateProgressPhoto,
 } from "@/src/db/queries/wellbeing";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 
@@ -101,5 +102,29 @@ describe("foto dei progressi", () => {
     await addProgressPhoto("2026-08-20", "file://vecchia.jpg");
     await addProgressPhoto("2026-08-29", "file://nuova.jpg");
     expect((await listProgressPhotos())[0].uri).toBe("file://nuova.jpg");
+  });
+
+  // Il caso vero: "fronte" scelto per sbaglio su uno scatto di lato.
+  it("la posa si corregge", async () => {
+    const id = await addProgressPhoto(DATE, "file://scatto.jpg", "fronte");
+    await updateProgressPhoto(id, DATE, "file://scatto.jpg", "lato");
+    expect((await listProgressPhotos())[0].pose).toBe("lato");
+  });
+
+  it("si sostituisce l'immagine tenendo la riga", async () => {
+    const id = await addProgressPhoto(DATE, "file://vecchia.jpg", "fronte");
+    await updateProgressPhoto(id, DATE, "file://nuova.jpg", "fronte");
+    const photos = await listProgressPhotos();
+    expect(photos).toHaveLength(1);
+    expect(photos[0].id).toBe(id);
+    expect(photos[0].uri).toBe("file://nuova.jpg");
+  });
+
+  // `null` e' un valore e non "non toccare": una posa messa per sbaglio si
+  // toglie, e la foto resta senza etichetta.
+  it("la posa si può togliere", async () => {
+    const id = await addProgressPhoto(DATE, "file://scatto.jpg", "fronte");
+    await updateProgressPhoto(id, DATE, "file://scatto.jpg", null);
+    expect((await listProgressPhotos())[0].pose).toBeNull();
   });
 });

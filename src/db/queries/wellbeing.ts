@@ -100,7 +100,9 @@ export async function setMeasurement(
   );
 }
 
-export async function listMeasurements(site: string): Promise<MeasurementRow[]> {
+export async function listMeasurements(
+  site: string,
+): Promise<MeasurementRow[]> {
   const db = await getDb();
   return db.getAllAsync<MeasurementRow>(
     "SELECT * FROM body_measurements WHERE site = ? AND deleted_at IS NULL ORDER BY date ASC",
@@ -147,6 +149,31 @@ export async function listProgressPhotos(): Promise<ProgressPhotoRow[]> {
   const db = await getDb();
   return db.getAllAsync<ProgressPhotoRow>(
     "SELECT * FROM progress_photos WHERE deleted_at IS NULL ORDER BY date DESC, created_at DESC",
+  );
+}
+
+/**
+ * Corregge una foto gia' salvata: la data, la posa, o l'immagine stessa.
+ *
+ * La posa e' facoltativa, quindi `null` e' un valore e non "non toccare": chi
+ * chiama passa l'intera riga come la vuole, e togliere la posa a una foto
+ * segnata "fronte" per sbaglio deve poter scrivere `null`.
+ *
+ * Sostituendo `uri` il file vecchio resta in cartella: `orphanPhotoNames`
+ * raccoglie solo quel che una riga **cancellata** nominava, e qui la riga
+ * resta viva. E' lo stesso comportamento di alimenti, ricette ed esercizi, che
+ * la foto la sostituiscono dallo stesso `PhotoField`.
+ */
+export async function updateProgressPhoto(
+  id: string,
+  date: string,
+  uri: string,
+  pose: string | null,
+): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    "UPDATE progress_photos SET date = ?, uri = ?, pose = ?, updated_at = ? WHERE id = ?",
+    [date, uri, pose, nowIso(), id],
   );
 }
 

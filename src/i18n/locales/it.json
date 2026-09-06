@@ -620,6 +620,8 @@
   "progress_photos": {
     "title": "Foto dei progressi",
     "add": "Nuova foto",
+    "edit": "Modifica foto",
+    "edit_action": "Modifica",
     "date_label": "Data",
     "pose_label": "Posa",
     "save": "Salva foto",
@@ -630,13 +632,21 @@
     },
     "empty": "Nessuna foto: la prima è il punto di partenza",
     "compare": "Confronto",
-    "compare_first": "Prima",
-    "compare_last": "Ultima",
     "compare_day": "%{count} giorno di distanza",
     "compare_days": "%{count} giorni di distanza",
     "selected_one": "%{count} selezionata",
     "selected_many": "%{count} selezionate",
-    "delete_selected_title": "Eliminare %{count} foto?"
+    "delete_selected_title": "Eliminare %{count} foto?",
+    "compare_hint": "Scegli due giornate: le foto si confrontano posa con posa.",
+    "compare_action": "Confronta",
+    "compare_no_pair": "Nessuna posa scattata in entrambe le giornate.",
+    "pose_none": "Senza posa",
+    "photo_count": {
+      "one": "1 foto",
+      "other": "%{count} foto"
+    },
+    "view_slider": "Cursore",
+    "view_side": "Affiancate"
   },
   "plan": {
     "title": "Piano pasti",

@@ -3,7 +3,11 @@ import { DfButton } from "@/src/components/form/DfButton";
 import { Chip, PhotoField } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
-import { addProgressPhoto } from "@/src/db/queries/wellbeing";
+import {
+  addProgressPhoto,
+  updateProgressPhoto,
+  type ProgressPhotoRow,
+} from "@/src/db/queries/wellbeing";
 import { todayIso, toIsoDate } from "@/src/domain/date";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
@@ -15,7 +19,7 @@ import DateTimePicker, {
   DateTimePickerAndroid,
 } from "@react-native-community/datetimepicker";
 import { Calendar } from "lucide-react-native";
-import React, { forwardRef, useState } from "react";
+import React, { forwardRef, useEffect, useState } from "react";
 import {
   Modal,
   Platform,
@@ -34,8 +38,25 @@ function parseIso(iso: string): Date {
 }
 
 interface ProgressPhotoFormSheetProps {
+  /**
+   * La foto da correggere, o `null` per aggiungerne una.
+   *
+   * Lo stesso foglio fa le due cose perche' i campi sono gli stessi: una posa
+   * sbagliata - "fronte" al posto di "lato" - si corregge dove la si e'
+   * scelta, e un secondo foglio con gli stessi tre campi divergerebbe alla
+   * prima modifica.
+   */
+  editing?: ProgressPhotoRow | null;
   /** Chiamato dopo il salvataggio, per ricaricare l'elenco. */
   onSaved: () => void;
+  /**
+   * Chiamato alla chiusura, perche' chi apre azzeri `editing`.
+   *
+   * Senza, riaprendo **la stessa** foto appena chiusa il valore non
+   * cambierebbe, l'effetto che riempie i campi non ripartirebbe, e il foglio
+   * si aprirebbe vuoto su una foto che esiste.
+   */
+  onDismissed?: () => void;
 }
 
 /**
@@ -45,7 +66,7 @@ interface ProgressPhotoFormSheetProps {
 export const ProgressPhotoFormSheet = forwardRef<
   BottomSheetModal,
   ProgressPhotoFormSheetProps
->(({ onSaved }, ref) => {
+>(({ editing = null, onSaved, onDismissed }, ref) => {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
 
@@ -55,6 +76,19 @@ export const ProgressPhotoFormSheet = forwardRef<
   const [showIosDatePicker, setShowIosDatePicker] = useState(false);
   const [tempDate, setTempDate] = useState<Date>(new Date());
   const [saving, setSaving] = useState(false);
+
+  /*
+    I campi si riempiono quando cambia la foto in modifica, non a ogni render:
+    scritti direttamente nel corpo, ogni tocco su un chip verrebbe riscritto
+    dal valore che sta nel database.
+  */
+  useEffect(() => {
+    if (editing) {
+      setPendingUri(editing.uri);
+      setPose(editing.pose);
+      setPhotoDate(editing.date);
+    }
+  }, [editing]);
 
   const poseLabel = (value: string) =>
     t(`progress_photos.poses.${value}`, { defaultValue: value });
@@ -67,6 +101,7 @@ export const ProgressPhotoFormSheet = forwardRef<
     setPendingUri(null);
     setPose(null);
     setPhotoDate(todayIso());
+    onDismissed?.();
   };
 
   const openDatePicker = () => {
@@ -79,7 +114,8 @@ export const ProgressPhotoFormSheet = forwardRef<
         onChange: (event, selected) => {
           // Su Android onChange scatta anche all'annullamento (type
           // "dismissed") passando comunque una data: committa solo su "set".
-          if (event.type === "set" && selected) setPhotoDate(toIsoDate(selected));
+          if (event.type === "set" && selected)
+            setPhotoDate(toIsoDate(selected));
         },
       });
     } else {
@@ -92,7 +128,11 @@ export const ProgressPhotoFormSheet = forwardRef<
     if (!pendingUri || saving) return;
     setSaving(true);
     try {
-      await addProgressPhoto(photoDate, pendingUri, pose);
+      if (editing) {
+        await updateProgressPhoto(editing.id, photoDate, pendingUri, pose);
+      } else {
+        await addProgressPhoto(photoDate, pendingUri, pose);
+      }
       onSaved();
       dismiss();
     } catch (error) {
@@ -106,10 +146,14 @@ export const ProgressPhotoFormSheet = forwardRef<
     <>
       <DfBottomSheet
         ref={ref}
-        title={t("progress_photos.add")}
+        title={editing ? t("progress_photos.edit") : t("progress_photos.add")}
         onDismiss={reset}
       >
-        <PhotoField uri={pendingUri} onChange={setPendingUri} prefix="progress" />
+        <PhotoField
+          uri={pendingUri}
+          onChange={setPendingUri}
+          prefix="progress"
+        />
 
         <Text style={[styles.label, { color: colors.text }]}>
           {t("progress_photos.date_label")}
@@ -165,11 +209,21 @@ export const ProgressPhotoFormSheet = forwardRef<
             onPress={() => setShowIosDatePicker(false)}
           >
             <Pressable
-              style={[styles.iosModalContent, { backgroundColor: colors.surface }]}
+              style={[
+                styles.iosModalContent,
+                { backgroundColor: colors.surface },
+              ]}
             >
-              <View style={[styles.iosModalHeader, { borderBottomColor: colors.border }]}>
+              <View
+                style={[
+                  styles.iosModalHeader,
+                  { borderBottomColor: colors.border },
+                ]}
+              >
                 <Pressable onPress={() => setShowIosDatePicker(false)}>
-                  <Text style={[styles.iosModalCancel, { color: colors.textMuted }]}>
+                  <Text
+                    style={[styles.iosModalCancel, { color: colors.textMuted }]}
+                  >
                     {t("cancel")}
                   </Text>
                 </Pressable>
@@ -179,7 +233,9 @@ export const ProgressPhotoFormSheet = forwardRef<
                     setShowIosDatePicker(false);
                   }}
                 >
-                  <Text style={[styles.iosModalConfirm, { color: colors.accent }]}>
+                  <Text
+                    style={[styles.iosModalConfirm, { color: colors.accent }]}
+                  >
                     {t("confirm")}
                   </Text>
                 </Pressable>

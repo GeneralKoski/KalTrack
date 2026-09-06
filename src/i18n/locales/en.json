@@ -596,6 +596,8 @@
   "progress_photos": {
     "title": "Progress photos",
     "add": "New photo",
+    "edit": "Edit photo",
+    "edit_action": "Edit",
     "date_label": "Date",
     "pose_label": "Pose",
     "save": "Save photo",
@@ -606,13 +608,21 @@
     },
     "empty": "No photos yet: the first one is your starting point",
     "compare": "Compare",
-    "compare_first": "First",
-    "compare_last": "Latest",
     "compare_day": "%{count} day apart",
     "compare_days": "%{count} days apart",
     "selected_one": "%{count} selected",
     "selected_many": "%{count} selected",
-    "delete_selected_title": "Delete %{count} photos?"
+    "delete_selected_title": "Delete %{count} photos?",
+    "compare_hint": "Pick two days: photos are compared pose by pose.",
+    "compare_action": "Compare",
+    "compare_no_pair": "No pose was taken on both days.",
+    "pose_none": "No pose",
+    "photo_count": {
+      "one": "1 photo",
+      "other": "%{count} photos"
+    },
+    "view_slider": "Slider",
+    "view_side": "Side by side"
   },
   "plan": {
     "title": "Meal plan",

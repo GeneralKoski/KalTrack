@@ -57,6 +57,8 @@ export interface NavParams {
   WeightHistory: undefined;
   StepsHistory: undefined;
   ProgressPhotos: undefined;
+  /** Le due giornate da confrontare, in ISO. `first` e' la piu' vecchia. */
+  PhotoCompare: { first: string; last: string };
   MealPlan: undefined;
   ShoppingList: undefined;
   Reminders: undefined;
