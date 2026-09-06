@@ -39,7 +39,8 @@ return [
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
             /*
-             * I tre valori che decidono quanti dispositivi puo' reggere SQLite.
+             * I quattro valori che decidono quanti dispositivi puo' reggere
+             * SQLite.
              *
              * Senza WAL una scrittura blocca TUTTO il database, letture
              * comprese: due telefoni che si sincronizzano nello stesso istante
@@ -57,11 +58,27 @@ return [
              * perdere le ultime scritture solo se cade la corrente al server -
              * non se va in crash l'applicazione. Su una macchina con un
              * backup notturno e' uno scambio che conviene.
+             *
+             * `transaction_mode = IMMEDIATE` e' il quarto, ed e' quello senza
+             * il quale gli altri tre non bastano. E' stato `DEFERRED` fino al
+             * 7 settembre 2026, e in quel periodo `POST /sync` ha risposto 500
+             * ventinove volte con "database is locked" - a `busy_timeout` gia'
+             * a cinque secondi e WAL gia' attivo.
+             *
+             * Il motivo: una transazione DEFERRED comincia come LETTURA e si
+             * promuove a scrittura al primo UPDATE. `SyncController::push`
+             * fa esattamente cosi' - prima `max('sequence')` e un `first()`
+             * per riga, poi `updateOrCreate`. Se nel frattempo un'altra
+             * connessione ha scritto, quella promozione non puo' aspettare:
+             * lo snapshot gia' letto sarebbe vecchio, quindi SQLite torna
+             * SQLITE_BUSY **subito, ignorando `busy_timeout`**. Con IMMEDIATE
+             * il lock di scrittura si prende al BEGIN, e i cinque secondi
+             * tornano a valere.
              */
             'busy_timeout' => 5000,
             'journal_mode' => 'WAL',
             'synchronous' => 'NORMAL',
-            'transaction_mode' => 'DEFERRED',
+            'transaction_mode' => 'IMMEDIATE',
         ],
 
         'mysql' => [

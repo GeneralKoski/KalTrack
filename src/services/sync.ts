@@ -384,17 +384,31 @@ async function findUniqueConflict(
  */
 const MAX_ROUNDS = 20;
 
+/** Vero mentre un giro e' in corso: vedi la nota su `runSync`. */
+let running = false;
+
 /**
  * Sincronizza finche' c'e' qualcosa da sincronizzare.
  *
  * Non solleva mai. Senza rete, senza account o senza server configurato l'app
  * deve continuare a funzionare come se la sincronizzazione non esistesse,
  * perche' e' esattamente cosi' che e' nata.
+ *
+ * **Un giro alla volta, e la guardia sta QUI.** Stava in `syncScheduler`, che
+ * pero' e' solo uno dei chiamanti: `App.tsx` all'avvio e `AccountForm`
+ * all'accesso chiamano `runSync` di loro, senza passare da li'. All'avvio
+ * partivano davvero in due - lo scheduler e il `.then()` di `restore()` - e il
+ * server si vedeva arrivare due `POST /sync` nello stesso secondo. Sul lato
+ * server quella collisione diventava un 500 (`database is locked`), ma il
+ * difetto e' qui: due giri contemporanei leggono lo stesso segnaposto e si
+ * rimandano le stesse righe.
  */
 export async function runSync(): Promise<{
   pushed: number;
   pulled: number;
 } | null> {
+  if (running) return null;
+  running = true;
   try {
     if (!hasBackend()) return null;
     if (!useAccountStore.getState().token) return null;
@@ -465,5 +479,7 @@ export async function runSync(): Promise<{
   } catch (error) {
     logger.warn("[sync] giro non riuscito", error);
     return null;
+  } finally {
+    running = false;
   }
 }

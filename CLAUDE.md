@@ -347,6 +347,14 @@ che sembrano dettagli e sono ognuna un difetto già pagato:
    che la sua unica ragione di esclusione era caduta: le foto dei progressi
    semplicemente non arrivavano sul secondo telefono, e niente lo diceva.
    `BACKUP_TABLES` aveva il controllo dalla Fase 3; qui mancava.
+6. **Un giro alla volta, e la guardia sta dentro `runSync`.** Stava in
+   `syncScheduler`, che pero' e' uno dei tre chiamanti: `App.tsx` all'avvio e
+   `AccountForm` all'accesso chiamano `runSync` per conto loro. All'avvio ne
+   partivano davvero due - lo scheduler e il `.then()` di `restore()` - e il
+   server riceveva due `POST /sync` nello stesso secondo. Due giri
+   contemporanei leggono lo stesso segnaposto e si rimandano le stesse righe;
+   di la' la collisione diventava un 500. Vedi `backend/config/database.php`
+   per l'altra meta' della storia.
 
 ### Il confronto delle foto progressi
 
