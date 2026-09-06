@@ -831,6 +831,21 @@ Lo era in sei file, cioe' solo dove qualcuno se ne era accorto: i titoli delle
 pagine di Impostazioni, quello di `DfBottomSheet`, il campo di `SearchBar`. Le
 etichette dei bottoni no, e si vedeva.
 
+**L'intestazione di una pagina ha due misure, e la misura dice che pagina e'.**
+`fontSize: 24` e' la radice di un tab (Oggi, Progressi, Palestra, Profilo), che
+non ha il chevron; `fontSize: 18` e' una pagina interna, che ce l'ha. Il resto e'
+identico ovunque - `paddingHorizontal: md`, `paddingVertical: sm`, `gap: sm`,
+chevron 26, `hitSlop 10` - ed e' scritto una volta in `SettingsPage`
+(`src/containers/settings/`), che pero' usano solo le sei pagine di
+Impostazioni: le altre tredici se lo ridisegnano, e si somigliano per copia e
+non per costruzione.
+
+Alimenti, Ricette e Amici avevano preso il 24 da una radice di tab, e Alimenti e
+Ricette compensavano con un `paddingTop` sul titolo al posto del
+`paddingVertical` sull'intestazione - che e' poi il motivo per cui il testo non
+era in asse col chevron. Allineate il 7 settembre 2026. Chi ne aggiunge una
+copi da una delle tredici, non da una radice di tab.
+
 `theme.colors.macro` (proteine, carboidrati, grassi) sono token: grafici, barre
 e legende devono usarli per non divergere. L'anello delle calorie e' diviso per
 macro con quegli stessi token (`macroSlices` in `src/domain/nutrition.ts`,

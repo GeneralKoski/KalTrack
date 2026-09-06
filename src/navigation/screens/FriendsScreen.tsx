@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
     gap: theme.spacing.sm,
   },
-  title: { flex: 1, fontSize: 24, fontWeight: "700" },
+  title: { flex: 1, fontSize: 18, fontWeight: "700" },
   content: { padding: theme.spacing.md, gap: theme.spacing.sm },
   loader: { marginTop: theme.spacing.xl },
   searching: { marginTop: theme.spacing.sm },

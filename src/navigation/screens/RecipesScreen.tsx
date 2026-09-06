@@ -159,14 +159,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
     gap: theme.spacing.sm,
   },
-  title: {
-    flex: 1,
-    fontSize: 24,
-    fontWeight: "700",
-    paddingTop: theme.spacing.sm,
-  },
+  title: { flex: 1, fontSize: 18, fontWeight: "700" },
   searchWrap: {
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
