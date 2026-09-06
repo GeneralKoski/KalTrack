@@ -1,3 +1,4 @@
+import { FormScreen } from "@/src/components/FormScreen";
 import { ScreenBackground } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
@@ -5,7 +6,7 @@ import { useAppNav } from "@/src/hooks/useAppNav";
 import { theme } from "@/src/styles";
 import { ChevronLeft } from "lucide-react-native";
 import React from "react";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -42,7 +43,14 @@ export const SettingsPage: React.FC<{
           </Text>
         </View>
 
-        <ScrollView
+        {/*
+          `FormScreen` e non una `ScrollView` nuda: e' la shell di OGNI pagina
+          di Impostazioni, e alcune hanno campi di testo - il nome di un tipo
+          di pasto, la password dell'amministratore. Senza il riparo dalla
+          tastiera quelli in fondo alla pagina restavano coperti mentre li si
+          scriveva.
+        */}
+        <FormScreen
           contentContainerStyle={[
             styles.content,
             { paddingBottom: insets.bottom + theme.spacing.lg },
@@ -50,7 +58,7 @@ export const SettingsPage: React.FC<{
           keyboardShouldPersistTaps="handled"
         >
           {children}
-        </ScrollView>
+        </FormScreen>
       </SafeAreaView>
     </View>
   );

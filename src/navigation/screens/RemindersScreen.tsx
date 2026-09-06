@@ -1,5 +1,6 @@
 import { DfAlert } from "@/src/components/DfAlert";
 import { DfSwitch } from "@/src/components/form/DfSwitch";
+import { FormScreen } from "@/src/components/FormScreen";
 import { Card, Chip, EmptyState, ScreenBackground } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text, TextInput } from "@/src/components/ui";
@@ -43,12 +44,7 @@ import {
   Trash2,
   UtensilsCrossed,
 } from "lucide-react-native";
-import React, {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -59,10 +55,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import {
-  Gesture,
-  GestureDetector,
-} from "react-native-gesture-handler";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
   useAnimatedReaction,
@@ -726,7 +719,7 @@ export function RemindersScreen() {
         {loading && !reminders ? (
           <ActivityIndicator style={styles.loader} color={colors.accent} />
         ) : (
-          <ScrollView
+          <FormScreen
             scrollEnabled={!dragging}
             contentContainerStyle={[
               styles.content,
@@ -768,8 +761,7 @@ export function RemindersScreen() {
               ) : (
                 <View
                   style={{
-                    height:
-                      items.length * (cardHeight + CARD_GAP) - CARD_GAP,
+                    height: items.length * (cardHeight + CARD_GAP) - CARD_GAP,
                   }}
                 >
                   {items.map((reminder) => (
@@ -799,7 +791,7 @@ export function RemindersScreen() {
                 />
               </Card>
             )}
-          </ScrollView>
+          </FormScreen>
         )}
       </SafeAreaView>
 
@@ -864,9 +856,7 @@ export function RemindersScreen() {
                 >
                   <ItemIcon
                     size={20}
-                    color={
-                      isSelected ? colors.accentOn : colors.textSecondary
-                    }
+                    color={isSelected ? colors.accentOn : colors.textSecondary}
                   />
                 </TouchableOpacity>
               );
@@ -968,9 +958,7 @@ export function RemindersScreen() {
                     setPickingReminderId(null);
                   }}
                 >
-                  <Text
-                    style={[styles.sheetAction, { color: colors.accent }]}
-                  >
+                  <Text style={[styles.sheetAction, { color: colors.accent }]}>
                     {t("confirm")}
                   </Text>
                 </TouchableOpacity>

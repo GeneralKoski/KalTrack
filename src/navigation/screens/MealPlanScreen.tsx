@@ -1,5 +1,6 @@
 import { DfAlert } from "@/src/components/DfAlert";
 import { DfButton } from "@/src/components/form/DfButton";
+import { FormScreen } from "@/src/components/FormScreen";
 import { ScreenBackground } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text, TextInput } from "@/src/components/ui";
@@ -49,7 +50,6 @@ import {
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -445,7 +445,7 @@ export function MealPlanScreen() {
         {loading && !data ? (
           <ActivityIndicator style={styles.loader} color={colors.accent} />
         ) : (
-          <ScrollView
+          <FormScreen
             contentContainerStyle={[
               styles.content,
               { paddingBottom: insets.bottom + theme.spacing.lg },
@@ -494,7 +494,7 @@ export function MealPlanScreen() {
                 icon={<CopyPlus size={16} color={colors.textSecondary} />}
               />
             </View>
-          </ScrollView>
+          </FormScreen>
         )}
       </SafeAreaView>
 

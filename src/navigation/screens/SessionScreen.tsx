@@ -1,6 +1,12 @@
 import { DfAlert } from "@/src/components/DfAlert";
 import { DfButton } from "@/src/components/form/DfButton";
-import { Card, EmptyState, ScreenBackground, SectionLabel } from "@/src/components/kal";
+import { FormScreen } from "@/src/components/FormScreen";
+import {
+  Card,
+  EmptyState,
+  ScreenBackground,
+  SectionLabel,
+} from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { AlternativesSheet } from "@/src/containers/gym/AlternativesSheet";
@@ -32,12 +38,14 @@ import { ChevronLeft, Dumbbell, Repeat2 } from "lucide-react-native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 /** Quando la scheda non dice quante serie fare, tre è la risposta meno sbagliata. */
 const DEFAULT_SETS = 3;
@@ -188,8 +196,12 @@ export function SessionScreen() {
       rankAlternatives(args),
     [],
   );
-  const [substitutions, setSubstitutions] = useState<Record<string, ExerciseRow>>({});
-  const [rest, setRest] = useState<{ key: string; seconds: number } | null>(null);
+  const [substitutions, setSubstitutions] = useState<
+    Record<string, ExerciseRow>
+  >({});
+  const [rest, setRest] = useState<{ key: string; seconds: number } | null>(
+    null,
+  );
   const [confirmFinish, setConfirmFinish] = useState(false);
   const [replacing, setReplacing] = useState<{
     blockExerciseId: string;
@@ -264,7 +276,8 @@ export function SessionScreen() {
     const weight = last?.weight ?? targetWeight;
     const reps = last?.reps ?? parseFirstInt(targetReps);
     return {
-      weight: weight !== null && weight !== undefined ? formatNumber(weight) : "",
+      weight:
+        weight !== null && weight !== undefined ? formatNumber(weight) : "",
       reps: reps !== null && reps !== undefined ? String(reps) : "",
     };
   };
@@ -290,7 +303,11 @@ export function SessionScreen() {
     });
   };
 
-  const setValue = (key: string, patch: Partial<SetValues>, base: SetValues) => {
+  const setValue = (
+    key: string,
+    patch: Partial<SetValues>,
+    base: SetValues,
+  ) => {
     setValues((prev) => ({ ...prev, [key]: { ...base, ...patch } }));
   };
 
@@ -384,7 +401,10 @@ export function SessionScreen() {
             icon={<Dumbbell size={40} color={colors.textFaint} />}
           />
         ) : (
-          <ScrollView
+          /* `FormScreen` e non una `ScrollView` nuda: qui si scrivono peso e
+             ripetizioni, e senza il riparo dalla tastiera le serie in fondo
+             all'allenamento finivano coperte mentre le si digitava. */
+          <FormScreen
             contentContainerStyle={[
               styles.list,
               {
@@ -396,7 +416,8 @@ export function SessionScreen() {
           >
             {day.blocks.map((block) => {
               const planned = planBlock(block, resolveExercise);
-              const restSeconds = block.block.rest_seconds ?? DEFAULT_REST_SECONDS;
+              const restSeconds =
+                block.block.rest_seconds ?? DEFAULT_REST_SECONDS;
               const interleaved =
                 block.kind === "superset" || block.kind === "circuit";
 
@@ -404,16 +425,27 @@ export function SessionScreen() {
                 <Card key={block.block.id} style={styles.block}>
                   {block.kind !== "single" ? (
                     <View
-                      style={[styles.blockTag, { backgroundColor: colors.surfaceMuted }]}
+                      style={[
+                        styles.blockTag,
+                        { backgroundColor: colors.surfaceMuted },
+                      ]}
                     >
-                      <Text style={[styles.blockTagText, { color: colors.textSecondary }]}>
+                      <Text
+                        style={[
+                          styles.blockTagText,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
                         {t(`gym.block_${block.kind}`)}
                       </Text>
                     </View>
                   ) : null}
 
                   {block.exercises.map((item) => {
-                    const exercise = resolveExercise(item.row.id, item.exercise);
+                    const exercise = resolveExercise(
+                      item.row.id,
+                      item.exercise,
+                    );
                     const info = infos[exercise.id];
                     const suggested = suggestedWeight(
                       exercise.id,
@@ -477,13 +509,21 @@ export function SessionScreen() {
                         ) : null}
 
                         <TouchableOpacity
-                          onPress={() => openAlternatives(item.row.id, exercise)}
+                          onPress={() =>
+                            openAlternatives(item.row.id, exercise)
+                          }
                           activeOpacity={0.6}
-                          style={[styles.altButton, { borderColor: colors.border }]}
+                          style={[
+                            styles.altButton,
+                            { borderColor: colors.border },
+                          ]}
                         >
                           <Repeat2 size={15} color={colors.textSecondary} />
                           <Text
-                            style={[styles.altLabel, { color: colors.textSecondary }]}
+                            style={[
+                              styles.altLabel,
+                              { color: colors.textSecondary },
+                            ]}
                             numberOfLines={1}
                           >
                             {t("gym.alternatives")}
@@ -493,7 +533,9 @@ export function SessionScreen() {
                     );
                   })}
 
-                  <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                  <View
+                    style={[styles.divider, { backgroundColor: colors.border }]}
+                  />
 
                   {planned.map((entry, index) => {
                     const source = block.exercises.find(
@@ -534,7 +576,9 @@ export function SessionScreen() {
                           onChangeReps={(value) =>
                             setValue(entry.key, { reps: value }, current)
                           }
-                          onDone={() => completeSet(entry, current, restSeconds)}
+                          onDone={() =>
+                            completeSet(entry, current, restSeconds)
+                          }
                         />
                       </React.Fragment>
                     );
@@ -542,11 +586,11 @@ export function SessionScreen() {
                 </Card>
               );
             })}
-          </ScrollView>
+          </FormScreen>
         )}
       </SafeAreaView>
 
-      {/* Fuori dalla ScrollView: scorrere la pagina non deve fermare il recupero. */}
+      {/* Fuori dalla lista: scorrere la pagina non deve fermare il recupero. */}
       {rest ? (
         <View
           style={[styles.timer, { bottom: insets.bottom + theme.spacing.sm }]}
@@ -625,7 +669,10 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.xs,
   },
   altLabel: { flexShrink: 1, fontSize: 13, fontWeight: "600" },
-  divider: { height: StyleSheet.hairlineWidth, marginVertical: theme.spacing.xs },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginVertical: theme.spacing.xs,
+  },
   round: { marginTop: theme.spacing.xs, marginBottom: 0 },
   timer: {
     position: "absolute",
