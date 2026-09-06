@@ -15,8 +15,9 @@ import {
   getActiveRoutine,
   getRoutineDay,
   lastSetsFor,
-  loggedSetsOf,
   lastWorkingWeights,
+  loggedSetsOf,
+  openSession,
   listRoutineDays,
   listRoutines,
   logSet,
@@ -718,6 +719,7 @@ describe("loggedSetsOf", () => {
     expect(await loggedSetsOf(id)).toEqual([]);
   });
 });
+
 describe("deleteRoutine", () => {
   const activeRoutine = async () => {
     const id = await createRoutine(pushDay());
@@ -781,5 +783,79 @@ describe("deleteRoutine", () => {
     await deleteRoutine(id);
 
     expect((await recentSessions()).find((s) => s.id === libero)?.endedAt).toBeNull();
+  });
+});
+
+describe("il giorno di scheda che riporta dentro l'allenamento", () => {
+  it("recentSessions e sessionDetail portano il routineDayId", async () => {
+    const routineId = await createRoutine(pushDay());
+    const days = await listRoutineDays(routineId);
+    const session = await startSession({
+      date: "2026-09-06",
+      routineDayId: days[0].id,
+    });
+
+    expect((await recentSessions())[0].routineDayId).toBe(days[0].id);
+    expect((await sessionDetail(session))?.routineDayId).toBe(days[0].id);
+  });
+
+  /**
+   * Un allenamento libero non ha un giorno dove tornare: `SessionScreen` si
+   * apre solo su un giorno di scheda, quindi la palestra lo manda al dettaglio,
+   * dove c'e' "Termina".
+   */
+  it("un allenamento libero non ha giorno, e non e' un errore", async () => {
+    const session = await startSession({ date: "2026-09-06" });
+
+    expect((await recentSessions())[0].routineDayId).toBeNull();
+    expect((await sessionDetail(session))?.routineDayId).toBeNull();
+  });
+
+  it("il giorno resta anche quando la scheda e' stata cancellata", async () => {
+    const routineId = await createRoutine(pushDay());
+    const days = await listRoutineDays(routineId);
+    const session = await startSession({
+      date: "2026-09-06",
+      routineDayId: days[0].id,
+    });
+    await deleteRoutine(routineId);
+
+    // Il riferimento sopravvive: e' `GymScreen` a non trovarlo fra i giorni
+    // della scheda attiva, e a mandare al dettaglio invece che dal vivo.
+    expect((await sessionDetail(session))?.routineDayId).toBe(days[0].id);
+  });
+});
+
+describe("openSession", () => {
+  it("e' l'allenamento lasciato aperto", async () => {
+    const chiuso = await startSession({ date: "2026-09-01" });
+    await endSession(chiuso);
+    const aperto = await startSession({ date: "2026-09-06" });
+
+    expect((await openSession())?.id).toBe(aperto);
+  });
+
+  it("senza allenamenti aperti e' null", async () => {
+    const id = await startSession({ date: "2026-09-06" });
+    await endSession(id);
+
+    expect(await openSession()).toBeNull();
+  });
+
+  /**
+   * Il difetto che questo test blocca: `open` si leggeva dal primo elemento di
+   * `recentSessions`, che si ferma a cinque. Una sessione dimenticata aperta e
+   * poi sepolta da cinque allenamenti nuovi spariva dalla card, e non restava
+   * modo di chiuderla.
+   */
+  it("lo trova anche sotto cinque allenamenti piu' recenti", async () => {
+    const dimenticato = await startSession({ date: "2026-08-01" });
+    for (const date of ["09-01", "09-02", "09-03", "09-04", "09-05"]) {
+      const id = await startSession({ date: `2026-${date}` });
+      await endSession(id);
+    }
+
+    expect((await recentSessions()).some((s) => s.id === dimenticato)).toBe(false);
+    expect((await openSession())?.id).toBe(dimenticato);
   });
 });

@@ -1,18 +1,22 @@
+import { DfAlert } from "@/src/components/DfAlert";
+import { DfButton } from "@/src/components/form/DfButton";
 import { ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import {
+  endSession,
   sessionDetail,
   type SessionSetDetail,
 } from "@/src/db/queries/workouts";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { logger } from "@/src/utils/logger";
 import { theme } from "@/src/styles";
 import { formatShortDate } from "@/src/utils/dateUtils";
 import { useRoute, type RouteProp } from "@react-navigation/native";
 import { ChevronLeft } from "lucide-react-native";
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -31,8 +35,10 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
  * lunga sull'elenco, dove si scelgono anche a gruppi.
  *
  * Ci si arriva toccando una card di "Ultimi allenamenti", **compresa quella
- * ancora aperta**: mostra quel che ha registrato finora, e riprenderla resta
- * la card in cima alla pagina Palestra, cosi' i due gesti non si pestano.
+ * ancora aperta**: mostra quel che ha registrato finora. Riprendere resta la
+ * card in cima alla pagina Palestra, cosi' i due gesti non si pestano; qui
+ * l'allenamento aperto si puo' solo CHIUDERE, ed e' l'unica via d'uscita per
+ * uno che non e' riagganciabile a un giorno della scheda attiva.
  */
 export function SessionDetailScreen() {
   const { t } = useTranslation();
@@ -44,6 +50,27 @@ export function SessionDetailScreen() {
 
   const loader = useCallback(() => sessionDetail(id), [id]);
   const { data: session, loading } = useFocusData(loader);
+  const [confirmFinish, setConfirmFinish] = useState(false);
+
+  /**
+   * Chiude un allenamento rimasto aperto.
+   *
+   * E' l'unica via d'uscita quando l'allenamento non e' riagganciabile a un
+   * giorno della scheda attiva - uno libero, o il giorno di una scheda
+   * sostituita: `SessionScreen` si apre solo su un giorno di scheda, quindi il
+   * suo "Termina" li' e' irraggiungibile e la sessione resterebbe aperta per
+   * sempre.
+   */
+  const finish = async () => {
+    if (!session) return;
+    setConfirmFinish(false);
+    try {
+      await endSession(session.id);
+    } catch (error) {
+      logger.error("[SessionDetail] errore chiusura allenamento", error);
+    }
+    goBack();
+  };
 
   /** Una serie: "60 kg × 10 rip", o le sole ripetizioni a corpo libero. */
   const setLabel = (set: SessionSetDetail): string => {
@@ -163,9 +190,26 @@ export function SessionDetailScreen() {
                 </Text>
               </>
             ) : null}
+
+            {session.endedAt === null ? (
+              <DfButton
+                label={t("gym.finish")}
+                onPress={() => setConfirmFinish(true)}
+                style={styles.finish}
+              />
+            ) : null}
           </ScrollView>
         )}
       </SafeAreaView>
+
+      <DfAlert
+        isOpen={confirmFinish}
+        title={t("gym.finish_title")}
+        message={t("gym.finish_message")}
+        confirmLabel={t("gym.finish")}
+        onConfirm={finish}
+        onClose={() => setConfirmFinish(false)}
+      />
     </View>
   );
 }
@@ -206,6 +250,7 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 12, fontWeight: "600" },
   setValue: { fontSize: 15, fontWeight: "600" },
   setTag: { fontSize: 12 },
+  finish: { marginTop: theme.spacing.sm },
   notesLabel: { marginTop: theme.spacing.sm },
   notes: { fontSize: 14, lineHeight: 20 },
 });

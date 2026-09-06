@@ -7,6 +7,7 @@ import {
   deleteSession,
   getActiveRoutine,
   listRoutineDays,
+  openSession,
   recentSessions,
   type RecentSession,
 } from "@/src/db/queries/workouts";
@@ -41,7 +42,9 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 interface GymData {
   routine: RoutineRow | null;
   days: RoutineDayRow[];
+  /** Solo gli allenamenti CHIUSI: quello in corso sta nella card sopra. */
   sessions: RecentSession[];
+  open: RecentSession | null;
 }
 
 /**
@@ -66,17 +69,24 @@ export function GymScreen() {
 
   const loader = useCallback(async (): Promise<GymData> => {
     const routine = await getActiveRoutine();
-    const [days, sessions] = await Promise.all([
+    const [days, sessions, open] = await Promise.all([
       routine ? listRoutineDays(routine.id) : Promise.resolve([]),
       recentSessions(),
+      openSession(),
     ]);
-    return { routine, days, sessions };
+    // L'allenamento in corso non e' un "ultimo allenamento": e' scritto in
+    // cima, e comparire due volte lo faceva sembrare due allenamenti diversi.
+    return {
+      routine,
+      days,
+      sessions: sessions.filter((s) => s.endedAt !== null),
+      open,
+    };
   }, []);
 
   const { data, loading, reload } = useFocusData<GymData>(loader);
 
-  // Una sessione senza fine e' aperta: si riprende, non se ne apre un'altra.
-  const open = data?.sessions.find((s) => s.endedAt === null) ?? null;
+  const open = data?.open ?? null;
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -100,6 +110,28 @@ export function GymScreen() {
   const onSessionPress = (id: string) => {
     if (isSelecting) toggleSelection(id);
     else navigate("SessionDetail", { id });
+  };
+
+  /**
+   * Riporta dentro l'allenamento lasciato aperto.
+   *
+   * La card era solo un'etichetta: chi usciva senza terminare vedeva
+   * "Allenamento in corso" e non aveva nessun modo di rientrarci ne' di
+   * chiuderlo - `endSession` si raggiunge solo dal "Termina" di `SessionScreen`.
+   *
+   * Quando il giorno non e' riagganciabile alla scheda attiva - un allenamento
+   * libero, o un giorno di una scheda che non e' piu' quella attiva - non c'e'
+   * una schermata dal vivo dove tornare: si va al dettaglio, che per una
+   * sessione aperta offre "Termina".
+   */
+  const resumeOpen = () => {
+    if (!open) return;
+    const dayIndex = data?.days.findIndex((day) => day.id === open.routineDayId);
+    if (data?.routine && dayIndex !== undefined && dayIndex >= 0) {
+      navigate("Session", { routineId: data.routine.id, dayIndex });
+      return;
+    }
+    navigate("SessionDetail", { id: open.id });
   };
 
   const onSessionLongPress = (id: string) => {
@@ -169,7 +201,7 @@ export function GymScreen() {
             showsVerticalScrollIndicator={false}
           >
             {open ? (
-              <Card style={styles.openCard}>
+              <Card onPress={resumeOpen} style={styles.openCard}>
                 <Text style={[styles.openTitle, { color: colors.text }]}>
                   {t("gym.session_open")}
                 </Text>

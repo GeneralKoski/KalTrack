@@ -714,6 +714,33 @@ una riga che mente.
 blocco puo' contenere lo stesso esercizio due volte - e' cosi' che si scrive un
 dropset - e li' blocco, esercizio e indice non bastano a distinguere due righe.
 
+### L'allenamento lasciato aperto
+
+Chi esce da `SessionScreen` senza premere "Termina" lascia una sessione aperta,
+e fino al 7 settembre 2026 era un vicolo cieco: la card "Allenamento in corso"
+era **solo un'etichetta**, non si toccava, e `endSession` si raggiunge unicamente
+dal "Termina" dentro `SessionScreen`. Chi non riusciva a rientrare in quella
+schermata non poteva piu' chiudere l'allenamento.
+
+Ora la card **riprende**: mappa `routineDayId` all'indice fra i giorni della
+scheda attiva e riapre `Session` dov'era. Quando quella mappatura non riesce -
+un allenamento libero, o il giorno di una scheda che non e' piu' attiva - non
+esiste una schermata dal vivo dove tornare, e la card porta al dettaglio, che
+per una sessione aperta offre "Termina". E' l'unica via d'uscita per quei casi,
+e la ragione per cui `SessionDetailScreen` ha un'azione pur essendo in sola
+lettura.
+
+**Non compare fra gli "Ultimi allenamenti".** Stava scritto due volte, in cima e
+in elenco, e sembravano due allenamenti diversi.
+
+`openSession()` e' una query a se' e non il primo elemento di `recentSessions`:
+quella si ferma agli ultimi cinque, e una sessione dimenticata aperta la
+settimana scorsa ne uscirebbe appena si fanno cinque allenamenti nuovi - la card
+sparirebbe e si tornerebbe a non poterla chiudere. `recentSessions` invece resta
+com'e', aperti compresi: la usano anche il confronto con gli amici e la
+condivisione, che contano gli allenamenti di una giornata e non si fanno la
+stessa domanda. E' la palestra a filtrare.
+
 ### La scheda cancellata
 
 `deleteRoutine` fa tre cose e non una:

@@ -580,6 +580,12 @@ export interface RecentSession {
   date: string;
   /** Nome del giorno di scheda seguito, null per un allenamento libero. */
   dayName: string | null;
+  /**
+   * Il giorno di scheda seguito, per riaprire l'allenamento dov'era. Null su un
+   * allenamento libero: li' non c'e' una schermata dal vivo dove tornare, e la
+   * sessione si chiude dal dettaglio.
+   */
+  routineDayId: string | null;
   /** Serie di lavoro registrate; i riscaldamenti non contano. */
   workingSets: number;
   /** Volume totale in kg (carico per ripetizioni), 0 se a corpo libero. */
@@ -600,6 +606,7 @@ export async function recentSessions(limit = 5): Promise<RecentSession[]> {
     `SELECT w.id,
             w.date,
             d.name AS dayName,
+            w.routine_day_id AS routineDayId,
             w.ended_at AS endedAt,
             COALESCE(SUM(CASE WHEN s.id IS NULL THEN 0 ELSE 1 END), 0) AS workingSets,
             COALESCE(SUM(COALESCE(s.weight, 0) * COALESCE(s.reps, 0)), 0) AS volumeKg
@@ -637,6 +644,7 @@ export interface SessionDetail {
   id: string;
   date: string;
   dayName: string | null;
+  routineDayId: string | null;
   startedAt: string | null;
   endedAt: string | null;
   notes: string | null;
@@ -669,6 +677,7 @@ export async function sessionDetail(id: string): Promise<SessionDetail | null> {
     id: string;
     date: string;
     dayName: string | null;
+    routineDayId: string | null;
     startedAt: string | null;
     endedAt: string | null;
     notes: string | null;
@@ -676,6 +685,7 @@ export async function sessionDetail(id: string): Promise<SessionDetail | null> {
     `SELECT w.id,
             w.date,
             d.name AS dayName,
+            w.routine_day_id AS routineDayId,
             w.started_at AS startedAt,
             w.ended_at AS endedAt,
             w.notes
@@ -736,6 +746,43 @@ export async function sessionDetail(id: string): Promise<SessionDetail | null> {
   }
 
   return { ...head, workingSets, volumeKg, exercises };
+}
+
+/**
+ * L'allenamento lasciato aperto, se c'e'.
+ *
+ * Query a se' e non il primo elemento di `recentSessions`: quella si ferma agli
+ * ultimi cinque, e una sessione dimenticata aperta la settimana scorsa ne
+ * uscirebbe appena si fanno cinque allenamenti nuovi - la card "Allenamento in
+ * corso" sparirebbe e non resterebbe modo di chiuderla.
+ *
+ * `recentSessions` resta com'e', aperti compresi: la usano anche il confronto
+ * con gli amici e la condivisione, che contano gli allenamenti di una giornata
+ * e non hanno la stessa domanda. E' la palestra a escludere dall'elenco quello
+ * in corso, che sta gia' scritto sopra.
+ */
+export async function openSession(): Promise<RecentSession | null> {
+  const db = await getDb();
+  return db.getFirstAsync<RecentSession>(
+    `SELECT w.id,
+            w.date,
+            d.name AS dayName,
+            w.routine_day_id AS routineDayId,
+            w.ended_at AS endedAt,
+            COALESCE(SUM(CASE WHEN s.id IS NULL THEN 0 ELSE 1 END), 0) AS workingSets,
+            COALESCE(SUM(COALESCE(s.weight, 0) * COALESCE(s.reps, 0)), 0) AS volumeKg
+       FROM workout_sessions w
+       LEFT JOIN routine_days d
+         ON d.id = w.routine_day_id AND d.deleted_at IS NULL
+       LEFT JOIN session_sets s
+         ON s.workout_session_id = w.id
+        AND s.is_warmup = 0
+        AND s.deleted_at IS NULL
+      WHERE w.deleted_at IS NULL AND w.ended_at IS NULL
+      GROUP BY w.id
+      ORDER BY w.date DESC, w.started_at DESC
+      LIMIT 1`,
+  );
 }
 
 /** Un esercizio di un giorno, gia' aggregato per essere condiviso. */
