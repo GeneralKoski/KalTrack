@@ -221,6 +221,19 @@ describe("dati del seed esercizi", () => {
     expect(new Set(names).size).toBe(names.length);
   });
 
+  /**
+   * Il tipo obbliga il campo a esserci, non a dire qualcosa: una stringa vuota
+   * passerebbe il compilatore e arriverebbe a schermo come "Nessuna
+   * descrizione", che e' il difetto da cui si e' partiti.
+   */
+  it("ogni esercizio spiega come si esegue", () => {
+    for (const exercise of SEED_EXERCISES) {
+      expect(`${exercise.id}: ${exercise.instructions.trim().length > 20}`).toBe(
+        `${exercise.id}: true`,
+      );
+    }
+  });
+
   it("nessun esercizio è senza attrezzatura dichiarata", () => {
     // Chi si allena a casa filtra su questo campo: lasciarlo vuoto lo
     // renderebbe invisibile o sempre proposto, entrambi sbagliati.

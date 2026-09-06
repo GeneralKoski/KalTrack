@@ -473,7 +473,8 @@
     "session_no_sets": "Nessuna serie registrata in questo allenamento.",
     "session_notes": "Note",
     "session_duration": "%{minutes} min",
-    "warmup": "Riscaldamento"
+    "warmup": "Riscaldamento",
+    "instructions_placeholder": "Una riga su come farlo bene, o sull'errore da evitare"
   },
   "assistant": {
     "open": "Parla con l'assistente",

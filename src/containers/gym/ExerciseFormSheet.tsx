@@ -77,6 +77,7 @@ export const ExerciseFormSheet = forwardRef<
   const [secondary, setSecondary] = useState<MuscleGroup[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [instructions, setInstructions] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Riempie il modulo quando si apre su una voce da correggere, e lo svuota
@@ -87,6 +88,7 @@ export const ExerciseFormSheet = forwardRef<
     setSecondary(editing ? exerciseSecondary(editing) : []);
     setEquipment(editing ? exerciseEquipment(editing) : []);
     setPhotoUri(editing?.photo_uri ?? null);
+    setInstructions(editing?.instructions ?? "");
     setView("form");
   }, [editing]);
 
@@ -129,7 +131,7 @@ export const ExerciseFormSheet = forwardRef<
           secondaryMuscles: secondary,
           equipment,
           notes: editing.notes,
-          instructions: editing.instructions,
+          instructions: instructions.trim() || null,
           photoUri,
         });
         void updatePublishedExercise(editing.name, {
@@ -144,6 +146,7 @@ export const ExerciseFormSheet = forwardRef<
           muscleGroup,
           secondaryMuscles: secondary,
           equipment,
+          instructions: instructions.trim() || null,
           photoUri,
         });
 
@@ -158,6 +161,7 @@ export const ExerciseFormSheet = forwardRef<
       }
 
       setName("");
+      setInstructions("");
       setSecondary([]);
       setEquipment([]);
       setPhotoUri(null);
@@ -303,6 +307,31 @@ export const ExerciseFormSheet = forwardRef<
             onPress={() => setView("equipment")}
           />
 
+          {/*
+            In fondo di proposito: e' l'unico campo lungo, e in mezzo agli
+            altri spingerebbe fuori schermo attrezzatura e muscoli, che si
+            compilano sempre. Fino al 7 settembre 2026 non c'era affatto - il
+            modulo si limitava a riportare avanti quel che il seed aveva
+            scritto, e per i 128 esercizi che ne erano sprovvisti non c'era
+            modo di aggiungerla.
+          */}
+          <Text style={[styles.label, { color: colors.text }]}>
+            {t("gym.description_label")}
+          </Text>
+          <TextInput
+            style={[
+              styles.input,
+              styles.multiline,
+              { color: colors.text, borderColor: colors.border },
+            ]}
+            value={instructions}
+            onChangeText={setInstructions}
+            placeholder={t("gym.instructions_placeholder")}
+            placeholderTextColor={colors.textFaint}
+            autoCapitalize="sentences"
+            multiline
+          />
+
           <DfButton
             label={t("save")}
             onPress={() => void salva()}
@@ -390,6 +419,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.md,
     fontSize: 15,
   },
+  multiline: { minHeight: 96, textAlignVertical: "top" },
   fieldButton: {
     flexDirection: "row",
     alignItems: "center",

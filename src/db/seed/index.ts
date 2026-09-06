@@ -83,7 +83,7 @@ export async function applyExerciseSeeds(db: LocalDatabase): Promise<void> {
           exercise.muscleGroup,
           JSON.stringify(exercise.secondaryMuscles),
           JSON.stringify(exercise.equipment),
-          exercise.instructions ?? null,
+          exercise.instructions,
           now,
           now,
         ],

@@ -450,7 +450,8 @@
     "session_no_sets": "No sets recorded in this workout.",
     "session_notes": "Notes",
     "session_duration": "%{minutes} min",
-    "warmup": "Warm-up"
+    "warmup": "Warm-up",
+    "instructions_placeholder": "One line on doing it right, or the mistake to avoid"
   },
   "assistant": {
     "open": "Talk to the assistant",

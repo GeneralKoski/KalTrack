@@ -625,6 +625,39 @@ Resta montato anche mentre si guarda un'altra scheda - i tab non si smontano
 dopo la prima visita - quindi la scorciatoia `kaltrack://assistente` sull'icona
 dell'app continua a far partire l'ascolto da qualunque punto.
 
+### Il catalogo degli esercizi
+
+Duecento esercizi nel seed (`src/db/seed/exercises.ts`), con id parlanti
+(`ex-panca-piana-bilanciere`) che li rendono riconoscibili fra un
+aggiornamento e l'altro.
+
+**`instructions` e' obbligatoria nel tipo `SeedExercise`.** Non lo era, e per
+128 dei 200 la schermata di dettaglio rispondeva "Nessuna descrizione" a chi
+chiedeva come si esegue. Sono state scritte tutte il 7 settembre 2026, e il
+tipo piu' un test (`seed.test.ts`, la stringa deve dire qualcosa e non solo
+esistere) fanno si' che il prossimo esercizio aggiunto non possa entrare muto.
+
+**Il modulo ha il campo per scriverla**, e prima non ce l'aveva:
+`ExerciseFormSheet` si limitava a riportare avanti quel che il seed aveva
+messo, quindi una descrizione mancante non era colmabile da nessuna parte.
+
+**Le foto invece non sono nel seed, e non e' una dimenticanza da colmare in
+codice.** `photo_uri` e' arrivata con la migrazione 18, l'ultima, e il seed e'
+della Fase 1: duecento immagini vorrebbero dire duecento file con una licenza
+che li permetta, che e' un problema di contenuti. Chi vuole una foto la mette
+dal modulo, una alla volta.
+
+Il catalogo comune sul server non aiuta su nessuna delle due:
+`CatalogExerciseInput` porta nome, gruppo muscolare, muscoli secondari e
+attrezzatura, e basta - istruzioni e foto non escono e non entrano da li'.
+
+**Aggiornare il seed non raggiunge chi ce l'ha gia'.** `applyExerciseSeeds`
+inserisce solo gli id mancanti e non tocca le righe esistenti, ed e' voluto:
+la scelta dell'utente vince, un esercizio vietato o cancellato non torna
+indietro. Correggere il testo di un esercizio gia' installato vuol dire una
+migrazione che scriva **solo dove il campo e' ancora vuoto**, o non arriva a
+nessuno.
+
 ### L'attrezzatura
 
 `EquipmentScreen` (Profilo > Palestra > Attrezzatura) non e' piu' un widget
