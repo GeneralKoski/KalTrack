@@ -203,7 +203,11 @@ fi
 
 # Nome parlante e versionato: `app-release.apk` sul telefono non dice niente,
 # e gradle lo rigenera comunque al giro dopo.
-VERSION="$(node -e 'process.stdout.write(require("./app.json").expo.version)')"
+# L'unico posto che leggeva app.json per percorso relativo invece che da
+# $PROJECT_DIR: lanciando lo script da dentro scripts/ la build arrivava in
+# fondo e poi moriva su "Cannot find module ./app.json", lasciando l'APK col
+# nome anonimo di gradle.
+VERSION="$(node -e "process.stdout.write(require('$PROJECT_DIR/app.json').expo.version)")"
 DIST_APK="$(dirname "$APK_PATH")/kaltrack-${VERSION}.apk"
 mv -f "$APK_PATH" "$DIST_APK"
 
