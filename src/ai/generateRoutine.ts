@@ -2,11 +2,13 @@ import { chat } from "@/src/ai/client";
 import { MODELS } from "@/src/ai/config";
 import { AiResponseError } from "@/src/ai/errors";
 import { searchExercises } from "@/src/db/queries/exercises";
-import type {
-  BlockExerciseInput,
-  BlockInput,
-  DayInput,
-  RoutineInput,
+import { latestWeight } from "@/src/db/queries/tracking";
+import {
+  lastWorkingWeights,
+  type BlockExerciseInput,
+  type BlockInput,
+  type DayInput,
+  type RoutineInput,
 } from "@/src/db/queries/workouts";
 import {
   canDoWith,
@@ -62,6 +64,13 @@ const BLOCK_KINDS: readonly BlockKind[] = [
 ];
 
 const MAX_SETS = 12;
+/**
+ * Estremi oltre i quali un carico non e' un carico ma un errore di lettura.
+ * Come `sanitizeReading` per l'etichetta nutrizionale, quel che cade fuori si
+ * SCARTA e non si corregge: il campo resta vuoto e la scheda arriva lo stesso.
+ */
+const MIN_WEIGHT_KG = 1;
+const MAX_WEIGHT_KG = 500;
 const MAX_REST_SECONDS = 600;
 const MAX_RPE = 10;
 const MAX_NAME_LEN = 80;
@@ -91,6 +100,12 @@ Rules:
   a single block holds exactly 1.
 - Day names, the plan name and any notes are written in ITALIAN, short and concrete
   ("Spinta", "Gambe e core"). "targetReps" is a string in Italian, like "8-10" or "12".
+- "targetWeight" is the working load in kilograms for those reps, NOT a one-rep max.
+  Scale it to the athlete's level and bodyweight, both given below - the same exercise
+  is a different load for a 60 kg principiante and a 95 kg avanzato.
+  OMIT the field entirely, never write 0, when: the exercise is done with bodyweight only
+  (push-ups, pull-ups, plank), or the athlete's bodyweight is not given. A missing load is
+  a field the athlete fills in; an invented one is a number they trust.
 
 Reply with a single JSON object and nothing else:
 {"name":"<nome scheda in italiano>",
@@ -98,7 +113,7 @@ Reply with a single JSON object and nothing else:
  "days":[{"name":"<nome giorno>","blocks":[
    {"kind":"single","restSeconds":90,"exercises":[
      {"exerciseId":"<id dal catalogo>","targetSets":4,"targetReps":"8-10","rpe":8,
-      "notes":"<opzionale, italiano>"}]}]}]}`;
+      "targetWeight":60,"notes":"<opzionale, italiano>"}]}]}]}`;
 
 function checkPreferences(preferences: RoutinePreferences): void {
   const { daysPerWeek, sessionMinutes } = preferences;
@@ -210,6 +225,7 @@ function parseExercise(
     exerciseId,
     targetSets: numberIn(entry["targetSets"], 1, MAX_SETS),
     targetReps: reps(entry["targetReps"]),
+    targetWeight: numberIn(entry["targetWeight"], MIN_WEIGHT_KG, MAX_WEIGHT_KG),
     rpe: numberIn(entry["rpe"], 1, MAX_RPE),
     notes: text(entry["notes"], MAX_NOTES_LEN),
   };
@@ -272,6 +288,40 @@ function parseDay(
     blocks,
   };
 }
+
+/**
+ * Lo storico vince sulla proposta del modello.
+ *
+ * Il modello ricava un carico da livello e peso corporeo, cioe' da una persona
+ * media con quelle due caratteristiche; il telefono sa invece con quanto QUESTA
+ * persona ha chiuso l'ultima volta quell'esercizio. Fra i due non c'e' gara, e
+ * scrivere 60 kg a chi ne spinge 100 e' il modo piu' rapido per fargli
+ * cancellare la scheda appena generata.
+ *
+ * Il carico proposto resta dov'e' per gli esercizi mai fatti: li' e' tutto quel
+ * che si ha, e atterra comunque in un form modificabile prima di essere
+ * salvato.
+ */
+function applyKnownWeights(
+  routine: RoutineInput,
+  known: Map<string, number>,
+): void {
+  for (const day of routine.days) {
+    for (const block of day.blocks) {
+      for (const exercise of block.exercises) {
+        const lastKnown = known.get(exercise.exerciseId);
+        if (lastKnown !== undefined) exercise.targetWeight = lastKnown;
+      }
+    }
+  }
+}
+
+const exerciseIdsOf = (routine: RoutineInput): string[] =>
+  routine.days.flatMap((day) =>
+    day.blocks.flatMap((block) =>
+      block.exercises.map((exercise) => exercise.exerciseId),
+    ),
+  );
 
 function parseRoutine(
   content: string | null,
@@ -344,6 +394,11 @@ export async function generateRoutine(
   }
 
   const byId = new Map(catalog.map((row) => [row.id, row]));
+  // Il peso corporeo e' l'altra meta' del livello: senza, "intermedio" da solo
+  // non distingue un carico per 60 kg da uno per 95. Se non e' mai stato
+  // registrato il prompt lo dice, e il modello omette i carichi invece di
+  // inventarli su una persona di cui non sa niente.
+  const bodyweight = await latestWeight();
 
   const response = await chat({
     capability: "routine_generation",
@@ -356,6 +411,9 @@ export async function generateRoutine(
         content: [
           `Obiettivo: ${preferences.goal}`,
           `Livello: ${preferences.level}`,
+          bodyweight
+            ? `Peso corporeo: ${bodyweight.weight_kg} kg`
+            : "Peso corporeo: non disponibile",
           `Giorni a settimana: ${preferences.daysPerWeek}`,
           `Durata di una sessione: ${preferences.sessionMinutes} minuti`,
           ...(preferences.prompt?.trim()
@@ -369,5 +427,7 @@ export async function generateRoutine(
     ],
   });
 
-  return parseRoutine(response.content, byId, preferences);
+  const routine = parseRoutine(response.content, byId, preferences);
+  applyKnownWeights(routine, await lastWorkingWeights(exerciseIdsOf(routine)));
+  return routine;
 }

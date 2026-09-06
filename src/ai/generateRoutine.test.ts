@@ -9,6 +9,12 @@ import { createTestDb } from "@/src/db/__testing__/betterSqliteAdapter";
 import { __setDbForTesting } from "@/src/db/index";
 import { runMigrations } from "@/src/db/migrations";
 import { createExercise, toggleExerciseBan } from "@/src/db/queries/exercises";
+import { setWeight } from "@/src/db/queries/tracking";
+import {
+  logSet,
+  startSession,
+  type RoutineInput,
+} from "@/src/db/queries/workouts";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 import type { Equipment, MuscleGroup } from "@/src/types/gym";
 
@@ -276,5 +282,72 @@ describe("generateRoutine, preferenze non valide", () => {
       generateRoutine({ ...PREFERENCES, availableEquipment: [] }),
     ).rejects.toThrow(RoutineGenerationError);
     expect(chatMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("generateRoutine, i carichi proposti", () => {
+  const withWeight = (exerciseId: string, targetWeight: unknown): unknown => ({
+    kind: "single",
+    restSeconds: 90,
+    exercises: [
+      { exerciseId, targetSets: 4, targetReps: "8-10", targetWeight },
+    ],
+  });
+
+  const firstExercise = (routine: RoutineInput) =>
+    routine.days[0].blocks[0].exercises[0];
+
+  it("tiene il carico proposto per un esercizio mai fatto", async () => {
+    const panca = await addExercise("Panca piana", "petto", ["bilanciere", "panca"]);
+    aiRoutine({ name: "Scheda", days: [{ name: "A", blocks: [withWeight(panca, 60)] }] });
+
+    expect(firstExercise(await generateRoutine(PREFERENCES)).targetWeight).toBe(60);
+  });
+
+  it("lo storico vince sul carico proposto dal modello", async () => {
+    const panca = await addExercise("Panca piana", "petto", ["bilanciere", "panca"]);
+    const session = await startSession({ date: "2026-09-01" });
+    await logSet({ sessionId: session, exerciseId: panca, setIndex: 0, reps: 8, weight: 100 });
+    aiRoutine({ name: "Scheda", days: [{ name: "A", blocks: [withWeight(panca, 60)] }] });
+
+    // Il modello ha dedotto 60 kg da "intermedio"; il telefono sa che l'ultima
+    // volta erano 100.
+    expect(firstExercise(await generateRoutine(PREFERENCES)).targetWeight).toBe(100);
+  });
+
+  it("scarta un carico impossibile invece di correggerlo", async () => {
+    const panca = await addExercise("Panca piana", "petto", ["bilanciere", "panca"]);
+    aiRoutine({ name: "Scheda", days: [{ name: "A", blocks: [withWeight(panca, 4000)] }] });
+
+    const routine = await generateRoutine(PREFERENCES);
+    expect(firstExercise(routine).targetWeight).toBeNull();
+    // La scheda arriva lo stesso: un carico assurdo non la butta via.
+    expect(routine.days).toHaveLength(1);
+  });
+
+  it("un esercizio senza carico resta senza, e non a zero", async () => {
+    const piegamenti = await addExercise("Piegamenti", "petto", ["corpo_libero"]);
+    aiRoutine({
+      name: "Scheda",
+      days: [{ name: "A", blocks: [withWeight(piegamenti, undefined)] }],
+    });
+
+    expect(firstExercise(await generateRoutine(PREFERENCES)).targetWeight).toBeNull();
+  });
+
+  it("manda al modello il peso corporeo quando c'e', e lo dichiara assente quando no", async () => {
+    const panca = await addExercise("Panca piana", "petto", ["bilanciere", "panca"]);
+    aiRoutine({ name: "Scheda", days: [{ name: "A", blocks: [withWeight(panca, 60)] }] });
+
+    await generateRoutine(PREFERENCES);
+    expect(String(chatMock.mock.calls[0][0].messages[1].content)).toContain(
+      "Peso corporeo: non disponibile",
+    );
+
+    await setWeight("2026-09-01", 82.5);
+    await generateRoutine(PREFERENCES);
+    expect(String(chatMock.mock.calls[1][0].messages[1].content)).toContain(
+      "Peso corporeo: 82.5 kg",
+    );
   });
 });

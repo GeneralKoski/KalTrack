@@ -128,6 +128,10 @@ export function RoutineFormScreen() {
             muscleGroup: ex?.muscle_group ?? "petto",
             sets: e.targetSets === null ? "3" : String(e.targetSets),
             reps: e.targetReps ?? "8-10",
+            weight:
+              e.targetWeight === null || e.targetWeight === undefined
+                ? ""
+                : String(e.targetWeight),
           };
         }),
       })),
@@ -181,6 +185,10 @@ export function RoutineFormScreen() {
                   ? ""
                   : String(item.row.target_sets),
               reps: item.row.target_reps ?? "",
+              weight:
+                item.row.target_weight === null
+                  ? ""
+                  : String(item.row.target_weight),
             })),
           })),
         });
@@ -238,6 +246,7 @@ export function RoutineFormScreen() {
       muscleGroup: exercise.muscle_group,
       sets: DEFAULT_SETS,
       reps: DEFAULT_REPS,
+      weight: "",
     };
 
     updateDay((current) => {
@@ -296,6 +305,7 @@ export function RoutineFormScreen() {
                 exerciseId: exercise.exerciseId,
                 targetSets: toNumber(exercise.sets),
                 targetReps: exercise.reps.trim() || null,
+                targetWeight: toNumber(exercise.weight),
               })),
             })),
         })),

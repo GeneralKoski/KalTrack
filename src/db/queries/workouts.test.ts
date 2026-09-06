@@ -13,6 +13,7 @@ import {
   getActiveRoutine,
   getRoutineDay,
   lastSetsFor,
+  lastWorkingWeights,
   listRoutineDays,
   listRoutines,
   logSet,
@@ -608,3 +609,38 @@ describe("sessionDetail", () => {
   });
 });
 
+describe("lastWorkingWeights", () => {
+  it("e' il carico piu' pesante dell'ultima volta, non il record di sempre", async () => {
+    const old = await startSession({ date: "2026-08-01" });
+    await logSet({ sessionId: old, exerciseId: benchId, setIndex: 0, reps: 3, weight: 90 });
+    await endSession(old);
+
+    const recent = await startSession({ date: "2026-09-01" });
+    await logSet({ sessionId: recent, exerciseId: benchId, setIndex: 0, reps: 10, weight: 70 });
+    await logSet({ sessionId: recent, exerciseId: benchId, setIndex: 1, reps: 8, weight: 75 });
+
+    // 90 kg restano il record, ma oggi si lavora a 75.
+    expect(await lastWorkingWeights([benchId])).toEqual(new Map([[benchId, 75]]));
+  });
+
+  it("un esercizio mai fatto non compare, invece di valere zero", async () => {
+    const id = await startSession({ date: "2026-09-01" });
+    await logSet({ sessionId: id, exerciseId: benchId, setIndex: 0, reps: 10, weight: 60 });
+
+    const known = await lastWorkingWeights([benchId, squatId]);
+    expect(known.has(squatId)).toBe(false);
+    expect(known.get(benchId)).toBe(60);
+  });
+
+  it("ignora riscaldamenti e serie a corpo libero", async () => {
+    const id = await startSession({ date: "2026-09-01" });
+    await logSet({ sessionId: id, exerciseId: benchId, setIndex: 0, reps: 15, weight: 100, isWarmup: true });
+    await logSet({ sessionId: id, exerciseId: squatId, setIndex: 0, reps: 20, weight: null });
+
+    expect(await lastWorkingWeights([benchId, squatId])).toEqual(new Map());
+  });
+
+  it("con un elenco vuoto non interroga niente", async () => {
+    expect(await lastWorkingWeights([])).toEqual(new Map());
+  });
+});

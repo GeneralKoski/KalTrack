@@ -648,6 +648,41 @@ tolto a mano. Su un telefono appena installato il risultato e' quindi
 l'attrezzatura completa - cioe' esattamente il vecchio preset predefinito, e
 nessuno vede un comportamento diverso da prima finche' non dichiara qualcosa.
 
+### I carichi di una scheda
+
+`block_exercises.target_weight` esisteva dalla migrazione 5 ed era scritto solo
+dal tool `create_routine` dell'assistente: il modulo della scheda non aveva il
+campo e `generateRoutine` non lo chiedeva. `SessionScreen` lo leggeva gia'
+(`last?.weight ?? targetWeight`), quindi era un ripiego che quasi nessuno
+riempiva.
+
+Ora il campo kg sta accanto a serie e ripetizioni in `BlockEditor`, e la
+generazione con l'IA propone un carico. **Vuoto non e' zero**: `toNumber`
+torna `null` su un campo in bianco, e un esercizio senza carico e' un esercizio
+il cui carico si decide in palestra.
+
+Tre regole su quel carico, e nessuna e' un dettaglio:
+
+- **Lo storico vince sul modello** (`applyKnownWeights`). Il modello ricava un
+  numero da livello e peso corporeo, cioe' da una persona media con quelle due
+  caratteristiche; `lastWorkingWeights` sa con quanto **questa** persona ha
+  chiuso l'ultima volta. Scrivere 60 kg a chi ne spinge 100 e' il modo piu'
+  rapido per far cancellare la scheda appena generata.
+- **`lastWorkingWeights` non e' `personalBest`.** E' la serie di lavoro piu'
+  pesante dell'**ultima** volta, non il record di sempre: un massimale di un
+  anno fa proposto come carico di oggi e' un consiglio sbagliato.
+- **Il peso corporeo e' l'altra meta' del livello.** "Intermedio" da solo non
+  distingue un carico per 60 kg da uno per 95, quindi `latestWeight()` entra
+  nel prompt; quando non c'e' il prompt lo **dichiara assente** e il modello
+  omette i carichi invece di inventarli su una persona di cui non sa niente.
+
+Un carico fuori da `MIN_WEIGHT_KG`/`MAX_WEIGHT_KG` si **scarta e non si
+corregge**, come in `sanitizeReading` per l'etichetta: il campo resta vuoto e
+la scheda arriva lo stesso. E come i grammi stimati da una foto, la scheda
+generata **non si salva da sola**: atterra in `RoutineForm` coi campi
+modificabili, che e' la ragione per cui un numero immaginato dal modello e'
+accettabile li' dentro.
+
 ### Il quick-log di peso e passi
 
 Non sta piu' su Oggi. Fino al 4 settembre 2026 due card (`DayStatCard`,

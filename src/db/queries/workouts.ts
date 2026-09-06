@@ -395,6 +395,52 @@ export async function lastSetsFor(
   );
 }
 
+/**
+ * Il carico con cui si sta lavorando adesso su ciascun esercizio, in un colpo
+ * solo: per ognuno, la serie di lavoro piu' pesante dell'ULTIMA volta che lo si
+ * e' fatto.
+ *
+ * Non e' `personalBest`, ed e' la differenza che conta: il record e' quel che
+ * si e' sollevato una volta, questo e' quel che si solleva oggi. Serve a chi
+ * deve proporre un peso - la generazione di una scheda - e un record vecchio
+ * di un anno sarebbe un consiglio sbagliato.
+ *
+ * Gli esercizi mai fatti, o fatti solo a corpo libero, semplicemente non
+ * compaiono nel risultato: e' un'assenza, non uno zero.
+ */
+export async function lastWorkingWeights(
+  exerciseIds: string[],
+): Promise<Map<string, number>> {
+  if (exerciseIds.length === 0) return new Map();
+  const db = await getDb();
+
+  const placeholders = exerciseIds.map(() => "?").join(", ");
+  const rows = await db.getAllAsync<{ exerciseId: string; weight: number }>(
+    `SELECT s.exercise_id AS exerciseId, MAX(s.weight) AS weight
+       FROM session_sets s
+       JOIN workout_sessions w ON w.id = s.workout_session_id
+      WHERE s.exercise_id IN (${placeholders})
+        AND s.is_warmup = 0
+        AND s.deleted_at IS NULL AND w.deleted_at IS NULL
+        AND s.weight IS NOT NULL AND s.weight > 0
+        AND w.id = (
+          SELECT w2.id
+            FROM session_sets s2
+            JOIN workout_sessions w2 ON w2.id = s2.workout_session_id
+           WHERE s2.exercise_id = s.exercise_id
+             AND s2.is_warmup = 0
+             AND s2.deleted_at IS NULL AND w2.deleted_at IS NULL
+             AND s2.weight IS NOT NULL AND s2.weight > 0
+           ORDER BY w2.date DESC, s2.done_at DESC
+           LIMIT 1
+        )
+      GROUP BY s.exercise_id`,
+    exerciseIds,
+  );
+
+  return new Map(rows.map((row) => [row.exerciseId, row.weight]));
+}
+
 export interface PersonalBest {
   weight: number;
   reps: number;

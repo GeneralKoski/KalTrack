@@ -20,6 +20,8 @@ export interface DraftExercise {
   muscleGroup: MuscleGroup;
   sets: string;
   reps: string;
+  /** Carico di lavoro in kg. Vuoto non e' "0 kg": e' "non lo decido qui". */
+  weight: string;
 }
 
 export interface DraftBlock {
@@ -197,6 +199,15 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
                       updateExercise(exercise.key, { reps: value })
                     }
                   />
+                  <MiniField
+                    label={t("gym.kg")}
+                    value={exercise.weight}
+                    keyboardType="decimal-pad"
+                    width={60}
+                    onChangeText={(value) =>
+                      updateExercise(exercise.key, { weight: value })
+                    }
+                  />
                   <Text
                     style={[styles.muscle, { color: colors.textFaint }]}
                     numberOfLines={1}
@@ -276,7 +287,7 @@ const MiniField: React.FC<{
   value: string;
   width: number;
   placeholder?: string;
-  keyboardType?: "number-pad" | "default";
+  keyboardType?: "number-pad" | "decimal-pad" | "default";
   onChangeText: (value: string) => void;
 }> = ({ label, value, width, placeholder, keyboardType = "default", onChangeText }) => {
   const { colors } = useAppTheme();
