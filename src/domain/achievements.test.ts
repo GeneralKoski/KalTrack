@@ -10,7 +10,6 @@ const stats = (partial: Partial<AchievementStats> = {}): AchievementStats => ({
   workoutDays: 0,
   totalSteps: 0,
   bestDaySteps: 0,
-  bestWeightKg: null,
   loggedDates: [],
   ...partial,
 });
@@ -76,21 +75,13 @@ describe("evaluateAchievements", () => {
     expect(steps?.value).toBe(15200);
   });
 
-  it("il peso migliore è un minimo, non un massimo", () => {
-    // Dimagrire è scendere: la soglia si supera andando SOTTO.
-    const unlocked = evaluateAchievements(stats({ bestWeightKg: 79 }), []);
-    expect(unlocked.some((u) => u.metric === "bestWeightKg")).toBe(true);
+  it("una giornata eccezionale sblocca tutte le soglie di passi che supera", () => {
+    const unlocked = evaluateAchievements(stats({ bestDaySteps: 31000 }), []);
+    const codes = unlocked.map((u) => u.code);
 
-    const notYet = evaluateAchievements(stats({ bestWeightKg: 120 }), []);
-    expect(notYet.some((u) => u.metric === "bestWeightKg")).toBe(false);
-  });
-
-  it("senza pesate il traguardo sul peso non scatta", () => {
-    expect(
-      evaluateAchievements(stats({ bestWeightKg: null }), []).some(
-        (u) => u.metric === "bestWeightKg",
-      ),
-    ).toBe(false);
+    expect(codes).toContain("day_steps_30k");
+    expect(codes).toContain("day_steps_10k");
+    expect(codes).not.toContain("day_steps_50k");
   });
 });
 

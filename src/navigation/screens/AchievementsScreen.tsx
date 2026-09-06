@@ -33,7 +33,6 @@ const FAMILIES: AchievementMetric[] = [
   "workoutDays",
   "totalSteps",
   "bestDaySteps",
-  "bestWeightKg",
 ];
 
 interface AchievementGroup {
@@ -57,15 +56,7 @@ function toView(
   const current = stats[definition.metric];
   const unlocked = unlockedAt !== null;
 
-  // Il peso si supera scendendo: la distanza è quanto c'è ANCORA SOPRA la
-  // soglia, non quanto manca a raggiungerla salendo. Senza pesate non c'è
-  // nessuna distanza da mostrare.
-  const distance =
-    unlocked || current === null
-      ? null
-      : definition.lowerIsBetter
-        ? current - definition.threshold
-        : definition.threshold - current;
+  const distance = unlocked ? null : definition.threshold - current;
 
   return {
     code: definition.code,
@@ -75,11 +66,9 @@ function toView(
     // quello di oggi: è un fatto storico e non deve cambiare col tempo.
     value: unlocked ? storedValue : current,
     remaining: distance !== null && distance > 0 ? distance : null,
-    // Il peso non ha uno zero di partenza: una percentuale sarebbe arbitraria.
-    progress:
-      unlocked || current === null || definition.lowerIsBetter
-        ? null
-        : Math.min(1, Math.max(0, current / definition.threshold)),
+    progress: unlocked
+      ? null
+      : Math.min(1, Math.max(0, current / definition.threshold)),
     justUnlocked,
   };
 }

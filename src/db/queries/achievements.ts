@@ -43,17 +43,12 @@ export async function collectStats(): Promise<AchievementStats> {
     "SELECT SUM(steps) AS total, MAX(steps) AS best FROM step_logs",
   );
 
-  const weight = await db.getFirstAsync<{ best: number | null }>(
-    "SELECT MIN(weight_kg) AS best FROM weight_logs",
-  );
-
   return {
     loggedDays: loggedRows.length,
     loggedDates: loggedRows.map((r) => r.date),
     workoutDays: workouts?.n ?? 0,
     totalSteps: steps?.total ?? 0,
     bestDaySteps: steps?.best ?? 0,
-    bestWeightKg: weight?.best ?? null,
   };
 }
 

@@ -9,7 +9,7 @@ import {
 import { addFoodEntry } from "@/src/db/queries/diary";
 import { createExercise } from "@/src/db/queries/exercises";
 import { createFood } from "@/src/db/queries/foods";
-import { setSteps, setWeight } from "@/src/db/queries/tracking";
+import { setSteps } from "@/src/db/queries/tracking";
 import { logSet, startSession } from "@/src/db/queries/workouts";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
@@ -42,7 +42,7 @@ describe("collectStats", () => {
     const stats = await collectStats();
     expect(stats.loggedDays).toBe(0);
     expect(stats.totalSteps).toBe(0);
-    expect(stats.bestWeightKg).toBeNull();
+    expect(stats.bestDaySteps).toBe(0);
   });
 
   it("conta i giorni con almeno un pasto, non le voci", async () => {
@@ -60,12 +60,6 @@ describe("collectStats", () => {
     const stats = await collectStats();
     expect(stats.totalSteps).toBe(23200);
     expect(stats.bestDaySteps).toBe(15200);
-  });
-
-  it("il peso migliore è il più basso registrato", async () => {
-    await setWeight("2026-08-20", 82);
-    await setWeight("2026-08-28", 78.4);
-    expect((await collectStats()).bestWeightKg).toBe(78.4);
   });
 
   it("conta i giorni di allenamento, non le serie", async () => {

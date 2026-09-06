@@ -489,13 +489,11 @@
     },
     "unlocked_on": "Unlocked on %{date}",
     "locked": "Not yet unlocked",
-    "no_weight": "No weigh-ins recorded",
     "family": {
       "loggedDays": "Days logged",
       "workoutDays": "Workouts",
       "totalSteps": "Total steps",
-      "bestDaySteps": "Steps in a day",
-      "bestWeightKg": "Weight"
+      "bestDaySteps": "Steps in a day"
     },
     "value": {
       "loggedDays": {
@@ -513,8 +511,7 @@
       "bestDaySteps": {
         "one": "%{value} step",
         "other": "%{value} steps"
-      },
-      "bestWeightKg": "%{value} kg"
+      }
     },
     "remaining": {
       "loggedDays": {
@@ -532,10 +529,6 @@
       "bestDaySteps": {
         "one": "%{value} step short of your record",
         "other": "%{value} steps short of your record"
-      },
-      "bestWeightKg": {
-        "one": "%{value} kg to go",
-        "other": "%{value} kg to go"
       }
     },
     "goal": {
@@ -554,9 +547,8 @@
       "day_steps_10k": "10,000 steps in a day",
       "day_steps_15k": "15,000 steps in a day",
       "day_steps_20k": "20,000 steps in a day",
-      "weight_under_90": "Under 90 kg",
-      "weight_under_80": "Under 80 kg",
-      "weight_under_70": "Under 70 kg"
+      "day_steps_30k": "30,000 steps in a day",
+      "day_steps_50k": "50,000 steps in a day"
     }
   },
   "water": {

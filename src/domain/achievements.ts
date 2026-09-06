@@ -4,23 +4,22 @@ export type AchievementMetric =
   | "loggedDays"
   | "workoutDays"
   | "totalSteps"
-  | "bestDaySteps"
-  | "bestWeightKg";
+  | "bestDaySteps";
 
 export interface AchievementDefinition {
   code: string;
   metric: AchievementMetric;
   threshold: number;
-  /**
-   * Vero quando la soglia si supera SCENDENDO. Il peso è l'unico caso: un
-   * traguardo di dimagrimento scatta andando sotto, non sopra.
-   */
-  lowerIsBetter?: boolean;
 }
 
 /**
  * Il catalogo vive nel codice, non nel database: le definizioni cambiano con
  * l'app, mentre a database resta solo il fatto storico di averle raggiunte.
+ *
+ * E' anche il motivo per cui togliere una famiglia non richiede una migrazione:
+ * i traguardi di peso sono spariti da qui il 6 settembre 2026, e le righe di
+ * chi li aveva gia' raggiunti restano nel database senza far danno - nessuna
+ * schermata le cerca piu'.
  */
 export const ACHIEVEMENTS: AchievementDefinition[] = [
   { code: "logged_days_1", metric: "loggedDays", threshold: 1 },
@@ -41,10 +40,8 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
   { code: "day_steps_10k", metric: "bestDaySteps", threshold: 10_000 },
   { code: "day_steps_15k", metric: "bestDaySteps", threshold: 15_000 },
   { code: "day_steps_20k", metric: "bestDaySteps", threshold: 20_000 },
-
-  { code: "weight_under_90", metric: "bestWeightKg", threshold: 90, lowerIsBetter: true },
-  { code: "weight_under_80", metric: "bestWeightKg", threshold: 80, lowerIsBetter: true },
-  { code: "weight_under_70", metric: "bestWeightKg", threshold: 70, lowerIsBetter: true },
+  { code: "day_steps_30k", metric: "bestDaySteps", threshold: 30_000 },
+  { code: "day_steps_50k", metric: "bestDaySteps", threshold: 50_000 },
 ];
 
 export interface AchievementStats {
@@ -52,8 +49,6 @@ export interface AchievementStats {
   workoutDays: number;
   totalSteps: number;
   bestDaySteps: number;
-  /** Peso più basso mai registrato. Null se non ci sono pesate. */
-  bestWeightKg: number | null;
   /** Date con almeno un pasto registrato, per la serie. */
   loggedDates: string[];
 }
@@ -80,16 +75,11 @@ export function evaluateAchievements(
   return ACHIEVEMENTS.filter((definition) => {
     if (known.has(definition.code)) return false;
 
-    const value = stats[definition.metric];
-    if (value === null) return false;
-
-    return definition.lowerIsBetter
-      ? value <= definition.threshold
-      : value >= definition.threshold;
+    return stats[definition.metric] >= definition.threshold;
   }).map((definition) => ({
     code: definition.code,
     metric: definition.metric,
-    value: stats[definition.metric] as number,
+    value: stats[definition.metric],
   }));
 }
 

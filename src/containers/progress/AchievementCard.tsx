@@ -22,17 +22,15 @@ export interface AchievementView {
    * dire niente che inventare un numero.
    */
   remaining: number | null;
-  /** Avanzamento 0..1. Null dove non ha senso (il peso non parte da zero). */
+  /** Avanzamento 0..1. Null su un traguardo gia' raggiunto. */
   progress: number | null;
   /** Sbloccato proprio ora: va messo in evidenza. */
   justUnlocked: boolean;
 }
 
-/** Il peso è l'unica metrica con decimali; gli altri sono conteggi. */
-const formatValue = (metric: AchievementMetric, value: number): string =>
-  metric === "bestWeightKg"
-    ? value.toFixed(1).replace(".", ",")
-    : Math.round(value).toLocaleString("it-IT");
+/** Sono tutti conteggi: nessuna metrica ha decimali. */
+const formatValue = (value: number): string =>
+  Math.round(value).toLocaleString("it-IT");
 
 export const AchievementCard: React.FC<{ item: AchievementView }> = ({
   item,
@@ -49,7 +47,7 @@ export const AchievementCard: React.FC<{ item: AchievementView }> = ({
         // il traguardo diceva "1 allenamenti".
         t(`achievements.value.${item.metric}`, {
           count: item.value,
-          value: formatValue(item.metric, item.value),
+          value: formatValue(item.value),
         });
 
   let meta: string;
@@ -59,14 +57,11 @@ export const AchievementCard: React.FC<{ item: AchievementView }> = ({
     });
     meta = valueLabel === null ? on : `${on} · ${valueLabel}`;
   } else if (item.remaining === null) {
-    meta =
-      item.metric === "bestWeightKg"
-        ? t("achievements.no_weight")
-        : t("achievements.locked");
+    meta = t("achievements.locked");
   } else {
     meta = t(`achievements.remaining.${item.metric}`, {
       count: item.remaining,
-      value: formatValue(item.metric, item.remaining),
+      value: formatValue(item.remaining),
     });
   }
 
