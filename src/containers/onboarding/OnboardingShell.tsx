@@ -7,7 +7,12 @@ import { ONBOARDING_STEPS } from "@/src/domain/onboarding";
 import { theme } from "@/src/styles";
 import { ChevronLeft } from "lucide-react-native";
 import React from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 /**
@@ -68,18 +73,30 @@ export const OnboardingShell: React.FC<{
           <View style={styles.headerSpacer} />
         </View>
 
-        <FormScreen contentContainerStyle={styles.content}>{children}</FormScreen>
+        {/*
+          Il riparo dalla tastiera abbraccia ANCHE il footer, e non solo il
+          corpo: il `FormScreen` da solo alzerebbe i campi lasciando "Avanti"
+          sotto la tastiera, cioe' l'azione primaria del passo irraggiungibile
+          finche' non si chiude la tastiera. Il `KeyboardAvoidingView` interno
+          di `FormScreen` non raddoppia: qui dentro il fondo del suo riquadro
+          e' gia' sopra la tastiera, quindi il suo scarto viene zero.
+        */}
+        <KeyboardAvoidingView style={styles.body} behavior="padding">
+          <FormScreen contentContainerStyle={styles.content}>
+            {children}
+          </FormScreen>
 
-        <View style={styles.footer}>
-          <DfButton
-            label={primaryLabel}
-            onPress={onPrimary}
-            disabled={primaryDisabled}
-            loading={primaryLoading}
-            variant={primaryVariant}
-            fullWidth
-          />
-        </View>
+          <View style={styles.footer}>
+            <DfButton
+              label={primaryLabel}
+              onPress={onPrimary}
+              disabled={primaryDisabled}
+              loading={primaryLoading}
+              variant={primaryVariant}
+              fullWidth
+            />
+          </View>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
   );
@@ -95,6 +112,7 @@ export const OnboardingTitle: React.FC<{ children: string }> = ({ children }) =>
 const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1 },
+  body: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",

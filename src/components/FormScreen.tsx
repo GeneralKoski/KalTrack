@@ -1,7 +1,6 @@
 import React from "react";
 import {
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   View,
   type ScrollViewProps,
@@ -43,12 +42,21 @@ export const FormScreen = ({
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      // Su Android il manifest ha gia' `windowSoftInputMode="adjustResize"`
-      // (vedi AndroidManifest.xml): la finestra si restringe gia' da sola
-      // quando appare la tastiera. `behavior="height"` qui sopra lo rifarebbe
-      // una seconda volta, comprimendo il contenuto due volte e spingendo il
-      // footer (es. il pulsante "Avanti" dell'onboarding) sotto lo schermo.
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      // `padding` ANCHE su Android, e non `undefined`.
+      //
+      // Il manifest ha `windowSoftInputMode="adjustResize"`, ma da Expo 55
+      // l'edge-to-edge e' obbligatorio (`edgeToEdgeEnabled=true`,
+      // targetSdk 36): con la decor view che non ritaglia gli inset di
+      // sistema, Android non restringe piu' la finestra alla comparsa della
+      // tastiera - la dichiara solo come inset. Quindi `adjustResize` qui non
+      // fa niente, e con `behavior` assente `KeyboardAvoidingView` rende un
+      // `View` nudo: nessun riparo, la tastiera copriva i campi in fondo.
+      //
+      // `padding` non rischia la doppia compressione temuta prima: l'offset e'
+      // `frame.y + frame.height - keyboardY`, quindi se un giorno la finestra
+      // tornasse a restringersi il fondo del riquadro sarebbe gia' sopra la
+      // tastiera e l'offset verrebbe zero da solo.
+      behavior="padding"
     >
       <ScrollView
         contentContainerStyle={contentContainerStyle}

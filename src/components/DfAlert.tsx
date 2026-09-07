@@ -12,7 +12,7 @@ import { Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { X } from "lucide-react-native";
 import React from "react";
-import { Dimensions, Pressable, StyleSheet, View } from "react-native";
+import { Dimensions, Keyboard, Pressable, StyleSheet, View } from "react-native";
 
 interface DfAlertProps {
   isOpen: boolean;
@@ -74,6 +74,26 @@ export function DfAlert({
   const { colors, isDark } = useAppTheme();
   const { t } = useTranslation();
 
+  /**
+   * `avoidKeyboard` sposta la finestra, non la rimpicciolisce: senza questo il
+   * tetto resterebbe l'85% dello schermo INTERO, e una finestra alta - la
+   * composizione, la stima da foto, che sono `size="lg"` - salendo si
+   * infilerebbe sotto la status bar invece di stare nello spazio che resta.
+   */
+  const [keyboardHeight, setKeyboardHeight] = React.useState(0);
+  React.useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", (e) =>
+      setKeyboardHeight(e.endCoordinates.height),
+    );
+    const hide = Keyboard.addListener("keyboardDidHide", () =>
+      setKeyboardHeight(0),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
   const resolvedConfirmColor =
     confirmColor === "danger" ? colors.error : confirmColor;
 
@@ -96,7 +116,19 @@ export function DfAlert({
   };
 
   return (
-    <AlertDialog isOpen={isOpen} onClose={handleDismiss} size={size}>
+    <AlertDialog
+      isOpen={isOpen}
+      onClose={handleDismiss}
+      size={size}
+      // La finestra e' centrata sullo schermo intero, e sotto edge-to-edge la
+      // tastiera non restringe niente (vedi `FormScreen`): quella con dentro un
+      // campo - i grammi, la voce libera, la composizione - si faceva tagliare
+      // il fondo, cioe' proprio i bottoni Annulla/Conferma. `avoidKeyboard`
+      // mette sotto al contenuto uno spazio alto quanto la tastiera: in un
+      // contenitore centrato la finestra sale di meta', che e' esattamente il
+      // ricentrare nello spazio che resta.
+      avoidKeyboard
+    >
       <AlertDialogBackdrop
         style={[
           styles.backdrop,
@@ -118,7 +150,8 @@ export function DfAlert({
           shadowOpacity: isDark ? 0.7 : 0.25,
           shadowRadius: 20,
           elevation: 16,
-          maxHeight: Dimensions.get("window").height * 0.85,
+          maxHeight:
+            (Dimensions.get("window").height - keyboardHeight) * 0.85,
         }}
         className="p-0 overflow-hidden"
       >

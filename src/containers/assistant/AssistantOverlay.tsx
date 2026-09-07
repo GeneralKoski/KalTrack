@@ -15,7 +15,6 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Modal,
-  Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -72,7 +71,11 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
     >
       <KeyboardAvoidingView
         style={[styles.backdrop, { backgroundColor: colors.background }]}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        // `padding` anche su Android: vedi `FormScreen` per il perche'
+        // `adjustResize` non ripara piu' niente sotto edge-to-edge. Qui la
+        // riga con il campo di testo sta in fondo al riquadro, quindi e'
+        // proprio quella che la tastiera copriva.
+        behavior="padding"
       >
         <View
           style={[styles.header, { paddingTop: insets.top + theme.spacing.sm }]}

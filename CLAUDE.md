@@ -937,6 +937,29 @@ Valgono le guide Dieffetech `docs/react-native/`:
   **dietro** - lo sfondo si muove e il foglio resta li'. La prop
   `onAndroidBack` serve ai fogli con sotto-viste, per tornare indietro dentro
   prima di chiudere.
+- **Il riparo dalla tastiera lo fa `KeyboardAvoidingView`, non `adjustResize`.**
+  Il manifest ha `windowSoftInputMode="adjustResize"`, ma da Expo 55
+  l'edge-to-edge e' obbligatorio (`edgeToEdgeEnabled=true`, targetSdk 36) e
+  Android non restringe piu' la finestra: dichiara la tastiera come inset e
+  basta. Quindi `behavior` va passato **su entrambe le piattaforme** - un
+  `behavior` assente rende un `View` nudo, cioe' nessun riparo. Era
+  `Platform.OS === "ios" ? "padding" : undefined` in `FormScreen` (la shell di
+  ogni form e di ogni pagina di Impostazioni) e in `AssistantOverlay`, ed e' il
+  motivo per cui la tastiera copriva i campi dell'onboarding.
+  Due corollari, entrambi provati sull'emulatore:
+  - **il riparo deve abbracciare anche l'azione primaria.** In
+    `OnboardingShell` il footer e' fratello del corpo scrollabile, quindi il
+    `FormScreen` da solo alzava i campi e lasciava "Avanti" sotto la tastiera.
+    Il `KeyboardAvoidingView` esterno li tiene insieme, e quello interno di
+    `FormScreen` non raddoppia: il fondo del suo riquadro e' gia' sopra la
+    tastiera, quindi il suo scarto viene zero da solo.
+  - **una finestra centrata non si ripara con `behavior`, si ripara con
+    `avoidKeyboard`** (`DfAlert`): la tastiera le tagliava il fondo, cioe'
+    Annulla/Conferma - grammi, voce libera, composizione, stima da foto, note
+    del piano. Lo spazio che `avoidKeyboard` mette sotto al contenuto la fa
+    salire di meta' tastiera in un contenitore centrato; il `maxHeight` va
+    calcolato sullo spazio che resta, o una finestra `size="lg"` salendo
+    finisce sotto la status bar.
 - **Una `ScrollView` annidata in un foglio gorhom dev'essere quella di
   `react-native-gesture-handler`.** Quella di react-native non riceve i gesti
   dentro un `BottomSheetScrollView`: resta ferma e sembra un contenuto che non
