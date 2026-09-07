@@ -5,7 +5,11 @@ import { DfForm } from "@/src/components/form/DfForm";
 import { DfInput } from "@/src/components/form/DfInput";
 import { DfNumberInput } from "@/src/components/form/DfNumberInput";
 import { DfSwitch } from "@/src/components/form/DfSwitch";
-import { PhotoField, ScreenBackground } from "@/src/components/kal";
+import {
+  PhotoField,
+  ScreenBackground,
+  SectionLabel,
+} from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { LabelScanner } from "@/src/containers/foods/LabelScanner";
@@ -233,20 +237,14 @@ export function FoodFormScreen() {
               />
               <DfInput name="brand" label={t("foods.brand")} />
 
-              <Text style={[styles.section, { color: colors.textMuted }]}>
-                {t("foods.photo")}
-              </Text>
+              <SectionLabel>{t("foods.photo")}</SectionLabel>
               <PhotoField uri={photoUri} onChange={setPhotoUri} height={140} prefix="food" />
 
-              <Text style={[styles.section, { color: colors.textMuted }]}>
-                {t("foods.values_per_100")}
-              </Text>
+              <SectionLabel>{t("foods.values_per_100")}</SectionLabel>
               <LabelScanner />
               <NutrientFields />
 
-              <Text style={[styles.section, { color: colors.textMuted }]}>
-                {t("foods.serving")}
-              </Text>
+              <SectionLabel>{t("foods.serving")}</SectionLabel>
               <DfSwitch name="isLiquid" label={t("foods.is_liquid")} />
               <DfNumberInput
                 name="defaultServingG"
@@ -314,14 +312,6 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     padding: theme.spacing.md,
-  },
-  section: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.sm,
   },
   loader: {
     marginTop: theme.spacing.xl,

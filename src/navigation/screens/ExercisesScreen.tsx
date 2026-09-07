@@ -131,7 +131,14 @@ export function ExercisesScreen() {
               styles.list,
               { paddingBottom: insets.bottom + theme.spacing.lg },
             ]}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            ItemSeparatorComponent={() => (
+              <View
+                style={[
+                  styles.separator,
+                  { backgroundColor: colors.border },
+                ]}
+              />
+            )}
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
               <EmptyState
@@ -175,6 +182,6 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.sm,
   },
   list: { paddingHorizontal: theme.spacing.md },
-  separator: { height: theme.spacing.sm },
+  separator: { height: StyleSheet.hairlineWidth },
   loader: { marginTop: theme.spacing.xl },
 });

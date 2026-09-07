@@ -495,13 +495,14 @@ const styles = StyleSheet.create({
   },
   title: { flex: 1, fontSize: 18, fontWeight: "700" },
   content: { flexGrow: 1, padding: theme.spacing.md },
+  // Etichetta di CAMPO, non di sezione: erano identiche, e undici campi tutti
+  // in maiuscolo spaziato rendevano indistinguibile "Obiettivi giornalieri" -
+  // che una sezione lo e' davvero - da "Sesso".
   label: {
-    fontSize: 12,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
+    fontSize: 14,
+    fontWeight: "500",
     marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.xs,
+    marginBottom: 6,
   },
   input: {
     borderWidth: 1,

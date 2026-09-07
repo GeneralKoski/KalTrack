@@ -1,4 +1,3 @@
-import { Card } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import type { PlanEntry } from "@/src/db/queries/mealPlan";
@@ -38,10 +37,13 @@ export const PlanDayColumn: React.FC<PlanDayColumnProps> = ({
         const meal = entries.filter((e) => e.row.meal_type_id === type.id);
 
         return (
-          <Card key={type.id} style={styles.card}>
+          /* Nudo come le sezioni di Oggi, e per lo stesso motivo: cinque pasti
+             erano cinque riquadri, e su una giornata vuota erano cinque
+             rettangoli con dentro una parola e un "+ Aggiungi". */
+          <View key={type.id} style={styles.meal}>
             <View style={styles.header}>
               <Text
-                style={[styles.mealName, { color: colors.text }]}
+                style={[styles.mealName, { color: colors.textMuted }]}
                 numberOfLines={1}
               >
                 {type.name}
@@ -52,8 +54,8 @@ export const PlanDayColumn: React.FC<PlanDayColumnProps> = ({
                 hitSlop={10}
                 style={styles.addButton}
               >
-                <Plus size={16} color={colors.text} />
-                <Text style={[styles.addLabel, { color: colors.text }]}>
+                <Plus size={14} color={colors.textMuted} />
+                <Text style={[styles.addLabel, { color: colors.textMuted }]}>
                   {t("plan.add")}
                 </Text>
               </TouchableOpacity>
@@ -66,7 +68,7 @@ export const PlanDayColumn: React.FC<PlanDayColumnProps> = ({
                 onDelete={() => onDelete(entry)}
               />
             ))}
-          </Card>
+          </View>
         );
       })}
     </View>
@@ -119,8 +121,8 @@ const PlanRow: React.FC<{ entry: PlanEntry; onDelete: () => void }> = ({
 };
 
 const styles = StyleSheet.create({
-  root: { gap: theme.spacing.sm },
-  card: { paddingVertical: theme.spacing.sm },
+  root: { gap: theme.spacing.md },
+  meal: { paddingHorizontal: theme.spacing.xs },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -128,18 +130,21 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
     paddingVertical: theme.spacing.xs,
   },
+  // Stessa forma dell'etichetta di sezione di Oggi: il nome di un pasto e' un
+  // titolo di gruppo, non il titolo di una scheda.
   mealName: {
     flexShrink: 1,
-    fontSize: 15,
+    fontSize: 11,
     fontWeight: "700",
-    textTransform: "capitalize",
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
   addButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
   },
-  addLabel: { fontSize: 13, fontWeight: "600" },
+  addLabel: { fontSize: 12, fontWeight: "500" },
   row: {
     flexDirection: "row",
     alignItems: "center",

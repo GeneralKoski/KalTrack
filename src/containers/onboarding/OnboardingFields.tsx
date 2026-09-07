@@ -109,13 +109,12 @@ export function OnboardingPicker<T extends string>({
 }
 
 const styles = StyleSheet.create({
+  // Etichetta di campo: vedi la nota su `FieldLabel` in kal/Primitives.
   label: {
-    fontSize: 12,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
+    fontSize: 14,
+    fontWeight: "500",
     marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.xs,
+    marginBottom: 6,
   },
   input: {
     borderWidth: 1,

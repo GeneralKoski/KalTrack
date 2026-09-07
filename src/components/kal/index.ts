@@ -7,6 +7,7 @@ export { ListGroup, ListRow, ROW_HEIGHT } from "./ListGroup";
 export {
   Chip,
   EmptyState,
+  FieldLabel,
   IconTile,
   SectionLabel,
   StatTiles,

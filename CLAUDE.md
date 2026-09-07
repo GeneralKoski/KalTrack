@@ -931,6 +931,25 @@ voci erano quattro schermate di scorrimento.
 se' - il riquadro del coach settimanale, un pannello di spiegazione, la card
 dell'allenamento rimasto aperto. Non per fare da cornice a una riga.
 
+**Una lista LUNGA non e' un blocco.** `ListGroup` avvolge i suoi figli in una
+`View`, e una `FlatList` non ci passa dentro: gli elenchi virtualizzati -
+alimenti, ricette, esercizi, schede - restano `FlatList` con righe nude e
+`ItemSeparatorComponent` a filo di capello. E' il livello 3, non il 2. Duecento
+esercizi in card da 76 px ne facevano stare otto per schermata; a riga nuda,
+con la miniatura a 40, sono tredici.
+
+**L'etichetta di un campo non e' quella di una sezione.** `FieldLabel`
+(`kal/Primitives.tsx`) e' 14/500 in tondo - gli stessi numeri che `DfInput` ha
+gia' dentro; `SectionLabel` e' 12/700 maiuscolo spaziato. Erano indistinguibili
+perche' chi disegnava un modulo a mano - Obiettivi, account, onboarding, il
+proprio profilo - copiava il trattamento della sezione su ogni campo: Obiettivi
+aveva undici titoli dello stesso peso, e "Obiettivi giornalieri", che una
+sezione lo e' davvero, non si distingueva da "Sesso".
+
+**Uno stato vuoto dentro qualcosa e' `compact`.** `EmptyState` a piena altezza
+riserva 64 px sopra e sotto: giusto a tutto schermo, sbagliato dentro una card -
+il vuoto teneva lo spazio del pieno, ed e' la stessa regola dei grafici.
+
 Il coach settimanale e' l'esempio del perche' l'hero non e' obbligatorio:
 contiene un bottone `MetalSurface`, e dentro un pannello di metallo quel bottone
 sparirebbe. Una schermata senza hero e' legittima; due hero no.
@@ -1059,7 +1078,11 @@ Valgono le guide Dieffetech `docs/react-native/`:
 - **Un elenco di righe e' un `ListGroup`, non N `Card`** (vedi § I tre livelli
   di superficie), e in una schermata c'e' **al massimo un `HeroPanel`**. La
   `Card` e' per quel che e' davvero una scheda a se', non per incorniciare una
-  riga.
+  riga. Una lista lunga e virtualizzata resta `FlatList` con righe nude e
+  separatore a filo di capello.
+- **L'etichetta di un campo e' `FieldLabel` (14/500 in tondo), non
+  `SectionLabel`** (12/700 maiuscolo): sono due cose diverse e per un anno si
+  sono somigliate.
 - Elementi assoluti, overlay e bottoni flottanti ancorati con
   `useSafeAreaInsets()`.
 - Ogni testo visibile via `t("chiave")`, chiavi in `src/i18n/locales/it.json`

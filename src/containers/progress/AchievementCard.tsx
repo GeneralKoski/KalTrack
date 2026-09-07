@@ -1,4 +1,3 @@
-import { Card } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import type { AchievementMetric } from "@/src/domain/achievements";
@@ -66,7 +65,10 @@ export const AchievementCard: React.FC<{ item: AchievementView }> = ({
   }
 
   return (
-    <Card style={styles.card}>
+    /* Riga di un blocco, non piu' una card per traguardo: diciassette
+       traguardi erano diciassette riquadri, e il gruppo lo faceva gia'
+       l'etichetta di sezione sopra. */
+    <View style={styles.row}>
       {/*
         Interfaccia monocroma: raggiunto e da raggiungere si distinguono per
         pieno vs vuoto e per il peso del testo, non per un colore.
@@ -130,15 +132,17 @@ export const AchievementCard: React.FC<{ item: AchievementView }> = ({
           </View>
         ) : null}
       </View>
-    </Card>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.md,
+    gap: theme.spacing.sm + 4,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm + 2,
   },
   icon: {
     width: 36,

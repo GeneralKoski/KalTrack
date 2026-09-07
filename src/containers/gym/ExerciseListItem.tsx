@@ -1,4 +1,3 @@
-import { Card } from "@/src/components/kal";
 import { SyncedPhoto } from "@/src/components/kal/SyncedPhoto";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
@@ -7,7 +6,7 @@ import { theme } from "@/src/styles";
 import { exerciseEquipment, type ExerciseRow } from "@/src/types/gym";
 import { Ban, Dumbbell, ThumbsDown } from "lucide-react-native";
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 interface ExerciseListItemProps {
   exercise: ExerciseRow;
@@ -23,7 +22,15 @@ export const ExerciseListItem: React.FC<ExerciseListItemProps> = ({
   const equipment = exerciseEquipment(exercise);
 
   return (
-    <Card onPress={onPress} style={styles.card}>
+    /* Una riga nuda, non una card: duecento esercizi in card da 76 px ne
+       facevano stare otto per schermata. Senza cornice e con la miniatura a 40
+       la riga sta in 60, e l'elenco si scorre invece di scandagliarsi. */
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.6}
+      accessibilityRole="button"
+      style={styles.row}
+    >
       {/* Stessa miniatura di `FoodListItem`: `SyncedPhoto` quando c'e', o un
           quadrato col manubrio. La colonna `photo_uri` (migrazione 18) era
           scritta dal modulo e letta solo dal dettaglio, quindi chi aggiungeva
@@ -60,19 +67,21 @@ export const ExerciseListItem: React.FC<ExerciseListItemProps> = ({
       ) : exercise.dislike_level > 0 ? (
         <ThumbsDown size={18} color={colors.textFaint} />
       ) : null}
-    </Card>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.sm,
+    gap: theme.spacing.sm + 2,
+    paddingVertical: 10,
+    paddingHorizontal: theme.spacing.xs,
   },
-  photo: { width: 44, height: 44, borderRadius: theme.radius.lg },
+  photo: { width: 40, height: 40, borderRadius: theme.radius.md },
   photoEmpty: { alignItems: "center", justifyContent: "center" },
   body: { flex: 1 },
-  name: { fontSize: 15, fontWeight: "600" },
-  meta: { fontSize: 13, marginTop: 1, textTransform: "capitalize" },
+  name: { fontSize: 15, fontWeight: "500" },
+  meta: { fontSize: 12, marginTop: 1, textTransform: "capitalize" },
 });

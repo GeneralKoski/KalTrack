@@ -285,8 +285,9 @@ export function MeasurementsScreen() {
                 </>
               ) : (
                 <EmptyState
+                  compact
                   message={t("measurements.empty", { site: siteLabel(site) })}
-                  icon={<Ruler size={40} color={colors.textFaint} />}
+                  icon={<Ruler size={32} color={colors.textFaint} />}
                 />
               )}
             </Card>

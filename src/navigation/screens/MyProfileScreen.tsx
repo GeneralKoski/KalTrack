@@ -236,11 +236,10 @@ const styles = StyleSheet.create({
   card: { gap: 2, marginBottom: theme.spacing.sm },
   handle: { fontSize: 16, fontWeight: "600" },
   email: { fontSize: 13 },
+  // Etichetta di campo: vedi la nota su `FieldLabel` in kal/Primitives.
   label: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
+    fontSize: 14,
+    fontWeight: "500",
     marginTop: theme.spacing.sm,
   },
   input: {

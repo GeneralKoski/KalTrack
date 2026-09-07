@@ -242,11 +242,10 @@ const styles = StyleSheet.create({
   },
   intro: { fontSize: 14, lineHeight: 20, marginBottom: theme.spacing.sm },
   field: { gap: 4 },
+  // Etichetta di campo: vedi la nota su `FieldLabel` in kal/Primitives.
   label: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
+    fontSize: 14,
+    fontWeight: "500",
   },
   input: {
     borderWidth: 1,

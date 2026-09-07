@@ -7,6 +7,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
+  type StyleProp,
+  type TextStyle,
   type ViewStyle,
 } from "react-native";
 
@@ -30,14 +32,46 @@ export const SectionLabel: React.FC<{
   );
 };
 
-// Stato vuoto centrato con icona e messaggio.
-export const EmptyState: React.FC<{ message: string; icon?: ReactNode }> = ({
-  message,
-  icon,
-}) => {
+/**
+ * Etichetta di un CAMPO, non di una sezione.
+ *
+ * Le due cose erano indistinguibili: chi scriveva un modulo a mano - obiettivi,
+ * account, onboarding, il proprio profilo - copiava il trattamento di
+ * `SectionLabel` (maiuscolo, spaziato, 700) su ogni etichetta di campo, e una
+ * schermata come Obiettivi finiva con undici titoli tutti dello stesso peso:
+ * SESSO, DATA DI NASCITA, ALTEZZA, ... e in mezzo OBIETTIVI GIORNALIERI, che e'
+ * una sezione vera e non si distingueva piu' da un campo.
+ *
+ * Il trattamento giusto c'era gia' e sta dentro `DfInput`: 14/500 in tondo.
+ * Questo lo rende disponibile a chi il campo se lo disegna da se'.
+ */
+export const FieldLabel: React.FC<{
+  children: ReactNode;
+  style?: StyleProp<TextStyle>;
+}> = ({ children, style }) => {
   const { colors } = useAppTheme();
   return (
-    <View style={styles.empty}>
+    <Text style={[styles.fieldLabel, { color: colors.textSecondary }, style]}>
+      {children}
+    </Text>
+  );
+};
+
+/**
+ * Stato vuoto centrato con icona e messaggio.
+ *
+ * `compact` per quando sta DENTRO qualcosa - una card, un blocco, un riquadro
+ * di metrica: a piena altezza riservava 64 px sopra e sotto, cioe' il vuoto
+ * teneva lo spazio del pieno. A tutto schermo invece l'aria ci vuole.
+ */
+export const EmptyState: React.FC<{
+  message: string;
+  icon?: ReactNode;
+  compact?: boolean;
+}> = ({ message, icon, compact = false }) => {
+  const { colors } = useAppTheme();
+  return (
+    <View style={[styles.empty, compact && styles.emptyCompact]}>
       {icon ?? <Inbox size={40} color={colors.textFaint} />}
       <Text style={[styles.emptyText, { color: colors.textFaint }]}>
         {message}
@@ -197,7 +231,11 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.xl * 2,
     gap: theme.spacing.md,
   },
+  emptyCompact: { paddingVertical: theme.spacing.lg, gap: theme.spacing.sm },
   emptyText: { fontSize: 14, textAlign: "center" },
+  // Gli stessi numeri di `DfInput`: un campo disegnato a mano e uno disegnato
+  // dal componente devono avere la stessa etichetta.
+  fieldLabel: { fontSize: 14, fontWeight: "500", marginBottom: 6 },
   iconTile: {
     borderRadius: theme.radius.lg,
     alignItems: "center",

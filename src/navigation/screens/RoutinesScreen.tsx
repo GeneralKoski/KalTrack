@@ -126,7 +126,14 @@ export function RoutinesScreen() {
               styles.list,
               { paddingBottom: insets.bottom + theme.spacing.lg },
             ]}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            ItemSeparatorComponent={() => (
+              <View
+                style={[
+                  styles.separator,
+                  { backgroundColor: colors.border },
+                ]}
+              />
+            )}
             ListEmptyComponent={
               <EmptyState
                 message={t("gym.no_routines_hint")}
@@ -162,6 +169,6 @@ const styles = StyleSheet.create({
   },
   title: { flex: 1, fontSize: 18, fontWeight: "700" },
   list: { paddingHorizontal: theme.spacing.md, paddingTop: theme.spacing.sm },
-  separator: { height: theme.spacing.sm },
+  separator: { height: StyleSheet.hairlineWidth },
   loader: { marginTop: theme.spacing.xl },
 });

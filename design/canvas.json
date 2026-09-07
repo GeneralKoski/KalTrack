@@ -1,10 +1,15 @@
 {
+  "pages": [
+    { "id": "page-1", "name": "Le quattro radici" },
+    { "id": "page-2", "name": "Sottopagine" }
+  ],
   "artboards": [
-    { "file": "Sistema.dc.html", "x": 0, "y": 0, "w": 390, "h": 870, "title": "Il sistema" },
-    { "file": "Main.dc.html", "x": 490, "y": 0, "w": 390, "h": 870, "title": "Oggi" },
-    { "file": "Progressi.dc.html", "x": 980, "y": 0, "w": 390, "h": 870, "title": "Progressi" },
-    { "file": "Palestra.dc.html", "x": 1470, "y": 0, "w": 390, "h": 870, "title": "Palestra" },
-    { "file": "Profilo.dc.html", "x": 1960, "y": 0, "w": 390, "h": 870, "title": "Profilo" }
+    { "file": "Sistema.dc.html", "x": 0, "y": 0, "w": 390, "h": 870, "title": "Il sistema", "page": "page-1" },
+    { "file": "Main.dc.html", "x": 490, "y": 0, "w": 390, "h": 870, "title": "Oggi", "page": "page-1" },
+    { "file": "Progressi.dc.html", "x": 980, "y": 0, "w": 390, "h": 870, "title": "Progressi", "page": "page-1" },
+    { "file": "Palestra.dc.html", "x": 1470, "y": 0, "w": 390, "h": 870, "title": "Palestra", "page": "page-1" },
+    { "file": "Profilo.dc.html", "x": 1960, "y": 0, "w": 390, "h": 870, "title": "Profilo", "page": "page-1" },
+    { "file": "Moduli.dc.html", "x": 0, "y": 0, "w": 390, "h": 870, "title": "Moduli, liste, vuoti", "page": "page-2" }
   ],
   "annotations": [
     {
@@ -12,6 +17,7 @@
       "x": 0,
       "y": -150,
       "w": 390,
+      "page": "page-1",
       "text": "Il nodo: oggi c'e' UN solo contenitore, la Card, quindi l'unica leva per dire \"questo conta\" e' farlo piu' alto - e allora tutto diventa alto. Qui i livelli sono tre."
     },
     {
@@ -19,6 +25,7 @@
       "x": 490,
       "y": -150,
       "w": 390,
+      "page": "page-1",
       "text": "Acqua: da card con tre pillole da 52 px a una riga sola, stessi tre tocchi. I pasti escono dalle card: sono contenuto che si scorre, non oggetti da incorniciare."
     },
     {
@@ -26,6 +33,7 @@
       "x": 980,
       "y": -150,
       "w": 390,
+      "page": "page-1",
       "text": "Tre card alte un terzo di schermo diventano tre righe con la linea a destra. Il grafico grande resta, ma nello storico che si apre da qui - dove c'e' spazio per guardarlo."
     },
     {
@@ -33,6 +41,7 @@
       "x": 1470,
       "y": -150,
       "w": 390,
+      "page": "page-1",
       "text": "I quattro giorni entrano NELL'hero invece di stargli sotto come quattro card: la scheda attiva e' una cosa sola, non quattro. \"Le mie schede\" da bottone pieno a collegamento."
     },
     {
@@ -40,8 +49,17 @@
       "x": 1960,
       "y": -150,
       "w": 390,
+      "page": "page-1",
       "text": "Sedici card diventano quattro blocchi. Il menu passa da quattro schermate di scorrimento a circa due e mezza, e i gruppi si distinguono perche' sono oggetti separati, non solo etichette."
+    },
+    {
+      "id": "nota-moduli",
+      "x": 0,
+      "y": -180,
+      "w": 390,
+      "page": "page-2",
+      "text": "Tre regole emerse dal giro sulle sottopagine, che il sistema a tre livelli da solo non copriva: un modulo non e' un elenco di sezioni, una lista lunga non e' un blocco, e uno stato vuoto dentro un contenitore non tiene l'altezza del pieno."
     }
   ],
-  "launch": { "view": "canvas" }
+  "launch": { "view": "canvas", "page": "page-2" }
 }

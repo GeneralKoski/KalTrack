@@ -454,7 +454,8 @@
     "session_notes": "Notes",
     "session_duration": "%{minutes} min",
     "warmup": "Warm-up",
-    "instructions_placeholder": "One line on doing it right, or the mistake to avoid"
+    "instructions_placeholder": "One line on doing it right, or the mistake to avoid",
+    "edit_routine": "Edit the routine"
   },
   "assistant": {
     "open": "Talk to the assistant",

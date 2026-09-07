@@ -185,7 +185,14 @@ export function FoodsScreen() {
               styles.list,
               { paddingBottom: fabBottom + SCREEN_FAB_SIZE + theme.spacing.md },
             ]}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            ItemSeparatorComponent={() => (
+              <View
+                style={[
+                  styles.separator,
+                  { backgroundColor: colors.border },
+                ]}
+              />
+            )}
             keyboardShouldPersistTaps="handled"
             stickySectionHeadersEnabled={false}
             ListEmptyComponent={
@@ -235,7 +242,7 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing.xs,
   },
   separator: {
-    height: theme.spacing.sm,
+    height: StyleSheet.hairlineWidth,
   },
   sectionHeader: {
     flexDirection: "row",

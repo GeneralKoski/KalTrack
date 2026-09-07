@@ -1,4 +1,3 @@
-import { Card } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
@@ -28,7 +27,13 @@ export const RoutineListItem: React.FC<RoutineListItemProps> = ({
   const active = routine.is_active === 1;
 
   return (
-    <Card onPress={onPress} style={styles.card}>
+    /* Riga nuda, non card: vedi la nota in `ExerciseListItem`. */
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.6}
+      accessibilityRole="button"
+      style={styles.row}
+    >
       {/*
         L'interfaccia è monocroma: la scheda attiva si riconosce da un segno
         (la barra), dal peso del testo e dall'etichetta, non da un colore.
@@ -75,15 +80,17 @@ export const RoutineListItem: React.FC<RoutineListItemProps> = ({
       <TouchableOpacity onPress={onDelete} activeOpacity={0.6} hitSlop={8}>
         <Trash2 size={18} color={colors.textFaint} />
       </TouchableOpacity>
-    </Card>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.sm,
+    gap: theme.spacing.sm + 2,
+    paddingVertical: 12,
+    paddingHorizontal: theme.spacing.xs,
   },
   rail: {
     alignSelf: "stretch",

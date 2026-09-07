@@ -1,4 +1,3 @@
-import { Card } from "@/src/components/kal";
 import { SyncedPhoto } from "@/src/components/kal/SyncedPhoto";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
@@ -29,7 +28,13 @@ export const RecipeListItem: React.FC<RecipeListItemProps> = ({
   const isFavorite = recipe.is_favorite === 1;
 
   return (
-    <Card onPress={onPress} style={styles.card}>
+    /* Riga nuda, non card: vedi la nota in `ExerciseListItem`. */
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.6}
+      accessibilityRole="button"
+      style={styles.row}
+    >
       {recipe.photo_uri ? (
         <SyncedPhoto uri={recipe.photo_uri} style={styles.photo} />
       ) : (
@@ -73,20 +78,22 @@ export const RecipeListItem: React.FC<RecipeListItemProps> = ({
           fill={isFavorite ? theme.colors.secondary : "transparent"}
         />
       </TouchableOpacity>
-    </Card>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.sm,
+    gap: theme.spacing.sm + 2,
+    paddingVertical: 10,
+    paddingHorizontal: theme.spacing.xs,
   },
   photo: {
-    width: 48,
-    height: 48,
-    borderRadius: theme.radius.lg,
+    width: 40,
+    height: 40,
+    borderRadius: theme.radius.md,
   },
   photoEmpty: {
     alignItems: "center",

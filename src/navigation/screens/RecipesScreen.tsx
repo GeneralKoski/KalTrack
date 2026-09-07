@@ -127,7 +127,14 @@ export function RecipesScreen() {
               styles.list,
               { paddingBottom: fabBottom + SCREEN_FAB_SIZE + theme.spacing.md },
             ]}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            ItemSeparatorComponent={() => (
+              <View
+                style={[
+                  styles.separator,
+                  { backgroundColor: colors.border },
+                ]}
+              />
+            )}
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
               <EmptyState
@@ -172,7 +179,7 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing.xs,
   },
   separator: {
-    height: theme.spacing.sm,
+    height: StyleSheet.hairlineWidth,
   },
   loader: {
     marginTop: theme.spacing.xl,

@@ -1,4 +1,3 @@
-import { Card } from "@/src/components/kal";
 import { SyncedPhoto } from "@/src/components/kal/SyncedPhoto";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
@@ -24,7 +23,13 @@ export const FoodListItem: React.FC<FoodListItemProps> = ({
   const unit = food.is_liquid === 1 ? "ml" : "g";
 
   return (
-    <Card onPress={onPress} style={styles.card}>
+    /* Riga nuda, non card: vedi la nota in `ExerciseListItem`. */
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.6}
+      accessibilityRole="button"
+      style={styles.row}
+    >
       {food.image_uri ? (
         <SyncedPhoto uri={food.image_uri} style={styles.photo} />
       ) : (
@@ -74,20 +79,22 @@ export const FoodListItem: React.FC<FoodListItemProps> = ({
           fill={isFavorite ? theme.colors.secondary : "transparent"}
         />
       </TouchableOpacity>
-    </Card>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.sm,
+    gap: theme.spacing.sm + 2,
+    paddingVertical: 10,
+    paddingHorizontal: theme.spacing.xs,
   },
   photo: {
-    width: 44,
-    height: 44,
-    borderRadius: theme.radius.lg,
+    width: 40,
+    height: 40,
+    borderRadius: theme.radius.md,
   },
   photoEmpty: {
     alignItems: "center",

@@ -174,7 +174,7 @@ function planBlock(
 export function SessionScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
-  const { goBack } = useAppNav();
+  const { goBack, navigate } = useAppNav();
   const insets = useSafeAreaInsets();
   const route = useRoute<SessionRoute>();
   const { routineId, dayIndex } = route.params;
@@ -467,12 +467,15 @@ export function SessionScreen() {
           >
             {day?.name ?? t("gym.session")}
           </Text>
+          {/* `compact`: senza, un bottone da 56 px alto piu' del doppio del
+              chevron e del titolo faceva l'intestazione piu' alta di quella di
+              ogni altra pagina, e si appoggiava alla barra di stato. */}
           <DfButton
             label={t("gym.finish")}
             onPress={() => setConfirmFinish(true)}
             variant="outlined"
             fullWidth={false}
-            style={styles.finish}
+            compact
           />
         </View>
 
@@ -483,6 +486,22 @@ export function SessionScreen() {
             message={t("gym.day_not_found")}
             icon={<Dumbbell size={40} color={colors.textFaint} />}
           />
+        ) : day.blocks.length === 0 ? (
+          /* Un giorno senza blocchi apriva una schermata completamente vuota -
+             nemmeno una frase - e da li' non si capiva ne' cosa mancasse ne'
+             dove andarlo a mettere. Il giorno si riempie dal modulo della
+             scheda, che e' dove porta il collegamento. */
+          <View style={styles.emptyDay}>
+            <EmptyState
+              message={t("gym.no_blocks")}
+              icon={<Dumbbell size={40} color={colors.textFaint} />}
+            />
+            <DfButton
+              label={t("gym.edit_routine")}
+              variant="outlined"
+              onPress={() => navigate("RoutineForm", { id: routineId })}
+            />
+          </View>
         ) : (
           /* `FormScreen` e non una `ScrollView` nuda: qui si scrivono peso e
              ripetizioni, e senza il riparo dalla tastiera le serie in fondo
@@ -720,8 +739,8 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   title: { flex: 1, flexShrink: 1, fontSize: 18, fontWeight: "700" },
-  finish: { paddingHorizontal: 0 },
   loader: { marginTop: theme.spacing.xl },
+  emptyDay: { paddingHorizontal: theme.spacing.md, gap: theme.spacing.md },
   list: { paddingHorizontal: theme.spacing.md, gap: theme.spacing.md },
   block: { gap: theme.spacing.xs },
   blockTag: {

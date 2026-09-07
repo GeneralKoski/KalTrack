@@ -1,4 +1,9 @@
-import { MetalPanel, ScreenBackground, SectionLabel } from "@/src/components/kal";
+import {
+  ListGroup,
+  MetalPanel,
+  ScreenBackground,
+  SectionLabel,
+} from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import {
@@ -171,11 +176,11 @@ export function AchievementsScreen() {
                 <SectionLabel style={styles.section}>
                   {t(`achievements.family.${group.metric}`)}
                 </SectionLabel>
-                <View style={styles.groupItems}>
+                <ListGroup indent={theme.spacing.md + 36 + theme.spacing.sm + 4}>
                   {group.items.map((item) => (
                     <AchievementCard key={item.code} item={item} />
                   ))}
-                </View>
+                </ListGroup>
               </View>
             ))}
           </ScrollView>
@@ -211,6 +216,5 @@ const styles = StyleSheet.create({
   streakNone: { flexShrink: 1, fontSize: 15, fontWeight: "600" },
   streakMeta: { flexShrink: 1, fontSize: 13 },
   section: { marginTop: theme.spacing.md },
-  groupItems: { gap: theme.spacing.sm },
   loader: { marginTop: theme.spacing.xl },
 });

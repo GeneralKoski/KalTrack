@@ -477,7 +477,8 @@
     "session_notes": "Note",
     "session_duration": "%{minutes} min",
     "warmup": "Riscaldamento",
-    "instructions_placeholder": "Una riga su come farlo bene, o sull'errore da evitare"
+    "instructions_placeholder": "Una riga su come farlo bene, o sull'errore da evitare",
+    "edit_routine": "Modifica la scheda"
   },
   "assistant": {
     "open": "Parla con l'assistente",
