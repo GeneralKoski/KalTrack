@@ -2,9 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\EquipmentType;
 use App\Models\Exercise;
 use App\Models\Food;
+use App\Models\MuscleGroup;
+use App\Support\Text;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class SeedCatalogTest extends TestCase
@@ -74,5 +78,57 @@ class SeedCatalogTest extends TestCase
         $this->assertNotNull($pasta);
         $this->assertSame('published', $pasta->status);
         $this->assertEqualsWithDelta(353.0, $pasta->kcal, 0.01);
+    }
+
+    /**
+     * Il comando che carica le costanti dell'app nel server carica anche le
+     * tassonomie: senza questa riga, `muscle_groups` e `equipment_types`
+     * restavano a zero righe su ogni deploy reale, perche' l'unico posto che
+     * chiamava `TaxonomySeeder` era `DatabaseSeeder`, che l'entrypoint del
+     * container non lancia mai (crea anche uno "Test User").
+     */
+    public function test_carica_anche_le_tassonomie(): void
+    {
+        $this->artisan('catalog:seed')->assertSuccessful();
+
+        $this->assertSame(12, MuscleGroup::count());
+        $this->assertSame(11, EquipmentType::count());
+        $this->assertNotNull(MuscleGroup::where('slug', 'petto')->first());
+    }
+
+    /**
+     * `catalog:seed` scartava per `uid` mentre il vincolo unico del database
+     * e' su `name_norm`: una voce esterna al seed - una proposta approvata, o
+     * una voce scritta a mano dal gestionale - il cui nome normalizzato
+     * combacia con una voce di seed sotto un `uid` diverso mandava in crash
+     * `Exercise::create()` a meta' giro, e l'entrypoint la inghiottiva in
+     * silenzio (`|| true`) lasciando il container con un catalogo a meta'.
+     * Ora si scarta anche per nome, il comando completa, e il resto del seed
+     * entra comunque.
+     */
+    public function test_salta_una_voce_il_cui_nome_e_gia_in_catalogo_sotto_un_altro_uid(): void
+    {
+        Log::spy();
+
+        Exercise::create([
+            'uid' => 'un-uid-diverso',
+            'name' => 'Panca piana con bilanciere',
+            'name_norm' => Text::normalize('Panca piana con bilanciere'),
+            'muscle_group' => 'petto',
+            'status' => 'published',
+        ]);
+
+        $this->artisan('catalog:seed')->assertSuccessful();
+
+        // Scartata: l'uid del seed non e' entrato, quello che c'era resta.
+        $this->assertNull(Exercise::where('uid', 'ex-panca-piana-bilanciere')->first());
+        $this->assertNotNull(Exercise::where('uid', 'un-uid-diverso')->first());
+        // Il resto del catalogo e' entrato lo stesso: 200 del seed meno
+        // quella scartata, piu' la riga gia' presente.
+        $this->assertSame(200, Exercise::count());
+
+        Log::shouldHaveReceived('warning')
+            ->withArgs(fn (string $messaggio) => str_contains($messaggio, 'saltato'))
+            ->once();
     }
 }

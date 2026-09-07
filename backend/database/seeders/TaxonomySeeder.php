@@ -14,8 +14,9 @@ use Illuminate\Database\Seeder;
  * vede gia', e cambiarle qui sarebbe un cambio di prodotto travestito da
  * migrazione.
  *
- * Idempotente per slug: gira a ogni deploy senza duplicare niente e senza
- * riscrivere un'etichetta che l'amministratore ha corretto dal gestionale.
+ * Idempotente per slug: chiamato da `catalog:seed` a ogni avvio del
+ * container senza duplicare niente e senza riscrivere un'etichetta che
+ * l'amministratore ha corretto dal gestionale.
  */
 class TaxonomySeeder extends Seeder
 {
@@ -52,17 +53,41 @@ class TaxonomySeeder extends Seeder
     public function run(): void
     {
         foreach (self::MUSCLE_GROUPS as $slug => [$it, $en, $sort]) {
-            MuscleGroup::firstOrCreate(
-                ['slug' => $slug],
-                ['label_it' => $it, 'label_en' => $en, 'sort' => $sort],
+            $this->firstOrCreateAncheFraICancellati(
+                MuscleGroup::class, $slug, $it, $en, $sort,
             );
         }
 
         foreach (self::EQUIPMENT as $slug => [$it, $en, $sort]) {
-            EquipmentType::firstOrCreate(
-                ['slug' => $slug],
-                ['label_it' => $it, 'label_en' => $en, 'sort' => $sort],
+            $this->firstOrCreateAncheFraICancellati(
+                EquipmentType::class, $slug, $it, $en, $sort,
             );
         }
+    }
+
+    /**
+     * `firstOrCreate` da solo gira sotto lo scope globale di `SoftDeletes`:
+     * uno slug cancellato dal gestionale diventa invisibile alla ricerca, e
+     * la `create` che segue colpisce l'indice unico su `slug` - che copre
+     * anche le righe cancellate (regola 7) - con una `QueryException` che
+     * questo comando non gestisce. E' la quarta istanza dello stesso difetto
+     * gia' corretto tre volte altrove nella fase.
+     *
+     * Non la resuscita: uno slug cancellato lo ha tolto un amministratore di
+     * proposito, e questo seed segue la stessa regola di `SeedCatalog` - chi
+     * decide vince sul seed. `withTrashed()` qui serve solo a VEDERE la riga
+     * cancellata per saltarla, non a riportarla in vita.
+     */
+    private function firstOrCreateAncheFraICancellati(
+        string $classe,
+        string $slug,
+        string $it,
+        string $en,
+        int $sort,
+    ): void {
+        $classe::withTrashed()->firstOrCreate(
+            ['slug' => $slug],
+            ['label_it' => $it, 'label_en' => $en, 'sort' => $sort],
+        );
     }
 }
