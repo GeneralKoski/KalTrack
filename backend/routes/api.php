@@ -1,15 +1,16 @@
 <?php
 
+use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\ComparisonController;
 use App\Http\Controllers\Api\ExerciseController;
 use App\Http\Controllers\Api\FoodController;
 use App\Http\Controllers\Api\FriendshipController;
+use App\Http\Controllers\Api\ImageController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\SharedStatController;
 use App\Http\Controllers\Api\SharedWorkoutController;
-use App\Http\Controllers\Api\AdminController;
-use App\Http\Controllers\Api\ImageController;
 use App\Http\Controllers\Api\SyncController;
 use Illuminate\Support\Facades\Route;
 
@@ -70,6 +71,37 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('images', [ImageController::class, 'store']);
     Route::get('images/{name}', [ImageController::class, 'show']);
     Route::delete('images/{name}', [ImageController::class, 'destroy']);
+
+    /*
+     * Il catalogo comune, in pull incrementale.
+     *
+     * Le due letture qui sotto (`exercises`, `foods`) restano per i telefoni
+     * con la build di ieri: mandano tutto il catalogo e il telefono ci
+     * inserisce cio' che gli manca. Queste due invece mandano cio' che e'
+     * cambiato, cancellazioni comprese, ed e' l'unico modo in cui una
+     * descrizione corretta arriva su una riga gia' presente.
+     */
+    Route::get('catalog/exercises', [CatalogController::class, 'exercises']);
+    Route::get('catalog/foods', [CatalogController::class, 'foods']);
+
+    /*
+     * Proporre, correggere e ritirare una proposta.
+     *
+     * Sono le stesse azioni di `POST /api/exercises` e compagne, con lo
+     * stesso controller: quello che cambia e' solo il percorso, cosi' l'app
+     * aggiornata parla di `catalog/` per tutto invece di leggere da una parte
+     * e scrivere dall'altra. Le vecchie restano vive per i telefoni che non
+     * si sono ancora aggiornati.
+     */
+    Route::post('catalog/exercises', [ExerciseController::class, 'store'])
+        ->middleware('throttle:30,1');
+    Route::patch('catalog/exercises/{exercise}', [ExerciseController::class, 'update']);
+    Route::delete('catalog/exercises/{exercise}', [ExerciseController::class, 'destroy']);
+
+    Route::post('catalog/foods', [FoodController::class, 'store'])
+        ->middleware('throttle:60,1');
+    Route::patch('catalog/foods/{food}', [FoodController::class, 'update']);
+    Route::delete('catalog/foods/{food}', [FoodController::class, 'destroy']);
 
     /*
      * Il catalogo degli esercizi: l'unica cosa di questo server che e' comune
