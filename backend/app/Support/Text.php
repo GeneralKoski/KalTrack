@@ -28,4 +28,18 @@ class Text
 
         return trim($value);
     }
+
+    /**
+     * Sfugge i metacaratteri di LIKE (`%`, `_`, e il carattere di fuga stesso)
+     * cosi' un valore letterale non si comporta come un pattern.
+     *
+     * `_` e' un jolly di LIKE che vale "un carattere qualunque": uno slug come
+     * "corpo_libero" passato senza fuga combacerebbe anche con un ipotetico
+     * "corpoXlibero". Va sempre abbinato in query a una clausola
+     * `ESCAPE '\'`, o la fuga non viene interpretata e resta nel valore.
+     */
+    public static function escapeLike(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+    }
 }

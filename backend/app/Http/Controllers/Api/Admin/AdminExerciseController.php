@@ -40,10 +40,15 @@ class AdminExerciseController extends Controller
              * `equipment` e' un elenco separato da virgole in colonna, quindi
              * il filtro e' un LIKE. Con le virgole intorno, o "panca"
              * troverebbe anche un ipotetico "panca-piana".
+             *
+             * Il valore va sfuggito prima di entrare nel pattern: `_` e' un
+             * jolly di LIKE che vale "un carattere qualunque", e uno slug con
+             * un underscore (es. "corpo_libero") combacerebbe anche con un
+             * ipotetico "corpoXlibero" senza la fuga e la clausola `ESCAPE`.
              */
             ->when($attrezzo !== '', fn ($q) => $q->whereRaw(
-                "',' || equipment || ',' LIKE ?",
-                ["%,{$attrezzo},%"],
+                "',' || equipment || ',' LIKE ? ESCAPE '\\'",
+                ['%,'.Text::escapeLike($attrezzo).',%'],
             ))
             /*
              * Il filtro con cui si va a colmare cio' che manca. E' l'altra

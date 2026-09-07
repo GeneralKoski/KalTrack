@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Admin\AdminExerciseController;
 use App\Http\Controllers\Api\Admin\AdminFoodController;
 use App\Http\Controllers\Api\Admin\SubmissionController;
+use App\Http\Controllers\Api\Admin\TaxonomyController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CatalogController;
@@ -106,6 +107,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('foods', [AdminFoodController::class, 'store']);
         Route::patch('foods/{food}', [AdminFoodController::class, 'update']);
         Route::delete('foods/{food}', [AdminFoodController::class, 'destroy']);
+
+        /*
+         * I gruppi muscolari e gli attrezzi: le due tassonomie che
+         * descrivono il catalogo, non il catalogo stesso. `{kind}` e'
+         * `muscle-groups` o `equipment`, un controller solo per entrambi.
+         */
+        Route::get('taxonomies/{kind}', [TaxonomyController::class, 'index']);
+        Route::post('taxonomies/{kind}', [TaxonomyController::class, 'store']);
+        Route::patch('taxonomies/{kind}/{id}', [TaxonomyController::class, 'update']);
+        Route::delete('taxonomies/{kind}/{id}', [TaxonomyController::class, 'destroy']);
     });
 
     Route::get('images', [ImageController::class, 'index']);
