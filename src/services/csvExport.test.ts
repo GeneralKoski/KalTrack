@@ -1,3 +1,4 @@
+import { i18n } from "@/src/i18n";
 import { createTestDb } from "@/src/db/__testing__/betterSqliteAdapter";
 import { __setDbForTesting } from "@/src/db/index";
 import { MEAL_TYPE_IDS, runMigrations } from "@/src/db/migrations";
@@ -13,7 +14,7 @@ import {
   buildFullCsv,
   csvEscape,
   csvFileName,
-  CSV_DELIMITER,
+  csvSeparators,
   exportCsvToFile,
   shareCsv,
   UTF8_BOM,
@@ -61,7 +62,7 @@ function parseCsv(content: string): string[][] {
 
     if (char === '"' && field === "") {
       quoted = true;
-    } else if (char === CSV_DELIMITER) {
+    } else if (char === csvSeparators().delimiter) {
       row.push(field);
       field = "";
     } else if (char === "\r" && content[i + 1] === "\n") {
@@ -400,7 +401,7 @@ describe("scrittura del file e condivisione", () => {
 
   it("il nome del file porta la data dell'export", () => {
     expect(csvFileName(new Date("2026-08-29T10:00:00.000Z"))).toBe(
-      "kaltrack-dati-2026-08-29.csv",
+      "kaltrack-2026-08-29.csv",
     );
   });
 
@@ -429,5 +430,40 @@ describe("nome del file", () => {
   it("usa la data del calendario locale, non UTC", () => {
     const justAfterMidnightInItaly = new Date(2026, 2, 15, 0, 30);
     expect(csvFileName(justAfterMidnightInItaly)).toContain("2026-03-15");
+  });
+});
+
+/**
+ * I due separatori sono una coppia: virgola decimale + virgola di campo è un
+ * file rotto, e nessuno vuole l'uno senza l'altro. Il test li guarda insieme
+ * proprio per questo.
+ */
+describe("separatori per lingua", () => {
+  const originale = i18n.locale;
+  afterEach(() => {
+    i18n.locale = originale;
+  });
+
+  it("in italiano: decimale virgola, campi separati da punto e virgola", () => {
+    i18n.locale = "it";
+    expect(csvSeparators()).toEqual({ decimal: ",", delimiter: ";" });
+    expect(csvEscape(12.5)).toBe("12,5");
+    expect(buildCsv(["a", "b"], [[1.5, "x"]])).toContain("1,5;x");
+  });
+
+  it("in inglese: decimale punto, campi separati da virgola", () => {
+    i18n.locale = "en";
+    expect(csvSeparators()).toEqual({ decimal: ".", delimiter: "," });
+    expect(csvEscape(12.5)).toBe("12.5");
+    expect(buildCsv(["a", "b"], [[1.5, "x"]])).toContain("1.5,x");
+  });
+
+  it("il campo che contiene il separatore va fra virgolette, in ogni lingua", () => {
+    i18n.locale = "en";
+    // In inglese il separatore è la virgola: un nome che la contiene
+    // spaccherebbe la riga in due colonne senza le virgolette.
+    expect(csvEscape("Salad, with tuna")).toBe('"Salad, with tuna"');
+    // E il punto e virgola, che in inglese NON è un separatore, resta nudo.
+    expect(csvEscape("Bread; wholemeal")).toBe("Bread; wholemeal");
   });
 });

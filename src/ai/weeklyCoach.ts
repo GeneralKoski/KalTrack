@@ -1,5 +1,6 @@
 import { chat } from "@/src/ai/client";
-import { hasAiKey, MODELS } from "@/src/ai/config";
+import { hasAiKey, MODELS, promptLanguage } from "@/src/ai/config";
+import { decimalSeparator } from "@/src/utils/number";
 import { getDb } from "@/src/db/index";
 import { getDayDiary } from "@/src/db/queries/diary";
 import { getTargetsFor } from "@/src/db/queries/settings";
@@ -90,24 +91,25 @@ const MAX_OBSERVATIONS = 4;
 
 /**
  * Inglese di proposito: i modelli seguono le istruzioni in inglese meglio che
- * in italiano. Ciò che leggerà l'utente resta italiano.
+ * nelle altre lingue. Ciò che leggerà l'utente esce nella lingua dell'app, ed
+ * è per questo che è una funzione e non una costante.
  *
  * Il divieto di fare aritmetica è la regola più importante del prompt: le medie
  * e gli scostamenti sono già calcolati in locale, e un modello che li rifà
  * sbaglia in un modo che nessuno verifica, perché il numero sbagliato è dentro
  * una frase che suona giusta.
  */
-const SYSTEM_PROMPT = `You are reviewing one week of a person's own food, steps, weight and
+const systemPrompt = (): string => `You are reviewing one week of a person's own food, steps, weight and
 training log. Every number has ALREADY been computed for you from their data.
 
 Rules:
 - NEVER do arithmetic. Do not compute, re-derive, sum, average, convert or estimate any
   number. Quote the figures exactly as you receive them, or do not quote figures at all.
-- A value reported as "non registrato" or "non impostato" is MISSING, not zero. Say it is
-  missing; never treat it as a zero and never guess what it might have been.
+- A value reported as not recorded or not set is MISSING, not zero. Say it is missing;
+  never treat it as a zero and never guess what it might have been.
 - Sober and concrete. No fitness-guru tone, no hype, no motivational slogans, no
   exclamation marks, no emoji, no praise for its own sake. Speak to the person directly
-  and informally ("tu").
+  and informally.
 - Weight over a single week moves for many reasons, water included. Never alarm the person
   about a weight change, never call the week good or bad because of it, and never project
   the change forward.
@@ -117,12 +119,12 @@ Rules:
 - "observations": 2 to 4 short sentences, one fact each, each one grounded in a figure you
   were given or in a gap in the data. "suggestion": exactly ONE concrete thing to try next
   week, small enough to actually do.
-- Everything you write is in ITALIAN.
+- Everything you write is in ${promptLanguage()}.
 
 Reply with a single JSON object and nothing else:
-{"summary":"<una frase in italiano>",
- "observations":["<frase>","<frase>"],
- "suggestion":"<una frase in italiano>"}`;
+{"summary":"<one sentence>",
+ "observations":["<sentence>","<sentence>"],
+ "suggestion":"<one sentence>"}`;
 
 /**
  * Giorni distinti con almeno una serie registrata. Una sessione aperta e mai
@@ -237,13 +239,16 @@ export async function weeklyStats(
 }
 
 /**
- * I numeri arrivano al modello già scritti all'italiana, virgola compresa, e
- * senza separatore delle migliaia: il modello li ricopia carattere per
- * carattere dentro una frase italiana, quindi devono essere già nella forma
- * finale. "1.600" verrebbe ricopiato tale e quale e letto come 1,6.
+ * I numeri arrivano al modello GIÀ SCRITTI nella forma finale, separatore
+ * decimale della lingua compreso, e senza separatore delle migliaia: il
+ * modello li ricopia carattere per carattere dentro la frase che l'utente
+ * legge. "1.600" verrebbe ricopiato tale e quale e letto come 1,6.
+ *
+ * La virgola era scritta qui dentro, e in inglese il coach diceva "76,1 kg" -
+ * cioè settantasei virgola uno scritto all'italiana dentro una frase inglese.
  */
 const decimal = (value: number, decimals: number): string =>
-  value.toFixed(decimals).replace(".", ",");
+  value.toFixed(decimals).replace(".", decimalSeparator());
 
 const plain = (value: number, decimals = 0): string =>
   decimals === 0 ? String(Math.round(value)) : decimal(value, decimals);
@@ -260,7 +265,7 @@ function signed(value: number, decimals = 0): string {
   return rounded < 0 ? `-${rendered}` : `+${rendered}`;
 }
 
-const MISSING = "non registrato";
+const MISSING = "not recorded";
 
 function metricLine(
   label: string,
@@ -273,43 +278,49 @@ function metricLine(
   const parts = [`${label}: ${plain(metric.average, decimals)} ${unit}`.trim()];
   parts.push(
     metric.target === null
-      ? "obiettivo non impostato"
-      : `obiettivo ${plain(metric.target, decimals)} ${unit}`.trim(),
+      ? "target not set"
+      : `target ${plain(metric.target, decimals)} ${unit}`.trim(),
   );
   if (metric.deviation !== null) {
-    parts.push(`scostamento ${signed(metric.deviation, decimals)} ${unit}`.trim());
+    parts.push(`deviation ${signed(metric.deviation, decimals)} ${unit}`.trim());
   }
-  parts.push(`misurato in ${metric.days} giorni su ${WEEK_DAYS}`);
+  parts.push(`measured on ${metric.days} days out of ${WEEK_DAYS}`);
   return parts.join(" | ");
 }
 
 function weightLine(weight: WeeklyWeight): string {
   if (weight.last === null || weight.first === null) {
-    return `Peso: ${MISSING}`;
+    return `Weight: ${MISSING}`;
   }
-  const range = `Peso: da ${decimal(weight.first, 1)} kg a ${decimal(weight.last, 1)} kg`;
+  const range = `Weight: from ${decimal(weight.first, 1)} kg to ${decimal(weight.last, 1)} kg`;
   const change =
     weight.changeKg === null
-      ? "una sola pesata, nessuna variazione calcolabile"
-      : `variazione ${signed(weight.changeKg, 1)} kg`;
-  return `${range} | ${change} | ${weight.days} pesate`;
+      ? "a single weigh-in, no change to compute"
+      : `change ${signed(weight.changeKg, 1)} kg`;
+  return `${range} | ${change} | ${weight.days} weigh-ins`;
 }
 
 /**
- * Il messaggio utente: SOLO numeri già calcolati, in italiano, uno per riga.
- * Al modello non arriva nessun dato grezzo da cui potrebbe essere tentato di
- * ricavarne altri.
+ * Il messaggio utente: SOLO numeri già calcolati, uno per riga. Al modello non
+ * arriva nessun dato grezzo da cui potrebbe essere tentato di ricavarne altri.
+ *
+ * **Le etichette sono in inglese come il prompt di sistema**, e prima erano in
+ * italiano: un messaggio scritto in italiano spinge il modello a rispondere in
+ * italiano quale che sia l'istruzione, e su un modello che le regole ambigue
+ * le segue "un po' peggio" (§ MODELS in `config.ts`) è un tiro alla fune che
+ * non ha senso ingaggiare. I NUMERI invece sono già nella lingua dell'utente,
+ * perché quelli il modello li ricopia.
  */
 export function buildPrompt(stats: WeeklyStats): string {
   return [
-    `Periodo: dal ${stats.from} al ${stats.to} (${WEEK_DAYS} giorni)`,
-    `Giorni con diario compilato: ${stats.loggedDays} su ${WEEK_DAYS}`,
-    metricLine("Calorie medie al giorno", stats.kcal, "kcal"),
-    metricLine("Proteine medie al giorno", stats.protein, "g"),
-    metricLine("Carboidrati medi al giorno", stats.carbs, "g"),
-    metricLine("Grassi medi al giorno", stats.fat, "g"),
-    metricLine("Passi medi al giorno", stats.steps, ""),
-    `Giorni di allenamento: ${stats.workoutDays} su ${WEEK_DAYS}`,
+    `Period: from ${stats.from} to ${stats.to} (${WEEK_DAYS} days)`,
+    `Days with a filled diary: ${stats.loggedDays} out of ${WEEK_DAYS}`,
+    metricLine("Average daily calories", stats.kcal, "kcal"),
+    metricLine("Average daily protein", stats.protein, "g"),
+    metricLine("Average daily carbs", stats.carbs, "g"),
+    metricLine("Average daily fat", stats.fat, "g"),
+    metricLine("Average daily steps", stats.steps, ""),
+    `Training days: ${stats.workoutDays} out of ${WEEK_DAYS}`,
     weightLine(stats.weight),
   ].join("\n");
 }
@@ -404,7 +415,7 @@ export async function weeklyReview(options?: {
       // parola per parola quello che c'è già.
       temperature: 0.5,
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt() },
         { role: "user", content: buildPrompt(stats) },
       ],
     });

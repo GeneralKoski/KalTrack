@@ -1,5 +1,5 @@
 import { chat, type ChatMessage, type ToolCall } from "@/src/ai/client";
-import { MODELS } from "@/src/ai/config";
+import { MODELS, promptLanguage } from "@/src/ai/config";
 import {
   createTools,
   toolDefinitions,
@@ -66,7 +66,7 @@ export interface AssistantContext {
 }
 
 export interface AssistantResult {
-  /** Risposta da mostrare e far pronunciare, in italiano. */
+  /** Risposta da mostrare e far pronunciare, nella lingua dell'app. */
   reply: string;
   intents: ToolIntent[];
 }
@@ -236,8 +236,8 @@ export function normalizeQuantities(text: string): string {
 
 /**
  * Prompt di sistema in inglese: i modelli seguono le istruzioni meglio in
- * inglese e rispondono comunque nella lingua dell'utente. È una convenzione
- * interna, l'utente vede solo italiano.
+ * inglese e rispondono comunque nella lingua che gli si chiede. È una
+ * convenzione interna, l'utente vede solo la propria lingua.
  *
  * **Non prende argomenti, e non è una svista.** Gemini cachea da sola il
  * prefisso comune fra due richieste e i token in cache costano un decimo
@@ -251,24 +251,29 @@ export function normalizeQuantities(text: string): string {
  * (`buildCatalogMessage`). Il volatile viene dopo, in `buildStateMessage`.
  * Chi sposta qualcosa in mezzo lo tolga prima dal conto: la soglia e' 4.096
  * token e sotto quella la cache non scatta affatto.
+ *
+ * La lingua ci entra dentro e **non rompe la cache**: cambia solo quando
+ * l'utente cambia lingua, cioe' quasi mai, e fra due frasi dette di seguito il
+ * prefisso resta identico. E' l'unica cosa variabile ammessa qui.
  */
 export function buildSystemPrompt(): string {
+  const language = promptLanguage();
   return [
     "You are the intelligent assistant of KalTrack, a personal tracker for food, weight, steps and gym training.",
-    "ALWAYS reply in Italian, in one or two short spoken sentences. No markdown, no bullet lists.",
+    `ALWAYS reply in ${language}, in one or two short spoken sentences. No markdown, no bullet lists.`,
     "Use the tools to act. Never invent nutritional values: foods and recipes are resolved by the app, not by you.",
     "",
     "Two messages follow before the user's sentence. YOUR LIBRARY has the ids of the user's own meal types, recipes, foods, exercises and routines. CURRENT STATE has today's date, the day the user is looking at, the targets and the diary entries of that day.",
     "",
     "RULES",
-    '- Quantities are ALWAYS in grams. The transcript already has the common Italian units converted (1 etto = 100 g, "mezzo chilo" = 500 g): use the grams you read, and if a quantity is still vague ask instead of guessing. Never pass 1 for "un etto".',
+    '- Quantities are ALWAYS in grams. The transcript already has the common spoken units converted (1 etto = 100 g, "mezzo chilo" = 500 g): use the grams you read, and if a quantity is still vague ask instead of guessing. Never pass 1 for "un etto".',
     "- Never send calories or macros to `add_meal_entries`: there is no field for them. Send what the user ate and how much, the app resolves the values on the user's own data. Only `create_custom_food` accepts nutritional values (per 100g) when explicitly creating a food item.",
-    '- Dates are ALWAYS YYYY-MM-DD. Resolve "oggi", "ieri", "l\'altro ieri" and weekday names against `Now`. If the user names no day at all, omit the date: the tools use the reference day.',
+    '- Dates are ALWAYS YYYY-MM-DD. Resolve relative day names ("today", "yesterday", "oggi", "ieri", "l\'altro ieri") and weekday names against `Now`. If the user names no day at all, omit the date: the tools use the reference day.',
     "- Prefer the ids listed in YOUR LIBRARY over free text: a name close to one of the user's recipes, foods, exercises or routines IS that item.",
     '- To delete something use only the ids listed under "Diary entries". If what the user wants to delete is not in that list, say so instead of guessing an id.',
-    "- English words mixed into Italian speech (whey, overnight oats, lat machine, bench press, deadlift, squat, push, pull, legs) are normal: never correct them, just use them.",
-    "- If an essential detail is missing, ask one short question in Italian instead of guessing.",
-    "- Write and delete actions are only prepared, not applied: after calling such a tool, tell the user in Italian what is about to happen, as if it were done.",
+    "- Loanwords and gym jargon (whey, overnight oats, lat machine, bench press, deadlift, squat, push, pull, legs) are normal in any language: never correct them, just use them.",
+    `- If an essential detail is missing, ask one short question in ${language} instead of guessing.`,
+    `- Write and delete actions are only prepared, not applied: after calling such a tool, tell the user in ${language} what is about to happen, as if it were done.`,
   ].join("\n");
 }
 
@@ -595,7 +600,7 @@ export async function runAssistant(args: {
           content:
             `PREPARED, waiting for the user's confirmation: ${preview.title}. ` +
             `${preview.lines.join(" ")} Do not call this tool again: ` +
-            "confirm to the user in Italian what is about to happen.",
+            `confirm to the user in ${promptLanguage()} what is about to happen.`,
         });
       }
 

@@ -1,4 +1,6 @@
 
+import { i18n } from "@/src/i18n";
+
 /**
  * Configurazione dei modelli AI Google Gemini (Google AI Studio).
  *
@@ -63,9 +65,36 @@ export const MODELS = {
 } as const;
 
 /**
- * Lingua fissata per la trascrizione e comprensione.
+ * La lingua dell'AI e' quella dell'app, e non una fissata qui.
+ *
+ * `TRANSCRIPTION_LANGUAGE = "it"` era una costante, e con lei ogni prompt
+ * diceva "reply in Italian": chi usava KalTrack in inglese si vedeva
+ * trascrivere l'inglese come se fosse italiano e si sentiva rispondere in
+ * italiano, con la voce italiana. L'assistente non e' una funzione italiana
+ * dell'app, e' l'app che parla.
+ *
+ * Tre forme della stessa cosa, perche' tre destinatari diversi la vogliono
+ * scritta in tre modi: il codice ISO per la trascrizione, il tag completo per
+ * il motore vocale, il nome inglese per i prompt - i modelli seguono
+ * "reply in Italian" meglio di "reply in it".
  */
-export const TRANSCRIPTION_LANGUAGE = "it";
+const LANGUAGE_NAMES: Record<string, string> = {
+  it: "Italian",
+  en: "English",
+};
+
+/** Il codice ISO della lingua corrente ("it", "en"). */
+export const aiLanguage = (): string => i18n.locale.split("-")[0];
+
+/**
+ * Il nome della lingua da scrivere dentro un prompt.
+ *
+ * Ripiega sull'inglese per una lingua che non conosciamo: e' il default
+ * dell'app (§ Lingua in `CLAUDE.md`), e un nome inventato nel prompt varrebbe
+ * meno di nessun nome.
+ */
+export const promptLanguage = (): string =>
+  LANGUAGE_NAMES[aiLanguage()] ?? "English";
 
 /** Oltre questo tempo una richiesta si considera persa (90s per consentire OCR vision e reasoning). */
 export const AI_TIMEOUT_MS = 90_000;

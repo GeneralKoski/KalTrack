@@ -242,19 +242,19 @@ describe("weeklyReview, contenuto del prompt", () => {
     await weeklyReview({ today: TODAY });
 
     const prompt = promptOf(0);
-    expect(prompt).toContain("Giorni con diario compilato: 3 su 7");
+    expect(prompt).toContain("Days with a filled diary: 3 out of 7");
     expect(prompt).toContain(
-      "Calorie medie al giorno: 2200 kcal | obiettivo 2000 kcal | scostamento +200 kcal | misurato in 3 giorni su 7",
+      "Average daily calories: 2200 kcal | target 2000 kcal | deviation +200 kcal | measured on 3 days out of 7",
     );
     expect(prompt).toContain(
-      "Proteine medie al giorno: 110 g | obiettivo 140 g | scostamento -30 g",
+      "Average daily protein: 110 g | target 140 g | deviation -30 g",
     );
     expect(prompt).toContain(
-      "Passi medi al giorno: 9000 | obiettivo 10000 | scostamento -1000 | misurato in 2 giorni su 7",
+      "Average daily steps: 9000 | target 10000 | deviation -1000 | measured on 2 days out of 7",
     );
-    expect(prompt).toContain("Giorni di allenamento: 2 su 7");
+    expect(prompt).toContain("Training days: 2 out of 7");
     expect(prompt).toContain(
-      "Peso: da 80,0 kg a 79,4 kg | variazione -0,6 kg | 2 pesate",
+      "Weight: from 80,0 kg to 79,4 kg | change -0,6 kg | 2 weigh-ins",
     );
   });
 
@@ -267,10 +267,10 @@ describe("weeklyReview, contenuto del prompt", () => {
     await weeklyReview({ today: TODAY });
 
     const prompt = promptOf(0);
-    expect(prompt).toContain("Passi medi al giorno: non registrato");
-    expect(prompt).toContain("Peso: non registrato");
-    expect(prompt).toContain("obiettivo non impostato");
-    expect(prompt).not.toContain("Passi medi al giorno: 0");
+    expect(prompt).toContain("Average daily steps: not recorded");
+    expect(prompt).toContain("Weight: not recorded");
+    expect(prompt).toContain("target not set");
+    expect(prompt).not.toContain("Average daily steps: 0");
   });
 
   it("il prompt di sistema vieta l'aritmetica e i consigli medici", async () => {
@@ -369,6 +369,6 @@ describe("weeklyReview, statistiche già calcolate", () => {
     const review = await weeklyReview({ stats });
 
     expect(review.stats).toBe(stats);
-    expect(promptOf(0)).toContain("Giorni con diario compilato: 3 su 7");
+    expect(promptOf(0)).toContain("Days with a filled diary: 3 out of 7");
   });
 });

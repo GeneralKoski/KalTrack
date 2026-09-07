@@ -1,5 +1,5 @@
 import { chat } from "@/src/ai/client";
-import { MODELS } from "@/src/ai/config";
+import { MODELS, promptLanguage } from "@/src/ai/config";
 import { AiResponseError } from "@/src/ai/errors";
 import { searchExercises } from "@/src/db/queries/exercises";
 import { latestWeight } from "@/src/db/queries/tracking";
@@ -78,10 +78,14 @@ const MAX_NOTES_LEN = 240;
 
 /**
  * Inglese di proposito: i modelli seguono le istruzioni in inglese meglio che
- * in italiano. Nomi dei giorni, note e ripetizioni li leggerà l'utente, quindi
- * il contenuto è italiano.
+ * nelle altre lingue. Nomi dei giorni, note e ripetizioni li leggerà l'utente,
+ * quindi il CONTENUTO è nella lingua dell'app, non in italiano fisso.
+ *
+ * È una funzione e non una costante proprio per questo: la lingua entra nel
+ * testo, e una costante l'avrebbe congelata al caricamento del modulo - lo
+ * stesso difetto dei `title` della tab bar.
  */
-const SYSTEM_PROMPT = `You are a strength coach building a weekly training plan.
+const systemPrompt = (): string => `You are a strength coach building a weekly training plan.
 You are given the athlete's goal, level, days per week, session length, and a CLOSED catalog
 of exercises they can actually perform (their equipment, minus what they refuse to do).
 
@@ -98,8 +102,8 @@ Rules:
 - Block "kind": "single" for a normal exercise, "superset" for two exercises back to back,
   "circuit" for three or more, "dropset" for drop sets. A superset block holds 2+ exercises,
   a single block holds exactly 1.
-- Day names, the plan name and any notes are written in ITALIAN, short and concrete
-  ("Spinta", "Gambe e core"). "targetReps" is a string in Italian, like "8-10" or "12".
+- Day names, the plan name and any notes are written in ${promptLanguage()}, short and
+  concrete ("Push", "Legs and core"). "targetReps" is a plain string like "8-10" or "12".
 - "targetWeight" is the working load in kilograms for those reps, NOT a one-rep max.
   Scale it to the athlete's level and bodyweight, both given below - the same exercise
   is a different load for a 60 kg principiante and a 95 kg avanzato.
@@ -108,12 +112,12 @@ Rules:
   a field the athlete fills in; an invented one is a number they trust.
 
 Reply with a single JSON object and nothing else:
-{"name":"<nome scheda in italiano>",
- "notes":"<una riga in italiano, opzionale>",
- "days":[{"name":"<nome giorno>","blocks":[
+{"name":"<plan name, in the requested language>",
+ "notes":"<one line, optional>",
+ "days":[{"name":"<day name>","blocks":[
    {"kind":"single","restSeconds":90,"exercises":[
-     {"exerciseId":"<id dal catalogo>","targetSets":4,"targetReps":"8-10","rpe":8,
-      "targetWeight":60,"notes":"<opzionale, italiano>"}]}]}]}`;
+     {"exerciseId":"<id from the catalog>","targetSets":4,"targetReps":"8-10","rpe":8,
+      "targetWeight":60,"notes":"<optional>"}]}]}]}`;
 
 function checkPreferences(preferences: RoutinePreferences): void {
   const { daysPerWeek, sessionMinutes } = preferences;
@@ -405,7 +409,7 @@ export async function generateRoutine(
     model: MODELS.assistant,
     responseFormatJson: true,
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: systemPrompt() },
       {
         role: "user",
         content: [

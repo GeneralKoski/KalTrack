@@ -1,7 +1,7 @@
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 
 import { chat } from "@/src/ai/client";
-import { MODELS } from "@/src/ai/config";
+import { MODELS, promptLanguage } from "@/src/ai/config";
 import { AiRequestError, AiResponseError } from "@/src/ai/errors";
 import { resolveFoodItem, type ResolvedItem } from "@/src/ai/resolveFood";
 import {
@@ -74,7 +74,11 @@ export interface PhotoEstimate {
   caveat: string;
 }
 
-const SYSTEM_PROMPT = `You are a nutrition estimator for an Italian food diary.
+/**
+ * Funzione e non costante: il nome del piatto lo legge l'utente, quindi esce
+ * nella lingua dell'app.
+ */
+const systemPrompt = (): string => `You are a nutrition estimator for an Italian food diary.
 The user sends a photo of a meal. Estimate what is on the plate.
 
 Rules:
@@ -84,14 +88,14 @@ Rules:
 - Include invisible but obvious ingredients (cooking oil, dressing, butter) in the entry they belong to.
 - If the user adds a note, the note is more reliable than the photo: follow the quantities and
   ingredients it states and adjust everything else around them. Never ignore the note.
-- The note is written in Italian and QUANTITIES ARE ALWAYS IN GRAMS: normalize Italian units
-  yourself. 1 etto = 100 g, "un etto e mezzo" = 150 g, "due etti" = 200 g,
+- QUANTITIES ARE ALWAYS IN GRAMS: normalize spoken units yourself, including the Italian
+  ones. 1 etto = 100 g, "un etto e mezzo" = 150 g, "due etti" = 200 g,
   "due etti e mezzo" = 250 g, "mezzo chilo" = 500 g, "un chilo" = 1000 g.
   Never report 1 g for "un etto": that is a 100x error on the whole meal.
 - This is always an estimate from a picture, never a measurement. Give every entry a confidence
   between 0 and 1.
 - Only report food you can actually see: never invent an entry to avoid an empty answer.
-- Write "label" in Italian, as the name of the dish, not a description.
+- Write "label" in ${promptLanguage()}, as the name of the dish, not a description.
 - Answer with JSON only, no prose, in exactly this shape:
 {"items":[{"label":"string","quantityG":number,"kcal":number,"protein":number,"carbs":number,
 "sugars":number,"fat":number,"saturatedFat":number,"fiber":number,"salt":number,
@@ -386,7 +390,7 @@ export async function estimateFromPhoto(args: {
     model: MODELS.vision,
     responseFormatJson: true,
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: systemPrompt() },
       {
         role: "user",
         content: [

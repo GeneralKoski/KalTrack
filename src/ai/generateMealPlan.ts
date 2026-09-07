@@ -1,5 +1,5 @@
 import { chat } from "@/src/ai/client";
-import { MODELS } from "@/src/ai/config";
+import { MODELS, promptLanguage } from "@/src/ai/config";
 import { AiResponseError } from "@/src/ai/errors";
 import { newId, nowIso } from "@/src/db/ids";
 import { getDb } from "@/src/db/index";
@@ -61,7 +61,11 @@ const DIET_STYLE_DESCRIPTIONS: Record<DietStyle, string> = {
   quick_prep: "Pasti semplici, veloci ed efficienti da preparare o trasportare",
 };
 
-const SYSTEM_PROMPT = `You are an expert nutritionist and meal planner building a realistic, nutritious, and balanced meal plan for the specified dates.
+/**
+ * Funzione e non costante: le etichette dei pasti le legge l'utente, quindi
+ * escono nella lingua dell'app.
+ */
+const systemPrompt = (): string => `You are an expert nutritionist and meal planner building a realistic, nutritious, and balanced meal plan for the specified dates.
 You receive the user's daily calorie and macronutrient targets, profile goal, available meal types, and optional catalogs of saved foods and recipes.
 
 Rules:
@@ -69,9 +73,9 @@ Rules:
 2. The total daily calories and macros (protein, carbs, fats) for each day should reasonably align with the target daily calories and macronutrient ratios.
 3. Distribute meals realistically across the day (e.g. 20-25% Breakfast, 35-40% Lunch, 30-35% Dinner, 10-15% Snacks).
 4. Whenever appropriate, prioritize using existing foods (via foodId and realistic quantityG in grams) or recipes (via recipeId and servings) from the provided catalogs.
-5. If an item is not in the catalogs, provide a concrete Italian label (e.g. "Riso basmati con salmone e zucchine", "Yogurt greco con noci e miele") with approximate quantityG if applicable.
+5. If an item is not in the catalogs, provide a concrete label in ${promptLanguage()} (e.g. "Riso basmati con salmone e zucchine", "Greek yoghurt with walnuts and honey") with approximate quantityG if applicable.
 6. Ensure each item specifies a valid mealTypeId matching one of the provided meal types.
-7. Output Italian descriptions for any labels.
+7. Write every label in ${promptLanguage()}.
 
 Reply with a single JSON object and nothing else:
 {
@@ -166,7 +170,7 @@ export async function generateMealPlan(
     capability: "meal_plan_generation",
     model: MODELS.assistant,
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: systemPrompt() },
       {
         role: "user",
         content: `Generate a meal plan based on these parameters:\n${JSON.stringify(userContext, null, 2)}`,

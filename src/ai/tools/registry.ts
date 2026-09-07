@@ -26,6 +26,8 @@ import { getTargetsFor, saveTargets } from "@/src/db/queries/settings";
 import { getSteps, setSteps, setWeight } from "@/src/db/queries/tracking";
 import { createRoutine, logSet, startSession } from "@/src/db/queries/workouts";
 import { isRealIsoDate, todayIso } from "@/src/domain/date";
+import { i18n } from "@/src/i18n";
+import { decimalSeparator } from "@/src/utils/number";
 import {
   recipePerServing,
   scaleNutrients,
@@ -171,19 +173,34 @@ const dateOrReference = (
   key = "date",
 ): string => optDate(source, key) ?? context.referenceDate;
 
-// ─── Formattazione italiana ──────────────────────────────────────────────────
+// ─── Formattazione ───────────────────────────────────────────────────────────
+
+/**
+ * Anteprime e messaggi di questo file li LEGGE L'UTENTE, quindi passano da
+ * `i18n`: erano scritti in italiano dentro il codice, e chi usava KalTrack in
+ * inglese si vedeva rispondere "Registrati 8000 passi per il 07/09" sotto una
+ * scheda intitolata "Passi". Le `description` dei tool restano invece in
+ * inglese: quelle le legge il modello, non l'utente (§ buildSystemPrompt).
+ */
 
 /** Data compatta per le anteprime: la ISO completa è rumore da leggere. */
 const shortDate = (iso: string): string =>
   `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 
 const num = (value: number): string =>
-  (Math.round(value * 10) / 10).toString().replace(".", ",");
+  (Math.round(value * 10) / 10).toString().replace(".", decimalSeparator());
 
 const int = (value: number): string => String(Math.round(value));
 
-const plural = (count: number, one: string, many: string): string =>
-  count === 1 ? one : many;
+/**
+ * "2 porzioni" / "2 servings": il plurale lo decide i18n, non un ternario.
+ *
+ * `count` sceglie la forma, `value` è il numero come si scrive: mezza porzione
+ * è "0,5 porzioni" in italiano e "0.5 servings" in inglese, e col solo `count`
+ * i18n stamperebbe il numero grezzo.
+ */
+const servingsLabel = (count: number): string =>
+  i18n.t("assistant_tools.servings", { count, value: num(count) });
 
 // ─── log_steps ───────────────────────────────────────────────────────────────
 
@@ -230,28 +247,33 @@ const logSteps: ToolFactory = (context) =>
       const days = reqArray(root, "days").map((item) => {
         const day = asRecord(item, "Giorno");
         const steps = reqNumber(day, "steps");
-        if (steps < 0) fail("I passi non possono essere negativi");
+        if (steps < 0) fail(i18n.t("assistant_tools.steps_negative"));
         // Lo schema dichiara integer ma non lo impone: 8000.7 verrebbe mostrato
         // come 8001 in anteprima e arrotondato solo dentro setSteps.
-        if (!Number.isInteger(steps)) fail("I passi devono essere un intero");
+        if (!Number.isInteger(steps))
+          fail(i18n.t("assistant_tools.steps_integer"));
         return { date: dateOrReference(day, context), steps };
       });
       return { days };
     },
     preview: async ({ days }) => ({
-      title: "Passi",
-      lines: days.map(
-        (day) => `${shortDate(day.date)}: ${int(day.steps)} passi`,
+      title: i18n.t("assistant_tools.steps_title"),
+      lines: days.map((day) =>
+        i18n.t("assistant_tools.steps_line", {
+          date: shortDate(day.date),
+          steps: int(day.steps),
+        }),
       ),
     }),
     execute: async ({ days }) => {
       for (const day of days) await setSteps(day.date, day.steps, "voice");
       const first = days[0];
       return {
-        message:
-          days.length === 1
-            ? `Registrati ${int(first.steps)} passi per il ${shortDate(first.date)}.`
-            : `Registrati i passi di ${days.length} giorni.`,
+        message: i18n.t("assistant_tools.steps_saved", {
+          count: days.length,
+          steps: int(first.steps),
+          date: shortDate(first.date),
+        }),
       };
     },
   });
@@ -308,16 +330,28 @@ const logWeight: ToolFactory = (context) =>
       };
     },
     preview: async (args) => {
-      const lines = [`${shortDate(args.date)}: ${num(args.weightKg)} kg`];
+      const lines = [
+        i18n.t("assistant_tools.weight_line", {
+          date: shortDate(args.date),
+          weight: num(args.weightKg),
+        }),
+      ];
       if (args.bodyFatPct !== undefined) {
-        lines.push(`Massa grassa: ${num(args.bodyFatPct)}%`);
+        lines.push(
+          i18n.t("assistant_tools.body_fat_line", {
+            value: num(args.bodyFatPct),
+          }),
+        );
       }
-      return { title: "Peso", lines };
+      return { title: i18n.t("assistant_tools.weight_title"), lines };
     },
     execute: async (args) => {
       await setWeight(args.date, args.weightKg, args.bodyFatPct ?? null);
       return {
-        message: `Registrato il peso di ${num(args.weightKg)} kg per il ${shortDate(args.date)}.`,
+        message: i18n.t("assistant_tools.weight_saved", {
+          weight: num(args.weightKg),
+          date: shortDate(args.date),
+        }),
       };
     },
   });
@@ -422,10 +456,10 @@ async function recipePlan(
   const note =
     unusedQuantityG === null
       ? ""
-      : ` (i ${int(unusedQuantityG)} g detti non si applicano a un pasto in porzioni)`;
+      : i18n.t("assistant_tools.grams_unused", { grams: int(unusedQuantityG) });
   return {
     line:
-      `${recipe.name} - ${num(servings)} ${plural(servings, "porzione", "porzioni")} - ` +
+      `${recipe.name} - ${servingsLabel(servings)} - ` +
       `${int(nutrients.kcal)} kcal, P ${num(nutrients.protein)} g${note}`,
     nutrients,
     write: async (date, mealTypeId) => {
@@ -674,10 +708,7 @@ const addMealEntries: ToolFactory = (context) =>
         // Rifiutare invece di ignorare: se il modello prova a passare i macro,
         // il tentativo deve tornargli indietro come errore, non sparire.
         if (source.nutrients !== undefined || source.kcal !== undefined) {
-          fail(
-            "I valori nutrizionali non si passano: manda nome e quantità, " +
-              "li risolve l'app sui dati dell'utente.",
-          );
+          fail(i18n.t("assistant_tools.no_nutrients"));
         }
 
         const foodId = optString(source, "foodId");
@@ -699,11 +730,7 @@ const addMealEntries: ToolFactory = (context) =>
           // grammi della mia pizza" si vedrebbe registrare una porzione
           // intera senza che niente lo dica.
           if (optPositive(source, "quantityG") !== undefined) {
-            fail(
-              "Un pasto si aggiunge a porzioni, non a grammi: manda " +
-                '"servings" invece di "quantityG", o passa il nome ' +
-                "dell'alimento se l'utente intendeva un ingrediente.",
-            );
+            fail(i18n.t("assistant_tools.recipe_needs_servings"));
           }
           return {
             kind: "recipe",
@@ -712,7 +739,7 @@ const addMealEntries: ToolFactory = (context) =>
           };
         }
         if (name === undefined) {
-          fail("Ogni voce deve avere name, foodId oppure recipeId");
+          fail(i18n.t("assistant_tools.entry_needs_name"));
         }
         const quantityG = optPositive(source, "quantityG");
         return {
@@ -738,10 +765,19 @@ const addMealEntries: ToolFactory = (context) =>
       if (plans.length > 1) {
         const totals = sumNutrients(plans.map((plan) => plan.nutrients));
         lines.push(
-          `Totale: ${int(totals.kcal)} kcal, P ${num(totals.protein)} g`,
+          i18n.t("assistant_tools.meal_total", {
+            kcal: int(totals.kcal),
+            protein: num(totals.protein),
+          }),
         );
       }
-      return { title: `Aggiungo a ${name} (${shortDate(args.date)})`, lines };
+      return {
+        title: i18n.t("assistant_tools.meal_add_title", {
+          meal: name,
+          date: shortDate(args.date),
+        }),
+        lines,
+      };
     },
     execute: async (args) => {
       const name = await mealTypeName(args.mealTypeId);
@@ -749,7 +785,7 @@ const addMealEntries: ToolFactory = (context) =>
       for (const plan of plans) await plan.write(args.date, args.mealTypeId);
       const count = plans.length;
       return {
-        message: `${plural(count, "Aggiunta", "Aggiunte")} ${count} ${plural(count, "voce", "voci")} a ${name}.`,
+        message: i18n.t("assistant_tools.meal_added", { count, meal: name }),
       };
     },
   });
@@ -833,10 +869,15 @@ const deleteEntryTool: ToolFactory = (context) =>
       const { entry, mealName } = await findDiaryEntry(args.date, args.entryId);
       const name = await diaryEntryName(entry, args.label);
       return {
-        title: "Elimino una voce",
+        title: i18n.t("assistant_tools.delete_title"),
         lines: [
-          `${name} - ${int(entry.kcal)} kcal (${mealName} del ${shortDate(args.date)})`,
-          "L'operazione non è reversibile.",
+          i18n.t("assistant_tools.delete_line", {
+            name,
+            kcal: int(entry.kcal),
+            meal: mealName,
+            date: shortDate(args.date),
+          }),
+          i18n.t("assistant_tools.delete_irreversible"),
         ],
       };
     },
@@ -846,7 +887,7 @@ const deleteEntryTool: ToolFactory = (context) =>
       const { entry } = await findDiaryEntry(args.date, args.entryId);
       const name = await diaryEntryName(entry, args.label);
       await deleteEntry(args.entryId);
-      return { message: `Eliminato: ${name}.` };
+      return { message: i18n.t("assistant_tools.deleted", { name }) };
     },
   });
 
@@ -864,20 +905,26 @@ async function summaryLines(date: string): Promise<string[]> {
 
   if (!targets) {
     return [
-      `${int(eaten.kcal)} kcal, ${num(eaten.protein)} g di proteine, ${num(eaten.carbs)} g di carboidrati, ${num(eaten.fat)} g di grassi.`,
-      `${int(walked)} passi.`,
-      "Nessun obiettivo impostato per questo giorno.",
+      i18n.t("assistant_tools.summary_totals", {
+        kcal: int(eaten.kcal),
+        protein: num(eaten.protein),
+        carbs: num(eaten.carbs),
+        fat: num(eaten.fat),
+      }),
+      i18n.t("assistant_tools.summary_steps", { steps: int(walked) }),
+      i18n.t("assistant_tools.summary_no_targets"),
     ];
   }
 
   const left = (value: number, target: number): string => {
     // Arrotondato prima del confronto: num() mostrerebbe "mancano 0" per 0,04.
     const remaining = Math.round((target - value) * 10) / 10;
-    if (remaining > 0) return `mancano ${num(remaining)}`;
+    if (remaining > 0)
+      return i18n.t("assistant_tools.summary_left", { value: num(remaining) });
     // Obiettivo centrato non è uno sforamento: "sforato di 0" è una frase che
     // l'assistente poi pronuncia.
-    if (remaining === 0) return "obiettivo raggiunto";
-    return `sforato di ${num(-remaining)}`;
+    if (remaining === 0) return i18n.t("assistant_tools.summary_on_target");
+    return i18n.t("assistant_tools.summary_over", { value: num(-remaining) });
   };
 
   /**
@@ -895,40 +942,48 @@ async function summaryLines(date: string): Promise<string[]> {
     remaining: string,
   ): string =>
     target > 0
-      ? `${label}: ${eatenText} su ${targetText} (${remaining}).`
-      : `${label}: ${eatenText}, nessun obiettivo impostato.`;
+      ? i18n.t("assistant_tools.summary_with_target", {
+          label,
+          eaten: eatenText,
+          target: targetText,
+          remaining,
+        })
+      : i18n.t("assistant_tools.summary_without_target", {
+          label,
+          eaten: eatenText,
+        });
 
   return [
     line(
-      "Calorie",
+      i18n.t("assistant_tools.label_kcal"),
       int(eaten.kcal),
       targets.kcal,
       int(targets.kcal),
       left(eaten.kcal, targets.kcal),
     ),
     line(
-      "Proteine",
+      i18n.t("assistant_tools.label_protein"),
       `${num(eaten.protein)} g`,
       targets.protein_g,
       `${int(targets.protein_g)} g`,
       left(eaten.protein, targets.protein_g),
     ),
     line(
-      "Carboidrati",
+      i18n.t("assistant_tools.label_carbs"),
       `${num(eaten.carbs)} g`,
       targets.carbs_g,
       `${int(targets.carbs_g)} g`,
       left(eaten.carbs, targets.carbs_g),
     ),
     line(
-      "Grassi",
+      i18n.t("assistant_tools.label_fat"),
       `${num(eaten.fat)} g`,
       targets.fat_g,
       `${int(targets.fat_g)} g`,
       left(eaten.fat, targets.fat_g),
     ),
     line(
-      "Passi",
+      i18n.t("assistant_tools.label_steps"),
       int(walked),
       targets.steps,
       int(targets.steps),
@@ -992,9 +1047,7 @@ interface ResolvedTargets {
 async function resolveTargets(args: SetTargetArgs): Promise<ResolvedTargets> {
   const current = await getTargetsFor(args.validFrom);
   if (!current) {
-    fail(
-      "Non ci sono obiettivi da aggiornare: impostane prima uno dal profilo.",
-    );
+    fail(i18n.t("assistant_tools.targets_none"));
   }
 
   const next = {
@@ -1065,17 +1118,19 @@ const setTarget: ToolFactory = (context) =>
         args.fatG,
         args.steps,
       ].some((value) => value !== undefined);
-      if (!hasValue) fail("Nessun obiettivo da modificare");
+      if (!hasValue) fail(i18n.t("assistant_tools.targets_nothing_to_change"));
       return args;
     },
     preview: async (args) => {
       const { validFrom, changes } = await resolveTargets(args);
       return {
-        title: `Nuovi obiettivi dal ${shortDate(validFrom)}`,
+        title: i18n.t("assistant_tools.targets_title", {
+          date: shortDate(validFrom),
+        }),
         lines:
           changes.length > 0
             ? changes
-            : ["Nessuna modifica rispetto agli obiettivi attuali."],
+            : [i18n.t("assistant_tools.targets_no_change")],
       };
     },
     execute: async (args) => {
@@ -1084,8 +1139,13 @@ const setTarget: ToolFactory = (context) =>
       return {
         message:
           changes.length > 0
-            ? `Obiettivi aggiornati dal ${shortDate(validFrom)}: ${changes.join(", ")}.`
-            : `Obiettivi confermati dal ${shortDate(validFrom)}.`,
+            ? i18n.t("assistant_tools.targets_updated", {
+                date: shortDate(validFrom),
+                changes: changes.join(", "),
+              })
+            : i18n.t("assistant_tools.targets_confirmed", {
+                date: shortDate(validFrom),
+              }),
       };
     },
   });
@@ -1113,19 +1173,9 @@ const SCREENS = [
 
 type ScreenName = (typeof SCREENS)[number];
 
-const SCREEN_LABELS: Record<ScreenName, string> = {
-  TodayTab: "Oggi",
-  ProgressTab: "Progressi",
-  GymTab: "Palestra",
-  ProfileTab: "Profilo",
-  Foods: "Alimenti",
-  FoodForm: "Scheda alimento",
-  Recipes: "Pasti",
-  RecipeForm: "Scheda pasto",
-  Settings: "Impostazioni",
-  Targets: "Obiettivi",
-  Backup: "Backup",
-};
+/** Il nome leggibile della schermata, nella lingua dell'app. */
+const screenLabel = (screen: ScreenName): string =>
+  i18n.t(`assistant_tools.screen.${screen}`);
 
 const isScreenName = (value: string): value is ScreenName =>
   (SCREENS as readonly string[]).includes(value);
@@ -1172,8 +1222,10 @@ const navigate: ToolFactory = () =>
       };
     },
     preview: async (args) => ({
-      title: "Navigazione",
-      lines: [`Apro ${SCREEN_LABELS[args.screen]}.`],
+      title: i18n.t("assistant_tools.nav_title"),
+      lines: [
+        i18n.t("assistant_tools.nav_line", { screen: screenLabel(args.screen) }),
+      ],
     }),
     /**
      * Naviga davvero, tramite il ref della navigazione.
@@ -1185,7 +1237,7 @@ const navigate: ToolFactory = () =>
      */
     execute: async (args) => {
       if (!navigationRef.isReady()) {
-        fail("La navigazione non e' ancora pronta");
+        fail(i18n.t("assistant_tools.nav_not_ready"));
       }
       // Il ref e' tipizzato `any` a monte (navigationRef.ts): il tipo giusto
       // e' garantito dal `satisfies` su SCREENS, non da questa chiamata.
@@ -1194,7 +1246,11 @@ const navigate: ToolFactory = () =>
         params?: Record<string, unknown>,
       ) => void;
       navigateTo(args.screen, args.params);
-      return { message: `Apro ${SCREEN_LABELS[args.screen]}.` };
+      return {
+        message: i18n.t("assistant_tools.nav_line", {
+          screen: screenLabel(args.screen),
+        }),
+      };
     },
   });
 
@@ -1289,11 +1345,14 @@ const createCustomFood: ToolFactory = () =>
       ];
       if (args.defaultServingG) {
         lines.push(
-          `Porzione: ${int(args.defaultServingG)}g${args.servingLabel ? ` (${args.servingLabel})` : ""}`,
+          i18n.t("assistant_tools.food_serving_line", {
+            grams: int(args.defaultServingG),
+            label: args.servingLabel ? ` (${args.servingLabel})` : "",
+          }),
         );
       }
       return {
-        title: "Crea nuovo alimento",
+        title: i18n.t("assistant_tools.food_create_title"),
         lines,
       };
     },
@@ -1315,7 +1374,9 @@ const createCustomFood: ToolFactory = () =>
         defaultServingG: args.defaultServingG,
         servingLabel: args.servingLabel,
       });
-      return { message: `Alimento "${args.name}" creato.` };
+      return {
+        message: i18n.t("assistant_tools.food_created", { name: args.name }),
+      };
     },
   });
 
@@ -1386,10 +1447,17 @@ const createRecipeTool: ToolFactory = (context) =>
       };
     },
     preview: async (args) => ({
-      title: "Crea nuova ricetta",
+      title: i18n.t("assistant_tools.recipe_create_title"),
       lines: [
-        `Ricetta: ${args.name} (${args.servings} ${plural(args.servings, "porzione", "porzioni")})`,
-        `Ingredienti: ${args.ingredients.map((i) => `${i.name} (${int(i.quantityG)} g)`).join(", ")}`,
+        i18n.t("assistant_tools.recipe_line", {
+          name: args.name,
+          servings: servingsLabel(args.servings),
+        }),
+        i18n.t("assistant_tools.recipe_ingredients", {
+          list: args.ingredients
+            .map((i) => `${i.name} (${int(i.quantityG)} g)`)
+            .join(", "),
+        }),
       ],
     }),
     execute: async (args) => {
@@ -1436,7 +1504,9 @@ const createRecipeTool: ToolFactory = (context) =>
         notes: args.notes,
         items,
       });
-      return { message: `Ricetta "${args.name}" creata.` };
+      return {
+        message: i18n.t("assistant_tools.recipe_created", { name: args.name }),
+      };
     },
   });
 
@@ -1527,14 +1597,25 @@ const createExerciseTool: ToolFactory = () =>
     },
     preview: async (args) => {
       const lines = [
-        `Nome: ${args.name}`,
-        `Gruppo muscolare: ${args.muscleGroup}${args.secondaryMuscles?.length ? ` (sec: ${args.secondaryMuscles.join(", ")})` : ""}`,
+        i18n.t("assistant_tools.exercise_name_line", { name: args.name }),
+        i18n.t("assistant_tools.exercise_muscle_line", {
+          muscle: args.muscleGroup,
+          secondary: args.secondaryMuscles?.length
+            ? i18n.t("assistant_tools.exercise_secondary", {
+                list: args.secondaryMuscles.join(", "),
+              })
+            : "",
+        }),
       ];
       if (args.equipment?.length) {
-        lines.push(`Attrezzatura: ${args.equipment.join(", ")}`);
+        lines.push(
+          i18n.t("assistant_tools.exercise_equipment_line", {
+            list: args.equipment.join(", "),
+          }),
+        );
       }
       return {
-        title: "Crea esercizio",
+        title: i18n.t("assistant_tools.exercise_create_title"),
         lines,
       };
     },
@@ -1546,7 +1627,9 @@ const createExerciseTool: ToolFactory = () =>
         equipment: args.equipment ?? [],
         instructions: args.instructions,
       });
-      return { message: `Esercizio "${args.name}" creato.` };
+      return {
+        message: i18n.t("assistant_tools.exercise_created", { name: args.name }),
+      };
     },
   });
 
@@ -1699,7 +1782,9 @@ const createRoutineTool: ToolFactory = () =>
         notes: args.notes,
         days: formattedDays,
       });
-      return { message: `Scheda "${args.name}" creata.` };
+      return {
+        message: i18n.t("assistant_tools.routine_created", { name: args.name }),
+      };
     },
   });
 
@@ -1794,12 +1879,24 @@ const logWorkout: ToolFactory = (context) =>
       return { date, exercises };
     },
     preview: async (args) => ({
-      title: "Registra allenamento",
+      title: i18n.t("assistant_tools.workout_title"),
       lines: [
-        `Data: ${shortDate(args.date)}`,
-        ...args.exercises.map(
-          (e) =>
-            `${e.name}: ${e.sets.length} ${plural(e.sets.length, "serie", "serie")} (${e.sets.map((s) => `${s.reps}x${s.weight ?? 0}kg${s.isWarmup ? " risc." : ""}`).join(", ")})`,
+        i18n.t("assistant_tools.workout_date", { date: shortDate(args.date) }),
+        ...args.exercises.map((e) =>
+          i18n.t("assistant_tools.workout_line", {
+            name: e.name,
+            sets: i18n.t("assistant_tools.workout_sets", {
+              count: e.sets.length,
+            }),
+            detail: e.sets
+              .map(
+                (s) =>
+                  `${s.reps}x${s.weight ?? 0}kg${
+                    s.isWarmup ? i18n.t("assistant_tools.workout_warmup") : ""
+                  }`,
+              )
+              .join(", "),
+          }),
         ),
       ],
     }),
@@ -1830,7 +1927,11 @@ const logWorkout: ToolFactory = (context) =>
           });
         }
       }
-      return { message: `Allenamento del ${shortDate(args.date)} registrato.` };
+      return {
+        message: i18n.t("assistant_tools.workout_saved", {
+          date: shortDate(args.date),
+        }),
+      };
     },
   });
 
@@ -1882,10 +1983,24 @@ const planMealEntry: ToolFactory = (context) =>
       };
     },
     preview: async (args) => ({
-      title: "Aggiungi al piano alimentare",
+      title: i18n.t("assistant_tools.plan_title"),
       lines: [
-        `Data: ${shortDate(args.date)} · Pasto: ${args.mealType}`,
-        `${args.name}${args.quantityG ? ` (${int(args.quantityG)} g)` : args.servings ? ` (${args.servings} ${plural(args.servings, "porzione", "porzioni")})` : ""}`,
+        i18n.t("assistant_tools.plan_when", {
+          date: shortDate(args.date),
+          meal: args.mealType,
+        }),
+        i18n.t("assistant_tools.plan_item", {
+          name: args.name,
+          quantity: args.quantityG
+            ? i18n.t("assistant_tools.plan_grams", {
+                grams: int(args.quantityG),
+              })
+            : args.servings
+              ? i18n.t("assistant_tools.plan_servings", {
+                  servings: servingsLabel(args.servings),
+                })
+              : "",
+        }),
       ],
     }),
     execute: async (args) => {
@@ -1896,7 +2011,7 @@ const planMealEntry: ToolFactory = (context) =>
           m.name.toLowerCase() === args.mealType.toLowerCase(),
       );
       const mealTypeId = matched?.id ?? mealTypes[0]?.id;
-      if (!mealTypeId) fail("Tipo di pasto non trovato");
+      if (!mealTypeId) fail(i18n.t("assistant_tools.meal_type_not_found"));
 
       const resolved = await cachedResolve(context, [
         {
@@ -1941,7 +2056,11 @@ const planMealEntry: ToolFactory = (context) =>
           quantityG: args.quantityG ?? 100,
         });
       }
-      return { message: `Aggiunto al piano per ${shortDate(args.date)}.` };
+      return {
+        message: i18n.t("assistant_tools.plan_added", {
+          date: shortDate(args.date),
+        }),
+      };
     },
   });
 

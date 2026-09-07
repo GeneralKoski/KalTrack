@@ -1,5 +1,6 @@
 import { getDb } from "@/src/db/index";
 import { i18n } from "@/src/i18n";
+import { decimalSeparator } from "@/src/utils/number";
 import { logger } from "@/src/utils/logger";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
@@ -13,16 +14,24 @@ import * as Sharing from "expo-sharing";
  */
 
 /**
- * SCELTA DEI SEPARATORI: decimale VIRGOLA, campo PUNTO E VIRGOLA.
+ * SCELTA DEI SEPARATORI: seguono la lingua, e si scelgono INSIEME.
  *
- * Il file lo apre un utente italiano con Excel in locale italiano, dove il
- * separatore decimale è la virgola: "12.5" verrebbe letto come testo o come
- * data. Scelta la virgola per i decimali, il separatore di campo NON può essere
- * la virgola, altrimenti ogni numero decimale spaccherebbe la riga in due
- * colonne. Il punto e virgola è anche quello che Excel italiano si aspetta
- * aprendo un .csv con doppio clic.
+ * Il file lo apre un foglio di calcolo nel locale di chi lo usa. In italiano il
+ * separatore decimale è la virgola, e allora il separatore di campo NON può
+ * essere la virgola - ogni numero decimale spaccherebbe la riga in due colonne
+ * - quindi è il punto e virgola, che è anche quel che Excel italiano si aspetta
+ * aprendo un .csv con doppio clic. In inglese vale l'opposto: punto decimale e
+ * campi separati da virgola, cioè il CSV di tutti.
+ *
+ * Sono una coppia, e questa funzione esiste per non poterli scegliere separati:
+ * virgola decimale + virgola di campo è un file rotto, e non c'è nessun caso in
+ * cui si voglia l'una senza l'altro.
  */
-export const CSV_DELIMITER = ";";
+export function csvSeparators(): { decimal: string; delimiter: string } {
+  return decimalSeparator() === ","
+    ? { decimal: ",", delimiter: ";" }
+    : { decimal: ".", delimiter: "," };
+}
 
 /** RFC 4180: i record finiscono con CRLF. L'ultimo può farne a meno. */
 const ROW_SEPARATOR = "\r\n";
@@ -36,12 +45,15 @@ export const UTF8_BOM = "\uFEFF";
 /** Una cella: assente (null/undefined) è diverso da zero e da stringa vuota. */
 export type CsvCell = string | number | null | undefined;
 
-/** Virgola decimale, al massimo due decimali, senza zeri finali inutili. */
+/** Al massimo due decimali, senza zeri finali inutili, col separatore giusto. */
 function formatNumber(value: number): string {
   if (!Number.isFinite(value)) return "";
   const rounded = Math.round(value * 100) / 100;
   // String(-0) è "0": Object.is evita di scrivere uno zero col segno.
-  return String(Object.is(rounded, -0) ? 0 : rounded).replace(".", ",");
+  return String(Object.is(rounded, -0) ? 0 : rounded).replace(
+    ".",
+    csvSeparators().decimal,
+  );
 }
 
 /**
@@ -72,7 +84,7 @@ export function csvEscape(value: CsvCell): string {
 
   const text = neutralizeFormula(value);
   const needsQuotes =
-    text.includes(CSV_DELIMITER) ||
+    text.includes(csvSeparators().delimiter) ||
     text.includes('"') ||
     text.includes("\n") ||
     text.includes("\r") ||
@@ -83,8 +95,9 @@ export function csvEscape(value: CsvCell): string {
 }
 
 export function buildCsv(headers: string[], rows: CsvCell[][]): string {
+  const { delimiter } = csvSeparators();
   return [headers, ...rows]
-    .map((row) => row.map(csvEscape).join(CSV_DELIMITER))
+    .map((row) => row.map(csvEscape).join(delimiter))
     .join(ROW_SEPARATOR);
 }
 
@@ -93,7 +106,11 @@ export function buildCsv(headers: string[], rows: CsvCell[][]): string {
 export const CSV_DATASETS = ["diary", "weight", "steps", "workouts"] as const;
 export type CsvDataset = (typeof CSV_DATASETS)[number];
 
-const yesNo = (flag: number): string => (flag === 1 ? "sì" : "no");
+const yesNo = (flag: number): string =>
+  i18n.t(flag === 1 ? "backup.csv_yes" : "backup.csv_no");
+
+/** Le intestazioni le legge una persona, quindi sono nella sua lingua. */
+const header = (key: string): string => i18n.t(`backup.csv_header.${key}`);
 
 // ─── Diario ──────────────────────────────────────────────────────────────────
 
@@ -116,23 +133,24 @@ interface DiaryCsvRow {
   note: string | null;
 }
 
-const DIARY_HEADERS = [
-  "data",
-  "pasto",
-  "alimento",
-  "quantità",
-  "unità",
-  "kcal",
-  "proteine_g",
-  "carboidrati_g",
-  "zuccheri_g",
-  "grassi_g",
-  "grassi_saturi_g",
-  "fibre_g",
-  "sale_g",
-  "stimato",
-  "nota",
-];
+const diaryHeaders = (): string[] =>
+  [
+    "date",
+    "meal",
+    "food",
+    "quantity",
+    "unit",
+    "kcal",
+    "protein_g",
+    "carbs_g",
+    "sugars_g",
+    "fat_g",
+    "saturated_fat_g",
+    "fiber_g",
+    "salt_g",
+    "estimated",
+    "note",
+  ].map(header);
 
 /**
  * Una riga per voce di diario, coi macro già congelati sulla riga: sono quelli
@@ -162,7 +180,7 @@ async function buildDiaryCsv(): Promise<string> {
   );
 
   return buildCsv(
-    DIARY_HEADERS,
+    diaryHeaders(),
     rows.map((row) => {
       const isFood = row.source_kind === "food";
       return [
@@ -203,7 +221,7 @@ async function buildWeightCsv(): Promise<string> {
   );
 
   return buildCsv(
-    ["data", "peso_kg", "massa_grassa_pct", "nota"],
+    ["date", "weight_kg", "body_fat_pct", "note"].map(header),
     // La massa grassa non misurata resta vuota: scriverci 0 la farebbe entrare
     // nei grafici come un crollo che non è mai avvenuto.
     rows.map((row) => [row.date, row.weight_kg, row.body_fat_pct, row.note]),
@@ -226,7 +244,7 @@ async function buildStepsCsv(): Promise<string> {
   );
 
   return buildCsv(
-    ["data", "passi", "origine"],
+    ["date", "steps", "source"].map(header),
     rows.map((row) => [row.date, row.steps, row.source]),
   );
 }
@@ -246,18 +264,19 @@ interface WorkoutCsvRow {
   is_warmup: number;
 }
 
-const WORKOUT_HEADERS = [
-  "data",
-  "esercizio",
-  "serie",
-  "ripetizioni",
-  "peso_kg",
-  "rpe",
-  "riscaldamento",
-  "inizio",
-  "fine",
-  "nota_sessione",
-];
+const workoutHeaders = (): string[] =>
+  [
+    "date",
+    "exercise",
+    "set",
+    "reps",
+    "weight_kg",
+    "rpe",
+    "warmup",
+    "started",
+    "ended",
+    "session_note",
+  ].map(header);
 
 /**
  * Una riga per serie. `set_index` è a base 0 nel database perché è un indice;
@@ -277,7 +296,7 @@ async function buildWorkoutsCsv(): Promise<string> {
   );
 
   return buildCsv(
-    WORKOUT_HEADERS,
+    workoutHeaders(),
     rows.map((row) => [
       row.date,
       row.exercise,
@@ -337,7 +356,9 @@ export function csvFileName(today = new Date()): string {
   const mm = String(today.getMonth() + 1).padStart(2, "0");
   const dd = String(today.getDate()).padStart(2, "0");
   const date = `${today.getFullYear()}-${mm}-${dd}`;
-  return `kaltrack-dati-${date}.csv`;
+  // Senza la parola "dati": era italiana in un nome di file che vede anche chi
+  // usa l'app in inglese, e tradurla non serve - la data lo identifica già.
+  return `kaltrack-${date}.csv`;
 }
 
 /** Scrive il CSV su file e ne ritorna il percorso. */

@@ -1,5 +1,5 @@
 import { chat } from "@/src/ai/client";
-import { MODELS } from "@/src/ai/config";
+import { MODELS, promptLanguage } from "@/src/ai/config";
 import { AiResponseError } from "@/src/ai/errors";
 import { getFoodByBarcode, searchFoods } from "@/src/db/queries/foods";
 import { searchRecipes } from "@/src/db/queries/recipes";
@@ -413,18 +413,23 @@ async function matchOpenFoodFacts(name: string): Promise<OffMatch | null> {
 
 /**
  * Inglese di proposito: i modelli seguono le istruzioni in inglese meglio che
- * in italiano. Il contenuto richiesto resta italiano.
+ * nelle altre lingue. Il nome dell'alimento lo leggerà l'utente, quindi esce
+ * nella lingua dell'app.
+ *
+ * I VALORI restano quelli italiani, e non è una dimenticanza: chi usa KalTrack
+ * in inglese compra lo stesso al supermercato di sotto, e "petto di pollo" ha
+ * gli stessi valori comunque lo si chiami. È la lingua a cambiare, non la spesa.
  */
-const ESTIMATE_SYSTEM_PROMPT = `You are a nutrition reference for Italian food.
+const estimateSystemPrompt = (): string => `You are a nutrition reference for Italian food.
 Given the name of a food, return its nutrition facts PER 100 GRAMS of edible product.
 Use typical Italian values (supermarket products or home cooking).
 Reply with a single JSON object and nothing else, with exactly these keys:
-"label": string, the food name in Italian, cleaned up;
+"label": string, the food name in ${promptLanguage()}, cleaned up;
 "kcal": number, kilocalories per 100 g;
 "protein", "carbs", "sugars", "fat", "saturatedFat", "fiber", "salt": numbers, grams per 100 g;
 "confidence": number between 0 and 1, how sure you are of these values.
 Never return null or a string for a numeric field: use 0 when a value is unknown.
-English words mixed into Italian food names are normal (whey, overnight oats): keep them.`;
+Loanwords in food names are normal (whey, overnight oats): keep them.`;
 
 /**
  * I modelli mandano spesso i numeri come stringa ("165"): si accettano come
@@ -499,7 +504,7 @@ async function estimateWithAi(
     model: MODELS.assistant,
     responseFormatJson: true,
     messages: [
-      { role: "system", content: ESTIMATE_SYSTEM_PROMPT },
+      { role: "system", content: estimateSystemPrompt() },
       { role: "user", content: `Alimento: "${name}". Valori per 100 g.` },
     ],
   });

@@ -1,4 +1,5 @@
 import { chat } from "@/src/ai/client";
+import { i18n } from "@/src/i18n";
 import { AiResponseError } from "@/src/ai/errors";
 import {
   createTools,
@@ -819,5 +820,58 @@ describe("plan_meal_entry", () => {
       quantityG: 120,
     });
     expect(result.message).toContain("Aggiunto al piano");
+  });
+});
+
+/**
+ * Anteprime e messaggi di questo registro li legge l'utente, non il modello:
+ * erano scritti in italiano dentro il codice, e chi usava KalTrack in inglese
+ * si vedeva rispondere "Registrati 8000 passi per il 07/09" sotto una scheda
+ * intitolata "Passi". Le `description` dei tool restano in inglese perché
+ * quelle le legge il modello - e infatti questo test non le tocca.
+ */
+describe("lingua dell'assistente", () => {
+  const originale = i18n.locale;
+  afterEach(() => {
+    i18n.locale = originale;
+  });
+
+  it("anteprima e messaggio escono nella lingua dell'app", async () => {
+    const args = { days: [{ date: DATE, steps: 8000 }] };
+
+    i18n.locale = "it";
+    const itPreview = await tool("log_steps").preview(args);
+    expect(itPreview.title).toBe("Passi");
+    expect(itPreview.lines[0]).toBe("28/08: 8000 passi");
+    expect((await tool("log_steps").execute(args)).message).toBe(
+      "Registrati 8000 passi per il 28/08.",
+    );
+
+    i18n.locale = "en";
+    const enPreview = await tool("log_steps").preview(args);
+    expect(enPreview.title).toBe("Steps");
+    expect(enPreview.lines[0]).toBe("28/08: 8000 steps");
+    expect((await tool("log_steps").execute(args)).message).toBe(
+      "Saved 8000 steps for 28/08.",
+    );
+  });
+
+  it("anche i numeri dentro i messaggi seguono la lingua", async () => {
+    const args = { date: DATE, weightKg: 76.1 };
+
+    i18n.locale = "it";
+    expect((await tool("log_weight").preview(args)).lines[0]).toBe(
+      "28/08: 76,1 kg",
+    );
+
+    i18n.locale = "en";
+    expect((await tool("log_weight").preview(args)).lines[0]).toBe(
+      "28/08: 76.1 kg",
+    );
+  });
+
+  it("le description dei tool restano in inglese: le legge il modello", () => {
+    i18n.locale = "it";
+    expect(tool("log_steps").description).toContain("Save the daily step count");
   });
 });

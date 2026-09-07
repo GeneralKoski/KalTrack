@@ -1,5 +1,5 @@
 import { chat } from "@/src/ai/client";
-import { hasAiKey, MODELS } from "@/src/ai/config";
+import { hasAiKey, MODELS, promptLanguage } from "@/src/ai/config";
 import { AiResponseError } from "@/src/ai/errors";
 import { getExercise, suggestAlternatives } from "@/src/db/queries/exercises";
 import { exerciseEquipment, type ExerciseRow } from "@/src/types/gym";
@@ -8,7 +8,8 @@ import { logger } from "@/src/utils/logger";
 export interface RankedAlternative {
   exercise: ExerciseRow;
   /**
-   * Una riga in italiano sul perché questo esercizio sostituisce bene l'altro.
+   * Una riga, nella lingua dell'app, sul perché questo esercizio sostituisce
+   * bene l'altro.
    * `null` quando l'ordine è quello locale: senza AI non si inventa una
    * motivazione, si dice che non c'è.
    */
@@ -22,13 +23,14 @@ const MAX_REASON_LEN = 160;
 
 /**
  * Inglese di proposito: i modelli seguono le istruzioni in inglese meglio che
- * in italiano. Il contenuto che leggerà l'utente resta italiano.
+ * nelle altre lingue. Il contenuto che leggerà l'utente è nella lingua
+ * dell'app, ed è per questo che è una funzione e non una costante.
  *
  * Il modello riceve un insieme CHIUSO di candidati e può solo riordinarlo: il
  * filtro su gruppo muscolare, attrezzatura posseduta ed esercizi vietati è già
  * stato fatto localmente da suggestAlternatives.
  */
-const SYSTEM_PROMPT = `You are a strength coach. The athlete cannot perform one exercise
+const systemPrompt = (): string => `You are a strength coach. The athlete cannot perform one exercise
 and needs a substitute. You are given the exercise to replace and a CLOSED list of allowed
 replacements, already filtered for the equipment the athlete owns.
 
@@ -40,11 +42,11 @@ Rules:
   muscles, then by how easy it is to load progressively.
 - An entry marked "sgradito" is one the athlete dislikes: rank it last unless it is clearly
   the only good technical match.
-- For each entry write "reason": ONE short sentence in ITALIAN (max 120 characters) saying
-  why it works as a substitute. No lists, no preamble.
+- For each entry write "reason": ONE short sentence in ${promptLanguage()} (max 120
+  characters) saying why it works as a substitute. No lists, no preamble.
 
 Reply with a single JSON object and nothing else:
-{"ranking":[{"id":"<id>","reason":"<una riga in italiano>"}]}`;
+{"ranking":[{"id":"<id>","reason":"<one line, in the requested language>"}]}`;
 
 /** Riga compatta per il prompt: tutto il resto della ExerciseRow è rumore. */
 function compact(row: ExerciseRow): string {
@@ -174,7 +176,7 @@ export async function rankAlternatives(args: {
       model: MODELS.assistant,
       responseFormatJson: true,
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt() },
         {
           role: "user",
           content: [

@@ -1,5 +1,5 @@
 import { transcribeAudio } from "@/src/ai/client";
-import { MODELS, TRANSCRIPTION_LANGUAGE } from "@/src/ai/config";
+import { aiLanguage, MODELS } from "@/src/ai/config";
 
 /**
  * Un campione di contesto lessicale, non un'istruzione: il client lo passa
@@ -8,16 +8,28 @@ import { MODELS, TRANSCRIPTION_LANGUAGE } from "@/src/ai/config";
  * diventa "brasata", "lat machine" diventa "la maschine" e "due etti" diventa
  * "due etti" solo a volte. L'elenco resta breve di proposito: un elenco lungo
  * sposta lo stile della trascrizione invece del solo lessico.
+ *
+ * Uno per lingua: un elenco di parole italiane passato a una trascrizione
+ * inglese non aiuta il lessico, lo sposta - e' esattamente il difetto che
+ * questo campione serve a evitare.
  */
-const DOMAIN_PROMPT =
-  "Diario alimentare e palestra. Termini ricorrenti: grammi, etti, chili, " +
-  "millilitri, colazione, pranzo, cena, spuntino, calorie, kcal, proteine, " +
-  "carboidrati, grassi, fibre, porzione, ricetta, integratore, whey, avena, " +
-  "yogurt greco, petto di pollo, riso basmati, bresaola, parmigiano, " +
-  "peso, passi, allenamento, serie, ripetizioni, panca piana, lat machine.";
+const DOMAIN_PROMPTS: Record<string, string> = {
+  it:
+    "Diario alimentare e palestra. Termini ricorrenti: grammi, etti, chili, " +
+    "millilitri, colazione, pranzo, cena, spuntino, calorie, kcal, proteine, " +
+    "carboidrati, grassi, fibre, porzione, ricetta, integratore, whey, avena, " +
+    "yogurt greco, petto di pollo, riso basmati, bresaola, parmigiano, " +
+    "peso, passi, allenamento, serie, ripetizioni, panca piana, lat machine.",
+  en:
+    "Food diary and gym log. Recurring terms: grams, kilos, millilitres, " +
+    "breakfast, lunch, dinner, snack, calories, kcal, protein, carbs, fat, " +
+    "fibre, serving, recipe, supplement, whey, oats, greek yoghurt, chicken " +
+    "breast, basmati rice, weight, steps, workout, sets, reps, bench press, " +
+    "lat pulldown, deadlift, squat.",
+};
 
 /**
- * Trascrive un file audio locale in testo italiano.
+ * Trascrive un file audio locale, nella lingua dell'app.
  *
  * Ritorna null quando non è stato riconosciuto nessun parlato (registrazione
  * di silenzio, tasto premuto per sbaglio): è un esito legittimo, diverso dalla
@@ -31,8 +43,8 @@ export async function transcribeVoice(uri: string): Promise<string | null> {
     capability: "transcription",
     model: MODELS.transcription,
     uri,
-    language: TRANSCRIPTION_LANGUAGE,
-    prompt: DOMAIN_PROMPT,
+    language: aiLanguage(),
+    prompt: DOMAIN_PROMPTS[aiLanguage()] ?? DOMAIN_PROMPTS.en,
   });
   const trimmed = text.trim();
   return trimmed.length > 0 ? trimmed : null;

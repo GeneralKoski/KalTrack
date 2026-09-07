@@ -608,9 +608,39 @@ offre entrambi - e non vanno toccati; quel che si vede lo decide
 modulo resta senza `i18n` dentro: e' separato dal componente proprio per
 poterlo caricare in un test.
 
-Restano deliberatamente in italiano **l'assistente** (prompt, risposte parlate,
-`speak.ts`) e il **CSV di esportazione**, che deve combaciare con quel che si
-aspetta il foglio di calcolo che lo apre, non con la lingua dell'app.
+**Anche l'assistente e il CSV seguono la lingua**, e non fanno eccezione.
+
+L'assistente: `aiLanguage()` e `promptLanguage()` (`src/ai/config.ts`) hanno
+preso il posto di `TRANSCRIPTION_LANGUAGE = "it"`, e ogni prompt che diceva
+"reply in Italian" ora dice il nome della lingua corrente. Tre forme perche' tre
+destinatari: il codice ISO per la trascrizione e per la voce, il nome inglese
+per i prompt - un modello segue "reply in Italian" meglio di "reply in it".
+
+- **I prompt sono funzioni, non costanti.** Una costante congela la lingua al
+  caricamento del modulo, che e' lo stesso difetto dei `title` della tab bar.
+- **La lingua dentro `buildSystemPrompt` non rompe la cache di Gemini**
+  (§ Il prezzo del prompt dell'assistente): cambia solo quando l'utente cambia
+  lingua, e fra due frasi dette di seguito il prefisso resta identico. E' l'unica
+  cosa variabile ammessa li' dentro.
+- **Anteprime e messaggi dei tool passano da `i18n`** (`assistant_tools.*`):
+  li legge l'utente. Le `description` dei tool restano in inglese, perche'
+  quelle le legge il modello - la distinzione ha un test.
+- **La voce parla la lingua dell'app** e il controllo "c'e' una voce
+  installata?" e' per lingua: cercando sempre quella italiana, chi usava l'app
+  in inglese o si sentiva leggere l'inglese con fonetica italiana, o non si
+  sentiva leggere niente.
+- **Quel che resta italiano e' il DOMINIO, non l'interfaccia**: i valori
+  nutrizionali di riferimento sono quelli dei prodotti italiani, e la
+  conversione di "un etto" resta nel preprocessing. Chi usa KalTrack in inglese
+  compra lo stesso al supermercato di sotto.
+
+Il CSV: `csvSeparators()` sceglie **i due separatori insieme**, e la funzione
+esiste per non poterli scegliere separati. In italiano decimale virgola e campi
+separati da punto e virgola - con la virgola su entrambi ogni numero decimale
+spaccherebbe la riga in due colonne - in inglese punto decimale e campi separati
+da virgola, cioe' il CSV di tutti. Le intestazioni sono tradotte
+(`backup.csv_header.*`) perche' le legge una persona; i nomi di alimenti e pasti
+no, perche' sono i suoi dati.
 
 **`en.json` e' completo dall'8 settembre 2026, e un test lo tiene tale.** Ne
 mancavano ventinove - attrezzatura, storico peso/passi, storico misure, storico
