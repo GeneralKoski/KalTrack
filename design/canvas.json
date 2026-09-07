@@ -134,6 +134,15 @@
       "h": 990,
       "title": "Lista della spesa",
       "page": "page-2"
+    },
+    {
+      "file": "Onboarding.dc.html",
+      "x": 0,
+      "y": 2260,
+      "w": 880,
+      "h": 700,
+      "title": "Primo avvio",
+      "page": "page-2"
     }
   ],
   "launch": {
