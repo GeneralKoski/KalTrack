@@ -1,15 +1,91 @@
 {
   "pages": [
-    { "id": "page-1", "name": "Le quattro radici" },
-    { "id": "page-2", "name": "Sottopagine" }
+    {
+      "id": "page-1",
+      "name": "Le quattro radici"
+    },
+    {
+      "id": "page-2",
+      "name": "Sottopagine"
+    },
+    {
+      "id": "page-3",
+      "name": "Palestra"
+    }
   ],
   "artboards": [
-    { "file": "Sistema.dc.html", "x": 0, "y": 0, "w": 390, "h": 870, "title": "Il sistema", "page": "page-1" },
-    { "file": "Main.dc.html", "x": 490, "y": 0, "w": 390, "h": 870, "title": "Oggi", "page": "page-1" },
-    { "file": "Progressi.dc.html", "x": 980, "y": 0, "w": 390, "h": 870, "title": "Progressi", "page": "page-1" },
-    { "file": "Palestra.dc.html", "x": 1470, "y": 0, "w": 390, "h": 870, "title": "Palestra", "page": "page-1" },
-    { "file": "Profilo.dc.html", "x": 1960, "y": 0, "w": 390, "h": 870, "title": "Profilo", "page": "page-1" },
-    { "file": "Moduli.dc.html", "x": 0, "y": 0, "w": 390, "h": 870, "title": "Moduli, liste, vuoti", "page": "page-2" }
+    {
+      "file": "Sistema.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 870,
+      "title": "Il sistema",
+      "page": "page-1"
+    },
+    {
+      "file": "Main.dc.html",
+      "x": 490,
+      "y": 0,
+      "w": 390,
+      "h": 870,
+      "title": "Oggi",
+      "page": "page-1"
+    },
+    {
+      "file": "Progressi.dc.html",
+      "x": 980,
+      "y": 0,
+      "w": 390,
+      "h": 870,
+      "title": "Progressi",
+      "page": "page-1"
+    },
+    {
+      "file": "Palestra.dc.html",
+      "x": 1470,
+      "y": 0,
+      "w": 390,
+      "h": 870,
+      "title": "Palestra",
+      "page": "page-1"
+    },
+    {
+      "file": "Profilo.dc.html",
+      "x": 1960,
+      "y": 0,
+      "w": 390,
+      "h": 870,
+      "title": "Profilo",
+      "page": "page-1"
+    },
+    {
+      "file": "Moduli.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 870,
+      "title": "Moduli, liste, vuoti",
+      "page": "page-2"
+    },
+    {
+      "file": "Allenamento.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 870,
+      "title": "Lo svolgimento",
+      "page": "page-3"
+    },
+    {
+      "file": "Blocco.dc.html",
+      "x": 490,
+      "y": 0,
+      "w": 390,
+      "h": 870,
+      "title": "La composizione",
+      "page": "page-3"
+    }
   ],
   "annotations": [
     {
@@ -59,7 +135,26 @@
       "w": 390,
       "page": "page-2",
       "text": "Tre regole emerse dal giro sulle sottopagine, che il sistema a tre livelli da solo non copriva: un modulo non e' un elenco di sezioni, una lista lunga non e' un blocco, e uno stato vuoto dentro un contenitore non tiene l'altezza del pieno."
+    },
+    {
+      "id": "nota-allenamento",
+      "x": 0,
+      "y": -190,
+      "w": 390,
+      "page": "page-3",
+      "text": "Fra una serie e l'altra la domanda e' \"quanto manca\", e la schermata non la rispondeva: si contavano i tondi verdi scorrendo. Ora c'e' un hero. Le unita' si scrivono una volta in intestazione invece che dentro ogni riga."
+    },
+    {
+      "id": "nota-blocco",
+      "x": 490,
+      "y": -190,
+      "w": 390,
+      "page": "page-3",
+      "text": "Il tipo del blocco era scritto due volte e la riga scorrevole tagliava \"Dropset\" a \"Drops\" - in un selettore, dove il punto e' vedere le alternative."
     }
   ],
-  "launch": { "view": "canvas", "page": "page-2" }
+  "launch": {
+    "view": "canvas",
+    "page": "page-3"
+  }
 }
