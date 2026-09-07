@@ -29,6 +29,16 @@ return Application::configure(basePath: dirname(__DIR__))
          */
         $middleware->redirectGuestsTo(fn () => null);
 
+        /*
+         * Il cookie di sessione vale anche sulle rotte `/api/*`.
+         *
+         * Senza, la SPA del gestionale dovrebbe custodire un token nel
+         * browser. Con, le sue richieste passano col cookie httpOnly che ha
+         * gia'. L'app non ne e' toccata: continua a mandare il suo Bearer, e
+         * Sanctum accetta entrambi.
+         */
+        $middleware->statefulApi();
+
         $middleware->api(append: [SetLocaleFromHeader::class]);
 
         $middleware->alias(['admin' => EnsureAdmin::class]);

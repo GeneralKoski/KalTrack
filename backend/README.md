@@ -266,6 +266,14 @@ Il database SQLite sta su un volume montato in `/data`, **non** in
 dell'immagine, e ogni migrazione nuova sparirebbe senza un errore. L'entrypoint
 direbbe "Nothing to migrate" e il deploy sembrerebbe riuscito.
 
+`SANCTUM_STATEFUL_DOMAINS` va valorizzato in `.env` di produzione con
+`kaltrack.martin-trajkovski.it`: e' il dominio da cui la SPA del gestionale
+chiama `/api/admin/*` col cookie di sessione invece che con un token, e senza
+quella riga Sanctum non la riconosce come una richiesta "dal frontend" - le
+sue chiamate autenticate rispondono 401. E' una riga che senza il gestionale
+non serviva, e chi rifa' il server da zero non la indovinerebbe: verificala
+con `php artisan tinker --execute="print_r(config('sanctum.stateful'));"`.
+
 ## Backup
 
 ```bash
