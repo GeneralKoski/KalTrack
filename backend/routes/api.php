@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\AdminExerciseController;
+use App\Http\Controllers\Api\Admin\AdminFoodController;
 use App\Http\Controllers\Api\Admin\SubmissionController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
@@ -93,6 +94,18 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('exercises', [AdminExerciseController::class, 'store']);
         Route::patch('exercises/{exercise}', [AdminExerciseController::class, 'update']);
         Route::delete('exercises/{exercise}', [AdminExerciseController::class, 'destroy']);
+
+        /*
+         * Il catalogo degli alimenti, dal gestionale: stesse cinque rotte
+         * degli esercizi, con la stessa ragione per l'ordine - la rotta
+         * dell'immagine sta PRIMA di `foods/{food}`, o quella parametrizzata
+         * la intercetterebbe.
+         */
+        Route::post('foods/{food}/image', [AdminFoodController::class, 'image']);
+        Route::get('foods', [AdminFoodController::class, 'index']);
+        Route::post('foods', [AdminFoodController::class, 'store']);
+        Route::patch('foods/{food}', [AdminFoodController::class, 'update']);
+        Route::delete('foods/{food}', [AdminFoodController::class, 'destroy']);
     });
 
     Route::get('images', [ImageController::class, 'index']);

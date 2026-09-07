@@ -180,6 +180,25 @@ class AdminExerciseTest extends TestCase
         Storage::disk('local')->assertMissing("catalog/{$primo}");
     }
 
+    public function test_la_foto_sopravvive_alla_cancellazione_morbida(): void
+    {
+        Storage::fake('local');
+        $voce = $this->esercizio();
+
+        $nome = $this->actingAs($this->admin)
+            ->post("/api/admin/exercises/{$voce->id}/photo", ['file' => UploadedFile::fake()->image('panca.jpg')])
+            ->json('photo');
+
+        $this->actingAs($this->admin)
+            ->deleteJson("/api/admin/exercises/{$voce->id}")
+            ->assertOk();
+
+        // La riga si puo' ripescare, quindi il file deve restare: cancellarlo
+        // vorrebbe dire ripescare una voce senza la sua foto.
+        $this->assertNotNull(Exercise::withTrashed()->find($voce->id)->deleted_at);
+        Storage::disk('local')->assertExists("catalog/{$nome}");
+    }
+
     public function test_un_file_che_non_e_un_immagine_non_entra(): void
     {
         Storage::fake('local');
