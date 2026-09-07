@@ -186,16 +186,18 @@ class FoodController extends Controller
         return [
             'name' => ['required', 'string', 'max:120'],
             'brand' => ['sometimes', 'nullable', 'string', 'max:60'],
-            // Per 100 g: un tetto c'e' perche' nessun alimento supera le 900
-            // kcal per etto, e i grammi di un macro non passano i cento.
-            'kcal' => ['required', 'numeric', 'min:0', 'max:1000'],
-            'protein' => ['sometimes', 'numeric', 'min:0', 'max:100'],
-            'carbs' => ['sometimes', 'numeric', 'min:0', 'max:100'],
-            'sugars' => ['sometimes', 'numeric', 'min:0', 'max:100'],
-            'fat' => ['sometimes', 'numeric', 'min:0', 'max:100'],
-            'saturatedFat' => ['sometimes', 'numeric', 'min:0', 'max:100'],
-            'fiber' => ['sometimes', 'numeric', 'min:0', 'max:100'],
-            'salt' => ['sometimes', 'numeric', 'min:0', 'max:100'],
+            // Per 100 g: i due tetti sono su `Food` e non qui, perche'
+            // `AdminFoodRequest` e `ReviewSubmissionRequest` validano le
+            // stesse otto colonne e devono usare gli stessi numeri - vedi il
+            // commento li'.
+            'kcal' => ['required', 'numeric', 'min:0', 'max:'.Food::MAX_KCAL],
+            'protein' => ['sometimes', 'numeric', 'min:0', 'max:'.Food::MAX_NUTRIENT_GRAMS],
+            'carbs' => ['sometimes', 'numeric', 'min:0', 'max:'.Food::MAX_NUTRIENT_GRAMS],
+            'sugars' => ['sometimes', 'numeric', 'min:0', 'max:'.Food::MAX_NUTRIENT_GRAMS],
+            'fat' => ['sometimes', 'numeric', 'min:0', 'max:'.Food::MAX_NUTRIENT_GRAMS],
+            'saturatedFat' => ['sometimes', 'numeric', 'min:0', 'max:'.Food::MAX_NUTRIENT_GRAMS],
+            'fiber' => ['sometimes', 'numeric', 'min:0', 'max:'.Food::MAX_NUTRIENT_GRAMS],
+            'salt' => ['sometimes', 'numeric', 'min:0', 'max:'.Food::MAX_NUTRIENT_GRAMS],
             'isLiquid' => ['sometimes', 'boolean'],
             'defaultServingG' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:5000'],
             'servingLabel' => ['sometimes', 'nullable', 'string', 'max:40'],

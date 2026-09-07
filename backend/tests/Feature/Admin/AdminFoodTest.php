@@ -203,6 +203,28 @@ class AdminFoodTest extends TestCase
             ->assertStatus(422);
     }
 
+    /**
+     * Il tetto era 9999 qui e 100 nell'app (`FoodController`): un
+     * amministratore poteva scrivere un valore che nessun alimento vero puo'
+     * avere. Ora e' lo stesso tetto dappertutto (`Food::MAX_NUTRIENT_GRAMS`).
+     */
+    public function test_un_macro_oltre_i_cento_grammi_non_entra(): void
+    {
+        $voce = $this->alimento();
+
+        $this->actingAs($this->admin)
+            ->patchJson("/api/admin/foods/{$voce->id}", ['protein' => 500])
+            ->assertStatus(422);
+    }
+
+    /** Stessa ragione, sulle kcal: il tetto e' 1000 come nell'app, non 9999. */
+    public function test_kcal_oltre_le_mille_non_entra(): void
+    {
+        $this->actingAs($this->admin)
+            ->postJson('/api/admin/foods', ['name' => 'Fuori scala', 'kcal' => 5000])
+            ->assertStatus(422);
+    }
+
     public function test_chi_non_e_amministratore_non_entra(): void
     {
         $anna = User::factory()->create();

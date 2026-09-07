@@ -221,6 +221,22 @@ class SubmissionTest extends TestCase
             ->assertJsonPath('errors.name.0', 'Nome gia\' in catalogo.');
     }
 
+    /**
+     * Il tetto era 9999 qui e 100 nell'app (`FoodController`): si poteva
+     * approvare una proposta scrivendo `protein: 9999` per 100 g. Ora e' lo
+     * stesso tetto dappertutto (`Food::MAX_NUTRIENT_GRAMS`).
+     */
+    public function test_non_si_approva_scrivendo_un_macro_fuori_scala(): void
+    {
+        $voce = $this->proposta();
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/admin/submissions/food/{$voce->id}/approve", ['protein' => 9999])
+            ->assertStatus(422);
+
+        $this->assertSame('pending', $voce->fresh()->status);
+    }
+
     public function test_l_elenco_mostra_i_campi_di_un_esercizio(): void
     {
         $this->propostaEsercizio();

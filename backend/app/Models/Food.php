@@ -63,6 +63,31 @@ class Food extends Model
     /** Gli stessi tre stati degli esercizi: la moderazione e' una sola. */
     public const STATUSES = ['pending', 'published', 'rejected'];
 
+    /**
+     * I due tetti dei valori nutrizionali, in un posto solo.
+     *
+     * C'erano tre copie di questi numeri - `FoodController`, `AdminFoodRequest`
+     * e `ReviewSubmissionRequest` - e due valori diversi: l'app rifiutava
+     * oltre 1000 kcal e 100 g di macro, il gestionale (in due punti) fino a
+     * 9999 di entrambi. Un amministratore poteva quindi scrivere
+     * `protein: 9999` per 100 g, un numero che nessun alimento vero puo'
+     * avere, attraverso due delle tre porte.
+     *
+     * Si parte dal tetto dell'app, non da quello piu' permissivo del
+     * gestionale: e' quello con cui gli utenti convivono gia', ed e' il piu'
+     * stretto dei due - allargarlo agli altri due significherebbe accettare
+     * l'errore che il terzo doveva prevenire.
+     */
+    public const MAX_KCAL = 1000;
+
+    /**
+     * Nessun macro - proteine, carboidrati, zuccheri, grassi, grassi saturi,
+     * fibre, sale - puo' superare i 100 g per 100 g di alimento: e' un
+     * vincolo fisico (non si puo' pesare piu' di quanto pesa il tutto), non
+     * di prodotto, e vale per tutti e sette allo stesso modo.
+     */
+    public const MAX_NUTRIENT_GRAMS = 100;
+
     protected function casts(): array
     {
         return [

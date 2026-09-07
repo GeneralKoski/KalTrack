@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\Food;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -15,7 +16,15 @@ use Illuminate\Foundation\Http\FormRequest;
  * Le rule sono l'unione di quelle degli esercizi e di quelle degli alimenti:
  * il controller applica solo le chiavi pertinenti al tipo, e una chiave di
  * troppo non fa danno perche' `fill()` guarda comunque il fillable del model
- * giusto.
+ * giusto. Proprio perche' copre entrambi i tipi, i due tetti nutrizionali
+ * (`Food::MAX_KCAL`, `Food::MAX_NUTRIENT_GRAMS`) restano validi anche per gli
+ * esercizi: quelle chiavi semplicemente non esistono su un esercizio, quindi
+ * il tetto non li tocca.
+ *
+ * I due numeri stavano qui ripetuti a 9999, piu' permissivi di quelli che
+ * l'app impone gia' a chi propone da telefono (`FoodController::rules()`): un
+ * amministratore poteva approvare una proposta scrivendo `protein: 9999` per
+ * 100 g. Ora sono gli stessi dell'app, in un posto solo sul model.
  */
 class ReviewSubmissionRequest extends FormRequest
 {
@@ -27,6 +36,8 @@ class ReviewSubmissionRequest extends FormRequest
 
     public function rules(): array
     {
+        $nutriente = ['sometimes', 'numeric', 'min:0', 'max:'.Food::MAX_NUTRIENT_GRAMS];
+
         return [
             'name' => ['sometimes', 'string', 'max:120'],
             // Esercizi
@@ -37,14 +48,14 @@ class ReviewSubmissionRequest extends FormRequest
             // Alimenti
             'brand' => ['sometimes', 'nullable', 'string', 'max:60'],
             'barcode' => ['sometimes', 'nullable', 'string', 'max:32'],
-            'kcal' => ['sometimes', 'numeric', 'min:0', 'max:9999'],
-            'protein' => ['sometimes', 'numeric', 'min:0', 'max:9999'],
-            'carbs' => ['sometimes', 'numeric', 'min:0', 'max:9999'],
-            'sugars' => ['sometimes', 'numeric', 'min:0', 'max:9999'],
-            'fat' => ['sometimes', 'numeric', 'min:0', 'max:9999'],
-            'saturatedFat' => ['sometimes', 'numeric', 'min:0', 'max:9999'],
-            'fiber' => ['sometimes', 'numeric', 'min:0', 'max:9999'],
-            'salt' => ['sometimes', 'numeric', 'min:0', 'max:9999'],
+            'kcal' => ['sometimes', 'numeric', 'min:0', 'max:'.Food::MAX_KCAL],
+            'protein' => $nutriente,
+            'carbs' => $nutriente,
+            'sugars' => $nutriente,
+            'fat' => $nutriente,
+            'saturatedFat' => $nutriente,
+            'fiber' => $nutriente,
+            'salt' => $nutriente,
             'isLiquid' => ['sometimes', 'boolean'],
             'defaultServingG' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:9999'],
             'servingLabel' => ['sometimes', 'nullable', 'string', 'max:40'],
