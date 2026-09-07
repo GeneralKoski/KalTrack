@@ -32,8 +32,9 @@ del container all'avvio. Procedura di deploy in `README.md` § In produzione.
 
 1. **Niente esce verso chi non e' amico accettato**, con **due eccezioni
    dichiarate**: i cataloghi comuni di `exercises` e `foods`, che sono di tutti
-   gli iscritti. Sono descritte in `README.md` § L'eccezione dichiarata, e non
-   se ne aggiungono altre senza scriverle la'.
+   gli iscritti **una volta pubblicati** - una proposta la vede solo il server
+   e chi la revisiona. Sono descritte in `README.md` § L'eccezione dichiarata,
+   e non se ne aggiungono altre senza scriverle la'.
 2. **`created_by` non esce da nessuna risposta.** Al suo posto viaggia `mine`:
    il catalogo dice a te che una voce e' tua, non dice a nessun altro di chi
    e'.

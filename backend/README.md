@@ -44,8 +44,11 @@ cosa si e' mangiato non e' visibile a nessuno.
 Tutto quel che c'e' scritto sopra vale **fra amici accettati**. C'e' una sola
 eccezione, ed e' meglio trovarla scritta qui che scoprirla leggendo il codice:
 le tabelle `exercises` e `foods` sono cataloghi **comuni a tutti gli
-iscritti**. Un esercizio o un alimento creato a mano da qualcuno entra
-nell'elenco di chiunque abbia un account, amico o no.
+iscritti**, ma solo per quel che e' **pubblicato**: un esercizio o un
+alimento creato a mano da qualcuno nasce come una proposta, visibile solo a
+lui, e raggiunge l'elenco di chiunque abbia un account solo quando un
+amministratore lo approva - il catalogo di tutti non puo' essere la somma di
+quel che ciascuno scrive di fretta.
 
 Dal 30 agosto 2026 i cataloghi sono **due**: `exercises` e `foods`, con le
 stesse identiche regole. Gli alimenti servono anche alle ricette: una ricetta
@@ -66,9 +69,11 @@ Una voce senza autore - vecchia, o di un account cancellato - resta in elenco e
 non la modifica piu' nessuno: sparire dal servizio non deve poter svuotare il
 catalogo di tutti.
 
-La cancellazione e' vera e non `deleted_at`: questi due elenchi non si
-sincronizzano con nessun telefono, quindi non esiste il difetto per cui una
-riga tolta risorge al giro dopo. Il telefono che l'aveva importata se la tiene.
+La cancellazione e' morbida (`deleted_at`), non piu' vera: una voce tolta dal
+catalogo deve poter dire ai telefoni che non c'e' piu', e una riga sparita
+davvero non ha modo di raccontare nulla. Il telefono che l'aveva importata se
+la tiene comunque: e' roba sua, ed e' quel che ci si aspetta da un catalogo
+che si e' copiato in casa.
 
 Quel che i cataloghi NON contengono e' altrettanto deliberato: niente note,
 niente istruzioni, niente "quanto ti sta antipatico", niente preferiti. Sono

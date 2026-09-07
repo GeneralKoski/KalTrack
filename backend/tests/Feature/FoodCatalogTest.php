@@ -306,4 +306,27 @@ class FoodCatalogTest extends TestCase
         $this->assertSame('pending', $voce->status);
         $this->assertSame($anna->id, $voce->created_by);
     }
+
+    public function test_una_voce_pubblicata_non_si_cancella_piu_dall_app(): void
+    {
+        $anna = User::factory()->create();
+
+        $voce = Food::create([
+            'uid' => 'x-1',
+            'name' => 'Petto di pollo',
+            'name_norm' => 'petto di pollo',
+            'kcal' => 165,
+            'status' => 'published',
+            'created_by' => $anna->id,
+        ]);
+
+        // Da pubblicato in poi l'alimento e' di tutti: toglierlo dal
+        // catalogo comune e' una decisione che sta al gestionale. L'autore ha
+        // comunque la sua copia sul telefono.
+        $this->actingAs($anna)
+            ->deleteJson("/api/foods/{$voce->id}")
+            ->assertForbidden();
+
+        $this->assertNotNull($voce->fresh());
+    }
 }

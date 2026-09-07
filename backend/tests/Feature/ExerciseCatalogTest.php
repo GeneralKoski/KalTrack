@@ -520,6 +520,29 @@ class ExerciseCatalogTest extends TestCase
         ])->assertForbidden();
     }
 
+    public function test_una_voce_pubblicata_non_si_cancella_piu_dall_app(): void
+    {
+        $anna = User::factory()->create();
+
+        $voce = Exercise::create([
+            'uid' => 'x-3',
+            'name' => 'Spinte',
+            'name_norm' => 'spinte',
+            'muscle_group' => 'petto',
+            'status' => 'published',
+            'created_by' => $anna->id,
+        ]);
+
+        // Stessa ragione della correzione: da pubblicata in poi la voce e' di
+        // tutti, e toglierla dal catalogo comune e' una decisione che sta al
+        // gestionale.
+        $this->actingAs($anna)
+            ->deleteJson("/api/exercises/{$voce->id}")
+            ->assertForbidden();
+
+        $this->assertNotNull($voce->fresh());
+    }
+
     public function test_una_proposta_propria_si_corregge_ancora(): void
     {
         $anna = User::factory()->create();
