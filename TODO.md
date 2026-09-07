@@ -4,7 +4,7 @@ Quel che manca, in ordine di quanto blocca il resto. `HANDOFF.md` racconta lo
 **stato** e come ci si e' arrivati; qui ci sono solo le **cose da fare**, con il
 rimando a li' dove il contesto e' lungo.
 
-Ultimo aggiornamento: 4 settembre 2026.
+Ultimo aggiornamento: 7 settembre 2026.
 
 ---
 
@@ -289,7 +289,86 @@ TypeScript che gira sul dispositivo, come gia' fanno `normalizeQuantities` e
 
 ---
 
-## 5. Debiti tecnici
+## 5. Il gestionale del catalogo: cosa la Fase 1 ha lasciato aperto
+
+**Fatto il 7 settembre 2026.** Sedici task hanno trasformato i cataloghi
+comuni di `exercises` e `foods` da "tutto cio' che c'e' e' pubblico" a un
+catalogo moderato: `uid` stabile, `status` (pending/published/rejected),
+metadati di revisione e `deleted_at`; `instructions`/`photo` su `exercises`,
+`barcode`/`off_id`/`image` su `foods`; gruppi muscolari e attrezzatura come
+tabelle vere seminate dalle costanti dell'app; il comando `catalog:seed` che
+carica i duecento esercizi e i centonovantatre alimenti dell'app sotto i loro
+id parlanti; `POST /api/exercises` e `/api/foods` che creano `pending` invece
+di pubblicare subito; gli endpoint `/api/catalog/*` per il pull incrementale
+lato app e `/api/admin/*` dietro `EnsureAdmin` per la coda di revisione, il
+CRUD di esercizi/alimenti/tassonomie/utenti e le statistiche;
+`users.ai_enabled`; il login di sessione del pannello (`POST /admin/login`),
+separato da quello a token dell'app. Dettagli in `backend/README.md`
+§ L'eccezione dichiarata.
+
+**L'app stessa non e' stata toccata**, a parte uno script che esporta il suo
+seed in JSON per `catalog:seed`. E' la ragione per cui restano tre voci
+aperte sotto, di cui la prima e' la piu' urgente delle tre perche' e' l'unica
+che un utente vede oggi.
+
+### 5.1 Una promessa che l'app fa e il server non mantiene piu'
+
+- [ ] **Il testo sopra il campo del nome mente.** `ExerciseFormSheet` e
+      `FoodFormScreen` dicono ancora che quel che si crea "entra nell'elenco
+      di tutti gli iscritti" - vero fino al 6 settembre 2026, falso da quando
+      una voce nasce proposta e aspetta l'approvazione di un amministratore
+      prima di raggiungere chiunque altro. Nessuno ha toccato quelle
+      stringhe, e finche' resta cosi' l'app dice a chi la usa una cosa che
+      non succede piu'. E' il punto piu' visibile che questa fase ha lasciato
+      aperto, da leggere come tale e non come una nota a margine: le chiavi
+      sono `foods.catalog_notice` e `gym.catalog_notice`, e vanno riscritte in
+      **entrambi** `it.json` e `en.json` (vedi `CLAUDE.md` § Lingua).
+
+### 5.2 Fase 2 del gestionale: il pannello
+
+- [ ] **Il pannello vero, in React.** Oggi
+      `backend/resources/js/admin/main.tsx` e' un placeholder di nove righe:
+      serve solo perche' `npm run build` funzioni e `GET /admin` non risponda
+      500. La SPA che ci va al posto - coda di revisione, CRUD di esercizi e
+      alimenti con caricamento della foto, tassonomie, utenti con
+      l'interruttore AI, statistiche della dashboard - e' tutta da scrivere,
+      servita su `/admin`.
+
+### 5.3 Fase 3 del gestionale: il lato app
+
+- [ ] **Consumare `/api/catalog/*` invece del vecchio import.** Gli endpoint
+      di pull incrementale con cursore e tombstone esistono gia' lato server
+      e non hanno ancora un chiamante lato app - resta il percorso vecchio
+      (§ Debiti tecnici piu' sotto).
+- [ ] **Salvare l'`uid` del catalogo lato app.** E' l'identita' stabile che
+      deve sostituire il confronto per nome normalizzato (vedi `CLAUDE.md`
+      § L'unica cosa che esce verso i non amici): senza, una voce rinominata
+      dal pannello si duplica al pull successivo invece di aggiornarsi.
+- [ ] **Tassonomie dinamiche.** Gruppi muscolari e attrezzatura sono ora
+      tabelle vere lato server, seminate dalle costanti dell'app; l'app
+      continua a leggerle dalle sue costanti proprie invece che dal server.
+- [ ] **Le stringhe del § 5.1**, che restano false finche' questa fase non
+      cambia il modo in cui l'app tratta una voce proposta.
+
+### 5.4 Un avviso di deploy che morde una volta sola
+
+- [ ] **`SANCTUM_STATEFUL_DOMAINS` in produzione, e nessun test lo puo' dire.**
+      Il pannello chiama `/api/*` col cookie di sessione, e Sanctum tratta una
+      richiesta come "dal frontend" solo se `Referer`/`Origin` combacia con
+      `sanctum.stateful`. In produzione quella lista deve contenere
+      `kaltrack.martin-trajkovski.it` (gia' scritto in `backend/README.md`
+      § In produzione), o il primo accesso vero dal pannello risponde 401.
+
+      **Nessun test lo intercetta**, ed e' la parte da tenere a mente:
+      Laravel disattiva la verifica CSRF sotto `testing`, e l'host del client
+      di test e' gia' nell'elenco di serie di Sanctum (`config/sanctum.php`).
+      Una produzione mal configurata passa comunque tutta la suite e fallisce
+      al primo login vero: `php artisan test` verde non e' la prova che
+      questa riga sia a posto.
+
+---
+
+## 6. Debiti tecnici
 
 - [ ] **Nessuno cancella dal server le foto tolte dal telefono.**
       `storage/app/private/images` cresce e non scende. La raccolta degli
@@ -321,10 +400,10 @@ TypeScript che gira sul dispositivo, come gia' fanno `normalizeQuantities` e
       telefono e non ci rientrano mai. Da cablare in `FoodsScreen` con le
       stesse chiavi (`gym.imported_none`/`imported_some` hanno bisogno del
       gemello lato alimenti).
-- [ ] **Il catalogo non ha moderazione.** Chiunque aggiunge voci all'elenco di
-      tutti e ciascuno corregge solo le proprie: un amministratore non puo'
-      togliere una voce altrui scritta male. Con un utente solo non e' un
-      problema, con dieci lo diventa.
+- [x] ~~Il catalogo non ha moderazione.~~ Risolto lato server il 7 settembre
+      2026 dalla Fase 1 del gestionale (§ 5): una voce nasce proposta e un
+      amministratore la approva o la rifiuta da una coda di revisione. Quel
+      che resta aperto e' il lato app - § 5.1 e § 5.3.
 - [ ] **`src/i18n/locales/en.json` non ha ancora tutte le chiavi di
       `it.json`** (attrezzatura, storico peso/passi/misure/sessioni - le
       funzioni piu' recenti). Chi le usa in inglese vede la chiave grezza o il
@@ -349,7 +428,7 @@ TypeScript che gira sul dispositivo, come gia' fanno `normalizeQuantities` e
 
 ---
 
-## 6. Decisioni aperte
+## 7. Decisioni aperte
 
 - [ ] **La palla dell'assistente che si muove con la voce.** Il microfono
       virtuale dell'emulatore riporta `0.000` fisso anche con
@@ -362,7 +441,7 @@ TypeScript che gira sul dispositivo, come gia' fanno `normalizeQuantities` e
 
 ---
 
-## 7. Fuori scope per scelta
+## 8. Fuori scope per scelta
 
 Non sono dimenticanze e non vanno riaperte senza una ragione nuova.
 

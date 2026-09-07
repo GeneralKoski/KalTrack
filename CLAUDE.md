@@ -477,21 +477,37 @@ vorrebbe dire interrogare e spedire giornate vuote che non sono mai esistite.
 ### L'unica cosa che esce verso i non amici
 
 Le tabelle `exercises` e `foods` sul server sono cataloghi **comuni a tutti
-gli iscritti**: un esercizio o un alimento creato a mano entra nell'elenco di
-chiunque abbia un account. E' l'unica eccezione alla regola "solo fra amici
-accettati", ed e' dichiarata in `backend/README.md`.
+gli iscritti**. E' l'unica eccezione alla regola "solo fra amici accettati", e
+questo non e' cambiato con la Fase 1 del gestionale (settembre 2026).
+
+**Quel che e' cambiato e' come una voce ci arriva.** Fino ad allora, un
+esercizio o un alimento creato a mano entrava nell'elenco di chiunque avesse un
+account nello stesso momento in cui veniva salvato. Ora nasce **proposto**, e
+raggiunge tutti solo quando un amministratore lo approva dalla coda di
+revisione: il catalogo di tutti non puo' essere la somma di quel che ciascuno
+scrive di fretta. La dichiarazione completa - inclusa la moderazione - sta in
+`backend/README.md` § L'eccezione dichiarata.
 
 **Ogni voce ha un autore e ciascuno corregge o toglie solo le proprie**, ma
-`created_by` non esce da nessuna risposta: al suo posto viaggia `mine`. Il
-catalogo dice a te che quella voce e' tua, non dice a nessun altro di chi e'.
+`created_by` non esce da nessuna risposta verso un utente qualunque: al suo
+posto viaggia `mine`. Il catalogo dice a te che quella voce e' tua, non dice a
+nessun altro di chi e'. C'e' ora **un'unica eccezione**, in un posto che un
+utente normale non raggiunge: la coda di revisione sotto `/api/admin/*`, dove
+chi guarda l'autore e' chi decide se la voce entra nel catalogo di tutti. Il
+dettaglio sta in `backend/README.md`, che non va ripetuto qui.
 
-Il testo che lo spiega sta **sopra** il campo del nome (`ExerciseFormSheet`,
-`FoodFormScreen`): va letto prima di scrivere, non dopo aver salvato. Senza
-account non compare, perche' senza account non esce niente.
+Il testo che spiega la proposta sta **sopra** il campo del nome
+(`ExerciseFormSheet`, `FoodFormScreen`): va letto prima di scrivere, non dopo
+aver salvato. Senza account non compare, perche' senza account non esce
+niente.
 
-Lato app la voce remota si ritrova **dal nome normalizzato** e non da un id
-salvato in colonna: un id del server, sincronizzato su un secondo dispositivo o
-dopo un cambio di account, punterebbe alla riga di un altro catalogo.
+**Lato app la voce remota si ritrova dal nome normalizzato**, ed e' ancora vero
+oggi - ma solo perche' l'app non ha ancora ripreso in mano questo pezzo. E' la
+ragione per cui il server porta ora un `uid` stabile: un nome normalizzato non
+sopravvive a una rinomina fatta dal pannello - la voce rinominata smette di
+essere riconoscibile e il pull successivo la duplica invece di aggiornarla.
+Adottare `uid` come identita' lato app e' lavoro della Fase 3 del gestionale
+(`TODO.md` § 5.3), non fatto ancora.
 
 ### Nomi utente
 
@@ -644,19 +660,27 @@ messo, quindi una descrizione mancante non era colmabile da nessuna parte.
 **Le foto invece non sono nel seed, e non e' una dimenticanza da colmare in
 codice.** `photo_uri` e' arrivata con la migrazione 18, l'ultima, e il seed e'
 della Fase 1: duecento immagini vorrebbero dire duecento file con una licenza
-che li permetta, che e' un problema di contenuti. Chi vuole una foto la mette
-dal modulo, una alla volta.
+che li permetta, che e' un problema di contenuti. Per un utente singolo la
+foto si mette dal modulo, una alla volta; per il catalogo comune la Fase 1 del
+gestionale ha aperto una seconda via, di un tipo diverso: si carica **una
+volta sola, dal pannello**, ed e' quella che raggiunge tutti gli iscritti -
+non e' piu' vero che nessuna foto arrivi da li'.
 
-Il catalogo comune sul server non aiuta su nessuna delle due:
-`CatalogExerciseInput` porta nome, gruppo muscolare, muscoli secondari e
-attrezzatura, e basta - istruzioni e foto non escono e non entrano da li'.
+**Il catalogo comune sul server ora porta anche istruzioni e foto**, e non
+piu' solo nome, gruppo muscolare, muscoli secondari e attrezzatura: la Fase 1
+del gestionale ha aggiunto `instructions` e `photo` a `exercises` (`barcode`,
+`off_id` e `image` a `foods`), e il pannello di amministrazione e' il posto
+dove si scrivono per una voce che serve a tutti - non piu' un limite del
+catalogo, ma un campo che oggi solo un amministratore riempie.
 
 **Aggiornare il seed non raggiunge chi ce l'ha gia'.** `applyExerciseSeeds`
 inserisce solo gli id mancanti e non tocca le righe esistenti, ed e' voluto:
 la scelta dell'utente vince, un esercizio vietato o cancellato non torna
-indietro. Correggere il testo di un esercizio gia' installato vuol dire una
-migrazione che scriva **solo dove il campo e' ancora vuoto**, o non arriva a
-nessuno.
+indietro. Oggi correggere il testo di un esercizio gia' installato vuol dire
+una migrazione che scriva **solo dove il campo e' ancora vuoto**, o non arriva
+a nessuno; da quando l'app consuma `/api/catalog/exercises` (Fase 3 del
+gestionale, `TODO.md` § 5.3), la via normale diventa il pull incrementale dal
+catalogo comune, non piu' una migrazione per ogni correzione.
 
 ### L'attrezzatura
 
