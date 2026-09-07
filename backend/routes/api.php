@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AdminExerciseController;
 use App\Http\Controllers\Api\Admin\SubmissionController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
@@ -80,6 +81,18 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('submissions', [SubmissionController::class, 'index']);
         Route::post('submissions/{type}/{id}/approve', [SubmissionController::class, 'approve']);
         Route::post('submissions/{type}/{id}/reject', [SubmissionController::class, 'reject']);
+
+        /*
+         * Il catalogo degli esercizi, dal gestionale: elenco, creazione,
+         * correzione, cancellazione morbida e la sua foto. La rotta della
+         * foto sta PRIMA di `exercises/{exercise}`, o quella parametrizzata la
+         * intercetterebbe.
+         */
+        Route::post('exercises/{exercise}/photo', [AdminExerciseController::class, 'photo']);
+        Route::get('exercises', [AdminExerciseController::class, 'index']);
+        Route::post('exercises', [AdminExerciseController::class, 'store']);
+        Route::patch('exercises/{exercise}', [AdminExerciseController::class, 'update']);
+        Route::delete('exercises/{exercise}', [AdminExerciseController::class, 'destroy']);
     });
 
     Route::get('images', [ImageController::class, 'index']);
