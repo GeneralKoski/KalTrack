@@ -1,13 +1,23 @@
+import { DfBottomSheet } from "@/src/components/DfBottomSheet";
+import { ListGroup, ListRow } from "@/src/components/kal/ListGroup";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { discardPhoto, persistPhoto } from "@/src/services/photoStorage";
 import { showToast } from "@/src/utils/toast";
 import { theme } from "@/src/styles";
+import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import * as ImagePicker from "expo-image-picker";
-import { Camera, ImagePlus, X } from "lucide-react-native";
-import React from "react";
-import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Camera, ImagePlus, Trash2, X } from "lucide-react-native";
+import React, { useRef } from "react";
+import {
+  Image,
+  StyleProp,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  type ViewStyle,
+} from "react-native";
 
 /**
  * Il ritaglio, verticale per tutti.
@@ -25,39 +35,21 @@ import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
  */
 const PHOTO_ASPECT: [number, number] = [3, 4];
 
-interface PhotoFieldProps {
-  uri: string | null;
-  onChange: (uri: string | null) => void;
-  /**
-   * Altezza dell'anteprima. Più bassa dove la foto è un dettaglio.
-   *
-   * Decide anche la larghezza, che segue `PHOTO_ASPECT`: prima l'anteprima
-   * prendeva tutta la riga e questo numero era solo la sua altezza.
-   */
-  height?: number;
-  /** Prefisso del file archiviato, per riconoscerlo: "food", "recipe", "progress". */
-  prefix?: string;
-}
-
 /**
- * Selettore foto con anteprima: alimenti, ricette, esercizi, foto progressi.
- * Offre sia galleria sia fotocamera - un prodotto lo si fotografa sul momento,
- * un piatto quasi sempre lo si ha già in galleria.
+ * Scegliere e archiviare una foto.
+ *
+ * La copia in archivio permanente avviene QUI e non nei chiamanti: ImagePicker
+ * restituisce un URI nella cache, che il sistema svuota quando vuole. Farlo in
+ * un posto solo significa che nessuna schermata futura può dimenticarsene e
+ * ritrovarsi con foto sparite.
  */
-export const PhotoField: React.FC<PhotoFieldProps> = ({
-  uri,
-  onChange,
-  height = 160,
-  prefix = "photo",
-}) => {
+function usePhotoPicker(
+  uri: string | null,
+  onChange: (uri: string | null) => void,
+  prefix: string,
+) {
   const { t } = useTranslation();
 
-  /**
-   * La copia in archivio permanente avviene QUI e non nei chiamanti: ImagePicker
-   * restituisce un URI nella cache, che il sistema svuota quando vuole. Farlo
-   * nel componente significa che nessuna schermata futura può dimenticarsene e
-   * ritrovarsi con foto sparite.
-   */
   const store = async (pickedUri: string) => {
     const stored = await persistPhoto(pickedUri, prefix);
     // La foto che stiamo sostituendo non serve piu' a nessuno: senza questa
@@ -65,7 +57,6 @@ export const PhotoField: React.FC<PhotoFieldProps> = ({
     if (uri && uri !== stored) void discardPhoto(uri);
     onChange(stored);
   };
-  const { colors } = useAppTheme();
 
   const pickFromLibrary = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -94,6 +85,51 @@ export const PhotoField: React.FC<PhotoFieldProps> = ({
     if (!result.canceled && result.assets[0]) await store(result.assets[0].uri);
   };
 
+  const remove = () => {
+    if (!uri) return;
+    void discardPhoto(uri);
+    onChange(null);
+  };
+
+  return { pickFromLibrary, takePhoto, remove };
+}
+
+interface PhotoFieldProps {
+  uri: string | null;
+  onChange: (uri: string | null) => void;
+  /**
+   * Altezza dell'anteprima. Più bassa dove la foto è un dettaglio.
+   *
+   * Decide anche la larghezza, che segue `PHOTO_ASPECT`: prima l'anteprima
+   * prendeva tutta la riga e questo numero era solo la sua altezza.
+   */
+  height?: number;
+  /** Prefisso del file archiviato, per riconoscerlo: "food", "recipe", "progress". */
+  prefix?: string;
+}
+
+/**
+ * Selettore foto con anteprima: ricette, esercizi, foto progressi.
+ * Offre sia galleria sia fotocamera - un prodotto lo si fotografa sul momento,
+ * un piatto quasi sempre lo si ha già in galleria.
+ *
+ * Dove la foto è un dettaglio e non il contenuto della schermata c'è
+ * `PhotoTile`, che occupa un quadrato invece di due riquadri a mezza pagina.
+ */
+export const PhotoField: React.FC<PhotoFieldProps> = ({
+  uri,
+  onChange,
+  height = 160,
+  prefix = "photo",
+}) => {
+  const { t } = useTranslation();
+  const { colors } = useAppTheme();
+  const { pickFromLibrary, takePhoto, remove } = usePhotoPicker(
+    uri,
+    onChange,
+    prefix,
+  );
+
   if (uri) {
     return (
       <View style={styles.preview}>
@@ -111,10 +147,7 @@ export const PhotoField: React.FC<PhotoFieldProps> = ({
           <Image source={{ uri }} style={styles.image} />
           <TouchableOpacity
             style={styles.remove}
-            onPress={() => {
-              void discardPhoto(uri);
-              onChange(null);
-            }}
+            onPress={remove}
             activeOpacity={0.6}
             hitSlop={8}
           >
@@ -152,6 +185,103 @@ export const PhotoField: React.FC<PhotoFieldProps> = ({
   );
 };
 
+/** Lato della tessera: la stessa altezza dei due campi che le stanno accanto. */
+const TILE_SIZE = 64;
+
+/**
+ * La foto come tessera, per i moduli in cui è un dettaglio.
+ *
+ * Nel modulo di un alimento il lavoro è digitare numeri, e la foto del prodotto
+ * si prendeva due riquadri tratteggiati alti 88 con due etichette - una delle
+ * quali, "Dalla galleria", compariva di nuovo duecento pixel più in basso per
+ * dire tutt'altro (la foto dell'ETICHETTA da leggere con l'OCR). Due comandi
+ * con lo stesso nome nella stessa schermata: qui la tessera non ne scrive
+ * nessuno, e le due vie stanno dentro il foglio che apre.
+ */
+export const PhotoTile: React.FC<{
+  uri: string | null;
+  onChange: (uri: string | null) => void;
+  prefix?: string;
+  /** Il testo sotto l'icona quando la tessera è vuota. */
+  label: string;
+  style?: StyleProp<ViewStyle>;
+}> = ({ uri, onChange, prefix = "photo", label, style }) => {
+  const { t } = useTranslation();
+  const { colors } = useAppTheme();
+  const sheet = useRef<BottomSheetModal>(null);
+  const { pickFromLibrary, takePhoto, remove } = usePhotoPicker(
+    uri,
+    onChange,
+    prefix,
+  );
+
+  /** Il foglio si chiude PRIMA di aprire fotocamera o galleria, o resterebbe
+   *  sotto la schermata di sistema e si ritroverebbe aperto al ritorno. */
+  const run = (action: () => void) => () => {
+    sheet.current?.dismiss();
+    action();
+  };
+
+  return (
+    <>
+      <TouchableOpacity
+        onPress={() => sheet.current?.present()}
+        activeOpacity={0.6}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        style={[
+          styles.tile,
+          uri
+            ? null
+            : {
+                borderColor: colors.border,
+                borderWidth: 1,
+                borderStyle: "dashed",
+              },
+          style,
+        ]}
+      >
+        {uri ? (
+          <Image source={{ uri }} style={styles.tileImage} />
+        ) : (
+          <>
+            <Camera size={18} color={colors.textFaint} />
+            <Text style={[styles.tileLabel, { color: colors.textFaint }]}>
+              {label}
+            </Text>
+          </>
+        )}
+      </TouchableOpacity>
+
+      <DfBottomSheet ref={sheet} title={label}>
+        <ListGroup indent={theme.spacing.md}>
+          <ListRow
+            label={t("photo.take")}
+            icon={<Camera size={18} color={colors.textMuted} />}
+            onPress={run(() => void takePhoto())}
+            chevron={false}
+          />
+          <ListRow
+            label={t("photo.from_gallery")}
+            icon={<ImagePlus size={18} color={colors.textMuted} />}
+            onPress={run(() => void pickFromLibrary())}
+            chevron={false}
+          />
+          {uri ? (
+            <ListRow
+              label={t("photo.remove")}
+              icon={<Trash2 size={18} color={theme.colors.error} />}
+              labelColor={theme.colors.error}
+              onPress={run(remove)}
+              chevron={false}
+            />
+          ) : null}
+        </ListGroup>
+      </DfBottomSheet>
+    </>
+  );
+};
+
 const styles = StyleSheet.create({
   preview: { alignItems: "center" },
   image: {
@@ -184,4 +314,15 @@ const styles = StyleSheet.create({
   actionLabel: {
     fontSize: 13,
   },
+  tile: {
+    width: TILE_SIZE,
+    height: TILE_SIZE,
+    borderRadius: theme.radius.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 3,
+    overflow: "hidden",
+  },
+  tileImage: { width: "100%", height: "100%" },
+  tileLabel: { fontSize: 10 },
 });

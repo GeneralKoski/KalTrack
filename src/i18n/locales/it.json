@@ -126,6 +126,7 @@
   "photo": {
     "from_gallery": "Dalla galleria",
     "take": "Scatta foto",
+    "remove": "Togli la foto",
     "camera_denied": "Serve il permesso della fotocamera: concedilo dalle impostazioni di sistema."
   },
   "meal_types": {
@@ -811,8 +812,8 @@
     "sync_failed": "Importazione dei passi non riuscita"
   },
   "label_scan": {
-    "camera": "Scansiona etichetta",
-    "gallery": "Da galleria",
+    "camera": "Scansiona l'etichetta",
+    "gallery": "oppure scegli una foto dell'etichetta",
     "hint": "Inquadra la tabella nutrizionale: i campi qui sotto si riempiono da soli e restano modificabili.",
     "filled": {
       "one": "Letto 1 valore",

@@ -6,7 +6,7 @@ import { DfInput } from "@/src/components/form/DfInput";
 import { DfNumberInput } from "@/src/components/form/DfNumberInput";
 import { DfSwitch } from "@/src/components/form/DfSwitch";
 import {
-  PhotoField,
+  PhotoTile,
   ScreenBackground,
   SectionLabel,
 } from "@/src/components/kal";
@@ -230,15 +230,32 @@ export function FoodFormScreen() {
               onSubmit={onSubmit}
               submitLabel={t("save")}
             >
-              <DfInput
-                name="name"
-                label={t("foods.name")}
-                rules={{ required: t("required_field") }}
-              />
-              <DfInput name="brand" label={t("foods.brand")} />
+              {/*
+                La foto accanto al nome, non in una sezione sua.
+                Era un'etichetta di sezione piu' due riquadri tratteggiati alti
+                140, cioe' mezza pagina per un dettaglio, in un modulo il cui
+                lavoro e' digitare numeri - e uno dei due riquadri si chiamava
+                "Dalla galleria", lo stesso nome dell'azione che piu' sotto
+                sceglie la foto dell'ETICHETTA.
+              */}
+              <View style={styles.identity}>
+                <PhotoTile
+                  uri={photoUri}
+                  onChange={setPhotoUri}
+                  prefix="food"
+                  label={t("foods.photo")}
+                  style={styles.identityTile}
+                />
+                <View style={styles.identityField}>
+                  <DfInput
+                    name="name"
+                    label={t("foods.name")}
+                    rules={{ required: t("required_field") }}
+                  />
+                </View>
+              </View>
 
-              <SectionLabel>{t("foods.photo")}</SectionLabel>
-              <PhotoField uri={photoUri} onChange={setPhotoUri} height={140} prefix="food" />
+              <DfInput name="brand" label={t("foods.brand")} />
 
               <SectionLabel>{t("foods.values_per_100")}</SectionLabel>
               <LabelScanner />
@@ -313,6 +330,16 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: theme.spacing.md,
   },
+  // La tessera si allinea in basso col campo e non al centro: `DfInput` porta
+  // sopra l'etichetta e sotto un margine, quindi centrare la riga alzerebbe la
+  // tessera di mezzo margine rispetto al riquadro del nome.
+  identity: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: theme.spacing.sm + 4,
+  },
+  identityTile: { marginBottom: theme.spacing.md },
+  identityField: { flex: 1 },
   loader: {
     marginTop: theme.spacing.xl,
   },

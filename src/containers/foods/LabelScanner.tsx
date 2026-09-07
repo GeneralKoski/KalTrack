@@ -14,9 +14,9 @@ import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
 import type { Nutrients } from "@/src/domain/nutrition";
 import * as ImagePicker from "expo-image-picker";
-import { ScanLine } from "lucide-react-native";
+import { Image as ImageIcon, ScanLine } from "lucide-react-native";
 import React, { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { useFormContext } from "react-hook-form";
 
 /**
@@ -146,25 +146,35 @@ export const LabelScanner: React.FC = () => {
 
   return (
     <View style={styles.root}>
-      <View style={styles.buttons}>
-        <DfButton
-          label={t("label_scan.camera")}
-          variant="outlined"
-          fullWidth={false}
-          loading={busy}
-          onPress={guard(fromCamera)}
-          icon={<ScanLine size={18} color={colors.text} />}
-          style={styles.button}
-        />
-        <DfButton
-          label={t("label_scan.gallery")}
-          variant="outlined"
-          fullWidth={false}
-          loading={busy}
-          onPress={guard(fromLibrary)}
-          style={styles.button}
-        />
-      </View>
+      {/*
+        Una sola azione, e la galleria sotto come collegamento.
+        Erano due bottoni affiancati e uguali di peso, il secondo dei quali si
+        chiamava "Da galleria": lo stesso nome del comando che duecento pixel
+        piu' su sceglieva la foto del PRODOTTO. Due comandi omonimi nella
+        stessa schermata per due cose diverse, e il primo si troncava a
+        "Scansiona etich...". Inquadrare la scatola e' l'azione; pescare da
+        galleria e' la via di riserva, e si scrive come tale.
+      */}
+      <DfButton
+        label={t("label_scan.camera")}
+        variant="outlined"
+        loading={busy}
+        onPress={guard(fromCamera)}
+        icon={<ScanLine size={18} color={colors.text} />}
+      />
+      <TouchableOpacity
+        onPress={guard(fromLibrary)}
+        activeOpacity={0.6}
+        disabled={busy}
+        accessibilityRole="button"
+        style={styles.link}
+      >
+        <ImageIcon size={14} color={colors.textMuted} />
+        <Text style={[styles.linkLabel, { color: colors.textMuted }]}>
+          {t("label_scan.gallery")}
+        </Text>
+      </TouchableOpacity>
+
       <Text style={[styles.hint, { color: colors.textMuted }]}>
         {t("label_scan.hint")}
       </Text>
@@ -176,10 +186,13 @@ export const LabelScanner: React.FC = () => {
 
 const styles = StyleSheet.create({
   root: { gap: theme.spacing.xs, marginBottom: theme.spacing.sm },
-  buttons: {
+  link: {
     flexDirection: "row",
-    gap: theme.spacing.sm,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: theme.spacing.sm,
   },
-  button: { flexGrow: 1, flexBasis: 0 },
+  linkLabel: { fontSize: 12, fontWeight: "500" },
   hint: { fontSize: 12, lineHeight: 16 },
 });

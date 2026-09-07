@@ -22,7 +22,7 @@ export {
   PickerField,
 } from "./Filters";
 export { MetalPanel, MetalSurface } from "./MetalSurface";
-export { PhotoField } from "./PhotoField";
+export { PhotoField, PhotoTile } from "./PhotoField";
 export { ScreenBackground } from "./ScreenBackground";
 export { SearchBar } from "./SearchBar";
 export { Segmented, type SegmentedOption } from "./Segmented";

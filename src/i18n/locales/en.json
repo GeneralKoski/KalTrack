@@ -125,6 +125,7 @@
   "photo": {
     "from_gallery": "From gallery",
     "take": "Take a photo",
+    "remove": "Remove the photo",
     "camera_denied": "Camera permission is needed: grant it from the system settings."
   },
   "meal_types": {
@@ -782,8 +783,8 @@
     "sync_failed": "Step import failed"
   },
   "label_scan": {
-    "camera": "Scan label",
-    "gallery": "From gallery",
+    "camera": "Scan the label",
+    "gallery": "or pick a photo of the label",
     "hint": "Frame the nutrition facts table: the fields below fill in on their own and stay editable.",
     "filled": {
       "one": "1 value read",

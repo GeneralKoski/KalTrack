@@ -286,6 +286,30 @@ seed gira su un database nuovo, i test se lo ricreano, e i tool cercano fra i
 pasti che esistono. Restava un divieto che obbligava a tenersi "Brunch" per
 sempre.
 
+### Il modulo di un alimento
+
+`FoodFormScreen`. Il lavoro qui e' **digitare numeri**, e fino all'8 settembre
+2026 la foto del prodotto si prendeva un'etichetta di sezione e due riquadri
+tratteggiati alti 140 - mezza pagina per un dettaglio.
+
+**"Dalla galleria" compariva due volte e voleva dire due cose.** Una sceglieva
+la foto del PRODOTTO, l'altra - duecento pixel piu' sotto - la foto
+dell'ETICHETTA da leggere con l'OCR, e le due non hanno niente in comune: la
+prima si archivia, la seconda si legge e si butta. Due comandi omonimi nella
+stessa schermata.
+
+Ora la foto del prodotto e' una **tessera da 64** accanto al campo del nome
+(`PhotoTile`, `src/components/kal/PhotoField.tsx`): non scrive nessun nome, e le
+due vie stanno dentro il foglio che apre. `PhotoField` resta com'e' dov'e' -
+ricette, esercizi, foto progressi - perche' li' la foto e' il contenuto e non un
+dettaglio; le due condividono `usePhotoPicker`, quindi la copia in archivio
+permanente avviene comunque in un posto solo (§ Le foto).
+
+Lo scanner dell'etichetta e' **una** azione a tutta larghezza con la galleria
+sotto come collegamento. Erano due bottoni affiancati e di peso uguale, e il
+primo si troncava a "Scansiona etich...": inquadrare la scatola e' l'azione,
+pescare da galleria e' la via di riserva.
+
 ### Le porzioni nel campo quantita'
 
 `foods.default_serving_g` e' **il numero gia' scritto** quando aggiungi un
