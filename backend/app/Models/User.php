@@ -79,6 +79,23 @@ class User extends Authenticatable
         return $this->hasMany(SharedStat::class);
     }
 
+    /**
+     * Le voci di catalogo che ha proposto.
+     *
+     * Servono ai due conteggi dell'elenco utenti del gestionale, e a niente
+     * altro: `created_by` non esce verso un utente normale, e queste
+     * relazioni non vanno usate da nessuna rotta fuori da `/api/admin/*`.
+     */
+    public function proposedExercises(): HasMany
+    {
+        return $this->hasMany(Exercise::class, 'created_by');
+    }
+
+    public function proposedFoods(): HasMany
+    {
+        return $this->hasMany(Food::class, 'created_by');
+    }
+
     public function sharedWorkouts(): HasMany
     {
         return $this->hasMany(SharedWorkout::class);

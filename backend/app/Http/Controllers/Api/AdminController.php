@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UpdateUserRequest;
+use App\Models\Exercise;
+use App\Models\Food;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,11 +24,29 @@ use Illuminate\Http\Request;
  */
 class AdminController extends Controller
 {
-    /** L'elenco, per scegliere a chi cambiarla. */
-    public function users(Request $request): JsonResponse
+    /** L'elenco, con quel che serve a riconoscere chi propone cosa. */
+    public function users(): JsonResponse
     {
         return response()->json([
             'users' => User::query()
+                /*
+                 * I due conteggi in una query sola per tipo, non uno per
+                 * utente: con cento iscritti sarebbero quattrocento query per
+                 * disegnare una tabella.
+                 *
+                 * `withTrashed()` in ogni closure: Exercise/Food hanno
+                 * SoftDeletes, quindi la relazione da sola escluderebbe le
+                 * righe cancellate. Una proposta cancellata dall'amministratore
+                 * e' successa lo stesso - e' il numero con cui si riconosce
+                 * chi propone spazzatura, e cancellarla dal conteggio
+                 * nasconderebbe proprio quel segnale.
+                 */
+                ->withCount([
+                    'proposedExercises as submitted_exercises' => fn ($q) => $q->withTrashed(),
+                    'proposedFoods as submitted_foods' => fn ($q) => $q->withTrashed(),
+                    'proposedExercises as published_exercises' => fn ($q) => $q->withTrashed()->where('status', 'published'),
+                    'proposedFoods as published_foods' => fn ($q) => $q->withTrashed()->where('status', 'published'),
+                ])
                 ->orderBy('handle')
                 ->get()
                 ->map(fn (User $u) => [
@@ -34,6 +55,10 @@ class AdminController extends Controller
                     'displayName' => $u->display_name ?? $u->name,
                     'email' => $u->email,
                     'isAdmin' => $u->is_admin,
+                    'aiEnabled' => $u->ai_enabled,
+                    'createdAt' => $u->created_at?->toIso8601String(),
+                    'submitted' => $u->submitted_exercises + $u->submitted_foods,
+                    'published' => $u->published_exercises + $u->published_foods,
                 ]),
         ]);
     }
@@ -60,5 +85,61 @@ class AdminController extends Controller
         $user->tokens()->delete();
 
         return response()->json(['handle' => $user->handle]);
+    }
+
+    /**
+     * L'interruttore dell'AI.
+     *
+     * E' UN CARTELLO E NON UNA SERRATURA finche' le chiamate a Gemini partono
+     * dal telefono con la chiave nel bundle: spegnerlo nasconde il microfono
+     * e nient'altro. Serve gia' a regalare l'AI a chi si vuole, e diventa un
+     * diritto vero quando le chiamate passeranno da qui - `TODO.md` § 3.1.
+     */
+    public function updateUser(UpdateUserRequest $request, User $user): JsonResponse
+    {
+        $dati = $request->safe()->all();
+
+        if (array_key_exists('aiEnabled', $dati)) {
+            $user->ai_enabled = $dati['aiEnabled'];
+            $user->save();
+        }
+
+        return response()->json([
+            'id' => $user->id,
+            'handle' => $user->handle,
+            'aiEnabled' => $user->ai_enabled,
+        ]);
+    }
+
+    /**
+     * I numeri della dashboard.
+     *
+     * I due sotto `missing` non sono decorazione: 128 esercizi su 200 sono
+     * rimasti senza descrizione per mesi, e la ragione e' che nessuna
+     * schermata contava quanti fossero. Un numero in cima alla dashboard e un
+     * filtro che ci porta dentro (`?missing=instructions`) sono le due meta'
+     * dello stesso rimedio.
+     */
+    public function stats(): JsonResponse
+    {
+        return response()->json([
+            'users' => User::count(),
+            'pending' => [
+                'exercises' => Exercise::where('status', 'pending')->count(),
+                'foods' => Food::where('status', 'pending')->count(),
+            ],
+            'published' => [
+                'exercises' => Exercise::where('status', 'published')->count(),
+                'foods' => Food::where('status', 'published')->count(),
+            ],
+            'missing' => [
+                'instructions' => Exercise::where('status', 'published')
+                    ->where(fn ($q) => $q->whereNull('instructions')->orWhere('instructions', ''))
+                    ->count(),
+                'photos' => Exercise::where('status', 'published')
+                    ->whereNull('photo')
+                    ->count(),
+            ],
+        ]);
     }
 }

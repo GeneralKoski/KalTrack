@@ -64,6 +64,8 @@ Route::middleware('auth:sanctum')->group(function () {
      */
     Route::middleware('admin')->prefix('admin')->group(function () {
         Route::get('users', [AdminController::class, 'users']);
+        Route::patch('users/{user}', [AdminController::class, 'updateUser']);
+        Route::get('stats', [AdminController::class, 'stats']);
 
         /*
          * Limitato per tentativi come `login` e `register`.
