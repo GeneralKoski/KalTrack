@@ -25,7 +25,7 @@ class ProfileController extends Controller
             'isAdmin' => $user->is_admin,
             /*
              * L'app lo legge per non montare `AssistantButton` a interruttore
-             * spento. È un cartello e non una serratura finché le chiamate
+             * spento. E' un cartello e non una serratura finche' le chiamate
              * AI partono dal telefono: vedi la migrazione che ha creato la
              * colonna.
              */

@@ -117,6 +117,13 @@ class AdminTest extends TestCase
     public function test_il_profilo_dice_se_l_ai_e_attiva(): void
     {
         $user = User::factory()->create();
+        // La factory non rilegge la colonna dopo l'insert: Eloquent scrive solo la
+        // primary key, e senza un refresh() la variabile $user contiene solo i campi
+        // espliciti della factory. Il resto rimane nullo nel modello, anche se il
+        // database ha i default. L'istanza in memoria è quella che actingAs passa al
+        // controller, quindi senza questo refresh l'asserzione verificherebbe un
+        // default inventato dal test, non quello scritto dalla migrazione.
+        $user->refresh();
 
         $this->actingAs($user)
             ->getJson('/api/me')
