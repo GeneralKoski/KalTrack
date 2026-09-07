@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Exercise;
+use App\Models\Food;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -54,5 +55,32 @@ class CatalogSchemaTest extends TestCase
 
         $this->assertNull(Exercise::find($e->id));
         $this->assertNotNull(Exercise::withTrashed()->find($e->id)->deleted_at);
+    }
+
+    public function test_un_alimento_esistente_nasce_pubblicato_e_con_un_uid(): void
+    {
+        $f = Food::create([
+            'name' => 'Pasta di semola cruda',
+            'name_norm' => 'pasta di semola cruda',
+            'uid' => 'seed-pasta-semola-cruda',
+            'kcal' => 353,
+        ]);
+
+        $this->assertSame('published', $f->fresh()->status);
+        $this->assertSame('seed-pasta-semola-cruda', $f->fresh()->uid);
+    }
+
+    public function test_un_alimento_porta_codice_a_barre_e_provenienza(): void
+    {
+        $f = Food::create([
+            'name' => 'Pasta Lidl',
+            'name_norm' => 'pasta lidl',
+            'uid' => 'x-1',
+            'barcode' => '4056489012345',
+            'off_id' => '4056489012345',
+        ]);
+
+        $this->assertSame('4056489012345', $f->fresh()->barcode);
+        $this->assertSame('4056489012345', $f->fresh()->off_id);
     }
 }

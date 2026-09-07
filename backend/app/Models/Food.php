@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Una voce del catalogo alimenti, comune a tutti gli iscritti.
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
  * puo' correggere una voce, non a dire agli altri chi l'ha scritta.
  */
 #[Fillable([
+    'uid',
     'name',
     'name_norm',
     'brand',
@@ -26,10 +28,19 @@ use Illuminate\Database\Eloquent\Model;
     'is_liquid',
     'default_serving_g',
     'serving_label',
+    'status',
+    'barcode',
+    'off_id',
+    'image',
+    'reviewed_at',
+    'reviewed_by',
+    'review_note',
     'created_by',
 ])]
 class Food extends Model
 {
+    use SoftDeletes;
+
     /**
      * "food" e' gia' plurale per l'inglese, quindi Eloquent cercherebbe la
      * tabella `food`. La tabella si chiama `foods` come tutte le altre.
@@ -48,6 +59,9 @@ class Food extends Model
         'salt',
     ];
 
+    /** Gli stessi tre stati degli esercizi: la moderazione e' una sola. */
+    public const STATUSES = ['pending', 'published', 'rejected'];
+
     protected function casts(): array
     {
         return [
@@ -61,6 +75,7 @@ class Food extends Model
             'salt' => 'float',
             'is_liquid' => 'boolean',
             'default_serving_g' => 'float',
+            'reviewed_at' => 'datetime',
         ];
     }
 }
