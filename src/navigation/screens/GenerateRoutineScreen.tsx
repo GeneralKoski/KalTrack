@@ -9,7 +9,7 @@ import { DfButton } from "@/src/components/form/DfButton";
 import { DfInput } from "@/src/components/form/DfInput";
 import { DfSelect, type SelectOption } from "@/src/components/form/DfSelect";
 import { FormScreen } from "@/src/components/FormScreen";
-import { ScreenBackground } from "@/src/components/kal";
+import { Card, ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { listAvailableEquipment } from "@/src/db/queries/exercises";
@@ -162,30 +162,74 @@ export function GenerateRoutineScreen() {
               return true;
             }}
           >
-            <DfSelect
-              name="goal"
-              label={t("gym.generate_goal_label")}
-              options={goalOptions}
-            />
-            <DfSelect
-              name="daysPerWeek"
-              label={t("gym.generate_days_label")}
-              options={daysOptions}
-            />
-            <DfSelect
-              name="level"
-              label={t("gym.generate_level_label")}
-              options={levelOptions}
-            />
-            <DfSelect
-              name="sessionMinutes"
-              label={t("gym.generate_duration_label")}
-              options={durationOptions}
-            />
-            <View style={styles.equipment}>
-              <Text style={[styles.equipmentLabel, { color: colors.text }]}>
+            {/*
+              Quattro valori corti - "Ipertrofia", "Intermedio", "3", "60 min" -
+              su quattro select a tutta larghezza mandavano il modulo sotto la
+              piega: si sceglieva l'obiettivo senza vedere che c'era altro da
+              scegliere. In griglia due per due ci stanno tutti sopra.
+            */}
+            <View style={styles.grid}>
+              <View style={styles.cell}>
+                <DfSelect
+                  name="goal"
+                  label={t("gym.generate_goal_label")}
+                  options={goalOptions}
+                />
+              </View>
+              <View style={styles.cell}>
+                <DfSelect
+                  name="level"
+                  label={t("gym.generate_level_label")}
+                  options={levelOptions}
+                />
+              </View>
+            </View>
+            <View style={styles.grid}>
+              <View style={styles.cell}>
+                <DfSelect
+                  name="daysPerWeek"
+                  label={t("gym.generate_days_label")}
+                  options={daysOptions}
+                />
+              </View>
+              <View style={styles.cell}>
+                <DfSelect
+                  name="sessionMinutes"
+                  label={t("gym.generate_duration_label")}
+                  options={durationOptions}
+                />
+              </View>
+            </View>
+
+            {/*
+              L'attrezzatura non e' un campo di questo modulo: e' una
+              dichiarazione fatta altrove e qui riportata. Un riquadro col
+              collegamento in intestazione lo dice; un'etichetta uguale a
+              quelle dei select faceva sembrare che si scegliesse qui.
+            */}
+            <Card style={styles.equipment}>
+              <SectionLabel
+                right={
+                  <TouchableOpacity
+                    onPress={() => navigate("Equipment")}
+                    activeOpacity={0.6}
+                    hitSlop={8}
+                    style={styles.equipmentEdit}
+                  >
+                    <Text
+                      style={[
+                        styles.equipmentEditLabel,
+                        { color: colors.accent },
+                      ]}
+                    >
+                      {t("gym.generate_equipment_edit")}
+                    </Text>
+                    <ChevronRight size={14} color={colors.accent} />
+                  </TouchableOpacity>
+                }
+              >
                 {t("gym.generate_equipment_label")}
-              </Text>
+              </SectionLabel>
               <Text
                 style={[styles.equipmentList, { color: colors.textSecondary }]}
               >
@@ -195,20 +239,7 @@ export function GenerateRoutineScreen() {
                       .map((item) => t(`gym.equipment.${item}`))
                       .join(" · ")}
               </Text>
-              <TouchableOpacity
-                onPress={() => navigate("Equipment")}
-                activeOpacity={0.6}
-                hitSlop={8}
-                style={styles.equipmentEdit}
-              >
-                <Text
-                  style={[styles.equipmentEditLabel, { color: colors.accent }]}
-                >
-                  {t("gym.generate_equipment_edit")}
-                </Text>
-                <ChevronRight size={16} color={colors.accent} />
-              </TouchableOpacity>
-            </View>
+            </Card>
 
             <DfInput
               name="prompt"
@@ -219,23 +250,30 @@ export function GenerateRoutineScreen() {
               style={styles.promptInput}
             />
 
+            {/*
+              Le due azioni non pesano uguale. Affiancate e larghe uguale
+              dicevano che generare e rinunciare sono la stessa cosa: generare e'
+              perche' si e' aperta la schermata, annullare e' tornare indietro,
+              cioe' quel che fa gia' il chevron in alto.
+            */}
             <View style={styles.actions}>
-              <View style={styles.actionButton}>
-                <DfButton
-                  label={t("cancel")}
-                  variant="outlined"
-                  onPress={goBack}
-                  disabled={loading}
-                />
-              </View>
-              <View style={styles.actionButton}>
-                <DfButton
-                  label={t("gym.generate_action")}
-                  icon={<Sparkles size={16} color={colors.accentOn} />}
-                  loading={loading}
-                  onPress={() => formRef.current?.submit()}
-                />
-              </View>
+              <DfButton
+                label={t("gym.generate_action")}
+                icon={<Sparkles size={16} color={colors.accentOn} />}
+                loading={loading}
+                onPress={() => formRef.current?.submit()}
+              />
+              <TouchableOpacity
+                onPress={goBack}
+                activeOpacity={0.6}
+                disabled={loading}
+                accessibilityRole="button"
+                style={styles.cancel}
+              >
+                <Text style={[styles.cancelLabel, { color: colors.textMuted }]}>
+                  {t("cancel")}
+                </Text>
+              </TouchableOpacity>
             </View>
           </DfForm>
         </FormScreen>
@@ -257,22 +295,25 @@ const styles = StyleSheet.create({
   title: { flex: 1, fontSize: 18, fontWeight: "700" },
   content: { flexGrow: 1, padding: theme.spacing.md },
   promptInput: { minHeight: 70, textAlignVertical: "top" },
+  // La griglia non ha `gap` verticale: il `wrapper` di DfSelect porta gia' il
+  // suo marginBottom, e sommarli allontanerebbe le due file.
+  grid: { flexDirection: "row", gap: theme.spacing.sm + 4 },
+  cell: { flex: 1 },
   // marginBottom come il `wrapper` di DfSelect: il blocco sta in fila con i
   // campi, e una spaziatura sua lo farebbe sembrare di un'altra sezione.
   equipment: { marginBottom: theme.spacing.md, gap: 6 },
-  equipmentLabel: { fontWeight: "500", fontSize: 14 },
   equipmentList: { fontSize: 13, lineHeight: 19 },
   equipmentEdit: {
     flexDirection: "row",
     alignItems: "center",
-    alignSelf: "flex-end",
     gap: 2,
   },
-  equipmentEditLabel: { fontSize: 13, fontWeight: "600" },
-  actions: {
-    flexDirection: "row",
-    gap: theme.spacing.sm,
-    marginTop: theme.spacing.sm,
+  equipmentEditLabel: { fontSize: 12, fontWeight: "600" },
+  actions: { marginTop: theme.spacing.sm },
+  cancel: {
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  actionButton: { flex: 1 },
+  cancelLabel: { fontSize: 14, fontWeight: "500" },
 });

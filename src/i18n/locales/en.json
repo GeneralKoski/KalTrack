@@ -690,10 +690,13 @@
   "shopping": {
     "title": "Shopping list",
     "empty": "There's nothing to buy in this period's plan",
-    "range_rest_of_week": "Rest of the week",
-    "range_this_week": "The whole week",
+    "range_rest_of_week": "From today",
+    "range_this_week": "This week",
     "range_next_week": "Next week",
-    "range_custom": "Custom",
+    "range_custom": "Dates",
+    "to_buy": "To buy",
+    "bought": "Taken",
+    "all_taken": "Everything taken",
     "taken": "%{done} of %{total} taken",
     "session_hint": "Checkmarks only apply to this shopping trip: they aren't saved.",
     "reset": "Clear checkmarks"

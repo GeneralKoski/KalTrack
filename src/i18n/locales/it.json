@@ -719,10 +719,13 @@
   "shopping": {
     "title": "Lista della spesa",
     "empty": "Nel piano di questi giorni non c'è niente da comprare",
-    "range_rest_of_week": "Resto della settimana",
-    "range_this_week": "Tutta la settimana",
-    "range_next_week": "Prossima settimana",
-    "range_custom": "Personalizzato",
+    "range_rest_of_week": "Da oggi",
+    "range_this_week": "Settimana",
+    "range_next_week": "Prossima",
+    "range_custom": "Date",
+    "to_buy": "Da comprare",
+    "bought": "Presi",
+    "all_taken": "Preso tutto",
     "taken": "%{done} di %{total} presi",
     "session_hint": "Le spunte valgono solo per questa spesa: non vengono salvate.",
     "reset": "Azzera le spunte"

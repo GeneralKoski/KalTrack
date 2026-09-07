@@ -286,6 +286,26 @@ seed gira su un database nuovo, i test se lo ricreano, e i tool cercano fra i
 pasti che esistono. Restava un divieto che obbligava a tenersi "Brunch" per
 sempre.
 
+### La lista della spesa
+
+`ShoppingListScreen`. Due difetti chiusi l'8 settembre 2026, e nessuno dei due
+era grafico.
+
+**I quattro periodi erano chip in una riga che scorre**, quindi "Prossima
+settimana" si tagliava a "Pross..." e il quarto stava mezzo fuori schermo: in un
+selettore, dove il punto e' vedere le alternative. Ora sono un `Segmented`, e le
+etichette sono corte apposta ("Da oggi", "Settimana", "Prossima", "Date") -
+quattro segmenti su un telefono non reggono quattro frasi.
+
+**Preso e da comprare erano mescolati.** In mezzo al reparto si rileggeva tutta
+la lista per capire cosa mancava. Ora sono due sezioni, e quando non resta
+niente da comprare la prima non sparisce in silenzio: dice "Preso tutto", o
+sembrerebbe che la lista si sia svuotata da sola.
+
+Le spunte restano quel che erano - **in memoria e basta**: sono una sessione di
+spesa, non un dato. Chiusa la schermata la lista si rifa' dal piano, e un
+"preso" di tre settimane fa non significherebbe piu' niente.
+
 ### Il modulo di un alimento
 
 `FoodFormScreen`. Il lavoro qui e' **digitare numeri**, e fino all'8 settembre

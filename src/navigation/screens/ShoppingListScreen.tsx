@@ -1,8 +1,10 @@
 import {
-  Card,
   DateRangeField,
   EmptyState,
+  ListGroup,
   ScreenBackground,
+  SectionLabel,
+  Segmented,
 } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
@@ -31,6 +33,13 @@ import {
 type RangeKey = "rest_of_week" | "this_week" | "next_week" | "custom";
 
 const RANGES: RangeKey[] = ["rest_of_week", "this_week", "next_week", "custom"];
+
+/** Il tondo della spunta e lo spazio fra lui e il nome. */
+const BOX_SIZE = 20;
+const ROW_GAP = theme.spacing.sm + 4;
+
+/** Il separatore parte dove finisce il tondo, non dal bordo del blocco. */
+const ROW_INDENT = theme.spacing.md + BOX_SIZE + ROW_GAP;
 
 interface ShoppingRouteParams {
   from?: string;
@@ -88,7 +97,9 @@ export function ShoppingListScreen() {
   const { data, loading } = useFocusData<ShoppingItem[]>(loader);
 
   const items = data ?? [];
-  const takenCount = items.filter((item) => taken.has(item.foodId)).length;
+  const toBuy = items.filter((item) => !taken.has(item.foodId));
+  const bought = items.filter((item) => taken.has(item.foodId));
+  const takenCount = bought.length;
 
   const toggle = (foodId: string) => {
     setTaken((current) => {
@@ -118,6 +129,53 @@ export function ShoppingListScreen() {
     setRange(([from, _]) => [from > toIso ? toIso : from, toIso]);
   };
 
+  const renderRow = (item: ShoppingItem, checked: boolean) => (
+    <TouchableOpacity
+      key={item.foodId}
+      onPress={() => toggle(item.foodId)}
+      activeOpacity={0.6}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked }}
+      style={styles.row}
+    >
+      <View
+        style={[
+          styles.box,
+          checked
+            ? { backgroundColor: colors.accent, borderColor: colors.accent }
+            : { borderColor: colors.border },
+        ]}
+      >
+        {checked ? <Check size={13} color={colors.accentOn} /> : null}
+      </View>
+
+      <Text
+        style={[
+          styles.name,
+          {
+            color: checked ? colors.textFaint : colors.text,
+            textDecorationLine: checked ? "line-through" : "none",
+          },
+        ]}
+        numberOfLines={1}
+      >
+        {item.name}
+      </Text>
+
+      {/* La quantità non si restringe: è il dato per cui si legge la riga.
+          A restringersi è il nome. */}
+      <Text
+        style={[
+          styles.quantity,
+          { color: checked ? colors.textFaint : colors.textSecondary },
+        ]}
+        numberOfLines={1}
+      >
+        {formatQuantity(item.grams)}
+      </Text>
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.root}>
       <ScreenBackground />
@@ -145,42 +203,22 @@ export function ShoppingListScreen() {
           ) : null}
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          style={styles.rangesScroll}
-          contentContainerStyle={styles.ranges}
-        >
-          {RANGES.map((key) => {
-            const active = key === activeKey;
-            return (
-              <TouchableOpacity
-                key={key}
-                onPress={() => selectRange(key)}
-                activeOpacity={0.6}
-                style={[
-                  styles.rangeChip,
-                  {
-                    backgroundColor: active
-                      ? colors.accent
-                      : colors.surfaceMuted,
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.rangeLabel,
-                    { color: active ? colors.accentOn : colors.textMuted },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {t(`shopping.range_${key}`)}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+        {/*
+          Quattro periodi fissi: un controllo a segmenti, non dei chip che
+          scorrono. Scorrendo, "Prossima settimana" si tagliava a "Pross..." e
+          il quarto periodo stava mezzo fuori schermo - in un selettore, dove il
+          punto e' vedere le alternative.
+        */}
+        <View style={styles.ranges}>
+          <Segmented
+            value={activeKey ?? "rest_of_week"}
+            onChange={selectRange}
+            options={RANGES.map((key) => ({
+              value: key,
+              label: t(`shopping.range_${key}`),
+            }))}
+          />
+        </View>
 
         {activeKey === "custom" ? (
           <View style={styles.customDateContainer}>
@@ -210,81 +248,53 @@ export function ShoppingListScreen() {
               />
             ) : (
               <>
-                <Text style={[styles.counter, { color: colors.textMuted }]}>
-                  {t("shopping.taken", {
-                    done: takenCount,
-                    total: items.length,
-                  })}
-                </Text>
-
-                <Card style={styles.card}>
-                  {items.map((item, index) => {
-                    const checked = taken.has(item.foodId);
-                    return (
-                      <TouchableOpacity
-                        key={item.foodId}
-                        onPress={() => toggle(item.foodId)}
-                        activeOpacity={0.6}
-                        style={[
-                          styles.row,
-                          index > 0 && {
-                            borderTopWidth: StyleSheet.hairlineWidth,
-                            borderTopColor: colors.border,
-                          },
-                        ]}
-                      >
-                        <View
-                          style={[
-                            styles.box,
-                            {
-                              borderColor: checked
-                                ? colors.accent
-                                : colors.border,
-                              backgroundColor: checked
-                                ? colors.accent
-                                : "transparent",
-                            },
-                          ]}
-                        >
-                          {checked ? (
-                            <Check size={14} color={colors.accentOn} />
-                          ) : null}
-                        </View>
-
+                {/*
+                  Quel che resta da comprare sta in cima e da solo: mescolato ai
+                  presi, in mezzo al reparto si rileggeva ogni volta tutta la
+                  lista per capire cosa mancava.
+                */}
+                {toBuy.length > 0 ? (
+                  <>
+                    <SectionLabel
+                      style={styles.section}
+                      right={
                         <Text
-                          style={[
-                            styles.name,
-                            {
-                              color: checked ? colors.textFaint : colors.text,
-                              textDecorationLine: checked
-                                ? "line-through"
-                                : "none",
-                            },
-                          ]}
-                          numberOfLines={1}
+                          style={[styles.counter, { color: colors.textFaint }]}
                         >
-                          {item.name}
+                          {t("shopping.taken", {
+                            done: takenCount,
+                            total: items.length,
+                          })}
                         </Text>
+                      }
+                    >
+                      {t("shopping.to_buy")}
+                    </SectionLabel>
+                    <ListGroup indent={ROW_INDENT}>
+                      {toBuy.map((item) => renderRow(item, false))}
+                    </ListGroup>
+                  </>
+                ) : (
+                  // Con tutto preso la sezione "Da comprare" sparirebbe e
+                  // resterebbe solo l'elenco dei presi: sembrerebbe che la
+                  // lista si sia svuotata da sola.
+                  <EmptyState
+                    compact
+                    message={t("shopping.all_taken")}
+                    icon={<Check size={32} color={colors.textFaint} />}
+                  />
+                )}
 
-                        {/* La quantità non si restringe: è il dato per cui si
-                            legge la riga. A restringersi è il nome. */}
-                        <Text
-                          style={[
-                            styles.quantity,
-                            {
-                              color: checked
-                                ? colors.textFaint
-                                : colors.textSecondary,
-                            },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {formatQuantity(item.grams)}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </Card>
+                {bought.length > 0 ? (
+                  <>
+                    <SectionLabel style={styles.section}>
+                      {t("shopping.bought")}
+                    </SectionLabel>
+                    <ListGroup indent={ROW_INDENT}>
+                      {bought.map((item) => renderRow(item, true))}
+                    </ListGroup>
+                  </>
+                ) : null}
 
                 <Text style={[styles.hint, { color: colors.textFaint }]}>
                   {t("shopping.session_hint")}
@@ -310,21 +320,10 @@ const styles = StyleSheet.create({
   },
   title: { flex: 1, fontSize: 18, fontWeight: "700" },
   reset: { fontSize: 13, fontWeight: "600" },
-  rangesScroll: {
-    flexGrow: 0,
-  },
   ranges: {
-    alignItems: "center",
-    gap: theme.spacing.xs,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: 4,
   },
-  rangeChip: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: 6,
-    borderRadius: theme.radius.full,
-  },
-  rangeLabel: { fontSize: 13, fontWeight: "600" },
   customDateContainer: {
     paddingHorizontal: theme.spacing.md,
     paddingTop: theme.spacing.xs,
@@ -334,18 +333,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     gap: theme.spacing.sm,
   },
-  counter: { fontSize: 13, fontWeight: "600" },
-  card: { paddingVertical: 0 },
+  section: { marginTop: theme.spacing.sm },
+  counter: { fontSize: 12, fontWeight: "500" },
   row: {
+    minHeight: 52,
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.sm,
-    paddingVertical: theme.spacing.md,
+    gap: ROW_GAP,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
   },
   box: {
-    width: 22,
-    height: 22,
-    borderRadius: theme.radius.sm,
+    width: BOX_SIZE,
+    height: BOX_SIZE,
+    // Tondo e non quadrato: e' una spunta che si toglie e si rimette, come
+    // quella delle serie in palestra, non una casella di un modulo.
+    borderRadius: theme.radius.full,
     borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
