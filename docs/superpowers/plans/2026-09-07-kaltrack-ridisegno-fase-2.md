@@ -1,5 +1,9 @@
 # Ridisegno KalTrack — fase 2
 
+**Eseguito l'8 settembre 2026**, commit `263c976` → `bcd6f43`. Tutti e sei i
+punti sono chiusi; sotto restano com'erano scritti, con l'esito in fondo a
+ciascuno, perché il perché di una modifica vale più della sua checklist.
+
 Piano di esecuzione. Le proposte sono sul canvas
 (https://claude.ai/code/artifact/c69806de-44d0-4893-a7c4-92332abf384a,
 pagina **Proposte**), i sorgenti in `design/`.
@@ -50,6 +54,13 @@ Artboard: `design/StoricoPeso.dc.html`.
 - Correggere il commento in `ProgressScreen.tsx` che oggi promette il grafico
   nello storico: dopo questa modifica diventa vero, prima no.
 
+**Fatto** (`263c976`). `Sparkline` non è stata toccata: il grafico dello storico
+è `TrendChart`, un componente nuovo che misura la propria larghezza invece di
+stirare un `viewBox`. Il peso disegna una linea, i passi delle barre da zero.
+In più: `Segmented` estratto da `BlockEditor`, la parola «prima» sostituita da
+`NO_DELTA` anche nelle misure, e il delta **senza colore** - verde su un calo
+direbbe che calare è bene, e non è l'app a saperlo.
+
 ## 2. Nuovo alimento — due «galleria» che significano cose diverse
 
 Artboard: `design/NuovoAlimento.dc.html`.
@@ -67,6 +78,10 @@ File: `src/navigation/screens/FoodFormScreen.tsx`, `src/components/kal/PhotoFiel
   così le due «galleria» non stanno mai affiancate.
 - I campi dei nutrienti restano in griglia a due colonne.
 
+**Fatto** (`3f70812`). La tessera è `PhotoTile`, accanto a `PhotoField` nello
+stesso file e con lo stesso `usePhotoPicker`: la copia in archivio permanente
+resta in un posto solo.
+
 ## 3. Genera scheda con IA — quattro select per quattro parole
 
 Artboard: `design/GeneraScheda.dc.html`.
@@ -81,6 +96,8 @@ File: `src/navigation/screens/GenerateRoutineScreen.tsx`.
   telefono nuovo la frase è «tutta» — vedi `CLAUDE.md` § L'attrezzatura.
 - Le due azioni in fondo: «Genera scheda» primaria, «Annulla» come testo.
 
+**Fatto** (`d141abe`).
+
 ## 4. Lista della spesa — chip tagliati e nessuna separazione
 
 Artboard: `design/ListaSpesa.dc.html`.
@@ -91,6 +108,10 @@ File: `src/navigation/screens/ShoppingListScreen.tsx`.
 - Separare «da comprare» da «presi», che oggi la schermata non fa: le voci
   prese restano mescolate alle altre.
 - Le righe in `ListGroup`, con il tondo di spunta a sinistra.
+
+**Fatto** (`d141abe`). Le etichette dei periodi sono state accorciate: quattro
+segmenti su un telefono non reggono quattro frasi. Con tutto preso la sezione
+«da comprare» non sparisce in silenzio, dice «Preso tutto».
 
 ## 5. Primo avvio — sette passi per nove campi
 
@@ -122,6 +143,12 @@ Vincoli da non rompere (`CLAUDE.md` § Il primo avvio):
   salvato con un nome che non esiste più: `isOnboardingStep` già ricade sul
   primo passo, verificarlo con un test.
 
+**Fatto** (`bcd6f43`), con l'ok esplicito a «fare tutto». I quattro passi sono
+benvenuto+lingua, dati fisici, aspetto, account. Il passo degli obiettivi
+giornalieri è sparito: il pannello del fabbisogno mostra lo stesso numero che
+viene salvato, e quei campi si regolano da Profilo > Obiettivi dopo aver usato
+l'app. `isOnboardingStep` ha un test con un nome davvero rimosso.
+
 ## 6. Difetti minori raccolti nel giro
 
 - **`Data di nascita` parte da oggi** (`OnboardingProfileBasicsScreen`,
@@ -132,10 +159,10 @@ Vincoli da non rompere (`CLAUDE.md` § Il primo avvio):
   valore (`src/stores/onboardingStore.ts`: `completedValue !== null`).
   Scrivere `"0"` da qualunque parte varrebbe «completato». Nessuno lo scrive
   oggi, ma è fragile: leggere il valore.
-- **`kaltrack://assistente`** è descritto in `CLAUDE.md` § Dove vive il
-  microfono come scorciatoia funzionante. I deep link ora funzionano, ma una
-  rotta con quel nome **non esiste**: o si aggiunge, o si corregge il
-  documento.
+- ~~**`kaltrack://assistente`** non esiste come rotta~~ — **la segnalazione era
+  sbagliata**. Non è una rotta di navigazione e non deve esserlo: l'URL lo
+  gestisce `useAssistantLaunch` (`src/services/assistantLaunch.ts`), che ascolta
+  `Linking` per conto suo e conta le richieste. `CLAUDE.md` è corretto com'è.
 - La tab bar in `src/navigation/index.tsx` tiene ancora `title: i18n.t(...)`
   risolto al caricamento del modulo. Non si vede (l'etichetta la disegna
   `TabLabel`), ma resta una stringa congelata nella lingua di partenza: se
@@ -174,3 +201,17 @@ Vincoli da non rompere (`CLAUDE.md` § Il primo avvio):
    Mettere `onboarding_completed` a `"0"` **non basta** (vedi § 6).
 6. Aggiornare `CLAUDE.md` quando una modifica smentisce quel che c'è scritto.
    È già successo una volta in questo lavoro, ed è il motivo del punto 1.
+
+## Cosa resta da guardare a schermo
+
+Il codice passa i tre cancelli; quel che nessun test può dire è come stanno le
+cose sul telefono. In ordine di rischio:
+
+1. **Il primo avvio**, che è la modifica più profonda: quattro schermate, il
+   fabbisogno che compare quando i dati sono completi, e l'account in fondo.
+   Per rivederlo servono le due righe da cancellare (§ Come si lavora, punto 5).
+2. **Lo storico di peso e passi**: il grafico a linea e quello a barre si
+   disegnano su una larghezza misurata, che è l'unica cosa che un emulatore
+   racconta meglio di un test.
+3. **I quattro segmenti** della lista della spesa in inglese, che è la lingua
+   con le etichette più lunghe.
