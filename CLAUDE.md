@@ -577,10 +577,11 @@ resta comunque `t("chiave")`, mai una stringa letterale nel JSX.
 **L'inglese e' il default**, non l'italiano: `i18n.defaultLocale` e la lingua
 di fallback dello store sono `"en"`. Un dispositivo la cui lingua non e' fra
 quelle supportate ottiene l'inglese, non l'italiano - il contrario di come
-funzionava prima. Il primo passo dell'onboarding e' `OnboardingLanguage`
-(§ Il primo avvio) apposta per questo: la schermata di benvenuto subito dopo
-deve gia' uscire nella lingua giusta, e non si puo' dedurla in tempo dal
-dispositivo per ogni caso.
+funzionava prima. La lingua si sceglie nel **primo passo** dell'onboarding
+(§ Il primo avvio) apposta per questo: il resto del wizard deve uscire nella
+lingua giusta, e non si puo' dedurla in tempo dal dispositivo per ogni caso.
+Era una schermata a se' fino all'8 settembre 2026 ed e' finita insieme al
+benvenuto, che sceglierla riscrive all'istante.
 
 Impostazioni > Lingua (`LanguageScreen`) e il primo passo dell'onboarding
 condividono lo stesso selettore (`LanguagePicker`,
@@ -616,14 +617,43 @@ centralizza l'unico cast necessario.
 
 ### Il primo avvio
 
-Sette passi (`src/navigation/onboardingStack.tsx`, `OnboardingStep` in
-`src/domain/onboarding.ts`), il primo dei quali (`OnboardingLanguage`) sceglie
-la lingua prima ancora del benvenuto - vedi § Lingua. Annidati in `RootStack`
-come "Onboarding" - stesso schema di `Tab`. `App.tsx` idrata `onboardingStore`
-**prima** di montare
+**Quattro passi dall'8 settembre 2026, ed erano sette**
+(`src/navigation/onboardingStack.tsx`, `OnboardingStep` in
+`src/domain/onboarding.ts`): benvenuto e lingua, tutti i dati fisici insieme,
+aspetto, account. Annidati in `RootStack` come "Onboarding" - stesso schema di
+`Tab`. `App.tsx` idrata `onboardingStore` **prima** di montare
 `<Navigation />`: la scelta fra atterrare su Oggi o sul wizard si legge una
 volta sola all'avvio, passata a `StaticNavigation` come `initialState`, che
 React Navigation rispetta solo al primo montaggio.
+
+Sette passi per **nove campi**: i passi 3, 4, 5 e 6 ne portavano da uno a tre
+ciascuno con il 70-80% di schermo vuoto, e si toccava "Avanti" sei volte per
+scrivere quel che sta in una pagina. Le tre cose che sono cambiate, e il perche':
+
+- **La lingua sta insieme al benvenuto.** Resta la prima cosa - il resto del
+  wizard deve uscire nella lingua giusta (§ Lingua) - ma non e' piu' una
+  schermata che contiene un elenco di due voci e nient'altro. Sceglierla
+  riscrive il testo sopra all'istante, che e' anche il modo piu' diretto di far
+  vedere che la scelta e' arrivata.
+- **I dati fisici stanno tutti in una schermata, e sotto c'e' il fabbisogno che
+  si calcola mentre li scrivi.** Nessuno dei quattro passi precedenti diceva a
+  cosa servissero quei numeri; il pannello e' quella risposta, e riempie lo
+  spazio con la conseguenza di quel che si sta scrivendo invece che col vuoto.
+  Compare **solo a dati completi**: un numero che appare a meta' strada e poi
+  salta del quaranta per cento perche' mancava il peso non e' un'anteprima.
+  Quel pannello mostra lo **stesso** numero che viene salvato come obiettivo, e
+  per questo il passo degli obiettivi giornalieri non c'e' piu': si regolano da
+  Profilo > Obiettivi, dopo aver usato l'app, che e' quando si ha un'idea di
+  cosa cambiare.
+- **L'account e' l'ultimo passo e prima era il secondo**, cioe' un modulo di
+  registrazione prima ancora di aver visto l'app, con "Salta per ora" - la via
+  che quasi tutti prendono - come bottone piu' lontano dello schermo. Ora si
+  arriva li' a wizard finito e il bottone in fondo dice "Inizia senza account".
+
+**I cinque nomi tolti possono essere ancora scritti in `settings`** su un
+telefono che aveva abbandonato il wizard a meta'. `isOnboardingStep` li scarta e
+si riparte dal primo passo: quattro schermate, e i dati gia' salvati si
+ritrovano nei campi perche' ogni passo li rilegge. C'e' un test.
 
 Riprendendo un abbandono a meta', `initialState` non punta solo al passo
 salvato: ricostruisce **tutta** la cronologia fino a li', altrimenti
@@ -634,12 +664,14 @@ arrivato QUESTO telefono, non un fatto sui dati. `onboarding_completed` invece
 sincronizza, cosi' un secondo dispositivo sullo stesso account non lo rifa'.
 
 **`saveProfile` e' un upsert su riga unica**, non un aggiornamento parziale:
-ogni passo che tocca `profile` (dati base, poi attivita'/obiettivo) rilegge
-prima l'intera riga e la riscrive per intero, o il passo successivo
-sovrascriverebbe con i default i campi che un passo precedente aveva gia'
-scritto.
+chi tocca `profile` rilegge prima l'intera riga e la riscrive per intero, o
+sovrascrive con i default i campi scritti da qualcun altro. Era la regola piu'
+delicata del wizard a sette passi, dove tre schermate diverse scrivevano la
+stessa riga; con i dati fisici raccolti in un passo solo il problema non si
+pone piu' li' dentro, ma la regola vale ancora per `TargetsScreen` e per
+chiunque scriva quella riga.
 
-Il "Fine" dell'ultimo passo non naviga: `resetToTabs()` (in `useAppNav.ts`)
+L'uscita dall'ultimo passo non naviga: `resetToTabs()` (in `useAppNav.ts`)
 azzera tutta la cronologia su `Tabs` con l'imperativo `navigationRef`, perche'
 un `navigate` da dentro lo stack annidato lascerebbe "Onboarding" sotto -
 l'indietro da Oggi ci rientrerebbe.

@@ -19,9 +19,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
  * L'involucro comune a ogni schermo del wizard: sfondo, indietro, puntini di
  * avanzamento, corpo scrollabile, pulsante primario in fondo.
  *
- * Tenerlo qui invece che dentro ogni schermo evita che i sei passi divergano
- * di qualche pixel l'uno dall'altro, come fa già `SettingsPage` per le
- * impostazioni.
+ * Tenerlo qui invece che dentro ogni schermo evita che i passi divergano di
+ * qualche pixel l'uno dall'altro, come fa già `SettingsPage` per le
+ * impostazioni. I puntini si contano da `ONBOARDING_STEPS`, quindi togliere o
+ * aggiungere un passo non lascia indietro l'indicatore.
  */
 export const OnboardingShell: React.FC<{
   step: (typeof ONBOARDING_STEPS)[number];

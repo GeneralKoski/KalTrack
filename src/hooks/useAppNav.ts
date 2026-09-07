@@ -65,13 +65,10 @@ export interface NavParams {
   ShoppingList: undefined;
   Reminders: undefined;
   Onboarding: undefined;
-  OnboardingLanguage: undefined;
   OnboardingWelcome: undefined;
-  OnboardingProfileBasics: undefined;
-  OnboardingWeight: undefined;
-  OnboardingActivityGoal: undefined;
-  OnboardingTargets: undefined;
+  OnboardingProfile: undefined;
   OnboardingTheme: undefined;
+  OnboardingAccount: undefined;
 }
 
 type NavigateFn = (name: string, params?: object) => void;

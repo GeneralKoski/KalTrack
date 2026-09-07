@@ -4,54 +4,49 @@ import {
   OnboardingShell,
   OnboardingTitle,
 } from "@/src/containers/onboarding/OnboardingShell";
-import { AccountForm } from "@/src/containers/social/AccountForm";
+import { LanguagePicker } from "@/src/containers/settings/LanguagePicker";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
-import { useAccountStore } from "@/src/stores/accountStore";
 import { useOnboardingStore } from "@/src/stores/onboardingStore";
 import { theme } from "@/src/styles";
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { StyleSheet } from "react-native";
 
 /**
- * Primo passo: benvenuto, con accesso/registrazione o "Salta per ora" di pari
- * dignità. `CLAUDE.md` § Primo avvio: l'account serve alla sincronizzazione e
- * agli amici, non a mangiare, quindi qui non può essere un ostacolo.
+ * Primo passo: chi siamo e in che lingua.
+ *
+ * Erano due schermate, e la prima non diceva niente: un elenco di due lingue e
+ * un "Avanti". La lingua sta ancora prima di tutto - il resto del wizard deve
+ * uscire in quella giusta - ma sta insieme al benvenuto, e sceglierla riscrive
+ * il testo sopra all'istante, che e' anche il modo piu' chiaro di far vedere
+ * che la scelta ha avuto effetto.
+ *
+ * L'account NON e' piu' qui. Era il secondo passo: un modulo di registrazione
+ * prima ancora di aver visto l'app, con "Salta per ora" come bottone piu'
+ * lontano dello schermo. Ora e' l'ultimo (`OnboardingAccountScreen`).
  */
 export function OnboardingWelcomeScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const { navigate } = useAppNav();
   const advanceTo = useOnboardingStore((s) => s.advanceTo);
-  const token = useAccountStore((s) => s.token);
-  const hadToken = useRef(token !== null);
 
   const goNext = () => {
-    void advanceTo("OnboardingProfileBasics");
-    navigate("OnboardingProfileBasics");
+    void advanceTo("OnboardingProfile");
+    navigate("OnboardingProfile");
   };
-
-  useEffect(() => {
-    // Solo la TRANSIZIONE a "accesso riuscito" avanza da sola: se il token
-    // c'era già all'apertura (si rientra nel flusso dopo un abbandono), un
-    // passo avanti non richiesto sorprenderebbe chi sta ancora leggendo.
-    if (!hadToken.current && token !== null) goNext();
-    hadToken.current = token !== null;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
 
   return (
     <OnboardingShell
       step="OnboardingWelcome"
-      primaryLabel={t("onboarding.skip")}
-      primaryVariant="outlined"
+      primaryLabel={t("onboarding.next")}
       onPrimary={goNext}
     >
       <OnboardingTitle>{t("onboarding.welcome_title")}</OnboardingTitle>
       <Text style={[styles.body, { color: colors.textSecondary }]}>
         {t("onboarding.welcome_body")}
       </Text>
-      <AccountForm />
+      <LanguagePicker />
     </OnboardingShell>
   );
 }

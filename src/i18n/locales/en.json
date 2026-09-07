@@ -953,18 +953,19 @@
     "open_settings": "Open settings"
   },
   "onboarding": {
-    "language_title": "Choose your language",
+    "profile_title": "A few things about you",
+    "height_short": "Height (cm)",
+    "weight_short": "Weight (kg)",
+    "tdee_caption": "your daily needs",
+    "tdee_hint": "This is where your daily targets come from. You can see and change them in Profile > Targets.",
+    "tdee_waiting": "Fill in the fields above and your daily needs will appear here: that is why we are asking for them.",
+    "account_title": "Want an account?",
+    "account_body": "It only keeps a copy of your data on the server and brings it back on another phone. Nothing reaches anyone else, and the app works the same without one.",
+    "start_without_account": "Start without an account",
     "welcome_title": "Welcome to KalTrack",
     "welcome_body": "Track nutrition, weight, steps and workouts. Your phone stays yours: it works without a connection, and without an account.",
-    "skip": "Skip for now",
-    "profile_basics_title": "A few things about you",
-    "weight_title": "Your current weight",
     "weight_placeholder": "78.5",
-    "activity_goal_title": "Activity and goal",
-    "targets_title": "Your daily targets",
-    "targets_body": "Calculated from your details. You can change them now or later in Settings > Targets.",
     "theme_title": "Choose the look",
-    "next": "Next",
-    "finish": "Get started"
+    "next": "Next"
   }
 }

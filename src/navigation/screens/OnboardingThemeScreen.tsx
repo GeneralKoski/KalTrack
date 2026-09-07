@@ -3,28 +3,28 @@ import {
   OnboardingTitle,
 } from "@/src/containers/onboarding/OnboardingShell";
 import { ThemePicker } from "@/src/containers/settings/ThemePicker";
-import { resetToTabs, useAppNav } from "@/src/hooks/useAppNav";
+import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { useOnboardingStore } from "@/src/stores/onboardingStore";
 import React from "react";
 
-/** Sesto e ultimo passo: aspetto, poi via su Oggi. */
+/** Terzo passo: l'aspetto. Chiude il wizard il passo dopo, l'account. */
 export function OnboardingThemeScreen() {
   const { t } = useTranslation();
-  const { goBack } = useAppNav();
-  const complete = useOnboardingStore((s) => s.complete);
+  const { navigate, goBack } = useAppNav();
+  const advanceTo = useOnboardingStore((s) => s.advanceTo);
 
-  const finish = async () => {
-    await complete();
-    resetToTabs();
+  const goNext = async () => {
+    await advanceTo("OnboardingAccount");
+    navigate("OnboardingAccount");
   };
 
   return (
     <OnboardingShell
       step="OnboardingTheme"
       onBack={goBack}
-      primaryLabel={t("onboarding.finish")}
-      onPrimary={() => void finish()}
+      primaryLabel={t("onboarding.next")}
+      onPrimary={() => void goNext()}
     >
       <OnboardingTitle>{t("onboarding.theme_title")}</OnboardingTitle>
       <ThemePicker />

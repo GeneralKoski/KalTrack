@@ -45,9 +45,13 @@ describe("stato del primo avvio", () => {
     await useOnboardingStore.getState().hydrate();
     expect(useOnboardingStore.getState().resumeStep).toBe("OnboardingTheme");
 
-    withSettings({ onboarding_step: "OnboardingPassoCheNonEsistePiu" });
+    // "OnboardingWeight" era uno dei sette passi ed è stato tolto quando sono
+    // diventati quattro: un telefono che aveva abbandonato il wizard lì ha
+    // ancora quel nome scritto in `settings`, e deve ripartire dal primo passo
+    // invece di puntare a una schermata che non c'è.
+    withSettings({ onboarding_step: "OnboardingWeight" });
     await useOnboardingStore.getState().hydrate();
-    expect(useOnboardingStore.getState().resumeStep).toBe("OnboardingLanguage");
+    expect(useOnboardingStore.getState().resumeStep).toBe("OnboardingWelcome");
   });
 
   /**

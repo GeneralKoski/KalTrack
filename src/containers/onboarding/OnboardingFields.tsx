@@ -1,19 +1,40 @@
 import { DfBottomSheet } from "@/src/components/DfBottomSheet";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text, TextInput } from "@/src/components/ui";
+import { birthdatePickerStart, toIsoDate } from "@/src/domain/date";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { useTranslationStore } from "@/src/stores/translationStore";
 import { theme } from "@/src/styles";
+import { formatDate } from "@/src/utils/dateUtils";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
-import { Check, ChevronDown } from "lucide-react-native";
-import React, { useRef } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import DateTimePicker, {
+  DateTimePickerAndroid,
+} from "@react-native-community/datetimepicker";
+import { Calendar, Check, ChevronDown } from "lucide-react-native";
+import React, { useRef, useState } from "react";
+import {
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import type { KeyboardTypeOptions } from "react-native";
 
+/** La data è sempre YYYY-MM-DD: una riga, non un parser condiviso. */
+function parseIso(iso: string): Date {
+  const [year, month, day] = iso.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
 /**
- * I campi del wizard, condivisi fra i passi che raccolgono dati del profilo:
- * stessa etichetta, stesso campo, stesso picker a foglio di `TargetsScreen`,
- * ma isolati qui perché tre passi (dati base, peso, attività/obiettivo) li
- * riusano com'erano prima di essere spezzati in un unico form.
+ * I campi del wizard: stessa etichetta, stesso campo, stesso picker a foglio
+ * di `TargetsScreen`.
+ *
+ * Stanno qui e non nella schermata che li usa perché il passo dei dati li
+ * mette in griglia a due colonne, e un modulo con sei campi non si legge se
+ * ognuno porta con sé le sue venti righe di selettore di sistema.
  */
 
 export const OnboardingLabel: React.FC<{ children: string }> = ({ children }) => {
@@ -40,6 +61,117 @@ export const OnboardingTextField: React.FC<{
         { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text },
       ]}
     />
+  );
+};
+
+/**
+ * Il campo della data di nascita, col selettore di sistema.
+ *
+ * Sta qui e non nella schermata perché la parte iOS - una modale con la ruota,
+ * "Annulla" e "Conferma" - è venti righe che nessuno vuole rileggere in mezzo
+ * a un modulo. La ruota di una data mancante parte da trent'anni fa e non da
+ * oggi: vedi `birthdatePickerStart`.
+ */
+export const OnboardingDateField: React.FC<{
+  /** ISO YYYY-MM-DD, oppure vuoto. */
+  value: string;
+  onChange: (iso: string) => void;
+}> = ({ value, onChange }) => {
+  const { t } = useTranslation();
+  const { colors } = useAppTheme();
+  // La ruota iOS aveva `locale="it"` scritto a mano: dal passaggio a due
+  // lingue quel mese in italiano compariva anche a chi usa l'app in inglese.
+  const language = useTranslationStore((s) => s.language);
+  const [showIosPicker, setShowIosPicker] = useState(false);
+  const [tempDate, setTempDate] = useState<Date>(birthdatePickerStart());
+
+  const open = () => {
+    const base = value.length === 10 ? parseIso(value) : birthdatePickerStart();
+    if (Platform.OS === "android") {
+      DateTimePickerAndroid.open({
+        value: base,
+        mode: "date",
+        maximumDate: new Date(),
+        onChange: (event, selected) => {
+          if (event.type === "set" && selected) onChange(toIsoDate(selected));
+        },
+      });
+    } else {
+      setTempDate(base);
+      setShowIosPicker(true);
+    }
+  };
+
+  return (
+    <>
+      <TouchableOpacity
+        onPress={open}
+        activeOpacity={0.6}
+        accessibilityRole="button"
+        style={[
+          styles.dateBtn,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
+      >
+        <Calendar size={16} color={colors.textMuted} />
+        <Text
+          style={[
+            styles.dateText,
+            { color: value ? colors.text : colors.textFaint },
+          ]}
+          numberOfLines={1}
+        >
+          {value ? formatDate(value) : t("select_date_placeholder")}
+        </Text>
+      </TouchableOpacity>
+
+      {showIosPicker ? (
+        <Modal
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowIosPicker(false)}
+        >
+          <Pressable
+            style={styles.iosOverlay}
+            onPress={() => setShowIosPicker(false)}
+          >
+            <Pressable
+              style={[styles.iosContent, { backgroundColor: colors.surface }]}
+            >
+              <View
+                style={[styles.iosHeader, { borderBottomColor: colors.border }]}
+              >
+                <Pressable onPress={() => setShowIosPicker(false)}>
+                  <Text style={[styles.iosCancel, { color: colors.textMuted }]}>
+                    {t("cancel")}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    onChange(toIsoDate(tempDate));
+                    setShowIosPicker(false);
+                  }}
+                >
+                  <Text style={[styles.iosConfirm, { color: colors.accent }]}>
+                    {t("confirm")}
+                  </Text>
+                </Pressable>
+              </View>
+              <DateTimePicker
+                value={tempDate}
+                mode="date"
+                display="spinner"
+                locale={language}
+                maximumDate={new Date()}
+                onChange={(_event, selected) => {
+                  if (selected) setTempDate(selected);
+                }}
+              />
+            </Pressable>
+          </Pressable>
+        </Modal>
+      ) : null}
+    </>
   );
 };
 
@@ -144,4 +276,37 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.md,
   },
   pickerRowText: { fontSize: 15, fontWeight: "500" },
+  dateBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    borderWidth: 1,
+    borderRadius: theme.radius.lg,
+    paddingHorizontal: theme.spacing.md,
+    // md come gli altri campi del wizard: stessa altezza per tutti.
+    paddingVertical: theme.spacing.md,
+  },
+  dateText: { flexShrink: 1, fontSize: 15 },
+  iosOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  iosContent: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingBottom: 32,
+    alignItems: "center",
+  },
+  iosHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    alignSelf: "stretch",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  iosCancel: { fontSize: 16 },
+  iosConfirm: { fontSize: 16, fontWeight: "600" },
 });

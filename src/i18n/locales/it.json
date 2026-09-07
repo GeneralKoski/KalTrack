@@ -982,18 +982,19 @@
     "open_settings": "Apri le impostazioni"
   },
   "onboarding": {
-    "language_title": "Scegli la lingua",
     "welcome_title": "Benvenuto in KalTrack",
     "welcome_body": "Tieni traccia di alimentazione, peso, passi e allenamento. Il telefono resta tuo: funziona anche senza rete, e senza account.",
-    "skip": "Salta per ora",
-    "profile_basics_title": "Qualche dato su di te",
-    "weight_title": "Il tuo peso attuale",
+    "profile_title": "Qualche dato su di te",
+    "height_short": "Altezza (cm)",
+    "weight_short": "Peso (kg)",
     "weight_placeholder": "78,5",
-    "activity_goal_title": "Attività e obiettivo",
-    "targets_title": "I tuoi obiettivi giornalieri",
-    "targets_body": "Calcolati dai tuoi dati. Puoi modificarli ora o più avanti in Impostazioni > Obiettivi.",
+    "tdee_caption": "il tuo fabbisogno",
+    "tdee_hint": "È da qui che nascono i tuoi obiettivi giornalieri. Li trovi e li cambi in Profilo > Obiettivi.",
+    "tdee_waiting": "Compila i campi qui sopra e qui comparirà il tuo fabbisogno giornaliero: è il motivo per cui te li stiamo chiedendo.",
     "theme_title": "Scegli l'aspetto",
-    "next": "Avanti",
-    "finish": "Inizia"
+    "account_title": "Vuoi un account?",
+    "account_body": "Serve solo a tenere una copia dei dati sul server e a ritrovarli su un altro telefono. Agli altri non arriva niente, e senza account l'app funziona uguale.",
+    "start_without_account": "Inizia senza account",
+    "next": "Avanti"
   }
 }

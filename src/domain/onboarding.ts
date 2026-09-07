@@ -2,15 +2,28 @@
  * L'ordine dei passi del primo avvio, e nient'altro: la persistenza (dove sta
  * il passo corrente, dove il completamento) vive in `settings` via
  * `onboardingStore`, non qui.
+ *
+ * **Erano sette per nove campi**, e i passi 3-6 ne portavano da uno a tre
+ * ciascuno con il 70-80% di schermo vuoto: si toccava "Avanti" sei volte per
+ * scrivere quel che sta in una pagina. Dall'8 settembre 2026 sono quattro.
+ *
+ * Due conseguenze da tenere presenti:
+ *
+ * - i nomi tolti (`OnboardingLanguage`, `OnboardingProfileBasics`,
+ *   `OnboardingWeight`, `OnboardingActivityGoal`, `OnboardingTargets`) possono
+ *   ancora stare scritti in `settings` su un telefono che aveva abbandonato il
+ *   wizard a meta'. `isOnboardingStep` li scarta e si riparte dal primo passo:
+ *   quattro schermate, e i dati gia' scritti si ritrovano nei campi.
+ * - l'ultimo passo non e' piu' l'aspetto ma l'account, che prima era il
+ *   SECONDO - un modulo di registrazione prima ancora di aver visto l'app, con
+ *   "Salta per ora" (la via che quasi tutti prendono) come bottone piu' lontano
+ *   dello schermo.
  */
 export const ONBOARDING_STEPS = [
-  "OnboardingLanguage",
   "OnboardingWelcome",
-  "OnboardingProfileBasics",
-  "OnboardingWeight",
-  "OnboardingActivityGoal",
-  "OnboardingTargets",
+  "OnboardingProfile",
   "OnboardingTheme",
+  "OnboardingAccount",
 ] as const;
 
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];

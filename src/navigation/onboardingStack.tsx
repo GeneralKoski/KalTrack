@@ -1,49 +1,34 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-import { OnboardingActivityGoalScreen } from "@/src/navigation/screens/OnboardingActivityGoalScreen";
-import { OnboardingLanguageScreen } from "@/src/navigation/screens/OnboardingLanguageScreen";
-import { OnboardingProfileBasicsScreen } from "@/src/navigation/screens/OnboardingProfileBasicsScreen";
-import { OnboardingTargetsScreen } from "@/src/navigation/screens/OnboardingTargetsScreen";
+import { OnboardingAccountScreen } from "@/src/navigation/screens/OnboardingAccountScreen";
+import { OnboardingProfileScreen } from "@/src/navigation/screens/OnboardingProfileScreen";
 import { OnboardingThemeScreen } from "@/src/navigation/screens/OnboardingThemeScreen";
-import { OnboardingWeightScreen } from "@/src/navigation/screens/OnboardingWeightScreen";
 import { OnboardingWelcomeScreen } from "@/src/navigation/screens/OnboardingWelcomeScreen";
 
 /**
  * Il flusso del primo avvio, annidato dentro `RootStack` come "Onboarding"
  * (stesso schema di `Tab`, anch'esso un navigatore intero passato come
- * `screen`). I sette nomi qui devono combaciare con `ONBOARDING_STEPS` in
- * `src/domain/onboarding.ts`.
+ * `screen`). I quattro nomi qui devono combaciare con `ONBOARDING_STEPS` in
+ * `src/domain/onboarding.ts`, che spiega perché sono quattro e non sette.
  */
 export const OnboardingStack = createNativeStackNavigator({
   screenOptions: { headerShown: false },
   screens: {
-    OnboardingLanguage: {
-      screen: OnboardingLanguageScreen,
-      linking: { path: "lingua" },
-    },
     OnboardingWelcome: {
       screen: OnboardingWelcomeScreen,
       linking: { path: "benvenuto" },
     },
-    OnboardingProfileBasics: {
-      screen: OnboardingProfileBasicsScreen,
-      linking: { path: "dati-base" },
-    },
-    OnboardingWeight: {
-      screen: OnboardingWeightScreen,
-      linking: { path: "peso" },
-    },
-    OnboardingActivityGoal: {
-      screen: OnboardingActivityGoalScreen,
-      linking: { path: "attivita-obiettivo" },
-    },
-    OnboardingTargets: {
-      screen: OnboardingTargetsScreen,
-      linking: { path: "target" },
+    OnboardingProfile: {
+      screen: OnboardingProfileScreen,
+      linking: { path: "dati" },
     },
     OnboardingTheme: {
       screen: OnboardingThemeScreen,
       linking: { path: "tema" },
+    },
+    OnboardingAccount: {
+      screen: OnboardingAccountScreen,
+      linking: { path: "account" },
     },
   },
 });
