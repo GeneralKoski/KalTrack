@@ -103,60 +103,100 @@
       "file": "StoricoPeso.dc.html",
       "x": 0,
       "y": 0,
-      "w": 880,
-      "h": 990,
+      "w": 700,
+      "h": 800,
       "title": "Storico peso",
       "page": "page-2"
     },
     {
       "file": "NuovoAlimento.dc.html",
-      "x": 980,
+      "x": 800,
       "y": 0,
-      "w": 880,
-      "h": 990,
+      "w": 700,
+      "h": 800,
       "title": "Nuovo alimento",
       "page": "page-2"
     },
     {
       "file": "GeneraScheda.dc.html",
-      "x": 0,
-      "y": 1130,
-      "w": 880,
-      "h": 990,
+      "x": 1600,
+      "y": 0,
+      "w": 700,
+      "h": 800,
       "title": "Genera scheda con IA",
       "page": "page-2"
     },
     {
       "file": "ListaSpesa.dc.html",
-      "x": 980,
-      "y": 1130,
-      "w": 880,
-      "h": 990,
+      "x": 0,
+      "y": 940,
+      "w": 700,
+      "h": 800,
       "title": "Lista della spesa",
       "page": "page-2"
     },
     {
       "file": "Onboarding.dc.html",
-      "x": 0,
-      "y": 2260,
+      "x": 800,
+      "y": 940,
       "w": 880,
       "h": 700,
       "title": "Primo avvio",
       "page": "page-2"
+    },
+    {
+      "file": "LinguaPassi.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 700,
+      "h": 800,
+      "title": "Storico passi",
+      "page": "page-3"
+    },
+    {
+      "file": "LinguaSpesa.dc.html",
+      "x": 800,
+      "y": 0,
+      "w": 700,
+      "h": 800,
+      "title": "Lista della spesa",
+      "page": "page-3"
+    },
+    {
+      "file": "LinguaObiettivi.dc.html",
+      "x": 1600,
+      "y": 0,
+      "w": 700,
+      "h": 800,
+      "title": "Obiettivi",
+      "page": "page-3"
+    },
+    {
+      "file": "LinguaPasti.dc.html",
+      "x": 0,
+      "y": 940,
+      "w": 700,
+      "h": 800,
+      "title": "Pasti",
+      "page": "page-3"
+    }
+  ],
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "Prima fase"
+    },
+    {
+      "id": "page-2",
+      "name": "Seconda fase"
+    },
+    {
+      "id": "page-3",
+      "name": "Due lingue"
     }
   ],
   "launch": {
     "view": "canvas",
     "page": "page-2"
-  },
-  "pages": [
-    {
-      "id": "page-1",
-      "name": "Gia' fatto"
-    },
-    {
-      "id": "page-2",
-      "name": "Proposte"
-    }
-  ]
+  }
 }
