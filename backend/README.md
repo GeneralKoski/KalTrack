@@ -274,6 +274,14 @@ sue chiamate autenticate rispondono 401. E' una riga che senza il gestionale
 non serviva, e chi rifa' il server da zero non la indovinerebbe: verificala
 con `php artisan tinker --execute="print_r(config('sanctum.stateful'));"`.
 
+Gli asset di `/admin` (`resources/js/admin/`) si compilano **dentro
+l'immagine**: il `Dockerfile` ha uno stadio Node a parte (`FROM node:22-alpine
+AS assets`) che gira `npm ci && npm run build` e passa `public/build` allo
+stadio PHP con un `COPY --from=assets`. Non c'e' niente da lanciare a mano
+prima del deploy - `public/build` e' gitignored apposta, perche' e' un
+artefatto che l'immagine si costruisce da sola, non un file da portare col
+rsync.
+
 ## Backup
 
 ```bash

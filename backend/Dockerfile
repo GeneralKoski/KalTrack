@@ -1,3 +1,25 @@
+# Stadio a parte per gli asset del pannello (Vite/React).
+#
+# `admin.blade.php` chiama `@vite(['resources/js/admin/main.tsx'])`, e senza
+# questo stadio `public/build` non esiste in un'immagine costruita da zero -
+# e' gitignored, e prima di questo stadio nessun passo del container lo
+# produceva. Un `FROM node` a se' e non `npm` dentro l'immagine PHP: sono due
+# stadi diversi, quindi un cambio di `package.json` non invalida mai la
+# cache di `composer install` qui sotto, e viceversa un cambio di
+# `composer.lock` non fa ricostruire gli asset.
+FROM node:22-alpine AS assets
+
+WORKDIR /app
+
+# Stessa idea del layer di composer sotto: prima solo cio' che serve a
+# installare, cosi' un cambio di codice non invalida la cache di `npm ci`.
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY vite.config.js ./
+COPY resources ./resources
+RUN npm run build
+
 # Immagine unica: PHP-FPM piu' nginx nello stesso container.
 #
 # Due container separati sarebbero piu' ortodossi, ma questo backend serve
@@ -32,6 +54,12 @@ RUN composer install \
     --no-interaction
 
 COPY . .
+
+# Gli asset costruiti dallo stadio Node, DOPO `COPY . .`: `public/build` e'
+# gitignored e assente dal contesto di build, quindi non c'e' niente da
+# sovrascrivere, ma l'ordine resta esplicito - il codice sorgente PHP arriva
+# per primo, gli asset gia' compilati per ultimi.
+COPY --from=assets /app/public/build ./public/build
 
 RUN composer dump-autoload --optimize --no-dev \
     && mkdir -p storage/framework/{cache,sessions,views} storage/logs database \
