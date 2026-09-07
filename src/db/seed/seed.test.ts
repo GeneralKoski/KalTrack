@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { createTestDb } from "@/src/db/__testing__/betterSqliteAdapter";
 import { __setDbForTesting } from "@/src/db/index";
 import { runMigrations } from "@/src/db/migrations";
@@ -265,5 +267,44 @@ describe("dati del seed esercizi", () => {
       );
       expect(`${group}: ${homeFriendly.length > 0}`).toBe(`${group}: true`);
     }
+  });
+});
+
+describe("export del seed per il catalogo del server", () => {
+  const leggi = (nome: string): unknown[] =>
+    JSON.parse(
+      readFileSync(
+        join(__dirname, "..", "..", "..", "backend", "database", "seeders", "data", nome),
+        "utf8",
+      ),
+    );
+
+  /*
+   * I due JSON sono la copia che il server legge: `catalog:seed` non puo'
+   * leggere `src/db/seed/` perche' in produzione `backend/` viaggia da sola
+   * (vedi § In produzione in backend/README.md), e quella cartella li' non
+   * esiste.
+   *
+   * Un esercizio aggiunto al seed e non riesportato e' un esercizio che il
+   * catalogo non conosce: sui telefoni c'e' e sul server no, quindi il pull
+   * lo riproporrebbe come voce nuova e ne nascerebbe un doppione. Senza
+   * questo test nessuno se ne accorgerebbe.
+   */
+  it("ha tante voci quante le costanti", () => {
+    expect(leggi("exercises.json")).toHaveLength(SEED_EXERCISES.length);
+    expect(leggi("foods.json")).toHaveLength(SEED_FOODS.length);
+  });
+
+  it("porta le istruzioni di ogni esercizio", () => {
+    const esportati = leggi("exercises.json") as { uid: string; instructions: string }[];
+    for (const e of esportati) {
+      expect(e.instructions.length).toBeGreaterThan(10);
+    }
+  });
+
+  it("usa l'id del seed come uid", () => {
+    const esportati = leggi("exercises.json") as { uid: string }[];
+    const attesi = SEED_EXERCISES.map((e) => e.id).sort();
+    expect(esportati.map((e) => e.uid).sort()).toEqual(attesi);
   });
 });
