@@ -151,6 +151,43 @@ class AdminExerciseTest extends TestCase
         $this->assertSame('ex-1', $voce->fresh()->uid);
     }
 
+    /**
+     * Il nome e' l'identita': un esercizio creato col nome di uno cancellato
+     * E' quello che torna, non un secondo. Senza questo, un amministratore
+     * che avesse cancellato per sbaglio non aveva piu' modo di riaverlo -
+     * l'elenco non mostra i cancellati, `PATCH`/`DELETE` non li raggiungono e
+     * non c'e' un `restore()` da nessuna parte - e si prendeva un 422 su un
+     * nome che, dal suo punto di vista, non e' affatto occupato.
+     */
+    public function test_ricreare_col_nome_di_uno_cancellato_lo_fa_tornare(): void
+    {
+        $voce = $this->esercizio();
+        $vecchioId = $voce->id;
+        $voce->delete();
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/admin/exercises', [
+                'name' => 'Panca piana',
+                'muscleGroup' => 'schiena',
+                'equipment' => 'manubri',
+                'instructions' => 'Nuove istruzioni.',
+            ])
+            ->assertCreated();
+
+        $risuscitata = Exercise::where('name_norm', 'panca piana')->first();
+        $this->assertNotNull($risuscitata);
+        $this->assertNull($risuscitata->deleted_at);
+        $this->assertSame($vecchioId, $risuscitata->id);
+        // Lo stesso uid: e' cio' che permette a un telefono che tiene ancora
+        // il tombstone di rivederla viva invece di un doppione.
+        $this->assertSame('ex-1', $risuscitata->uid);
+        // I nuovi valori, non i vecchi.
+        $this->assertSame('schiena', $risuscitata->muscle_group);
+        $this->assertSame('manubri', $risuscitata->equipment);
+        $this->assertSame('Nuove istruzioni.', $risuscitata->instructions);
+        $this->assertSame(1, Exercise::withTrashed()->count());
+    }
+
     public function test_cancellare_e_morbido(): void
     {
         $voce = $this->esercizio();

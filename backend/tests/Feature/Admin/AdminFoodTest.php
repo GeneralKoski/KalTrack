@@ -106,6 +106,34 @@ class AdminFoodTest extends TestCase
             ->assertJsonPath('errors.name.0', 'Nome gia\' in catalogo.');
     }
 
+    /**
+     * Gemello di `AdminExerciseTest::test_ricreare_col_nome_di_uno_cancellato_lo_fa_tornare`,
+     * per gli alimenti: stessa identita' sul nome, stessa via d'uscita per un
+     * amministratore che ha cancellato per sbaglio.
+     */
+    public function test_ricreare_col_nome_di_uno_cancellato_lo_fa_tornare(): void
+    {
+        $voce = $this->alimento();
+        $vecchioId = $voce->id;
+        $voce->delete();
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/admin/foods', [
+                'name' => 'Pasta di semola cruda',
+                'kcal' => 360,
+                'protein' => 11,
+            ])
+            ->assertCreated();
+
+        $risuscitata = Food::where('name_norm', 'pasta di semola cruda')->first();
+        $this->assertNotNull($risuscitata);
+        $this->assertNull($risuscitata->deleted_at);
+        $this->assertSame($vecchioId, $risuscitata->id);
+        $this->assertSame('f-1', $risuscitata->uid);
+        $this->assertEqualsWithDelta(360.0, $risuscitata->kcal, 0.01);
+        $this->assertSame(1, Food::withTrashed()->count());
+    }
+
     public function test_cancellare_e_morbido(): void
     {
         $voce = $this->alimento();

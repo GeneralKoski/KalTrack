@@ -71,6 +71,36 @@ class AdminTaxonomyTest extends TestCase
         $this->assertSame('Torace', $petto->label_it);
     }
 
+    /**
+     * Lo slug e' l'identita': un gruppo creato con lo slug di uno cancellato
+     * E' quello che torna, non un secondo. Senza questo, l'unico rimedio per
+     * un amministratore che avesse cancellato un gruppo per sbaglio - la
+     * schermata non lo mostra piu', e non c'e' un `restore()` - sarebbe stato
+     * un 422 su uno slug che, dal suo punto di vista, e' libero.
+     */
+    public function test_ricreare_con_lo_slug_di_uno_cancellato_lo_fa_tornare(): void
+    {
+        $polpacci = MuscleGroup::where('slug', 'polpacci')->first();
+        $vecchioId = $polpacci->id;
+        $polpacci->delete();
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/admin/taxonomies/muscle-groups', [
+                'slug' => 'polpacci',
+                'labelIt' => 'Polpacci (rifatto)',
+                'labelEn' => 'Calves (redone)',
+                'sort' => 999,
+            ])
+            ->assertCreated();
+
+        $risuscitato = MuscleGroup::where('slug', 'polpacci')->first();
+        $this->assertNotNull($risuscitato);
+        $this->assertNull($risuscitato->deleted_at);
+        $this->assertSame($vecchioId, $risuscitato->id);
+        $this->assertSame('Polpacci (rifatto)', $risuscitato->label_it);
+        $this->assertSame(1, MuscleGroup::withTrashed()->where('slug', 'polpacci')->count());
+    }
+
     public function test_uno_slug_gia_preso_non_si_riusa(): void
     {
         $this->actingAs($this->admin)

@@ -57,19 +57,36 @@ class TaxonomyController extends Controller
         [$classe] = $this->tipo($kind);
         $dati = $request->safe()->all();
 
-        if ($classe::withTrashed()->where('slug', $dati['slug'])->exists()) {
+        // Vivo: quello slug e' davvero in uso, e resta un 422.
+        if ($classe::where('slug', $dati['slug'])->exists()) {
             return response()->json([
                 'message' => 'Questo identificativo e\' gia\' in uso.',
                 'errors' => ['slug' => ['Identificativo gia\' in uso.']],
             ], 422);
         }
 
-        $riga = $classe::create([
+        /*
+         * Lo slug e' l'identita': un gruppo o un attrezzo creato con lo slug
+         * di uno cancellato E' quello che torna, non un secondo. Prima
+         * qualunque collisione - cancellati compresi - finiva su un 422, e
+         * un amministratore che avesse tolto una voce per sbaglio non aveva
+         * piu' modo di riaverla: l'elenco non la mostra e non c'e' un
+         * `restore()` da nessuna parte. Riusare la riga - invece di crearne
+         * una e lasciare la vecchia nel limbo - le fa tenere il suo `id`
+         * originale, che e' quello che un client puo' avere gia' in mano.
+         */
+        $riga = $classe::onlyTrashed()->where('slug', $dati['slug'])->first();
+        $resuscitata = $riga !== null;
+        $riga ??= new $classe;
+
+        $riga->fill([
             'slug' => $dati['slug'],
             'label_it' => $dati['labelIt'],
             'label_en' => $dati['labelEn'],
             'sort' => $dati['sort'] ?? 0,
         ]);
+
+        $resuscitata ? $riga->restore() : $riga->save();
 
         return response()->json(['data' => $this->forma($riga)], 201);
     }

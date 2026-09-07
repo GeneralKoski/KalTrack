@@ -96,9 +96,33 @@ class AdminExerciseController extends Controller
             return $errore;
         }
 
-        $esercizio = Exercise::create([
+        /*
+         * Il nome e' l'identita': un esercizio creato col nome di uno
+         * cancellato E' quello che torna, non un secondo. Prima questo
+         * ramo non esisteva - `nomeLibero()` rifiutava con 422 qualunque
+         * collisione, cancellati compresi - e un amministratore che avesse
+         * tolto una voce per sbaglio non aveva piu' modo di riaverla:
+         * l'elenco non la mostra, `PATCH`/`DELETE` non la raggiungono (il
+         * binding esclude i trashed) e non c'e' un `restore()` da nessuna
+         * parte. Ricrearla con lo stesso nome resta l'unica porta aperta, e
+         * riusare la riga - invece di crearne una nuova e lasciare la
+         * vecchia nel limbo - e' cio' che le fa tenere il suo `uid`
+         * originale: un telefono che tiene ancora il tombstone la rivede
+         * viva, invece di ritrovarsi un doppione.
+         */
+        $esercizio = Exercise::onlyTrashed()->where('name_norm', $norm)->first();
+        $resuscitata = $esercizio !== null;
+
+        $esercizio ??= new Exercise([
             // L'identita' nasce qui e non cambiera' mai piu'.
             'uid' => (string) Str::uuid(),
+            // Nessun autore: chi scrive dal gestionale non e' l'autore di
+            // una proposta. Solo per una riga davvero nuova - una
+            // resuscitata tiene il suo autore originale, se ne aveva uno.
+            'created_by' => null,
+        ]);
+
+        $esercizio->fill([
             'name' => trim($dati['name']),
             'name_norm' => $norm,
             'muscle_group' => $dati['muscleGroup'],
@@ -111,8 +135,9 @@ class AdminExerciseController extends Controller
              * approvare le proprie voci.
              */
             'status' => 'published',
-            'created_by' => null,
         ]);
+
+        $resuscitata ? $esercizio->restore() : $esercizio->save();
 
         return response()->json(['data' => $this->forma($esercizio)], 201);
     }
@@ -181,7 +206,20 @@ class AdminExerciseController extends Controller
         return response()->json(['photo' => $exercise->photo]);
     }
 
-    /** Il nome e' libero? Torna la risposta di errore, o null. */
+    /**
+     * Il nome e' libero? Torna la risposta di errore, o null.
+     *
+     * In correzione ($escluso valorizzato) resta come sempre: anche una
+     * riga cancellata tiene occupato il nome, perche' l'indice unico su
+     * `name_norm` copre pure lei, e rinominare una voce viva sopra quel nome
+     * andrebbe comunque a sbattere contro il database senza questo
+     * controllo.
+     *
+     * In creazione ($escluso === null) NON piu': una collisione con una riga
+     * cancellata non passa da qui, la gestisce `store()`, che la resuscita
+     * invece di rifiutarla (vedi il commento li'). Qui restano a bloccare
+     * solo le righe vive - quel nome e' davvero preso.
+     */
     private function nomeLibero(string $norm, ?int $escluso): ?JsonResponse
     {
         if ($norm === '') {
@@ -191,10 +229,9 @@ class AdminExerciseController extends Controller
             ], 422);
         }
 
-        // Anche fra i cancellati: `name_norm` e' unico sull'intera tabella, e
-        // senza `withTrashed` risponderebbe il database con un errore che a
-        // schermo non si legge.
-        $occupato = Exercise::withTrashed()
+        $query = $escluso === null ? Exercise::query() : Exercise::withTrashed();
+
+        $occupato = $query
             ->where('name_norm', $norm)
             ->when($escluso !== null, fn ($q) => $q->whereKeyNot($escluso))
             ->exists();

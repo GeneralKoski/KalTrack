@@ -70,13 +70,29 @@ class AdminFoodController extends Controller
             return $errore;
         }
 
-        $food = new Food([
+        /*
+         * Il nome e' l'identita': un alimento creato col nome di uno
+         * cancellato E' quello che torna, non un secondo. Vedi il commento
+         * gemello in `AdminExerciseController::store` - stessa regola,
+         * stesso motivo: non c'e' un `restore()`, l'elenco non mostra i
+         * cancellati e `PATCH`/`DELETE` non li raggiungono, quindi
+         * ricrearli con lo stesso nome e' l'unica porta che resta aperta.
+         * Riusare la riga invece di crearne una nuova le fa tenere il suo
+         * `uid` originale.
+         */
+        $food = Food::onlyTrashed()->where('name_norm', $norm)->first();
+        $resuscitato = $food !== null;
+
+        $food ??= new Food([
             'uid' => (string) Str::uuid(),
-            'name' => trim($dati['name']),
-            'name_norm' => $norm,
-            'status' => 'published',
+            // Solo per una riga davvero nuova: una resuscitata tiene il suo
+            // autore originale, se ne aveva uno.
             'created_by' => null,
         ]);
+
+        $food->name = trim($dati['name']);
+        $food->name_norm = $norm;
+        $food->status = 'published';
 
         foreach (self::CAMPI as $input => $colonna) {
             if (array_key_exists($input, $dati)) {
@@ -84,7 +100,7 @@ class AdminFoodController extends Controller
             }
         }
 
-        $food->save();
+        $resuscitato ? $food->restore() : $food->save();
 
         return response()->json(['data' => $this->forma($food)], 201);
     }
@@ -146,6 +162,12 @@ class AdminFoodController extends Controller
         return response()->json(['image' => $food->image]);
     }
 
+    /**
+     * In correzione ($escluso valorizzato) una collisione con una riga
+     * cancellata resta bloccante, come sempre - `name_norm` e' unico anche
+     * la' sotto. In creazione ($escluso === null) no: la gestisce `store()`,
+     * che resuscita invece di rifiutare (vedi il commento li').
+     */
     private function nomeLibero(string $norm, ?int $escluso): ?JsonResponse
     {
         if ($norm === '') {
@@ -155,7 +177,9 @@ class AdminFoodController extends Controller
             ], 422);
         }
 
-        $occupato = Food::withTrashed()
+        $query = $escluso === null ? Food::query() : Food::withTrashed();
+
+        $occupato = $query
             ->where('name_norm', $norm)
             ->when($escluso !== null, fn ($q) => $q->whereKeyNot($escluso))
             ->exists();
