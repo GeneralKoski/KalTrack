@@ -63,6 +63,20 @@ class FoodController extends Controller
             return $this->nomeVuoto();
         }
 
+        // Chi ha tolto questo alimento dal catalogo lo ha fatto apposta: una
+        // proposta con lo stesso nome non deve resuscitarlo, la stessa regola
+        // per cui l'archivio sul telefono non resuscita mai un alimento
+        // cancellato. Nessuna perdita per chi propone: l'alimento resta
+        // salvato sul telefono, che e' dove lo usa, e `publishFood` e'
+        // fire-and-forget - un 200 che non crea nulla non cambia niente per
+        // lui.
+        $cancellato = Food::onlyTrashed()->where('name_norm', $norm)->first();
+        if ($cancellato) {
+            return response()->json([
+                'data' => $this->publicShape($cancellato, $request->user()->id),
+            ]);
+        }
+
         $food = Food::firstOrCreate(
             ['name_norm' => $norm],
             [...$this->colonne($validated), 'created_by' => $request->user()->id],
@@ -87,7 +101,21 @@ class FoodController extends Controller
             return $this->nomeVuoto();
         }
 
-        $altra = Food::where('name_norm', $norm)
+        // Rinominando si potrebbe finire addosso a un altro alimento: il nome
+        // normalizzato e' unico, e senza questo controllo il database
+        // risponderebbe con un errore che l'utente non puo' interpretare.
+        // `withTrashed()`: l'indice unico su `name_norm` copre anche le righe
+        // cancellate, quindi non puo' fare finta di niente nemmeno questo
+        // controllo - altrimenti il database lo tradirebbe con la stessa
+        // eccezione non gestita che questo controllo esiste per evitare.
+        //
+        // Qui si rifiuta con 422 invece di tornare l'alimento cancellato come
+        // fa `store()`: non e' un'incoerenza, sono due domande diverse. Una
+        // proposta puo' diventare "prendi questo che gia' esiste"; una
+        // correzione chiede di *diventare* quel nome, e quel nome e' davvero
+        // occupato - anche se dall'ombra di un alimento tolto.
+        $altra = Food::withTrashed()
+            ->where('name_norm', $norm)
             ->whereKeyNot($food->id)
             ->exists();
         if ($altra) {
@@ -107,9 +135,14 @@ class FoodController extends Controller
     /**
      * Toglie una voce dal catalogo. SOLO LA PROPRIA.
      *
-     * Cancellazione vera: questa tabella non si sincronizza con nessun
-     * telefono, quindi non c'e' la riga che risorge al giro dopo. Chi l'aveva
-     * gia' importata se la tiene.
+     * Cancellazione morbida (`deleted_at`), non piu' vera. "Questa tabella non
+     * si sincronizza con nessun telefono" era la premessa di quando bastava
+     * essere un elenco che il server serve e basta: da quando esiste la
+     * moderazione una voce tolta deve poter dire a un pannello di
+     * amministrazione - e domani ai telefoni - che non c'e' piu', e una riga
+     * sparita davvero non ha modo di raccontare nulla. Chi l'aveva gia'
+     * importata se la tiene comunque: e' roba sua, ed e' quel che ci si
+     * aspetta da un catalogo che si e' copiato in casa.
      */
     public function destroy(Request $request, Food $food): JsonResponse
     {

@@ -125,6 +125,74 @@ class FoodCatalogTest extends TestCase
     }
 
     /**
+     * La cancellazione e' morbida: sparisce dall'elenco ma resta in tabella
+     * con `deleted_at` valorizzato, perche' una voce tolta deve poter dire a
+     * un pannello di amministrazione che non c'e' piu'.
+     */
+    public function test_cancello_un_alimento_e_resta_come_cancellato(): void
+    {
+        $anna = $this->user();
+        $id = $this->actingAs($anna)
+            ->postJson('/api/foods', $this->alimento())
+            ->json('data.id');
+
+        $this->actingAs($anna)->deleteJson("/api/foods/{$id}")->assertOk();
+
+        $this->assertNull(Food::find($id));
+        $this->assertNotNull(Food::withTrashed()->find($id)->deleted_at);
+    }
+
+    /**
+     * Chi ha tolto un alimento dal catalogo lo ha fatto apposta: una proposta
+     * con lo stesso nome non deve resuscitarlo, la stessa regola per cui
+     * l'archivio sul telefono non resuscita mai un alimento cancellato.
+     */
+    public function test_proporre_il_nome_di_un_alimento_cancellato_non_lo_resuscita(): void
+    {
+        $anna = $this->user('anna');
+        $id = $this->actingAs($anna)
+            ->postJson('/api/foods', $this->alimento())
+            ->json('data.id');
+
+        $this->actingAs($anna)->deleteJson("/api/foods/{$id}")->assertOk();
+
+        $bea = $this->user('bea');
+        $this->actingAs($bea)
+            ->postJson('/api/foods', $this->alimento())
+            ->assertOk();
+
+        // Nessuna riga in piu' e nessuna resuscitata.
+        $this->assertSame(0, Food::count());
+        $this->assertSame(1, Food::withTrashed()->count());
+        $this->assertNotNull(Food::withTrashed()->find($id)->deleted_at);
+    }
+
+    /**
+     * L'indice unico su `name_norm` copre anche le righe cancellate: senza
+     * `withTrashed()` sul controllo, questa rinomina avrebbe superato il
+     * controllo e sarebbe finita sull'eccezione non gestita del database
+     * invece che su un 422 leggibile.
+     */
+    public function test_non_ci_si_rinomina_sul_nome_di_un_alimento_cancellato(): void
+    {
+        $anna = $this->user('anna');
+
+        $cancellatoId = $this->actingAs($anna)
+            ->postJson('/api/foods', $this->alimento())
+            ->json('data.id');
+        $this->actingAs($anna)->deleteJson("/api/foods/{$cancellatoId}")->assertOk();
+
+        $id = $this->actingAs($anna)
+            ->postJson('/api/foods', $this->alimento(['name' => 'Riso']))
+            ->json('data.id');
+
+        $this->actingAs($anna)
+            ->patchJson("/api/foods/{$id}", $this->alimento())
+            ->assertStatus(422)
+            ->assertJsonPath('errors.name.0', 'Nome gia\' in catalogo.');
+    }
+
+    /**
      * Un alimento sbagliato nel catalogo di tutti falsa i diari di tutti: e'
      * la ragione per cui esiste la correzione, ed e' anche la ragione per cui
      * non puo' farla chiunque.
