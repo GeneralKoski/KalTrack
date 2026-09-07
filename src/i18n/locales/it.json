@@ -480,7 +480,8 @@
     "warmup": "Riscaldamento",
     "instructions_placeholder": "Una riga su come farlo bene, o sull'errore da evitare",
     "edit_routine": "Modifica la scheda",
-    "sets_done": "serie fatte"
+    "sets_done": "serie",
+    "duration": "durata"
   },
   "assistant": {
     "open": "Parla con l'assistente",

@@ -21,6 +21,7 @@ import {
   loggedSetsOf,
   logSet,
   personalBest,
+  sessionStartedAt,
   startSession,
   type PersonalBest,
   type ResolvedBlock,
@@ -188,6 +189,8 @@ export function SessionScreen() {
 
   const [day, setDay] = useState<ResolvedDay | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  /** Ora d'inizio dell'allenamento, per il cronometro in cima. */
+  const [startedAt, setStartedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [infos, setInfos] = useState<Record<string, ExerciseInfo>>({});
   const [values, setValues] = useState<Record<string, SetValues>>({});
@@ -226,6 +229,36 @@ export function SessionScreen() {
     tondi spuntati. Il totale esce dallo stesso `planBlock` che disegna le
     righe, quindi non puo' divergere da quel che si vede.
   */
+  /*
+    Il cronometro dell'allenamento.
+    L'altra meta' della domanda che ci si fa fra una serie e l'altra: non solo
+    "quanto manca" ma "da quanto sono qui". `startSession` riapre la sessione
+    lasciata a meta', quindi riprendendo un allenamento il tempo riparte da
+    quando e' cominciato davvero e non da quando si e' rientrati.
+
+    Un tick al secondo e non `Date.now()` a ogni render: il render qui lo
+    scatena ogni tasto scritto in un campo, e il tempo deve avanzare anche
+    mentre non si tocca niente.
+  */
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!startedAt) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [startedAt]);
+
+  const elapsed = useMemo(() => {
+    if (!startedAt) return null;
+    const seconds = Math.max(0, Math.floor((now - Date.parse(startedAt)) / 1000));
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const rest = seconds % 60;
+    const pad = (value: number) => String(value).padStart(2, "0");
+    return hours > 0
+      ? `${hours}:${pad(minutes)}:${pad(rest)}`
+      : `${minutes}:${pad(rest)}`;
+  }, [startedAt, now]);
+
   const totalSets = useMemo(
     () =>
       (day?.blocks ?? []).reduce(
@@ -317,6 +350,7 @@ export function SessionScreen() {
           });
           if (!active) return;
           setSessionId(id);
+          setStartedAt(await sessionStartedAt(id));
           await restoreLogged(id, resolved);
         }
 
@@ -547,21 +581,45 @@ export function SessionScreen() {
               si ricavava contando le spunte a occhio.
             */}
             <HeroPanel contentStyle={styles.progress}>
+              {/*
+                Due fatti indipendenti, ognuno con la sua etichetta: con una
+                sola etichetta a destra "serie fatte" finiva sotto il
+                cronometro e sembrava dire quello.
+              */}
               <View style={styles.progressHead}>
-                <Text style={[styles.progressValue, { color: colors.text }]}>
-                  {doneSets}
-                  <Text
-                    style={[styles.progressTotal, { color: colors.textMuted }]}
-                  >
-                    {` / ${totalSets}`}
+                <View>
+                  <Text style={[styles.progressValue, { color: colors.text }]}>
+                    {doneSets}
+                    <Text
+                      style={[styles.progressTotal, { color: colors.textMuted }]}
+                    >
+                      {` / ${totalSets}`}
+                    </Text>
                   </Text>
-                </Text>
-                <Text
-                  style={[styles.progressLabel, { color: colors.textMuted }]}
-                  numberOfLines={1}
-                >
-                  {t("gym.sets_done")}
-                </Text>
+                  <Text
+                    style={[styles.progressLabel, { color: colors.textMuted }]}
+                    numberOfLines={1}
+                  >
+                    {t("gym.sets_done")}
+                  </Text>
+                </View>
+
+                {elapsed ? (
+                  <View style={styles.progressRight}>
+                    <Text
+                      style={[styles.elapsed, { color: colors.text }]}
+                      numberOfLines={1}
+                    >
+                      {elapsed}
+                    </Text>
+                    <Text
+                      style={[styles.progressLabel, { color: colors.textMuted }]}
+                      numberOfLines={1}
+                    >
+                      {t("gym.duration")}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
               <View
                 style={[styles.track, { backgroundColor: colors.surfaceMuted }]}
@@ -806,11 +864,13 @@ const styles = StyleSheet.create({
   progress: { gap: theme.spacing.sm },
   progressHead: {
     flexDirection: "row",
-    alignItems: "baseline",
+    alignItems: "flex-start",
     justifyContent: "space-between",
     gap: theme.spacing.sm,
   },
   progressValue: { fontSize: 26, fontWeight: "700" },
+  progressRight: { flexShrink: 1, alignItems: "flex-end" },
+  elapsed: { fontSize: 26, fontWeight: "700", fontVariant: ["tabular-nums"] },
   progressTotal: { fontSize: 17, fontWeight: "600" },
   progressLabel: {
     flexShrink: 1,

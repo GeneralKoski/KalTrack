@@ -761,6 +761,23 @@ export async function sessionDetail(id: string): Promise<SessionDetail | null> {
  * e non hanno la stessa domanda. E' la palestra a escludere dall'elenco quello
  * in corso, che sta gia' scritto sopra.
  */
+/**
+ * Quando e' cominciato un allenamento.
+ *
+ * Query a se' e non un campo di `RecentSession`: quella la leggono anche il
+ * confronto con gli amici e la condivisione, che dell'ora d'inizio non sanno
+ * che farsene, e allargare il tipo per un solo chiamante fa pagare la colonna
+ * a tutti.
+ */
+export async function sessionStartedAt(id: string): Promise<string | null> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ startedAt: string }>(
+    `SELECT started_at AS startedAt FROM workout_sessions WHERE id = ?`,
+    [id],
+  );
+  return row?.startedAt ?? null;
+}
+
 export async function openSession(): Promise<RecentSession | null> {
   const db = await getDb();
   return db.getFirstAsync<RecentSession>(

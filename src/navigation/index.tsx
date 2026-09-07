@@ -1,3 +1,4 @@
+import { useTranslation } from "@/src/hooks/useTranslation";
 import { i18n } from "@/src/i18n";
 import { theme } from "@/src/styles";
 import {
@@ -83,12 +84,23 @@ function TabBar(props: BottomTabBarProps) {
   );
 }
 
-// La label è un componente a sé perché deve leggere il tema con un hook, cosa
-// impossibile dentro l'oggetto statico di screenOptions.
-function TabLabel({ color, children }: { color: string; children: string }) {
+/*
+  La label è un componente a sé perché deve leggere il tema con un hook, cosa
+  impossibile dentro l'oggetto statico di screenOptions.
+
+  **E traduce da sé, invece di ricevere il testo gia' tradotto.** L'albero
+  statico di React Navigation si costruisce al caricamento del modulo, quando
+  `translationStore` non e' ancora idratato: `i18n.t("tabs.today")` scritto li'
+  dentro veniva risolto sulla lingua di partenza - l'inglese - e ci restava per
+  sempre. Con l'app in italiano la barra diceva "Today / Progress / Gym /
+  Profile", e cambiare lingua da Impostazioni non la toccava. Qui invece siamo
+  in un componente: `useTranslation` lo ridisegna al cambio lingua.
+*/
+function TabLabel({ color, labelKey }: { color: string; labelKey: string }) {
+  const { t } = useTranslation();
   return (
     <Text numberOfLines={1} style={[styles.tabLabel, { color }]}>
-      {children}
+      {t(labelKey)}
     </Text>
   );
 }
@@ -107,9 +119,6 @@ const Tab = createBottomTabNavigator({
     // Grigio medio scelto apposta per l'inattivo: ha contrasto sufficiente sia
     // sul fondo chiaro sia su quello scuro della tab bar.
     tabBarInactiveTintColor: theme.colors.gray400,
-    tabBarLabel: ({ color, children }) => (
-      <TabLabel color={color}>{children}</TabLabel>
-    ),
     tabBarItemStyle: {
       paddingVertical: 3,
     },
@@ -124,7 +133,12 @@ const Tab = createBottomTabNavigator({
       screen: TodayScreen,
       linking: { path: "oggi" },
       options: {
+        // `title` resta la stringa di partenza e non si vede: l'etichetta
+        // visibile la disegna `TabLabel`, che traduce a ogni render.
         title: i18n.t("tabs.today"),
+        tabBarLabel: ({ color }) => (
+          <TabLabel color={color} labelKey="tabs.today" />
+        ),
         tabBarIcon: ({ color, focused }) => (
           <CalendarDays
             color={color}
@@ -138,7 +152,12 @@ const Tab = createBottomTabNavigator({
       screen: ProgressScreen,
       linking: { path: "progressi" },
       options: {
+        // `title` resta la stringa di partenza e non si vede: l'etichetta
+        // visibile la disegna `TabLabel`, che traduce a ogni render.
         title: i18n.t("tabs.progress"),
+        tabBarLabel: ({ color }) => (
+          <TabLabel color={color} labelKey="tabs.progress" />
+        ),
         tabBarIcon: ({ color, focused }) => (
           <TrendingUp color={color} size={24} strokeWidth={focused ? 2.5 : 2} />
         ),
@@ -148,7 +167,12 @@ const Tab = createBottomTabNavigator({
       screen: GymScreen,
       linking: { path: "palestra" },
       options: {
+        // `title` resta la stringa di partenza e non si vede: l'etichetta
+        // visibile la disegna `TabLabel`, che traduce a ogni render.
         title: i18n.t("tabs.gym"),
+        tabBarLabel: ({ color }) => (
+          <TabLabel color={color} labelKey="tabs.gym" />
+        ),
         tabBarIcon: ({ color, focused }) => (
           <Dumbbell color={color} size={24} strokeWidth={focused ? 2.5 : 2} />
         ),
@@ -158,7 +182,12 @@ const Tab = createBottomTabNavigator({
       screen: ProfileScreen,
       linking: { path: "profilo" },
       options: {
+        // `title` resta la stringa di partenza e non si vede: l'etichetta
+        // visibile la disegna `TabLabel`, che traduce a ogni render.
         title: i18n.t("tabs.profile"),
+        tabBarLabel: ({ color }) => (
+          <TabLabel color={color} labelKey="tabs.profile" />
+        ),
         tabBarIcon: ({ color, focused }) => (
           <User color={color} size={24} strokeWidth={focused ? 2.5 : 2} />
         ),

@@ -457,7 +457,8 @@
     "warmup": "Warm-up",
     "instructions_placeholder": "One line on doing it right, or the mistake to avoid",
     "edit_routine": "Edit the routine",
-    "sets_done": "sets done"
+    "sets_done": "sets",
+    "duration": "duration"
   },
   "assistant": {
     "open": "Talk to the assistant",

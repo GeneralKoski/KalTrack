@@ -82,15 +82,36 @@ export function useVoiceRecording(): VoiceRecording {
     };
   }, []);
 
+  /*
+    Se sta registrando, tenuto DA NOI e non chiesto al recorder.
+
+    `recorder.isRecording` e' un getter sull'oggetto nativo, e leggerlo dopo il
+    rilascio lancia "Cannot use shared object that was already released". Nella
+    pulizia dello smontaggio lo si leggeva sempre: gli effetti si smontano
+    nell'ordine in cui sono dichiarati, `useAudioRecorder` e' chiamato PRIMA
+    dei nostri, quindi al nostro turno l'oggetto era gia' rilasciato. Ogni
+    smontaggio della schermata passava di li' - in sviluppo a ogni fast
+    refresh, e la schermata restava bianca.
+  */
+  const recordingRef = useRef(false);
+
   useEffect(() => {
     return () => {
       // Il recorder viene rilasciato dal suo hook allo smontaggio, ma se la
       // schermata sparisce a registrazione aperta il microfono resterebbe
       // acceso fino al rilascio: chiuderla esplicitamente. Dopo il rilascio
       // stop() può rifiutare, e a quel punto non c'è più nulla da fare.
-      if (recorder.isRecording) {
-        recorder.stop().catch(() => {});
+      if (recordingRef.current) {
+        // `try` oltre al `catch` della promessa: dopo il rilascio e' la
+        // chiamata stessa a lanciare, sincrona, prima di restituire una
+        // promessa da cui prendere il rifiuto.
+        try {
+          recorder.stop().catch(() => {});
+        } catch {
+          // Rilasciato: non c'e' piu' niente da fermare.
+        }
       }
+      recordingRef.current = false;
       setAudioModeAsync({ allowsRecording: false }).catch(() => {});
     };
   }, [recorder]);
@@ -114,6 +135,7 @@ export function useVoiceRecording(): VoiceRecording {
       if (!mounted.current) return false;
       setUri(null);
       recorder.record();
+      recordingRef.current = true;
       return true;
     } catch (cause) {
       logger.error("[voice] avvio registrazione fallito", cause);
@@ -130,7 +152,8 @@ export function useVoiceRecording(): VoiceRecording {
    * in silenzio su un oggetto gia' occupato.
    */
   const cancel = useCallback(async () => {
-    if (!recorder.isRecording) return;
+    if (!recordingRef.current) return;
+    recordingRef.current = false;
     try {
       await recorder.stop();
     } catch (cause) {
@@ -142,6 +165,7 @@ export function useVoiceRecording(): VoiceRecording {
   }, [recorder]);
 
   const stop = useCallback(async () => {
+    recordingRef.current = false;
     try {
       await recorder.stop();
       const recorded = recorder.uri;

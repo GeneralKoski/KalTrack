@@ -775,12 +775,12 @@ export function RemindersScreen() {
                 </View>
               )
             ) : (
-              <Card>
-                <EmptyState
-                  message={t("reminders.empty")}
-                  icon={<Bell size={40} color={colors.textFaint} />}
-                />
-              </Card>
+              /* Senza cornice: un riquadro attorno al nulla e' un oggetto
+                 vuoto in piu' da guardare, non un aiuto. */
+              <EmptyState
+                message={t("reminders.empty")}
+                icon={<Bell size={40} color={colors.textFaint} />}
+              />
             )}
           </FormScreen>
         )}

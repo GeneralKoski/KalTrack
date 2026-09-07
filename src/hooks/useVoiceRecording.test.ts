@@ -327,6 +327,44 @@ describe("smontaggio", () => {
     });
   });
 
+  it("non legge il recorder gia' rilasciato quando la schermata si smonta", async () => {
+    /*
+      Il caso che lasciava la schermata bianca a ogni fast refresh.
+      `useAudioRecorder` si smonta PRIMA dei nostri effetti - e' dichiarato
+      sopra - quindi al nostro turno l'oggetto nativo e' gia' rilasciato e
+      leggerne `isRecording` lancia. Qui il getter simula il rilascio.
+    */
+    const renderer = mount();
+    await act(async () => {
+      await current().start();
+    });
+
+    let letto = false;
+    Object.defineProperty(mockRecorder, "isRecording", {
+      configurable: true,
+      get() {
+        letto = true;
+        throw new Error("Cannot use shared object that was already released");
+      },
+    });
+
+    expect(() =>
+      act(() => {
+        renderer.unmount();
+      }),
+    ).not.toThrow();
+    expect(letto).toBe(false);
+
+    // Il microfono si chiude lo stesso: lo stato lo teniamo noi.
+    expect(mockRecorder.stop).toHaveBeenCalledTimes(1);
+
+    Object.defineProperty(mockRecorder, "isRecording", {
+      configurable: true,
+      writable: true,
+      value: false,
+    });
+  });
+
   it("non tenta lo stop se non stava registrando, ma rilascia la sessione", () => {
     const renderer = mount();
 
