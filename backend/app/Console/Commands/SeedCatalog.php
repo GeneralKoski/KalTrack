@@ -64,6 +64,7 @@ class SeedCatalog extends Command
 
         if (! is_file($percorso)) {
             $this->error("Manca {$percorso}. Lancia `npm run seed:export` dall'app.");
+            Log::error('[catalogo] file di seed mancante', ['percorso' => $percorso]);
 
             return null;
         }
@@ -72,6 +73,7 @@ class SeedCatalog extends Command
 
         if (! is_array($dati)) {
             $this->error("{$nome} non e' un JSON valido.");
+            Log::error('[catalogo] file di seed non e\' un JSON valido', ['percorso' => $percorso]);
 
             return null;
         }

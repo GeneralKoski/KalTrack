@@ -13,7 +13,13 @@ chown -R www-data:www-data /data /var/www/html/storage
 # riparte dopo un aggiornamento deve trovare lo schema aggiornato senza che
 # nessuno si ricordi di lanciarle a mano.
 php artisan migrate --force --no-interaction
-php artisan catalog:seed
+
+# A differenza della migrazione sopra, un fallimento qui non deve fermare
+# l'avvio: se il catalogo non si carica lo schema e il codice restano
+# comunque d'accordo, il server mantiene tutte le sue promesse su sync e
+# amici, e il seed riprovera' al prossimo avvio. Un catalogo vuoto non
+# costa un pasto a nessuno; l'API che non parte si'.
+php artisan catalog:seed || true
 
 # La cache si ricostruisce qui e non nell'immagine: dipende da .env, che
 # arriva a runtime. Costruirla al build significherebbe cristallizzare la
