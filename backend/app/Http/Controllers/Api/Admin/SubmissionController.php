@@ -49,7 +49,7 @@ class SubmissionController extends Controller
         $classe = $this->classeDi($tipo);
 
         $stato = (string) $request->query('status', 'pending');
-        abort_unless(in_array($stato, Exercise::STATUSES, true), 404);
+        abort_unless(in_array($stato, $classe::STATUSES, true), 404);
 
         $term = Text::normalize((string) $request->query('q', ''));
 
@@ -133,7 +133,13 @@ class SubmissionController extends Controller
             }
 
             $classe = $this->classeDi($type);
-            $altra = $classe::query()
+            // `withTrashed()`: l'indice unico su `name_norm` copre anche le
+            // righe cancellate, come in `FoodController::update` e
+            // `ExerciseController::update`. Senza, correggere il nome sopra
+            // una voce cancellata passerebbe questo controllo e il database
+            // risponderebbe comunque con la stessa eccezione non gestita che
+            // questo controllo esiste per evitare.
+            $altra = $classe::withTrashed()
                 ->where('name_norm', $norm)
                 ->whereKeyNot($riga->id)
                 ->exists();

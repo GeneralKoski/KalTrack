@@ -56,6 +56,11 @@ del container all'avvio. Procedura di deploy in `README.md` § In produzione.
    controllo scritto a mano in ogni controller: il gestionale ne porta una
    ventina, e un controllo ripetuto venti volte e' un controllo che prima o
    poi manca in uno.
+7. **L'indice unico su `name_norm` copre anche le righe cancellate.** Ogni
+   controllo scritto per evitare che il database risponda con un errore
+   illeggibile deve interrogare `withTrashed()`, o quel controllo non vede la
+   collisione con una voce cancellata e il database risponde comunque con
+   quell'errore.
 
 ## Convenzioni di codice
 

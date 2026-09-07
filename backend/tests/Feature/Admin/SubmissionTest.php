@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Exercise;
 use App\Models\Food;
 use App\Models\User;
 use App\Support\Text;
@@ -30,6 +31,20 @@ class SubmissionTest extends TestCase
             'name' => $nome,
             'name_norm' => Text::normalize($nome),
             'kcal' => 353,
+            'status' => 'pending',
+            'created_by' => $this->anna->id,
+        ]);
+    }
+
+    private function propostaEsercizio(string $nome = 'Rematore con bilanciere'): Exercise
+    {
+        return Exercise::create([
+            'name' => $nome,
+            'name_norm' => Text::normalize($nome),
+            'muscle_group' => 'back',
+            'secondary_muscles' => 'biceps',
+            'equipment' => 'bilanciere',
+            'instructions' => 'Busto inclinato, tira verso l\'addome.',
             'status' => 'pending',
             'created_by' => $this->anna->id,
         ]);
@@ -168,6 +183,70 @@ class SubmissionTest extends TestCase
             ])
             ->assertStatus(422)
             ->assertJsonPath('errors.name.0', 'Nome gia\' in catalogo.');
+    }
+
+    public function test_approvare_su_un_nome_di_una_voce_cancellata_fallisce_leggibilmente(): void
+    {
+        $cancellata = Food::create([
+            'uid' => 'cancellata',
+            'name' => 'Pasta della Lidl',
+            'name_norm' => 'pasta della lidl',
+            'kcal' => 353,
+            'status' => 'published',
+        ]);
+        $cancellata->delete();
+
+        $voce = Food::create([
+            'uid' => 'p-9',
+            'name' => 'Pasta Della  Lidl',
+            'name_norm' => 'pasta della lidl 2',
+            'kcal' => 350,
+            'status' => 'pending',
+            'created_by' => $this->anna->id,
+        ]);
+
+        /*
+         * L'indice unico su `name_norm` copre anche le righe cancellate:
+         * senza `withTrashed()` in questo controllo, la correzione passa qui
+         * e il database la respinge con una `QueryException` non gestita -
+         * un 500 invece del 422 leggibile che questo controllo esiste per
+         * dare.
+         */
+        $this->actingAs($this->admin)
+            ->postJson("/api/admin/submissions/food/{$voce->id}/approve", [
+                'name' => 'Pasta della Lidl',
+                'kcal' => 350,
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.name.0', 'Nome gia\' in catalogo.');
+    }
+
+    public function test_l_elenco_mostra_i_campi_di_un_esercizio(): void
+    {
+        $this->propostaEsercizio();
+
+        $this->actingAs($this->admin)
+            ->getJson('/api/admin/submissions?type=exercise')
+            ->assertOk()
+            ->assertJsonPath('data.0.fields.muscleGroup', 'back')
+            ->assertJsonPath('data.0.fields.secondaryMuscles', 'biceps')
+            ->assertJsonPath('data.0.fields.equipment', 'bilanciere')
+            ->assertJsonPath('data.0.fields.instructions', 'Busto inclinato, tira verso l\'addome.');
+    }
+
+    public function test_si_corregge_un_esercizio_mentre_si_approva(): void
+    {
+        $voce = $this->propostaEsercizio();
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/admin/submissions/exercise/{$voce->id}/approve", [
+                'instructions' => 'Schiena dritta, gomiti vicini al busto.',
+            ])
+            ->assertOk();
+
+        $voce->refresh();
+        $this->assertSame('Schiena dritta, gomiti vicini al busto.', $voce->instructions);
+        $this->assertSame('published', $voce->status);
     }
 
     public function test_un_tipo_sconosciuto_non_esiste(): void
