@@ -9,50 +9,44 @@
  */
 
 /**
- * Formatta un numero con separatore migliaia (punto) e decimali (virgola) - formato italiano
+ * Formatta un numero decimale in formato italiano: cifre e, al massimo, una
+ * virgola.
+ *
+ * **Niente separatore di migliaia, e non e' una semplificazione grafica.**
+ * Scrivendolo da se' ("1.000") il campo si ritrovava al tasto dopo un punto
+ * che non distingueva piu' dal separatore decimale digitato a mano: la quinta
+ * cifra di 10005 lo mandava a "1,00", e cancellare una cifra da 2000 lo
+ * mandava a 2. Un separatore che noi non scriviamo non c'e' da interpretare,
+ * e qui i numeri arrivano a quattro cifre - kcal, grammi, carichi - dove
+ * quella lettura non serviva a nessuno.
+ *
+ * Un punto digitato dall'utente e' quindi SEMPRE un separatore decimale: la
+ * tastiera numerica di Android offre sia la virgola sia il punto, e scrivere
+ * "3.2" e' normale quanto scrivere "3,2".
  */
 export const formatNumber = (value: string, decimals: number): string => {
   if (!value) return "";
 
-  /**
-   * Un punto digitato dall'utente e' un separatore DECIMALE, non di migliaia.
-   *
-   * La tastiera numerica di Android offre sia la virgola sia il punto, e
-   * scrivere "3.2" e' normale quanto scrivere "3,2". Cancellare il punto
-   * insieme agli altri caratteri non numerici leggeva 32, e il campo mostrava
-   * "32" senza che niente segnalasse la trasformazione.
-   *
-   * L'eccezione e' il valore GIA' formattato che arriva da numberToDisplay
-   * ("1.234,5"): li' la virgola c'e' gia', e i punti sono migliaia.
-   */
-  const hasComma = value.includes(",");
-  const normalized = hasComma ? value : value.replace(/\./g, ",");
+  // Solo cifre e separatori: le lettere non arrivano dalla tastiera numerica,
+  // ma un incolla si'.
+  const cleaned = value.replace(/[^\d.,]/g, "");
 
-  // Rimuovi tutti i caratteri non numerici tranne la virgola
-  let cleaned = normalized.replace(/[^\d,]/g, "");
+  // Il primo separatore e' quello decimale, come in `sanitizeDecimalInput`:
+  // gli altri sono un ripensamento a metà digitazione e si scartano.
+  const separator = cleaned.search(/[.,]/);
+  const rawInteger = separator === -1 ? cleaned : cleaned.slice(0, separator);
 
-  // Gestisci il caso di più virgole (tieni solo la prima)
-  const parts = cleaned.split(",");
-  if (parts.length > 2) {
-    cleaned = parts[0] + "," + parts.slice(1).join("");
-  }
+  // Zeri iniziali via, ma almeno uno zero resta (",5" si legge "0,5").
+  const integer = rawInteger.replace(/^0+/, "") || "0";
 
-  // Separa parte intera e decimale
-  const [integerPart, decimalPart] = cleaned.split(",");
+  if (separator === -1 || decimals === 0) return integer;
 
-  // Rimuovi zeri iniziali dalla parte intera (ma mantieni almeno uno zero)
-  const cleanedInteger = integerPart.replace(/^0+/, "") || "0";
+  const decimal = cleaned
+    .slice(separator + 1)
+    .replace(/[.,]/g, "")
+    .slice(0, decimals);
 
-  // Formatta la parte intera con separatore migliaia (punto)
-  const formattedInteger = cleanedInteger.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-
-  // Tronca i decimali al numero massimo consentito
-  if (decimalPart !== undefined) {
-    const truncatedDecimal = decimalPart.slice(0, decimals);
-    return `${formattedInteger},${truncatedDecimal}`;
-  }
-
-  return formattedInteger;
+  return `${integer},${decimal}`;
 };
 
 /**
@@ -67,10 +61,8 @@ export const formatNumber = (value: string, decimals: number): string => {
 export const parseToNumber = (formattedValue: string): string => {
   if (!formattedValue) return "";
 
-  // Rimuovi i punti (separatori migliaia) e sostituisci virgola con punto
-  const normalized = formattedValue.replace(/\./g, "").replace(",", ".");
-
-  return normalized;
+  // Una virgola sola, e nessun punto: e' quel che `formatNumber` produce.
+  return formattedValue.replace(",", ".");
 };
 
 /**

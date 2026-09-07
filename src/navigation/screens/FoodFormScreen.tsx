@@ -80,8 +80,8 @@ const toValues = (row: FoodRow): FoodFormValues => ({
 
 /**
  * DfNumberInput NON tiene nel form il testo che si vede a schermo: la sua
- * `parseToNumber` toglie gia' i punti delle migliaia e converte la virgola in
- * punto, quindi digitando "3,2" nel form finisce la stringa "3.2".
+ * `parseToNumber` converte la virgola in punto, quindi digitando "3,2" nel form
+ * finisce la stringa "3.2".
  *
  * Riapplicare qui la normalizzazione italiana toglieva quel punto e leggeva 32
  * al posto di 3,2: ogni valore decimale scritto a mano finiva a database
