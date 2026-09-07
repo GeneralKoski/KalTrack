@@ -1311,15 +1311,32 @@ l'avviso sulle kcal ricalcolate e' un componente a se' (`KcalFromMacros`).
 
 ### L'icona
 
-Una K bianca con un punto verde su `#18181b`. Non e' un file da ritoccare a
-mano: si rigenera con `python3 scripts/genera-icone.py`, che disegna il segno
-**una volta**, lo ritaglia al contenuto e lo scala in tutte le misure. Modificarne
-uno solo a mano fa divergere le sei immagini alla prima occasione.
+Una goccia bianca con una foglia verde su `#18181b`, dall'8 settembre 2026.
+Non e' un file da ritoccare a mano: si rigenera con
+`python3 scripts/genera-icone.py`, che disegna il segno **una volta**, lo
+ritaglia al contenuto e lo scala in tutte le misure. Modificarne uno solo a
+mano fa divergere le sei immagini alla prima occasione.
 
-Su Android l'icona e' a due strati e il sistema ci ritaglia sopra la forma che
-vuole: nel primo piano il segno sta al 46% e non al 60%, perche' il punto verde
-e' in alto a destra, cioe' dove la maschera taglia. Cambiando la composizione
-va riguardata quella prova, non solo il quadrato.
+**Prima era una K bianca con un punto verde**, e i due difetti che l'hanno
+mandata via si vedevano solo alla misura giusta: a 48 px il punto diventava un
+quadratino di tre pixel, e una lettera sola non distingue l'icona da qualunque
+altra app con un'iniziale sopra. Le forme si scelgono guardandole rimpicciolite
+davvero, non a schermo intero.
+
+Due vincoli, ed e' il motivo per cui il provino ha quattro colonne:
+
+- **Su Android l'icona e' a due strati** e il sistema ci ritaglia sopra la forma
+  che vuole (cerchio, squircle, goccia): nel primo piano il segno sta al 46% e
+  non al 62%, perche' quel che esce dal 66% centrale la maschera se lo mangia.
+- **Lo stacco fra goccia e foglia e' un buco nell'alfa, non una riga scura.**
+  Primo piano e monocromatica sono trasparenti: li' un vuoto dipinto di nero
+  sarebbe una macchia nera. Ed e' quel vuoto - e nient'altro - a tenere separate
+  le due forme nella **monocromatica** dei temi Material You, dove il colore lo
+  decide Android e ne resta uno solo. Con lo stacco troppo stretto le due forme
+  si fondono in una macchia, e a schermo intero e a colori non si nota.
+
+Chi cambia la composizione riguarda tutte e quattro le prove, non solo il
+quadrato: le due che bocciano sono la terza e la quarta.
 
 ### Convenzioni non negoziabili
 
