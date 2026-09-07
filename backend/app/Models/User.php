@@ -6,11 +6,12 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable([
@@ -27,6 +28,7 @@ use Laravel\Sanctum\HasApiTokens;
     'share_workouts',
     'share_gym',
     'is_admin',
+    'ai_enabled',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
@@ -45,6 +47,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_admin' => 'boolean',
+            'ai_enabled' => 'boolean',
             'share_calories' => 'boolean',
             'share_steps' => 'boolean',
             'share_weight' => 'boolean',
@@ -88,9 +91,9 @@ class User extends Authenticatable
      * il richiedente o il destinatario a seconda di chi ha chiesto, e nessuna
      * relazione standard esprime "l'altro dei due".
      *
-     * @return \Illuminate\Support\Collection<int, User>
+     * @return Collection<int, User>
      */
-    public function friends(): \Illuminate\Support\Collection
+    public function friends(): Collection
     {
         return Friendship::query()
             ->involving($this->id)
@@ -115,9 +118,9 @@ class User extends Authenticatable
                 $q->where(fn ($w) => $w
                     ->where('requester_id', $this->id)
                     ->where('addressee_id', $other->id))
-                  ->orWhere(fn ($w) => $w
-                    ->where('requester_id', $other->id)
-                    ->where('addressee_id', $this->id));
+                    ->orWhere(fn ($w) => $w
+                        ->where('requester_id', $other->id)
+                        ->where('addressee_id', $this->id));
             })
             ->exists();
     }

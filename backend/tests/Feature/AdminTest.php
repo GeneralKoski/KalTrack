@@ -113,4 +113,21 @@ class AdminTest extends TestCase
 
         $this->assertFalse($anna->is_admin);
     }
+
+    public function test_il_profilo_dice_se_l_ai_e_attiva(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->getJson('/api/me')
+            ->assertOk()
+            ->assertJsonPath('aiEnabled', true);
+
+        $user->update(['ai_enabled' => false]);
+
+        $this->actingAs($user)
+            ->getJson('/api/me')
+            ->assertOk()
+            ->assertJsonPath('aiEnabled', false);
+    }
 }

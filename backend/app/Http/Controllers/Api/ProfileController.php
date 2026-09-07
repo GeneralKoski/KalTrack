@@ -6,14 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Resources\PublicProfileResource;
 use App\Models\User;
-use Illuminate\Support\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProfileController extends Controller
 {
-
-
     /** Il proprio profilo: qui esce tutto, e' il proprio. */
     public function me(Request $request): JsonResponse
     {
@@ -26,6 +23,13 @@ class ProfileController extends Controller
             'bio' => $user->bio,
             'email' => $user->email,
             'isAdmin' => $user->is_admin,
+            /*
+             * L'app lo legge per non montare `AssistantButton` a interruttore
+             * spento. È un cartello e non una serratura finché le chiamate
+             * AI partono dal telefono: vedi la migrazione che ha creato la
+             * colonna.
+             */
+            'aiEnabled' => $user->ai_enabled,
             'shares' => [
                 'calories' => $user->share_calories,
                 'steps' => $user->share_steps,
