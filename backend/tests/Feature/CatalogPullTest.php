@@ -125,8 +125,14 @@ class CatalogPullTest extends TestCase
      * con un secondo account vero che legge quel che non e' suo. Qui non
      * c'e' un confine di visibilita' da forzare - il catalogo pubblicato e'
      * di tutti per disegno - ma c'e' comunque una promessa di privacy da
-     * verificare da fuori: `created_by` non deve uscire dal pull, nemmeno
-     * per una voce che l'account che legge non ha scritto lui.
+     * verificare da fuori.
+     *
+     * Un elenco completo delle chiavi (whitelist), non un controllo
+     * sull'assenza di `created_by`/`createdBy` (blacklist): una blacklist
+     * cattura solo i nomi a cui si e' pensato, una whitelist cattura anche
+     * `reviewed_by`, `review_note` o qualunque campo futuro che trapeli per
+     * disattenzione. E' lo stesso schema di
+     * `ExerciseCatalogTest::test_il_catalogo_non_dice_chi_ha_aggiunto_cosa`.
      */
     public function test_il_pull_non_dice_chi_ha_aggiunto_cosa(): void
     {
@@ -141,7 +147,38 @@ class CatalogPullTest extends TestCase
             ->assertOk();
 
         $corpo = $risposta->json('data.0');
-        $this->assertArrayNotHasKey('created_by', $corpo);
-        $this->assertArrayNotHasKey('createdBy', $corpo);
+        $this->assertSame(
+            [
+                'uid',
+                'name',
+                'nameNorm',
+                'muscleGroup',
+                'secondaryMuscles',
+                'equipment',
+                'instructions',
+                'photo',
+                'mine',
+                'deletedAt',
+            ],
+            array_keys($corpo),
+        );
+        // Bea non l'ha aggiunta lei, e da qui non ha modo di sapere chi.
+        $this->assertFalse($corpo['mine']);
+    }
+
+    /**
+     * Il buco vero: `min($limit, PER_PAGE)` limava solo il tetto superiore,
+     * e Laravel non applica affatto un `limit()` negativo - la query
+     * tornava la tabella intera invece di rifiutare la richiesta. Ora e'
+     * validato, e un valore fuori dai limiti e' un 422 leggibile.
+     */
+    public function test_limit_negativo_e_un_422_non_uno_scarico_della_tabella(): void
+    {
+        $this->esercizio('a', 'Panca piana');
+        $this->esercizio('b', 'Croci');
+
+        $this->actingAs($this->anna())
+            ->getJson('/api/catalog/exercises?limit=-1')
+            ->assertStatus(422);
     }
 }
