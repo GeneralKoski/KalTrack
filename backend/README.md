@@ -82,9 +82,13 @@ davvero non ha modo di raccontare nulla. Il telefono che l'aveva importata se
 la tiene comunque: e' roba sua, ed e' quel che ci si aspetta da un catalogo
 che si e' copiato in casa.
 
-Quel che i cataloghi NON contengono e' altrettanto deliberato: niente note,
-niente istruzioni, niente "quanto ti sta antipatico", niente preferiti. Sono
-giudizi personali su un esercizio o su un alimento, non la loro descrizione.
+Quel che i cataloghi NON contengono e' altrettanto deliberato: niente "quanto
+ti sta antipatico", niente preferiti, niente contatore d'uso. Sono giudizi
+personali su un esercizio o su un alimento, non la loro descrizione, e restano
+sul telefono. `exercises.instructions` invece **c'e'**: e' seminata per tutti
+e duecento gli esercizi del seed, si corregge dal gestionale ed esce da
+`GET /api/catalog/exercises` - descrive l'esercizio, non un giudizio su di
+esso, ed e' per questo che non segue la stessa regola delle note.
 
 I doppioni li impedisce `name_norm` (minuscolo, senza accenti, spazi
 compressi), con la stessa normalizzazione del telefono - `App\Support\Text` di
@@ -315,18 +319,26 @@ non e' un backup.
 | DELETE | `/api/images/{nome}` | Cancella una foto |
 | PUT | `/api/me/workouts` | Il telefono pubblica la palestra. **403 a interruttore spento** |
 | GET | `/api/comparison?handles=&date=&days=` | Fino a 4 persone insieme, filtrate per ciascuna |
-| GET | `/api/exercises?q=&after=` | Il catalogo esercizi, comune a tutti gli iscritti. Paginato: `next` dice se c'e' altro |
-| POST | `/api/exercises` | Aggiunge una voce (o torna quella che c'era) |
-| PATCH | `/api/exercises/{id}` | Corregge. **Solo le proprie** |
-| DELETE | `/api/exercises/{id}` | Toglie. **Solo le proprie** |
-| GET | `/api/foods?q=&after=` | Il catalogo alimenti, comune a tutti gli iscritti. Paginato come sopra |
-| POST | `/api/foods` | Aggiunge una voce (o torna quella che c'era) |
-| PATCH | `/api/foods/{id}` | Corregge. **Solo le proprie** |
-| DELETE | `/api/foods/{id}` | Toglie. **Solo le proprie** |
+| GET | `/api/exercises?q=&after=` | Il catalogo esercizi pubblicato. Legge tutto a ogni chiamata - vedi `/api/catalog/exercises` sotto |
+| POST | `/api/exercises` | Propone una voce (o torna quella pubblicata che c'era). Nasce `pending` |
+| PATCH | `/api/exercises/{id}` | Corregge. **Proprie e ancora in attesa** - da pubblicata in poi non e' piu' sua |
+| DELETE | `/api/exercises/{id}` | Toglie. **Proprie e ancora in attesa**, stessa regola |
+| GET | `/api/foods?q=&after=` | Il catalogo alimenti pubblicato, stessa forma di `/api/exercises` |
+| POST | `/api/foods` | Propone una voce (o torna quella pubblicata che c'era). Nasce `pending` |
+| PATCH | `/api/foods/{id}` | Corregge. **Proprie e ancora in attesa** |
+| DELETE | `/api/foods/{id}` | Toglie. **Proprie e ancora in attesa** |
+| GET | `/api/catalog/exercises?since=&afterId=&limit=` | Il catalogo esercizi, **incrementale**: senza `since` torna tutto il pubblicato, con `since` solo cio' che e' cambiato dopo - cancellazioni comprese |
+| GET | `/api/catalog/foods?since=&afterId=&limit=` | Come sopra, per gli alimenti |
+| GET | `/api/catalog/taxonomies` | Gruppi muscolari e attrezzi, interi a ogni chiamata (sono poche righe) |
+| GET | `/api/catalog/images/{name}` | La foto di una voce di catalogo |
+| POST | `/api/catalog/exercises` | Come `POST /api/exercises`: stesso controller, percorso nuovo per l'app aggiornata |
+| PATCH | `/api/catalog/exercises/{id}` | Come `PATCH /api/exercises/{id}` |
+| DELETE | `/api/catalog/exercises/{id}` | Come `DELETE /api/exercises/{id}` |
+| POST | `/api/catalog/foods` | Come `POST /api/foods` |
+| PATCH | `/api/catalog/foods/{id}` | Come `PATCH /api/foods/{id}` |
+| DELETE | `/api/catalog/foods/{id}` | Come `DELETE /api/foods/{id}` |
 | GET | `/api/users?q=` | Cerca per handle o nome (min. 2 caratteri) |
 | GET | `/api/users/{handle}` | Profilo pubblico, filtrato |
-| GET | `/api/admin/users` | L'elenco. **Solo amministratori** |
-| POST | `/api/admin/users/{id}/password` | Reimposta una password. **Solo amministratori** |
 | GET | `/api/friendships` | Amicizie e richieste, con la direzione |
 | POST | `/api/friendships` | Chiede l'amicizia (o accetta, se l'altro aveva gia' chiesto) |
 | PATCH | `/api/friendships/{id}/accept` | Accetta. Solo il destinatario |
@@ -334,17 +346,41 @@ non e' un backup.
 
 Nessuna lettura e' pubblica: senza account non si vede niente di nessuno.
 
+### Il gestionale (`/api/admin/*`)
+
+Tutto dietro il middleware `admin` (regola 6), oltre ad `auth:sanctum`: chi non
+e' amministratore prende 403, chi non ha un account 401.
+
+| Metodo | Percorso | Cosa fa |
+|---|---|---|
+| GET | `/api/admin/users` | L'elenco, con quante proposte ciascuno ha fatto e quante pubblicate |
+| PATCH | `/api/admin/users/{id}` | Accende o spegne l'AI per un utente |
+| POST | `/api/admin/users/{id}/password` | Reimposta una password |
+| GET | `/api/admin/stats` | I numeri della dashboard: in attesa, pubblicati, cosa manca |
+| GET | `/api/admin/submissions?type=&status=&q=` | La coda di revisione, con l'autore di ogni proposta |
+| POST | `/api/admin/submissions/{type}/{id}/approve` | Pubblica una proposta **pending**, correggendola se serve |
+| POST | `/api/admin/submissions/{type}/{id}/reject` | Rifiuta una proposta **pending**. Rifiutato su altro stato: 422 |
+| GET | `/api/admin/exercises?q=&muscleGroup=&equipment=&missing=` | Il catalogo intero, proposte comprese |
+| POST | `/api/admin/exercises` | Crea una voce **gia' pubblicata**. Ricrearne una col nome di una cancellata la resuscita |
+| PATCH | `/api/admin/exercises/{id}` | Corregge **qualunque** voce, non solo le proprie |
+| DELETE | `/api/admin/exercises/{id}` | Cancellazione morbida di **qualunque** voce |
+| POST | `/api/admin/exercises/{id}/photo` | Carica la foto di un esercizio (max 5 MB, solo immagini) |
+| GET | `/api/admin/foods?q=&barcode=` | Il catalogo intero, proposte comprese |
+| POST | `/api/admin/foods` | Crea una voce **gia' pubblicata**. Stessa resurrezione per nome degli esercizi |
+| PATCH | `/api/admin/foods/{id}` | Corregge **qualunque** voce |
+| DELETE | `/api/admin/foods/{id}` | Cancellazione morbida di **qualunque** voce |
+| POST | `/api/admin/foods/{id}/image` | Carica l'immagine di un alimento |
+| GET | `/api/admin/taxonomies/{kind}` | Gruppi muscolari o attrezzi (`kind` e' `muscle-groups` o `equipment`) |
+| POST | `/api/admin/taxonomies/{kind}` | Aggiunge una voce. Ricrearne una con lo slug di una cancellata la resuscita |
+| PATCH | `/api/admin/taxonomies/{kind}/{id}` | Corregge le etichette. Lo slug non si tocca da qui |
+| DELETE | `/api/admin/taxonomies/{kind}/{id}` | Cancellazione morbida, rifiutata se qualche esercizio la usa ancora |
+
 ## Cosa manca
 
 - Verifica dell'email e recupero password automatico. Al loro posto c'e' il
   reimposta password dell'amministratore, che con pochi utenti che si conoscono
   e' il rimedio proporzionato.
 - Un database vero al posto di SQLite, se mai gli utenti diventassero tanti.
-- **Moderazione dei cataloghi.** Ciascuno corregge o toglie solo le proprie
-  voci, e non c'e' modo per un amministratore di togliere quella di un altro:
-  una voce scritta male da qualcun altro resta nell'elenco di tutti. Con pochi
-  utenti che si conoscono non e' un problema, e aggiungere un potere di
-  cancellazione su roba altrui prima che serva sarebbe peggio del male.
 - **Un secondo ambiente.** Ce n'e' uno solo, e le migrazioni vanno dritte in
   produzione con un backup prima. La scelta test/prod di `deploy.sh` viene dal
   template e non e' configurata.
@@ -352,3 +388,11 @@ Nessuna lettura e' pubblica: senza account non si vede niente di nessuno.
   bundle dell'app e le chiamate a Gemini partono dal telefono. Con il rilascio
   a pagamento quella scelta decade e le chiamate devono passare da qui - e'
   `TODO.md` § 3.1, ed e' la prima voce di quel lavoro, non l'ultima.
+
+La **moderazione dei cataloghi**, che questa sezione elencava come mancante,
+esiste dal 7 settembre 2026: una voce creata a mano nasce `pending` e non
+`published`, un amministratore la approva o la rifiuta sotto `/api/admin/*`
+(`SubmissionController`), e il pannello web (`/admin`, dietro
+`EnsureAdmin`) corregge o toglie qualunque voce - non solo le proprie, che
+resta la regola dell'app. La Fase 2 costruisce l'interfaccia di quel
+pannello; l'API sotto e' gia' completa.

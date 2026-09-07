@@ -20,8 +20,8 @@ senza rete e senza account. Il server tiene una copia.
 
 ```bash
 php artisan serve            # sviluppo
-php artisan test             # 125 test
-php artisan migrate          # 17 migrazioni
+php artisan test             # 251 test
+php artisan migrate          # 21 migrazioni
 ```
 
 Il database di sviluppo e di produzione e' **SQLite**. In produzione sta in WAL
@@ -35,11 +35,14 @@ del container all'avvio. Procedura di deploy in `README.md` § In produzione.
    gli iscritti **una volta pubblicati** - una proposta la vede solo il server
    e chi la revisiona. Sono descritte in `README.md` § L'eccezione dichiarata,
    e non se ne aggiungono altre senza scriverle la'.
-2. **`created_by` non esce da nessuna risposta, con un'unica eccezione:** la
-   coda di revisione sotto `/api/admin/*` (`SubmissionController`), dove chi
-   guarda e' chi decide e deve sapere chi propone. Ovunque altro viaggia
-   `mine`: il catalogo dice a te che una voce e' tua, non dice a nessun altro
-   di chi e'.
+2. **`created_by` non esce da nessuna risposta, con due eccezioni, entrambe
+   sotto `/api/admin/*`:** la coda di revisione (`SubmissionController`), dove
+   chi guarda e' chi decide e deve sapere chi propone, e `AdminController::
+   users()`, che pubblica per ciascun utente quante proposte ha fatto e
+   quante sono state pubblicate - un fatto derivato dall'autore, non l'autore
+   stesso, ma della stessa natura: serve a chi amministra, non al catalogo di
+   tutti. Ovunque altro viaggia `mine`: il catalogo dice a te che una voce e'
+   tua, non dice a nessun altro di chi e'.
 3. **Le cinque regole della sincronizzazione stanno in `CLAUDE.md` alla radice**
    (§ Sincronizzazione). La prima vale anche qui: una riga di una tabella
    sincronizzata non si cancella davvero, si scrive `deleted_at`.
@@ -56,11 +59,15 @@ del container all'avvio. Procedura di deploy in `README.md` § In produzione.
    controllo scritto a mano in ogni controller: il gestionale ne porta una
    ventina, e un controllo ripetuto venti volte e' un controllo che prima o
    poi manca in uno.
-7. **L'indice unico su `name_norm` copre anche le righe cancellate.** Ogni
-   controllo scritto per evitare che il database risponda con un errore
+7. **Ogni indice unico su una tabella con `SoftDeletes` copre anche le righe
+   cancellate**: non solo `name_norm` (`exercises`, `foods`), ma anche
+   `exercises.uid`, `foods.uid`, `muscle_groups.slug` ed `equipment_types.slug`.
+   Ogni controllo scritto per evitare che il database risponda con un errore
    illeggibile deve interrogare `withTrashed()`, o quel controllo non vede la
-   collisione con una voce cancellata e il database risponde comunque con
-   quell'errore.
+   collisione con una riga cancellata e il database risponde comunque con
+   quell'errore. E' successo quattro volte nella stessa fase - l'ultima nel
+   seeder delle tassonomie, dove nessuno se lo aspettava perche' non e' un
+   controller.
 
 ## Convenzioni di codice
 
@@ -84,10 +91,10 @@ Il resto segue il template, e va seguito:
 - **API Resource** dove la risposta ha una forma che si ripete
   (`app/Http/Resources/`, quattro classi). E' anche il posto dove si tiene la
   promessa che `created_by` non esca.
-- **Attributi PHP 8 per `$fillable`** (`#[Fillable([...])]`) su tutti e sette i
+- **Attributi PHP 8 per `$fillable`** (`#[Fillable([...])]`) su tutti e nove i
   modelli.
-- **Test di funzionalita' con `RefreshDatabase`** - tutte e quattordici le
-  classi in `tests/Feature/` - e ogni endpoint che pubblica qualcosa ha un test
+- **Test di funzionalita' con `RefreshDatabase`** - tutte le classi in
+  `tests/Feature/` - e ogni endpoint che pubblica qualcosa ha un test
   con **un secondo account vero** che prova a leggere quel che non e' suo. Non
   e' cortesia: le due regole della privacy si verificano solo da fuori.
 - **Throttle su tutto quel che chiunque puo' chiamare** (`login`, `register`) e
