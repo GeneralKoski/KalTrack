@@ -1,10 +1,11 @@
 import { Card } from "@/src/components/kal";
+import { SyncedPhoto } from "@/src/components/kal/SyncedPhoto";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import { exerciseEquipment, type ExerciseRow } from "@/src/types/gym";
-import { Ban, ThumbsDown } from "lucide-react-native";
+import { Ban, Dumbbell, ThumbsDown } from "lucide-react-native";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 
@@ -23,6 +24,24 @@ export const ExerciseListItem: React.FC<ExerciseListItemProps> = ({
 
   return (
     <Card onPress={onPress} style={styles.card}>
+      {/* Stessa miniatura di `FoodListItem`: `SyncedPhoto` quando c'e', o un
+          quadrato col manubrio. La colonna `photo_uri` (migrazione 18) era
+          scritta dal modulo e letta solo dal dettaglio, quindi chi aggiungeva
+          una foto tornava a un elenco identico a prima. */}
+      {exercise.photo_uri ? (
+        <SyncedPhoto uri={exercise.photo_uri} style={styles.photo} />
+      ) : (
+        <View
+          style={[
+            styles.photo,
+            styles.photoEmpty,
+            { backgroundColor: colors.surfaceMuted },
+          ]}
+        >
+          <Dumbbell size={20} color={colors.textFaint} />
+        </View>
+      )}
+
       <View style={styles.body}>
         <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
           {exercise.name}
@@ -51,6 +70,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: theme.spacing.sm,
   },
+  photo: { width: 44, height: 44, borderRadius: theme.radius.lg },
+  photoEmpty: { alignItems: "center", justifyContent: "center" },
   body: { flex: 1 },
   name: { fontSize: 15, fontWeight: "600" },
   meta: { fontSize: 13, marginTop: 1, textTransform: "capitalize" },

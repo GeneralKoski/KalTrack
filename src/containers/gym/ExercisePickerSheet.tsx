@@ -12,7 +12,11 @@ import {
 } from "@/src/types/gym";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import React, { forwardRef, useEffect, useState } from "react";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
+// Quella di gesture-handler e non quella di react-native: dentro il
+// `BottomSheetScrollView` di `DfBottomSheet` la seconda non riceve i gesti, e
+// la riga dei muscoli restava ferma sembrando un filtro che non scorre.
+import { ScrollView } from "react-native-gesture-handler";
 
 const MUSCLE_GROUPS: MuscleGroup[] = [
   "petto",
