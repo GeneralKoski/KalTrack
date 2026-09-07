@@ -26,6 +26,7 @@ import { addDays, startOfWeek, todayIso, toIsoDate } from "@/src/domain/date";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { formatInteger } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import type { MealTypeRow, TargetRow } from "@/src/types/nutrition";
 import { logger } from "@/src/utils/logger";
@@ -460,7 +461,7 @@ export function MealPlanScreen() {
                 {dayEntries.length === 0
                   ? t("plan.empty_day")
                   : t(hasUnknown ? "plan.day_kcal_partial" : "plan.day_kcal", {
-                      kcal: Math.round(knownKcal),
+                      kcal: formatInteger(knownKcal),
                     })}
               </Text>
               {isApplied ? (

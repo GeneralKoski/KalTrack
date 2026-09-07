@@ -2,6 +2,7 @@ import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import type { PlanEntry } from "@/src/db/queries/mealPlan";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { formatInteger } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import type { MealTypeRow } from "@/src/types/nutrition";
 import { Plus, X } from "lucide-react-native";
@@ -84,7 +85,7 @@ const PlanRow: React.FC<{ entry: PlanEntry; onDelete: () => void }> = ({
   const { row } = entry;
 
   const quantity = row.food_id
-    ? `${Math.round(row.quantity_g ?? 0)} g`
+    ? `${formatInteger(row.quantity_g ?? 0)} g`
     : row.recipe_id
       ? t("plan.servings_short", { count: row.servings ?? 0 })
       : null;
@@ -94,7 +95,7 @@ const PlanRow: React.FC<{ entry: PlanEntry; onDelete: () => void }> = ({
   const kcal =
     entry.kcal === null
       ? t("plan.kcal_unknown")
-      : `${Math.round(entry.kcal)} kcal`;
+      : `${formatInteger(entry.kcal)} kcal`;
 
   return (
     <View style={[styles.row, { borderTopColor: colors.border }]}>

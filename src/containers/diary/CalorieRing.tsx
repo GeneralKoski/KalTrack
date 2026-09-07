@@ -5,6 +5,7 @@ import { macroSlices, type Nutrients } from "@/src/domain/nutrition";
 import { targetStatus } from "@/src/domain/targets";
 import { MacroArc } from "@/src/containers/diary/MacroArc";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { formatInteger } from "@/src/utils/number";
 import React, { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
@@ -126,7 +127,7 @@ export const CalorieRing: React.FC<CalorieRingProps> = ({
         {remaining === null ? (
           <>
             <Text style={[styles.value, { color: colors.text }]}>
-              {Math.round(consumed)}
+              {formatInteger(consumed)}
             </Text>
             <Text style={[styles.caption, { color: colors.textMuted }]}>
               {t("diary.kcal_eaten")}
@@ -135,13 +136,13 @@ export const CalorieRing: React.FC<CalorieRingProps> = ({
         ) : (
           <>
             <Text style={[styles.value, { color: colors.text }]}>
-              {Math.abs(remaining)}
+              {formatInteger(Math.abs(remaining))}
             </Text>
             <Text style={[styles.caption, { color: colors.textMuted }]}>
               {remaining >= 0 ? t("diary.kcal_left") : t("diary.kcal_over")}
             </Text>
             <Text style={[styles.of, { color: colors.textFaint }]}>
-              {t("diary.of_target", { target })}
+              {t("diary.of_target", { target: formatInteger(target ?? 0) })}
             </Text>
           </>
         )}

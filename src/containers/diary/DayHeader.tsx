@@ -7,6 +7,7 @@ import {
   latestDay,
 } from "@/src/domain/date";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { formatLongDate } from "@/src/utils/dateUtils";
 import { theme } from "@/src/styles";
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import React from "react";
@@ -34,27 +35,6 @@ interface DayHeaderProps {
  * eccesso al diario.
  */
 const HEADER_HEIGHT = 50;
-
-const MONTHS = [
-  "gennaio",
-  "febbraio",
-  "marzo",
-  "aprile",
-  "maggio",
-  "giugno",
-  "luglio",
-  "agosto",
-  "settembre",
-  "ottobre",
-  "novembre",
-  "dicembre",
-];
-
-/** Data estesa in italiano, senza dipendere dal locale del dispositivo. */
-const formatLong = (iso: string): string => {
-  const [year, month, day] = iso.split("-").map(Number);
-  return `${day} ${MONTHS[month - 1]} ${year}`;
-};
 
 export const DayHeader: React.FC<DayHeaderProps> = ({
   date,
@@ -96,14 +76,14 @@ export const DayHeader: React.FC<DayHeaderProps> = ({
         accessibilityLabel={t("diary.pick_day")}
       >
         <Text style={[styles.label, { color: colors.text }]} numberOfLines={1}>
-          {kind === "other" ? formatLong(date) : t(`diary.day_${kind}`)}
+          {kind === "other" ? formatLongDate(date) : t(`diary.day_${kind}`)}
         </Text>
         {kind !== "other" ? (
           <Text
             style={[styles.sub, { color: colors.textMuted }]}
             numberOfLines={1}
           >
-            {formatLong(date)}
+            {formatLongDate(date)}
           </Text>
         ) : null}
       </TouchableOpacity>

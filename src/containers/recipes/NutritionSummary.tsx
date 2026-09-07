@@ -3,6 +3,7 @@ import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { roundNutrients, type Nutrients } from "@/src/domain/nutrition";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { formatInteger } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import React from "react";
 import { StyleSheet, View } from "react-native";
@@ -42,7 +43,7 @@ export const NutritionSummary: React.FC<NutritionSummaryProps> = ({
           {t("recipes.per_serving")}
         </Text>
         <Text style={[styles.kcal, { color: colors.text }]}>
-          {Math.round(perServing.kcal)} kcal
+          {formatInteger(perServing.kcal)} kcal
         </Text>
         <MacroLine nutrients={perServing} />
       </View>
@@ -54,7 +55,7 @@ export const NutritionSummary: React.FC<NutritionSummaryProps> = ({
           {t("recipes.total")}
         </Text>
         <Text style={[styles.kcal, { color: colors.textMuted }]}>
-          {Math.round(totals.kcal)} kcal
+          {formatInteger(totals.kcal)} kcal
         </Text>
         <MacroLine nutrients={totals} muted />
       </View>

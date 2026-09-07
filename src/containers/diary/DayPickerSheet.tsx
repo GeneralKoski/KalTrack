@@ -15,6 +15,7 @@ import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
 import { targetAt } from "@/src/domain/targets";
 import { DayRing } from "@/src/containers/diary/DayRing";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { formatMonthYear, weekdayInitials } from "@/src/utils/dateUtils";
 import { theme } from "@/src/styles";
 import type { TargetRow } from "@/src/types/nutrition";
 import { logger } from "@/src/utils/logger";
@@ -22,29 +23,6 @@ import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import React, { forwardRef, useEffect, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-
-const MESI = [
-  "gennaio",
-  "febbraio",
-  "marzo",
-  "aprile",
-  "maggio",
-  "giugno",
-  "luglio",
-  "agosto",
-  "settembre",
-  "ottobre",
-  "novembre",
-  "dicembre",
-];
-
-/** Lunedi' per primo, come la griglia. */
-const GIORNI = ["L", "M", "M", "G", "V", "S", "D"];
-
-const titoloMese = (iso: string): string => {
-  const [year, month] = iso.split("-").map(Number);
-  return `${MESI[month - 1]} ${year}`;
-};
 
 /** L'ultimo giorno del mese a cui appartiene la data. */
 const ultimoDiMese = (iso: string): string => {
@@ -143,7 +121,7 @@ export const DayPickerSheet = forwardRef<BottomSheetModal, DayPickerSheetProps>(
           </TouchableOpacity>
 
           <Text style={[styles.mese, { color: colors.text }]}>
-            {titoloMese(mese)}
+            {formatMonthYear(mese)}
           </Text>
 
           <TouchableOpacity
@@ -160,7 +138,7 @@ export const DayPickerSheet = forwardRef<BottomSheetModal, DayPickerSheetProps>(
         </View>
 
         <View style={styles.week}>
-          {GIORNI.map((giorno, i) => (
+          {weekdayInitials().map((giorno, i) => (
             <Text
               key={`${giorno}-${i}`}
               style={[styles.weekDay, { color: colors.textMuted }]}

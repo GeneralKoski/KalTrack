@@ -2,7 +2,8 @@ import { DfAlert } from "@/src/components/DfAlert";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text, TextInput } from "@/src/components/ui";
 import { FoodThumb, MacroTriple } from "@/src/containers/foods/FoodFacts";
-import { decimalSeparator } from "@/src/utils/number";
+
+import { decimalSeparator, formatInteger } from "@/src/utils/number";
 import { formatGrams } from "@/src/domain/serving";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
@@ -97,7 +98,7 @@ export const QuantityPrompt: React.FC<QuantityPromptProps> = ({
             ) : null}
             <Text style={[styles.reference, { color: colors.textSecondary }]}>
               {t("quantity.reference", {
-                kcal: Math.round(food.kcal),
+                kcal: formatInteger(food.kcal),
                 unit: food.is_liquid === 1 ? "ml" : "g",
               })}
             </Text>
@@ -137,7 +138,7 @@ export const QuantityPrompt: React.FC<QuantityPromptProps> = ({
       {food ? (
         <View style={styles.scaled}>
           <Text style={[styles.scaledKcal, { color: colors.text }]}>
-            {Math.round((food.kcal * quantity) / 100)} kcal
+            {formatInteger((food.kcal * quantity) / 100)} kcal
           </Text>
           <MacroTriple
             protein={(food.protein * quantity) / 100}

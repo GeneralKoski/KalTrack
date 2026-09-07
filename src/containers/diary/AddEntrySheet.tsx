@@ -7,6 +7,7 @@ import { searchFoods } from "@/src/db/queries/foods";
 import { searchRecipes } from "@/src/db/queries/recipes";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { FoodFacts } from "@/src/containers/foods/FoodFacts";
+import { formatInteger } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import type { FoodRow, MealTypeRow, RecipeRow } from "@/src/types/nutrition";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -215,7 +216,7 @@ export const AddEntrySheet = forwardRef<BottomSheetModal, AddEntrySheetProps>(
                   <PickerRow
                     key={item.id}
                     title={item.name}
-                    subtitle={`${Math.round(item.kcal)} kcal / 100 ${item.is_liquid === 1 ? "ml" : "g"}`}
+                    subtitle={`${formatInteger(item.kcal)} kcal / 100 ${item.is_liquid === 1 ? "ml" : "g"}`}
                     isLast={index === foods.length - 1}
                     onPress={() => onPick({ kind: "food", food: item })}
                     /* Il tocco sulla riga sceglie, come sempre: i valori stanno

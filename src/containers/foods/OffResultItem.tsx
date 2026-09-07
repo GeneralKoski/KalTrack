@@ -2,6 +2,7 @@ import { Card } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { formatInteger } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import type { FoodInput } from "@/src/types/nutrition";
 import { CloudDownload } from "lucide-react-native";
@@ -51,7 +52,7 @@ export const OffResultItem: React.FC<OffResultItemProps> = ({
 
       <View style={styles.right}>
         <Text style={[styles.kcal, { color: colors.textSecondary }]}>
-          {Math.round(food.nutrients.kcal)} kcal
+          {formatInteger(food.nutrients.kcal)} kcal
         </Text>
         <Text style={[styles.per, { color: colors.textFaint }]}>
           {t("foods.per_hundred", { unit })}

@@ -5,6 +5,7 @@ import {
   parseComposition,
 } from "@/src/domain/entryComposition";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { formatInteger } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import type { MealEntryRow } from "@/src/types/nutrition";
 import { ChevronDown, ChevronUp, Pencil, Sparkles, Trash2 } from "lucide-react-native";
@@ -58,7 +59,7 @@ export const EntryRow: React.FC<EntryRowProps> = ({
         ? (entry.quantity_g ?? 1) === 1
           ? ""
           : t("diary.multiplier", { count: entry.quantity_g ?? 1 })
-        : `${Math.round(entry.quantity_g ?? 0)} g`;
+        : `${formatInteger(entry.quantity_g ?? 0)} g`;
 
   return (
     <View>
@@ -90,7 +91,7 @@ export const EntryRow: React.FC<EntryRowProps> = ({
         </View>
 
         <Text style={[styles.kcal, { color: colors.textSecondary }]}>
-          {Math.round(entry.kcal)} kcal
+          {formatInteger(entry.kcal)} kcal
         </Text>
       </TouchableOpacity>
 
@@ -130,8 +131,8 @@ export const EntryRow: React.FC<EntryRowProps> = ({
               </Text>
               <Text style={[styles.ingredientQty, { color: colors.textFaint }]}>
                 {t("diary.ingredient_detail", {
-                  grams: Math.round(item.quantityG),
-                  kcal: Math.round(componentNutrients(item).kcal),
+                  grams: formatInteger(item.quantityG),
+                  kcal: formatInteger(componentNutrients(item).kcal),
                 })}
               </Text>
             </View>

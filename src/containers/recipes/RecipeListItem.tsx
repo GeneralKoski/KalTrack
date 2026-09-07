@@ -2,6 +2,7 @@ import { SyncedPhoto } from "@/src/components/kal/SyncedPhoto";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { formatInteger } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import type { RecipeRow } from "@/src/types/nutrition";
 import { CookingPot, Star } from "lucide-react-native";
@@ -60,7 +61,7 @@ export const RecipeListItem: React.FC<RecipeListItemProps> = ({
 
       <View style={styles.right}>
         <Text style={[styles.kcal, { color: colors.textSecondary }]}>
-          {Math.round(kcalPerServing)} kcal
+          {formatInteger(kcalPerServing)} kcal
         </Text>
         <Text style={[styles.per, { color: colors.textFaint }]}>
           {t("recipes.per_serving_short")}

@@ -1,7 +1,7 @@
 import { SyncedPhoto } from "@/src/components/kal/SyncedPhoto";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
-import { decimalSeparator } from "@/src/utils/number";
+import { decimalSeparator, formatInteger } from "@/src/utils/number";
 import { formatGrams } from "@/src/domain/serving";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
@@ -131,7 +131,7 @@ export const FoodFacts: React.FC<FoodFactsProps> = ({ food }) => {
             </Text>
           ) : null}
           <Text style={[styles.kcal, { color: colors.text }]}>
-            {Math.round(food.kcal)} kcal
+            {formatInteger(food.kcal)} kcal
           </Text>
           <Text style={[styles.per, { color: colors.textFaint }]}>
             {t("foods.per_hundred", { unit })}

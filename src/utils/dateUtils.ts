@@ -45,6 +45,47 @@ export const formatDate = (date?: Date | string) => {
 };
 
 /**
+ * Data estesa: "7 settembre 2026", "7 September 2026".
+ *
+ * Segue la lingua dell'APP, che non è la stessa cosa di seguire il locale del
+ * dispositivo: c'era un elenco di dodici mesi italiani scritto a mano in
+ * `DayHeader` proprio per non dipendere dal dispositivo, e l'effetto era che in
+ * inglese la data restava italiana.
+ */
+export const formatLongDate = (iso: string): string => {
+  const [year, month, day] = iso.split("-").map(Number);
+  if (!year || !month || !day) return iso;
+  return new Date(year, month - 1, day).toLocaleDateString(getLocale(), {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+};
+
+/** Mese e anno: l'intestazione di un calendario. */
+export const formatMonthYear = (iso: string): string => {
+  const [year, month] = iso.split("-").map(Number);
+  if (!year || !month) return iso;
+  return new Date(year, month - 1, 1).toLocaleDateString(getLocale(), {
+    month: "long",
+    year: "numeric",
+  });
+};
+
+/**
+ * Le iniziali dei sette giorni, da lunedì: "L M M G V S D", "M T W T F S S".
+ *
+ * Il 1° gennaio 2024 era un lunedì, e serve solo come punto di partenza per
+ * chiedere al sistema come si chiamano i giorni in questa lingua.
+ */
+export const weekdayInitials = (): string[] =>
+  Array.from({ length: 7 }, (_, i) =>
+    new Date(2024, 0, 1 + i).toLocaleDateString(getLocale(), {
+      weekday: "narrow",
+    }),
+  );
+
+/**
  * Data e ora leggibili, senza secondi: la precisione al secondo non serve a
  * nessuna delle schermate che la mostrano (backup, diagnostica).
  *

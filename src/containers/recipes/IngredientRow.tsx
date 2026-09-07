@@ -1,5 +1,6 @@
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
+import { formatInteger } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import { Trash2 } from "lucide-react-native";
 import React from "react";
@@ -56,7 +57,7 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
           </Text>
         </View>
         <Text style={[styles.kcal, { color: colors.textSecondary }]}>
-          {Math.round(kcal)} kcal
+          {formatInteger(kcal)} kcal
         </Text>
       </TouchableOpacity>
 

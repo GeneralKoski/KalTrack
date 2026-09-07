@@ -1,6 +1,7 @@
 import { SyncedPhoto } from "@/src/components/kal/SyncedPhoto";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
+import { formatInteger } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import type { FoodRow } from "@/src/types/nutrition";
 import { Salad, Star } from "lucide-react-native";
@@ -60,7 +61,7 @@ export const FoodListItem: React.FC<FoodListItemProps> = ({
 
       <View style={styles.right}>
         <Text style={[styles.kcal, { color: colors.textSecondary }]}>
-          {Math.round(food.kcal)} kcal
+          {formatInteger(food.kcal)} kcal
         </Text>
         <Text style={[styles.per, { color: colors.textFaint }]}>
           per 100 {unit}

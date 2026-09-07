@@ -3,6 +3,7 @@ import { Text } from "@/src/components/ui";
 import { EntryRow } from "@/src/containers/diary/EntryRow";
 import type { DiaryMeal } from "@/src/db/queries/diary";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { formatInteger } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import { Plus } from "lucide-react-native";
 import React from "react";
@@ -46,7 +47,7 @@ export const MealSection: React.FC<MealSectionProps> = ({
           {meal.type.name}
         </Text>
         <Text style={[styles.kcal, { color: colors.textMuted }]}>
-          {Math.round(meal.totals.kcal)} kcal
+          {formatInteger(meal.totals.kcal)} kcal
         </Text>
       </View>
 

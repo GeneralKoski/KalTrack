@@ -3,6 +3,7 @@ import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { kcalFromMacros } from "@/src/domain/nutrition";
+import { formatInteger } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import React from "react";
 import { StyleSheet, View } from "react-native";
@@ -57,7 +58,7 @@ const KcalFromMacros: React.FC = () => {
         drifted && styles.hintWarning,
       ]}
     >
-      {t("foods.kcal_from_macros", { value: Math.round(computed) })}
+      {t("foods.kcal_from_macros", { value: formatInteger(computed) })}
     </Text>
   );
 };
