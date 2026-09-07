@@ -1,4 +1,5 @@
 import { useTranslation } from "@/src/hooks/useTranslation";
+import * as Linking from "expo-linking";
 import { i18n } from "@/src/i18n";
 import { theme } from "@/src/styles";
 import {
@@ -366,6 +367,24 @@ const styles = StyleSheet.create({
 const StaticNavigation = createStaticNavigation(RootStack);
 
 /**
+ * I `path` dichiarati su ogni schermata non facevano niente.
+ *
+ * Erano una quarantina di righe `linking: { path: "..." }` sparse nell'albero,
+ * ma `linking` non e' mai stato passato al navigatore: senza, React Navigation
+ * non le legge nemmeno. Nessun `kaltrack://` ha mai aperto niente - l'app si
+ * limitava a tornare in primo piano sulla schermata dov'era.
+ *
+ * La configurazione dei percorsi non sta qui: con l'API statica la ricava
+ * React Navigation dall'albero, ed e' proprio quel che i `path` dichiarano.
+ * Qui serve solo dire da quali prefissi arrivano.
+ */
+const LINKING = {
+  // `createURL` copre anche lo schema di sviluppo (exp://...), che in una dev
+  // build e' diverso da quello dell'app installata.
+  prefixes: [Linking.createURL("/"), "kaltrack://"],
+};
+
+/**
  * Navigazione col tema di React Navigation derivato dal nostro.
  *
  * Serve perché la tab bar prende il proprio sfondo da `colors.card` del tema di
@@ -434,6 +453,7 @@ export function Navigation() {
       ref={navigationRef}
       theme={navigationTheme}
       initialState={initialState}
+      linking={LINKING}
     />
   );
 }
