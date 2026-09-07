@@ -13,6 +13,7 @@ chown -R www-data:www-data /data /var/www/html/storage
 # riparte dopo un aggiornamento deve trovare lo schema aggiornato senza che
 # nessuno si ricordi di lanciarle a mano.
 php artisan migrate --force --no-interaction
+php artisan catalog:seed
 
 # La cache si ricostruisce qui e non nell'immagine: dipende da .env, che
 # arriva a runtime. Costruirla al build significherebbe cristallizzare la
