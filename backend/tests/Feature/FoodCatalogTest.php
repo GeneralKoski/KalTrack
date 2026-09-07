@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Food;
 use App\Models\User;
+use App\Support\Text;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -82,7 +83,16 @@ class FoodCatalogTest extends TestCase
         $anna = $this->user('anna');
         $bea = $this->user('bea');
 
-        $this->actingAs($anna)->postJson('/api/foods', $this->alimento())->assertOk();
+        // Pubblicato direttamente sul model: il catalogo che si legge da
+        // `GET` mostra solo voci gia' approvate, e questo test riguarda
+        // proprio la lettura del catalogo, non la proposta.
+        Food::create([
+            'name' => 'Petto di pollo',
+            'name_norm' => 'petto di pollo',
+            'kcal' => 165,
+            'status' => 'published',
+            'created_by' => $anna->id,
+        ]);
 
         $corpo = $this->actingAs($bea)
             ->getJson('/api/foods')
@@ -235,10 +245,16 @@ class FoodCatalogTest extends TestCase
     {
         $anna = $this->user();
 
+        // Pubblicati direttamente: la ricerca e' sul catalogo, cioe' sulle
+        // voci gia' approvate, non sulle proposte appena fatte.
         foreach (['Petto di pollo', 'Petto di tacchino', 'Riso'] as $nome) {
-            $this->actingAs($anna)
-                ->postJson('/api/foods', $this->alimento(['name' => $nome]))
-                ->assertOk();
+            Food::create([
+                'name' => $nome,
+                'name_norm' => Text::normalize($nome),
+                'kcal' => 165,
+                'status' => 'published',
+                'created_by' => $anna->id,
+            ]);
         }
 
         $this->actingAs($anna)
@@ -271,5 +287,23 @@ class FoodCatalogTest extends TestCase
     {
         $this->getJson('/api/foods')->assertStatus(401);
         $this->postJson('/api/foods', $this->alimento())->assertStatus(401);
+    }
+
+    public function test_una_proposta_non_esce_dal_catalogo(): void
+    {
+        $anna = User::factory()->create();
+
+        $this->actingAs($anna)->postJson('/api/foods', [
+            'name' => 'Pasta della Lidl',
+            'kcal' => 353,
+        ])->assertOk();
+
+        $this->actingAs($anna)->getJson('/api/foods')
+            ->assertOk()
+            ->assertJsonMissing(['name' => 'Pasta della Lidl']);
+
+        $voce = Food::where('name_norm', 'pasta della lidl')->first();
+        $this->assertSame('pending', $voce->status);
+        $this->assertSame($anna->id, $voce->created_by);
     }
 }

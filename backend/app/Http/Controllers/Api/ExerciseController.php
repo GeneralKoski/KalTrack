@@ -7,6 +7,7 @@ use App\Models\Exercise;
 use App\Support\Text;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class ExerciseController extends Controller
 {
@@ -39,6 +40,14 @@ class ExerciseController extends Controller
          * sempre lo stesso punto.
          */
         $exercises = Exercise::query()
+            /*
+             * Solo il catalogo, non le proposte.
+             *
+             * Nemmeno le proprie: chi ha proposto una voce ce l'ha gia' sul
+             * telefono, e vedersela tornare dal catalogo comune vorrebbe dire
+             * che e' stata pubblicata, che non e' vero.
+             */
+            ->where('status', 'published')
             ->when($term !== '', fn ($q) => $q->where('name_norm', 'LIKE', "%{$term}%"))
             ->when($after !== '', fn ($q) => $q->where('name_norm', '>', $after))
             ->orderBy('name_norm')
@@ -93,11 +102,19 @@ class ExerciseController extends Controller
         $exercise = Exercise::firstOrCreate(
             ['name_norm' => $norm],
             [
+                'uid' => (string) Str::uuid(),
                 'name' => trim($validated['name']),
                 'muscle_group' => $validated['muscleGroup'],
                 'secondary_muscles' => $validated['secondaryMuscles'] ?? null,
                 'equipment' => $validated['equipment'] ?? null,
                 'created_by' => $request->user()->id,
+                /*
+                 * Fin qui una voce creata a mano entrava nell'elenco di
+                 * chiunque, e la migrazione della tabella lo dichiarava. Da
+                 * qui in poi si propone e basta: entra quando
+                 * l'amministratore lo decide, dal gestionale.
+                 */
+                'status' => 'pending',
             ],
         );
 
@@ -118,7 +135,7 @@ class ExerciseController extends Controller
      */
     public function update(Request $request, Exercise $exercise): JsonResponse
     {
-        if ($negato = $this->soloIlProprietario($request, $exercise->created_by)) {
+        if ($negato = $this->soloLaPropriaProposta($request, $exercise)) {
             return $negato;
         }
 
@@ -180,7 +197,7 @@ class ExerciseController extends Controller
      */
     public function destroy(Request $request, Exercise $exercise): JsonResponse
     {
-        if ($negato = $this->soloIlProprietario($request, $exercise->created_by)) {
+        if ($negato = $this->soloLaPropriaProposta($request, $exercise)) {
             return $negato;
         }
 
@@ -211,19 +228,27 @@ class ExerciseController extends Controller
     /**
      * Il controllo di proprieta', in un posto solo.
      *
-     * Torna la risposta di rifiuto, o null se si puo' procedere. La stessa
-     * risposta per "non e' tua" e per "non ha un proprietario": in entrambi i
-     * casi la voce non e' modificabile da chi sta chiedendo, e distinguere i
-     * due direbbe a chi prova che quella voce ha un autore.
+     * Torna la risposta di rifiuto, o null se si puo' procedere.
+     *
+     * Due condizioni e non una: la voce dev'essere di chi chiede E dev'essere
+     * ancora in attesa. Da pubblicata in poi non e' piu' sua - e' nell'app di
+     * tutti - e correggerla la cambierebbe a chiunque. La sua copia ce l'ha
+     * comunque sul telefono, dove nessuno gliela tocca.
+     *
+     * La stessa risposta per tutti i casi: distinguere "non e' tua" da "e'
+     * gia' pubblicata" direbbe a chi prova qualcosa che non gli riguarda.
      */
-    private function soloIlProprietario(Request $request, ?int $autore): ?JsonResponse
+    private function soloLaPropriaProposta(Request $request, Exercise $exercise): ?JsonResponse
     {
-        if ($autore !== null && $autore === $request->user()->id) {
+        $mia = $exercise->created_by !== null
+            && $exercise->created_by === $request->user()->id;
+
+        if ($mia && $exercise->status === 'pending') {
             return null;
         }
 
         return response()->json([
-            'message' => 'Puoi modificare solo le voci che hai aggiunto tu.',
+            'message' => 'Puoi modificare solo le proposte che hai fatto tu e che non sono ancora state pubblicate.',
         ], 403);
     }
 

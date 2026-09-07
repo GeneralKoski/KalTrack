@@ -7,6 +7,7 @@ use App\Models\Food;
 use App\Support\Text;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 /**
  * Il catalogo degli alimenti, comune a tutti gli iscritti.
@@ -31,6 +32,14 @@ class FoodController extends Controller
         // voce aggiunta mentre si scorre fa slittare tutto e chi importa si
         // perde una riga o la prende due volte.
         $foods = Food::query()
+            /*
+             * Solo il catalogo, non le proposte.
+             *
+             * Nemmeno le proprie: chi ha proposto una voce ce l'ha gia' sul
+             * telefono, e vedersela tornare dal catalogo comune vorrebbe dire
+             * che e' stata pubblicata, che non e' vero.
+             */
+            ->where('status', 'published')
             ->when($term !== '', fn ($q) => $q->where('name_norm', 'LIKE', "%{$term}%"))
             ->when($after !== '', fn ($q) => $q->where('name_norm', '>', $after))
             ->orderBy('name_norm')
@@ -79,7 +88,18 @@ class FoodController extends Controller
 
         $food = Food::firstOrCreate(
             ['name_norm' => $norm],
-            [...$this->colonne($validated), 'created_by' => $request->user()->id],
+            [
+                ...$this->colonne($validated),
+                'uid' => (string) Str::uuid(),
+                'created_by' => $request->user()->id,
+                /*
+                 * Fin qui una voce creata a mano entrava nell'elenco di
+                 * chiunque, e la migrazione della tabella lo dichiarava. Da
+                 * qui in poi si propone e basta: entra quando
+                 * l'amministratore lo decide, dal gestionale.
+                 */
+                'status' => 'pending',
+            ],
         );
 
         return response()->json([
@@ -90,7 +110,7 @@ class FoodController extends Controller
     /** Corregge una voce. SOLO LA PROPRIA. */
     public function update(Request $request, Food $food): JsonResponse
     {
-        if ($negato = $this->soloIlProprietario($request, $food->created_by)) {
+        if ($negato = $this->soloLaPropriaProposta($request, $food)) {
             return $negato;
         }
 
@@ -146,7 +166,7 @@ class FoodController extends Controller
      */
     public function destroy(Request $request, Food $food): JsonResponse
     {
-        if ($negato = $this->soloIlProprietario($request, $food->created_by)) {
+        if ($negato = $this->soloLaPropriaProposta($request, $food)) {
             return $negato;
         }
 
@@ -210,14 +230,30 @@ class FoodController extends Controller
         ], 422);
     }
 
-    private function soloIlProprietario(Request $request, ?int $autore): ?JsonResponse
+    /**
+     * Il controllo di proprieta', in un posto solo.
+     *
+     * Torna la risposta di rifiuto, o null se si puo' procedere.
+     *
+     * Due condizioni e non una: la voce dev'essere di chi chiede E dev'essere
+     * ancora in attesa. Da pubblicata in poi non e' piu' sua - e' nell'app di
+     * tutti - e correggerla la cambierebbe a chiunque. La sua copia ce l'ha
+     * comunque sul telefono, dove nessuno gliela tocca.
+     *
+     * La stessa risposta per tutti i casi: distinguere "non e' tua" da "e'
+     * gia' pubblicata" direbbe a chi prova qualcosa che non gli riguarda.
+     */
+    private function soloLaPropriaProposta(Request $request, Food $food): ?JsonResponse
     {
-        if ($autore !== null && $autore === $request->user()->id) {
+        $mia = $food->created_by !== null
+            && $food->created_by === $request->user()->id;
+
+        if ($mia && $food->status === 'pending') {
             return null;
         }
 
         return response()->json([
-            'message' => 'Puoi modificare solo le voci che hai aggiunto tu.',
+            'message' => 'Puoi modificare solo le proposte che hai fatto tu e che non sono ancora state pubblicate.',
         ], 403);
     }
 

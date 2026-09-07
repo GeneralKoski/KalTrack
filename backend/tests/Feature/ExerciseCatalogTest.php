@@ -104,10 +104,16 @@ class ExerciseCatalogTest extends TestCase
         $anna = $this->user('anna');
         $bea = $this->user('bea');
 
-        $this->actingAs($anna)->postJson('/api/exercises', [
+        // Pubblicata direttamente sul model: il catalogo che si legge da
+        // `GET` mostra solo voci gia' approvate, e questo test riguarda
+        // proprio la lettura del catalogo, non la proposta.
+        Exercise::create([
             'name' => 'Spinte in alto',
-            'muscleGroup' => 'shoulders',
-        ])->assertOk();
+            'name_norm' => 'spinte in alto',
+            'muscle_group' => 'shoulders',
+            'status' => 'published',
+            'created_by' => $anna->id,
+        ]);
 
         $risposta = $this->actingAs($bea)->getJson('/api/exercises')->assertOk();
 
@@ -134,10 +140,15 @@ class ExerciseCatalogTest extends TestCase
     {
         $anna = $this->user('anna');
 
-        $this->actingAs($anna)->postJson('/api/exercises', [
+        // Pubblicata direttamente: `mine` si legge dal catalogo, che mostra
+        // solo voci gia' approvate.
+        Exercise::create([
             'name' => 'Spinte in alto',
-            'muscleGroup' => 'shoulders',
-        ])->assertOk();
+            'name_norm' => 'spinte in alto',
+            'muscle_group' => 'shoulders',
+            'status' => 'published',
+            'created_by' => $anna->id,
+        ]);
 
         $this->actingAs($anna)
             ->getJson('/api/exercises')
@@ -341,11 +352,16 @@ class ExerciseCatalogTest extends TestCase
     {
         $user = $this->user();
 
+        // Pubblicate direttamente: la ricerca e' sul catalogo, cioe' sulle
+        // voci gia' approvate, non sulle proposte appena fatte.
         foreach (['Panca piana', 'Squat', 'Panca inclinata'] as $nome) {
-            $this->actingAs($user)->postJson('/api/exercises', [
+            Exercise::create([
                 'name' => $nome,
-                'muscleGroup' => 'chest',
-            ])->assertOk();
+                'name_norm' => Text::normalize($nome),
+                'muscle_group' => 'chest',
+                'status' => 'published',
+                'created_by' => $user->id,
+            ]);
         }
 
         $this->actingAs($user)
@@ -372,6 +388,10 @@ class ExerciseCatalogTest extends TestCase
             ])
             ->assertOk()
             ->assertJsonPath('data.secondaryMuscles', 'tricipiti,spalle');
+
+        // Il catalogo legge solo le voci pubblicate: la si pubblica a mano
+        // per verificare che il campo sopravviva anche in lettura.
+        Exercise::first()->update(['status' => 'published']);
 
         $this->actingAs($anna)
             ->getJson('/api/exercises')
@@ -446,5 +466,78 @@ class ExerciseCatalogTest extends TestCase
         $this->assertSame('pure', Text::normalize('Purè'));
         $this->assertSame('ragu', Text::normalize('Ragù'));
         $this->assertSame('yogurt greco', Text::normalize('  yogurt   greco  '));
+    }
+
+    public function test_una_proposta_non_esce_dal_catalogo(): void
+    {
+        $anna = User::factory()->create();
+
+        $this->actingAs($anna)->postJson('/api/exercises', [
+            'name' => 'Spinte con la sedia',
+            'muscleGroup' => 'petto',
+        ])->assertOk();
+
+        // Nemmeno al suo autore: la voce e' gia' sul suo telefono, e
+        // rimandargliela nel catalogo comune direbbe che e' stata pubblicata.
+        $this->actingAs($anna)->getJson('/api/exercises')
+            ->assertOk()
+            ->assertJsonMissing(['name' => 'Spinte con la sedia']);
+    }
+
+    public function test_una_proposta_nasce_in_attesa(): void
+    {
+        $anna = User::factory()->create();
+
+        $this->actingAs($anna)->postJson('/api/exercises', [
+            'name' => 'Spinte con la sedia',
+            'muscleGroup' => 'petto',
+        ])->assertOk();
+
+        $voce = Exercise::where('name_norm', 'spinte con la sedia')->first();
+        $this->assertSame('pending', $voce->status);
+        $this->assertSame($anna->id, $voce->created_by);
+    }
+
+    public function test_una_voce_pubblicata_non_si_corregge_piu_dall_app(): void
+    {
+        $anna = User::factory()->create();
+
+        $voce = Exercise::create([
+            'uid' => 'x-1',
+            'name' => 'Spinte',
+            'name_norm' => 'spinte',
+            'muscle_group' => 'petto',
+            'status' => 'published',
+            'created_by' => $anna->id,
+        ]);
+
+        // Da pubblicata in poi la voce e' di tutti: correggerla la
+        // cambierebbe nell'app di chiunque, e quella decisione sta al
+        // gestionale. L'autore ha comunque la sua copia sul telefono.
+        $this->actingAs($anna)->patchJson("/api/exercises/{$voce->id}", [
+            'name' => 'Spinte modificate',
+            'muscleGroup' => 'petto',
+        ])->assertForbidden();
+    }
+
+    public function test_una_proposta_propria_si_corregge_ancora(): void
+    {
+        $anna = User::factory()->create();
+
+        $voce = Exercise::create([
+            'uid' => 'x-2',
+            'name' => 'Spinte',
+            'name_norm' => 'spinte',
+            'muscle_group' => 'petto',
+            'status' => 'pending',
+            'created_by' => $anna->id,
+        ]);
+
+        $this->actingAs($anna)->patchJson("/api/exercises/{$voce->id}", [
+            'name' => 'Spinte con la sedia',
+            'muscleGroup' => 'petto',
+        ])->assertOk();
+
+        $this->assertSame('Spinte con la sedia', $voce->fresh()->name);
     }
 }
