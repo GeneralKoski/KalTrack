@@ -153,6 +153,19 @@ class AdminFoodTest extends TestCase
         Storage::disk('local')->assertExists("catalog/{$nome}");
     }
 
+    public function test_kcal_e_obbligatorio_in_creazione(): void
+    {
+        // La colonna ha `default 0`: un alimento creato senza kcal non
+        // sarebbe salvato come "sconosciuto" ma come zero calorie, un
+        // numero che sembra vero e non lo e'.
+        $this->actingAs($this->admin)
+            ->postJson('/api/admin/foods', [
+                'name' => 'Alimento senza calorie',
+                'protein' => 5,
+            ])
+            ->assertStatus(422);
+    }
+
     public function test_i_valori_negativi_non_entrano(): void
     {
         $voce = $this->alimento();

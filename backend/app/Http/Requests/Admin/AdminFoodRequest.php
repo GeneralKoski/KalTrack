@@ -15,6 +15,15 @@ use Illuminate\Foundation\Http\FormRequest;
  * Il tetto a 9999 non e' arbitrario: nessun alimento ha piu' di 900 kcal per
  * cento grammi, e un numero fuori scala e' un errore di battitura che e'
  * meglio fermare qui che spiegare dopo.
+ *
+ * `kcal` e' l'unico nutriente obbligatorio in creazione, e non per
+ * simmetria mancata con gli altri sette: la colonna ha `default 0` nella
+ * migrazione, quindi un alimento creato senza kcal non verrebbe salvato come
+ * "sconosciuto" ma come zero calorie. Chi lo registra nel diario ci somma
+ * zero senza che nulla a schermo lo segnali, e il diario sbaglia in un modo
+ * che non si vede. Un alimento con kcal ma senza fibre e' una voce
+ * incompleta, ed e' uno stato onesto per un catalogo che cresce a mano; un
+ * alimento senza kcal non e' incompleto, e' sbagliato.
  */
 class AdminFoodRequest extends FormRequest
 {
@@ -33,7 +42,7 @@ class AdminFoodRequest extends FormRequest
             'brand' => ['sometimes', 'nullable', 'string', 'max:60'],
             'barcode' => ['sometimes', 'nullable', 'string', 'max:32'],
             'offId' => ['sometimes', 'nullable', 'string', 'max:64'],
-            'kcal' => $nutriente,
+            'kcal' => [$obbligatorio, 'numeric', 'min:0', 'max:9999'],
             'protein' => $nutriente,
             'carbs' => $nutriente,
             'sugars' => $nutriente,
