@@ -7,6 +7,7 @@ use App\Models\Food;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 /**
@@ -118,13 +119,42 @@ class AdminTest extends TestCase
 
     public function test_il_gruppo_admin_e_chiuso_a_chi_non_lo_e(): void
     {
+        // Il caso concreto, con una richiesta vera contro una rotta vera:
+        // resta, ma la copertura "nessuna rotta ne resta fuori" e' compito
+        // di `test_ogni_rotta_admin_porta_il_middleware`, non di un elenco
+        // scritto a mano qui.
         $anna = User::factory()->create(['is_admin' => false]);
 
-        // Ogni rotta del gruppo, una per una: un controllo scritto a mano in
-        // ogni metodo e' un controllo che prima o poi si dimentica in uno, ed
-        // e' esattamente il motivo per cui e' diventato un middleware.
-        foreach (['/api/admin/users'] as $rotta) {
-            $this->actingAs($anna)->getJson($rotta)->assertForbidden();
+        $this->actingAs($anna)->getJson('/api/admin/users')->assertForbidden();
+    }
+
+    /**
+     * Sostituisce un test che iterava un elenco scritto a mano di UNA sola
+     * rotta sotto un commento che prometteva "ogni rotta del gruppo, una per
+     * una": non poteva fallire per la ragione per cui esisteva - "qualcuno
+     * aggiunge una rotta fuori dal gruppo". Qui si legge l'elenco vero delle
+     * rotte di Laravel: ogni URI che comincia per `api/admin` deve portare il
+     * middleware `admin`, o il test fallisce a prescindere da quale rotta sia
+     * nuova.
+     *
+     * Il conteggio non e' un dettaglio: senza, questo test passerebbe anche
+     * se `Route::getRoutes()` non trovasse nessuna rotta sotto `api/admin` -
+     * un refactor delle rotte che spostasse per sbaglio il prefisso
+     * lascerebbe il test verde mentre non verifica piu' niente.
+     */
+    public function test_ogni_rotta_admin_porta_il_middleware(): void
+    {
+        $rotteAdmin = collect(Route::getRoutes())
+            ->filter(fn ($rotta) => str_starts_with($rotta->uri(), 'api/admin'));
+
+        $this->assertGreaterThan(15, $rotteAdmin->count());
+
+        foreach ($rotteAdmin as $rotta) {
+            $this->assertContains(
+                'admin',
+                $rotta->middleware(),
+                "La rotta {$rotta->uri()} non porta il middleware admin.",
+            );
         }
     }
 
