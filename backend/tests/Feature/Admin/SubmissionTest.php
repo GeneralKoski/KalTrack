@@ -256,6 +256,71 @@ class SubmissionTest extends TestCase
             ->assertNotFound();
     }
 
+    /**
+     * `destroy()` toglie una voce pubblicata con un tombstone vero, che il
+     * pull manda ai telefoni. Senza questo rifiuto, `reject()` scriveva
+     * `status = 'rejected'` su una voce gia' pubblicata, e da li' in poi
+     * `CatalogController::pull()` - che filtra sempre `where('status',
+     * 'published')` prima del ramo del tombstone - la faceva sparire dal
+     * catalogo senza mai dirlo a chi l'aveva gia' scaricata.
+     */
+    public function test_rifiutare_una_voce_gia_pubblicata_e_rifiutato(): void
+    {
+        $voce = Food::create([
+            'uid' => 'pubblicata',
+            'name' => 'Riso',
+            'name_norm' => 'riso',
+            'kcal' => 330,
+            'status' => 'published',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/admin/submissions/food/{$voce->id}/reject")
+            ->assertStatus(422);
+
+        $this->assertSame('published', $voce->fresh()->status);
+    }
+
+    /**
+     * Approvare una voce gia' pubblicata non e' un'operazione: non c'e' una
+     * proposta dietro, e farlo comunque riscriverebbe `reviewed_by` e
+     * `reviewed_at` senza che nessuno abbia deciso niente.
+     */
+    public function test_approvare_una_voce_gia_pubblicata_e_rifiutato(): void
+    {
+        $voce = Food::create([
+            'uid' => 'pubblicata',
+            'name' => 'Riso',
+            'name_norm' => 'riso',
+            'kcal' => 330,
+            'status' => 'published',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/admin/submissions/food/{$voce->id}/approve")
+            ->assertStatus(422);
+
+        $voce->refresh();
+        $this->assertSame('published', $voce->status);
+        $this->assertNull($voce->reviewed_by);
+    }
+
+    /**
+     * Il test che avrebbe preso il difetto sul nascere: una proposta ancora
+     * in attesa deve continuare a rifiutarsi esattamente come prima. Il
+     * guardiano nuovo non deve stringere il caso normale.
+     */
+    public function test_rifiutare_una_proposta_in_attesa_funziona_come_prima(): void
+    {
+        $voce = $this->proposta();
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/admin/submissions/food/{$voce->id}/reject")
+            ->assertOk();
+
+        $this->assertSame('rejected', $voce->fresh()->status);
+    }
+
     public function test_chi_non_e_amministratore_non_revisiona(): void
     {
         $voce = $this->proposta();

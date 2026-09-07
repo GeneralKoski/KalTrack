@@ -79,11 +79,17 @@ class FoodController extends Controller
         // salvato sul telefono, che e' dove lo usa, e `publishFood` e'
         // fire-and-forget - un 200 che non crea nulla non cambia niente per
         // lui.
+        //
+        // La risposta NON porta `publicShape($cancellato, ...)`: quella voce
+        // ha un intero blocco nutrizionale che chi chiama non ha mandato e
+        // non puo' vedere, ed e' l'ombra di una riga cancellata - restituirla
+        // trasformerebbe questo controllo in una sonda su cosa esiste nel
+        // catalogo cancellato. Il 200 senza `data` basta a dire "non ho
+        // creato nulla", che e' l'unica cosa che il chiamante (fire-and-forget)
+        // deve sapere.
         $cancellato = Food::onlyTrashed()->where('name_norm', $norm)->first();
         if ($cancellato) {
-            return response()->json([
-                'data' => $this->publicShape($cancellato, $request->user()->id),
-            ]);
+            return response()->json(['ok' => true]);
         }
 
         $food = Food::firstOrCreate(

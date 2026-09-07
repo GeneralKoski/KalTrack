@@ -71,6 +71,11 @@ class SubmissionController extends Controller
     public function approve(ReviewSubmissionRequest $request, string $type, int $id): JsonResponse
     {
         $riga = $this->trova($type, $id);
+
+        if ($errore = $this->soloInAttesa($riga)) {
+            return $errore;
+        }
+
         $dati = $request->safe()->all();
 
         if ($errore = $this->applicaCorrezioni($riga, $dati, $type)) {
@@ -94,6 +99,10 @@ class SubmissionController extends Controller
     {
         $riga = $this->trova($type, $id);
 
+        if ($errore = $this->soloInAttesa($riga)) {
+            return $errore;
+        }
+
         $riga->fill([
             'status' => 'rejected',
             'reviewed_at' => Carbon::now(),
@@ -110,6 +119,36 @@ class SubmissionController extends Controller
          * non c'e' niente che gliela mostri, e la spec lo dichiara.
          */
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Rifiutare o approvare ha senso solo su una PROPOSTA, cioe' una riga
+     * ancora `pending`.
+     *
+     * Senza questo controllo, `reject()` accettava una riga in qualunque
+     * stato - `trova()` e' un `findOrFail` che non guarda lo status - e su
+     * una voce gia' pubblicata scriveva `status = 'rejected'`. Da li' in poi
+     * la riga usciva da `CatalogController::pull()`, che filtra sempre
+     * `where('status', 'published')` PRIMA del ramo del tombstone: il
+     * telefono la perdeva senza mai ricevere una cancellazione, la stessa
+     * cosa che il pull promette di non fare mai. `destroy()` toglie una voce
+     * pubblicata gia' correttamente, con un tombstone vero - e' quella la via
+     * per "questa non deve piu' esserci", non il rifiuto di una proposta che
+     * non e' piu' una proposta.
+     *
+     * La stessa ragione vale al contrario per `approve()`: approvare una voce
+     * gia' pubblicata non e' un'operazione, e farlo comunque riscriverebbe
+     * `reviewed_by`/`reviewed_at` per una decisione che nessuno ha preso.
+     */
+    private function soloInAttesa(Model $riga): ?JsonResponse
+    {
+        if ($riga->status === 'pending') {
+            return null;
+        }
+
+        return response()->json([
+            'message' => 'Questa voce non e\' (piu\') una proposta in attesa: si rifiuta o si approva solo cio\' che deve ancora entrare in catalogo.',
+        ], 422);
     }
 
     /**

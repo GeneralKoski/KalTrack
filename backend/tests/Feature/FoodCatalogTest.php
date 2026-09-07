@@ -178,6 +178,31 @@ class FoodCatalogTest extends TestCase
     }
 
     /**
+     * Il guardiacaccia contro il 500 (`onlyTrashed()->where('name_norm', ...)`)
+     * deve restare, ma la risposta non puo' portare il blocco nutrizionale
+     * della voce cancellata: chi chiama non l'ha mandato e non puo' vederlo.
+     * Prima tornava kcal/proteine/eccetera della voce cancellata anche quando
+     * il chiamante ne mandava di diversi (o nessuno).
+     */
+    public function test_proporre_il_nome_di_un_alimento_cancellato_non_ne_svela_il_contenuto(): void
+    {
+        $anna = $this->user('anna');
+        $this->actingAs($anna)
+            ->postJson('/api/foods', $this->alimento(['name' => 'Merendina misteriosa', 'kcal' => 512]))
+            ->assertOk();
+        $id = Food::first()->id;
+        $this->actingAs($anna)->deleteJson("/api/foods/{$id}")->assertOk();
+
+        $bea = $this->user('bea');
+        $risposta = $this->actingAs($bea)
+            ->postJson('/api/foods', $this->alimento(['name' => 'Merendina misteriosa', 'kcal' => 10]))
+            ->assertOk();
+
+        $this->assertArrayNotHasKey('data', $risposta->json());
+        $this->assertStringNotContainsString('512', json_encode($risposta->json()));
+    }
+
+    /**
      * L'indice unico su `name_norm` copre anche le righe cancellate: senza
      * `withTrashed()` sul controllo, questa rinomina avrebbe superato il
      * controllo e sarebbe finita sull'eccezione non gestita del database

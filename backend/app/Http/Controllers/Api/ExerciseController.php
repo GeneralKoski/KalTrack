@@ -92,11 +92,17 @@ class ExerciseController extends Controller
         // esercizio resta salvato sul telefono, che e' dove lo usa, e
         // `publishToCatalog` e' fire-and-forget - un 200 che non crea nulla
         // non cambia niente per lui.
+        //
+        // La risposta NON porta `publicShape($cancellata, ...)`: quella voce
+        // ha un `muscleGroup`/`equipment` che chi chiama non ha mandato e non
+        // puo' vedere, ed e' l'ombra di una riga cancellata - restituirla
+        // trasformerebbe questo controllo in una sonda su cosa esiste nel
+        // catalogo cancellato. Il 200 senza `data` basta a dire "non ho
+        // creato nulla", che e' l'unica cosa che il chiamante (fire-and-forget)
+        // deve sapere.
         $cancellata = Exercise::onlyTrashed()->where('name_norm', $norm)->first();
         if ($cancellata) {
-            return response()->json([
-                'data' => $this->publicShape($cancellata, $request->user()->id),
-            ]);
+            return response()->json(['ok' => true]);
         }
 
         $exercise = Exercise::firstOrCreate(

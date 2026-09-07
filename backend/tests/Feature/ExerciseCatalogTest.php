@@ -247,6 +247,38 @@ class ExerciseCatalogTest extends TestCase
     }
 
     /**
+     * Il guardiacaccia contro il 500 (`onlyTrashed()->where('name_norm', ...)`)
+     * deve restare, ma la risposta non puo' portare il contenuto della voce
+     * cancellata: chi chiama non l'ha mandato e non puo' vederlo, ed e' una
+     * voce di un altro utente. Prima tornava `muscleGroup`/`equipment` della
+     * voce cancellata anche quando il chiamante non li aveva scritti.
+     */
+    public function test_proporre_il_nome_di_una_voce_cancellata_non_ne_svela_il_contenuto(): void
+    {
+        $anna = $this->user('anna');
+        $this->actingAs($anna)->postJson('/api/exercises', [
+            'name' => 'Squat bulgaro',
+            'muscleGroup' => 'legs',
+            'equipment' => 'manubri',
+        ])->assertOk();
+        $id = Exercise::first()->id;
+        $this->actingAs($anna)->deleteJson("/api/exercises/{$id}")->assertOk();
+
+        $bea = $this->user('bea');
+        $risposta = $this->actingAs($bea)
+            ->postJson('/api/exercises', [
+                'name' => 'Squat bulgaro',
+                'muscleGroup' => 'chest',
+            ])
+            ->assertOk();
+
+        $this->assertArrayNotHasKey('data', $risposta->json());
+        $corpo = json_encode($risposta->json());
+        $this->assertStringNotContainsString('manubri', $corpo);
+        $this->assertStringNotContainsString('legs', $corpo);
+    }
+
+    /**
      * La regola che rende il catalogo comune sopportabile: e' di tutti da
      * leggere, di ciascuno da correggere. Senza, chiunque potrebbe riscrivere
      * l'esercizio di chiunque altro nell'app di tutti quanti.
