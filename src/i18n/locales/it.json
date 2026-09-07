@@ -395,6 +395,8 @@
     "no_days": "Nessun giorno: aggiungine uno per iniziare.",
     "no_blocks": "Nessun esercizio in questo giorno",
     "add_block": "Aggiungi blocco",
+    "ai_banner_title": "Vuoi creare una scheda completa?",
+    "ai_banner_subtitle": "Tocca qui per generarla automaticamente con l'IA in base al tuo obiettivo.",
     "add_exercise": "Aggiungi esercizio",
     "pick_exercise": "Scegli un esercizio",
     "all_muscles": "Tutti",

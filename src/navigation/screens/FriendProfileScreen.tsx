@@ -13,7 +13,14 @@ import { formatDate } from "@/src/utils/dateUtils";
 import { useRoute, type RouteProp } from "@react-navigation/native";
 import { ChevronLeft, Lock } from "lucide-react-native";
 import React, { useCallback } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 /** Un numero non condiviso si scrive con un trattino, non con uno zero. */
@@ -38,7 +45,8 @@ export function FriendProfileScreen() {
   const handle = route.params.handle;
 
   const loader = useCallback(() => social.fetchProfile(handle), [handle]);
-  const { data, loading } = useFocusData<social.PublicProfile>(loader);
+  const { data, loading, refresh, refreshing } =
+    useFocusData<social.PublicProfile>(loader);
 
   const rows: { key: string; label: string; text: string }[] = [];
   const last = data?.stats[0];
@@ -79,6 +87,25 @@ export function FriendProfileScreen() {
               { paddingBottom: insets.bottom + theme.spacing.lg },
             ]}
             showsVerticalScrollIndicator={false}
+            /*
+              Questa schermata e' l'unica dell'app che non legge dal telefono:
+              quel che l'altra persona ha condiviso oggi lo sa solo il server, e
+              fino a qui si rileggeva soltanto entrando e uscendo. Il gesto che
+              tutti provano per aggiornare e' tirare giu'.
+
+              `tintColor` e `colors` vanno passati tutti e due, sono la stessa
+              cosa su iOS e Android: senza, la rotella esce nel colore di
+              sistema e in tema scuro e' quasi invisibile.
+            */
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={refresh}
+                tintColor={colors.accent}
+                colors={[colors.accent]}
+                progressBackgroundColor={colors.surface}
+              />
+            }
           >
             <Card style={styles.card}>
               <Text style={[styles.handle, { color: colors.textMuted }]}>

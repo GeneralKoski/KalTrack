@@ -395,6 +395,8 @@
     "no_days": "No days yet: add one to get started.",
     "no_blocks": "No exercises on this day",
     "add_block": "Add block",
+    "ai_banner_title": "Want a complete routine?",
+    "ai_banner_subtitle": "Tap here to generate one automatically with AI, based on your goal.",
     "add_exercise": "Add exercise",
     "pick_exercise": "Choose an exercise",
     "all_muscles": "All",

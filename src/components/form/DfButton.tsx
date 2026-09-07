@@ -14,6 +14,21 @@ import {
   type ViewStyle,
 } from "react-native";
 
+/**
+ * Il bordo di un pulsante a contorno, e l'imbottitura delle due taglie.
+ *
+ * Stanno qui e non solo dentro `styles` perche' servono anche al calcolo che
+ * segue: in React Native il bordo **si somma** alla scatola invece di starci
+ * dentro, quindi a parita' di imbottitura un pulsante a contorno viene piu'
+ * alto di uno pieno. A tutta larghezza, uno sotto l'altro, non si nota;
+ * affiancati in una riga si vede che non sono allineati.
+ */
+const BORDER = 1.5;
+const PADDING = {
+  full: { vertical: theme.spacing.md, horizontal: 24 },
+  compact: { vertical: 8, horizontal: 12 },
+};
+
 interface DfButtonProps {
   label: string;
   onPress?: () => void;
@@ -124,8 +139,14 @@ export const DfButton = ({
               backgroundColor: disabled ? colors.surfaceMuted : color,
             },
             isOutlined && {
-              borderWidth: 1.5,
+              borderWidth: BORDER,
               borderColor: disabled ? colors.border : color,
+              // Il bordo si toglie dall'imbottitura, cosi' la scatola resta
+              // alta quanto quella di un pulsante pieno.
+              paddingVertical:
+                PADDING[compact ? "compact" : "full"].vertical - BORDER,
+              paddingHorizontal:
+                PADDING[compact ? "compact" : "full"].horizontal - BORDER,
             },
           ]}
         >
@@ -142,13 +163,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: 24,
+    paddingVertical: PADDING.full.vertical,
+    paddingHorizontal: PADDING.full.horizontal,
   },
   baseCompact: {
     gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: PADDING.compact.vertical,
+    paddingHorizontal: PADDING.compact.horizontal,
   },
   fullWidth: {
     alignSelf: "stretch",

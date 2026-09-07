@@ -425,7 +425,10 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  restLabel: { flexGrow: 1, flexShrink: 1, fontSize: 13, fontWeight: "500" },
+  // Senza `flexGrow`: l'etichetta si prendeva tutta la riga e spingeva il campo
+  // contro il bordo destro, con mezza riga di vuoto in mezzo fra la parola e il
+  // numero che descrive. Restano accostati a sinistra, e il vuoto sta dopo.
+  restLabel: { flexShrink: 1, fontSize: 13, fontWeight: "500" },
   restField: {
     width: 76,
     height: 40,

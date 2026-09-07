@@ -9,11 +9,23 @@ interface FocusData<T> {
   data: T | null;
   loading: boolean;
   reload: () => void;
+  /**
+   * Ricarica **attesa**, per il pull-to-refresh: risolve quando i dati nuovi
+   * sono a schermo, che e' quello che un `RefreshControl` deve sapere per
+   * smettere di girare. `reload` non lo puo' dire - torna la funzione di
+   * pulizia dell'effetto, non una promessa.
+   */
+  refresh: () => Promise<void>;
+  /** Vero mentre `refresh` e' in volo: si passa a `RefreshControl`. */
+  refreshing: boolean;
 }
 
 /**
- * Carica dati dal DB locale al focus della schermata (local-first: nessun
- * fetch di rete) e ogni volta che il loader cambia.
+ * Carica i dati al focus della schermata e ogni volta che il loader cambia.
+ *
+ * Quasi sempre il loader legge da SQLite (local-first), ma non e' un vincolo
+ * del hook: il profilo di un amico, per esempio, e' una richiesta di rete - il
+ * server e' l'unico che sa cosa quella persona sta condividendo oggi.
  *
  * Il loader va memoizzato dal chiamante con useCallback sulle sue dipendenze
  * (il termine di ricerca, la data scelta...): cambiandolo l'effetto riparte da
@@ -25,6 +37,7 @@ interface FocusData<T> {
 export function useFocusData<T>(loader: () => Promise<T>): FocusData<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const dataRef = useRef<T | null>(null);
   /*
    * Quando la sincronizzazione porta righe nuove, la schermata aperta le ha
@@ -68,5 +81,28 @@ export function useFocusData<T>(loader: () => Promise<T>): FocusData<T> {
 
   useFocusEffect(run);
 
-  return { data, loading, reload: run };
+  /*
+   * Non riusa `run`, e non e' una dimenticanza: `run` e' fatto per
+   * `useFocusEffect`, quindi torna il proprio cleanup e non c'e' modo di sapere
+   * quando ha finito. Qui invece serve la fine del caricamento, e serve senza
+   * toccare `loading`: quello alza lo spinner a tutta pagina, e un pull che
+   * sostituisce quel che stai guardando con uno spinner e' peggio di nessun
+   * pull. I dati restano a schermo e si aggiornano sotto la rotella del
+   * `RefreshControl`.
+   */
+  const refresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const result = await loader();
+      dataRef.current = result;
+      setData(result);
+    } catch (error) {
+      logger.error("[useFocusData] errore aggiornamento", error);
+      showToast.error({ title: i18n.t("load_failed") });
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loader]);
+
+  return { data, loading, reload: run, refresh, refreshing };
 }

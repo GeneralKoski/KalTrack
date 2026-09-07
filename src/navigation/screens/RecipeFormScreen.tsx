@@ -31,7 +31,11 @@ import {
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
-import { foodNutrients, type RecipeItemInput } from "@/src/types/nutrition";
+import {
+  foodNutrients,
+  type FoodRow,
+  type RecipeItemInput,
+} from "@/src/types/nutrition";
 import { showToast } from "@/src/utils/toast";
 import { sanitizeDecimalInput } from "@/src/utils/utils";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -47,17 +51,18 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 /**
- * Un ingrediente nel form: porta con sé nome e valori risolti, così i totali si
+ * Un ingrediente nel form: porta con sé i valori risolti, così i totali si
  * ricalcolano in memoria a ogni tasto senza rileggere il database.
+ *
+ * Un alimento tiene la **riga intera** e non solo id, nome e valori per cento:
+ * la finestra dei grammi vuole anche foto, marca e porzione, ed erano proprio
+ * quelli a mancare (§ La modale dei grammi in `CLAUDE.md`). Id, nome e valori
+ * si ricavano da lì, quindi restano una fonte sola. Una ricetta annidata invece
+ * porta i propri valori appiattiti: si risolvono una volta al momento in cui la
+ * si aggiunge, e da lì in poi l'ingrediente è autosufficiente.
  */
 type DraftItem =
-  | {
-      kind: "food";
-      foodId: string;
-      name: string;
-      per100: Nutrients;
-      grams: number;
-    }
+  | { kind: "food"; food: FoodRow; grams: number }
   | {
       kind: "recipe";
       recipeId: string;
@@ -68,12 +73,15 @@ type DraftItem =
 
 const toInput = (item: DraftItem): RecipeItemInput =>
   item.kind === "food"
-    ? { foodId: item.foodId, quantityG: item.grams }
+    ? { foodId: item.food.id, quantityG: item.grams }
     : { childRecipeId: item.recipeId, servings: item.servings };
+
+const itemName = (item: DraftItem): string =>
+  item.kind === "food" ? item.food.name : item.name;
 
 const itemNutrients = (item: DraftItem): Nutrients =>
   item.kind === "food"
-    ? scaleNutrients(item.per100, item.grams)
+    ? scaleNutrients(foodNutrients(item.food), item.grams)
     : scaleNutrients(item.perServing, item.servings * 100);
 
 export function RecipeFormScreen() {
@@ -117,13 +125,7 @@ export function RecipeFormScreen() {
         if (row.food_id) {
           const food = await getFood(row.food_id);
           if (!food) continue;
-          drafts.push({
-            kind: "food",
-            foodId: food.id,
-            name: food.name,
-            per100: foodNutrients(food),
-            grams: row.quantity_g ?? 0,
-          });
+          drafts.push({ kind: "food", food, grams: row.quantity_g ?? 0 });
         } else if (row.child_recipe_id) {
           const child = await getRecipe(row.child_recipe_id);
           const tree = await buildRecipeTree(row.child_recipe_id);
@@ -180,13 +182,7 @@ export function RecipeFormScreen() {
     if (pending.kind === "food") {
       setItems((prev) => [
         ...prev,
-        {
-          kind: "food",
-          foodId: pending.food.id,
-          name: pending.food.name,
-          per100: foodNutrients(pending.food),
-          grams: value,
-        },
+        { kind: "food", food: pending.food, grams: value },
       ]);
     } else {
       // I valori della ricetta annidata si risolvono ora, una volta sola: da qui
@@ -328,7 +324,7 @@ export function RecipeFormScreen() {
             {items.map((item, index) => (
               <IngredientRow
                 key={`${item.kind}-${index}`}
-                name={item.name}
+                name={itemName(item)}
                 quantityLabel={
                   item.kind === "food"
                     ? `${item.grams} g`
@@ -401,10 +397,17 @@ export function RecipeFormScreen() {
         onPick={onPick}
       />
 
+      {/*
+        La stessa finestra della home, con gli stessi dati dentro: foto, marca,
+        riferimento per cento e i macro che si ricalcolano mentre si scrivono i
+        grammi. Il componente era gia' questo, ma senza `food` mostrava solo un
+        campo numerico sotto un nome - e per sapere quante calorie stavi
+        aggiungendo alla ricetta bisognava annullare e andare a cercarlo.
+      */}
       <QuantityPrompt
         isOpen={promptOpen}
         title={
-          promptTarget?.name ??
+          (promptTarget ? itemName(promptTarget) : null) ??
           (pending?.kind === "food" ? pending.food.name : pending?.recipe.name) ??
           ""
         }
@@ -421,6 +424,15 @@ export function RecipeFormScreen() {
             : pending?.kind === "food"
               ? (pending.food.default_serving_g ?? 100)
               : 1
+        }
+        food={
+          promptTarget
+            ? promptTarget.kind === "food"
+              ? promptTarget.food
+              : null
+            : pending?.kind === "food"
+              ? pending.food
+              : null
         }
         onConfirm={confirmQuantity}
         onClose={() => {

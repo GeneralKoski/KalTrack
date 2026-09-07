@@ -364,14 +364,12 @@ export function RoutineFormScreen() {
                 </View>
                 <View style={styles.aiBannerText}>
                   <Text style={[styles.aiBannerTitle, { color: colors.text }]}>
-                    Vuoi creare una scheda completa?
+                    {t("gym.ai_banner_title")}
                   </Text>
                   <Text
                     style={[styles.aiBannerSub, { color: colors.textMuted }]}
                   >
-                    {
-                      "Tocca qui per generarla automaticamente con l'IA in base al tuo obiettivo."
-                    }
+                    {t("gym.ai_banner_subtitle")}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -460,7 +458,7 @@ export function RoutineFormScreen() {
                 </View>
 
                 {day.blocks.length === 0 ? (
-                  <EmptyState message={t("gym.no_blocks")} />
+                  <EmptyState message={t("gym.no_blocks")} compact />
                 ) : (
                   day.blocks.map((block, index) => (
                     <View key={block.key} style={styles.block}>
@@ -491,24 +489,43 @@ export function RoutineFormScreen() {
                   ))
                 )}
 
+              </>
+            ) : (
+              <EmptyState message={t("gym.no_days")} compact />
+            )}
+
+            {/*
+              Le due azioni stavano una sotto l'altra, a tutta larghezza: due
+              barre e lo stacco fra loro si mangiavano un quinto dello schermo
+              per dire due parole. Affiancate occupano una riga sola.
+
+              **Altezza normale, non `compact`**: quella taglia esiste per
+              l'intestazione di `SessionScreen` e per le tre azioni di
+              Diagnostica, non per le azioni di una pagina. Un pulsante piu'
+              sottile qui e piu' alto altrove fa sembrare che contino diverso.
+
+              Restano distinguibili senza etichette in piu': "Salva" e' pieno e
+              "Aggiungi blocco" a contorno, quindi affiancarli non dice che
+              pesano uguale - che e' l'obiezione a cui rispondono anche le
+              azioni di `GenerateRoutineScreen`.
+            */}
+            <View style={styles.actions}>
+              {day ? (
                 <DfButton
                   label={t("gym.add_block")}
                   variant="outlined"
                   icon={<Plus size={18} color={colors.accent} />}
                   onPress={() => openPicker({ type: "block" })}
-                  style={styles.addBlock}
+                  style={styles.action}
                 />
-              </>
-            ) : (
-              <EmptyState message={t("gym.no_days")} />
-            )}
-
-            <DfButton
-              label={t("save")}
-              loading={saving}
-              onPress={onSave}
-              style={styles.save}
-            />
+              ) : null}
+              <DfButton
+                label={t("save")}
+                loading={saving}
+                onPress={onSave}
+                style={styles.action}
+              />
+            </View>
           </FormScreen>
         )}
       </SafeAreaView>
@@ -639,7 +656,14 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   block: { marginBottom: theme.spacing.sm },
-  addBlock: { marginTop: theme.spacing.xs },
-  save: { marginTop: theme.spacing.lg },
+  actions: {
+    flexDirection: "row",
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.lg,
+  },
+  // Meta' ciascuno: la gerarchia la dice il pieno contro il contorno, non la
+  // larghezza. Finche' non c'e' un giorno "Aggiungi blocco" non esiste, e
+  // "Salva" si prende la riga intera da solo.
+  action: { flex: 1 },
   loader: { marginTop: theme.spacing.xl },
 });

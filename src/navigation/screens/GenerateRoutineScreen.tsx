@@ -251,29 +251,31 @@ export function GenerateRoutineScreen() {
             />
 
             {/*
-              Le due azioni non pesano uguale. Affiancate e larghe uguale
-              dicevano che generare e rinunciare sono la stessa cosa: generare e'
-              perche' si e' aperta la schermata, annullare e' tornare indietro,
-              cioe' quel che fa gia' il chevron in alto.
+              Le due azioni non pesano uguale, e continuano a non pesarlo: sono
+              in riga ma NON larghe uguale. Generare e' perche' si e' aperta la
+              schermata, annullare e' tornare indietro - cioe' quel che fa gia'
+              il chevron in alto - quindi si prende lo spazio del suo testo e
+              basta, e il resto della riga e' di "Genera scheda".
+
+              Impilate erano una barra piena alta e sotto un collegamento
+              centrato: due righe di altezza per un'azione secondaria che nemmeno
+              serve.
             */}
             <View style={styles.actions}>
+              <DfButton
+                label={t("cancel")}
+                variant="ghost"
+                fullWidth={false}
+                disabled={loading}
+                onPress={goBack}
+              />
               <DfButton
                 label={t("gym.generate_action")}
                 icon={<Sparkles size={16} color={colors.accentOn} />}
                 loading={loading}
                 onPress={() => formRef.current?.submit()}
+                style={styles.generate}
               />
-              <TouchableOpacity
-                onPress={goBack}
-                activeOpacity={0.6}
-                disabled={loading}
-                accessibilityRole="button"
-                style={styles.cancel}
-              >
-                <Text style={[styles.cancelLabel, { color: colors.textMuted }]}>
-                  {t("cancel")}
-                </Text>
-              </TouchableOpacity>
             </View>
           </DfForm>
         </FormScreen>
@@ -309,11 +311,12 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   equipmentEditLabel: { fontSize: 12, fontWeight: "600" },
-  actions: { marginTop: theme.spacing.sm },
-  cancel: {
-    height: 44,
+  actions: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.sm,
   },
-  cancelLabel: { fontSize: 14, fontWeight: "500" },
+  // "Annulla" prende la larghezza del suo testo, questo si prende il resto.
+  generate: { flex: 1 },
 });
