@@ -66,6 +66,24 @@ class AdminExerciseTest extends TestCase
             ->assertJsonPath('data.0.name', 'Squat');
     }
 
+    /**
+     * Il filtro "cosa manca" e' ristretto al catalogo pubblicato, non alla
+     * coda di revisione: una proposta ancora in attesa non e' un buco nel
+     * catalogo, e' una riga con la sua schermata e una revisione da fare, non
+     * una descrizione da scrivere.
+     */
+    public function test_il_filtro_cosa_manca_non_vede_le_proposte(): void
+    {
+        $this->esercizio(['uid' => 'ex-2', 'name' => 'Squat', 'name_norm' => 'squat', 'status' => 'pending']);
+        $this->esercizio(['uid' => 'ex-3', 'name' => 'Affondi', 'name_norm' => 'affondi', 'status' => 'published']);
+
+        $this->actingAs($this->admin)
+            ->getJson('/api/admin/exercises?missing=instructions')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'Affondi');
+    }
+
     public function test_l_elenco_comprende_le_proposte(): void
     {
         $this->esercizio(['uid' => 'ex-2', 'name' => 'Squat', 'name_norm' => 'squat', 'status' => 'pending']);

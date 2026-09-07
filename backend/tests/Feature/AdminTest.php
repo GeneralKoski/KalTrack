@@ -284,4 +284,37 @@ class AdminTest extends TestCase
         $this->assertSame(1, $riga['submitted']);
         $this->assertSame(1, $riga['published']);
     }
+
+    /**
+     * Il numero della dashboard e il filtro a cui rimanda contano lo stesso
+     * insieme: quello del catalogo pubblicato, non quello della coda di
+     * revisione. Una proposta ancora in attesa non ha ne' `instructions` ne'
+     * `photo` - `ExerciseController::store` non li raccoglie - quindi
+     * conterebbe come "manca" a prescindere se il filtro non fosse ristretto
+     * come lo e' `stats()`: il test verifica entrambi sulla stessa foto, cosi'
+     * i due non possono divergere senza far fallire questo test.
+     */
+    public function test_il_numero_e_il_filtro_di_cosa_manca_contano_lo_stesso_insieme(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        Exercise::create([
+            'uid' => 'a', 'name' => 'Pubblicato muto', 'name_norm' => 'pubblicato muto',
+            'muscle_group' => 'petto', 'status' => 'published',
+        ]);
+        Exercise::create([
+            'uid' => 'b', 'name' => 'In coda muto', 'name_norm' => 'in coda muto',
+            'muscle_group' => 'petto', 'status' => 'pending',
+        ]);
+
+        $this->actingAs($admin)->getJson('/api/admin/stats')
+            ->assertOk()
+            ->assertJsonPath('missing.instructions', 1);
+
+        $this->actingAs($admin)
+            ->getJson('/api/admin/exercises?missing=instructions')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'Pubblicato muto');
+    }
 }

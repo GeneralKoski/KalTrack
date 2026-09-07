@@ -93,7 +93,7 @@ class AdminController extends Controller
      * E' UN CARTELLO E NON UNA SERRATURA finche' le chiamate a Gemini partono
      * dal telefono con la chiave nel bundle: spegnerlo nasconde il microfono
      * e nient'altro. Serve gia' a regalare l'AI a chi si vuole, e diventa un
-     * diritto vero quando le chiamate passeranno da qui - `TODO.md` § 3.1.
+     * diritto vero quando le chiamate passeranno da qui - `TODO.md` sez. 3.1.
      */
     public function updateUser(UpdateUserRequest $request, User $user): JsonResponse
     {

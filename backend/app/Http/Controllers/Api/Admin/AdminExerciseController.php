@@ -54,7 +54,22 @@ class AdminExerciseController extends Controller
              * Il filtro con cui si va a colmare cio' che manca. E' l'altra
              * meta' dei due numeri della dashboard: sapere che 128 esercizi
              * sono muti non serve a niente se poi non si sa quali.
+             *
+             * Ristretto a `status = 'published'` quanto lo e' `AdminController
+             * ::stats()`, e non per caso: "manca" e' una domanda sul catalogo,
+             * cioe' su quel che tutti hanno gia' in mano, non sulla coda di
+             * revisione. Una proposta non ancora approvata non e' un buco nel
+             * catalogo, e' una riga in coda con la sua schermata e la sua
+             * azione ("revisionala", non "scrivi la descrizione") - e
+             * `ExerciseController::store` non raccoglie ne' `instructions` ne'
+             * `photo`, quindi ogni proposta in attesa risulterebbe muta a
+             * prescindere, gonfiando il filtro oltre il numero che la
+             * dashboard promette. Senza questa riga il generico (nessun
+             * `missing`) resterebbe comunque su tutti gli stati, com'e' giusto
+             * che sia: e' solo il ramo "cosa manca" a doversi allineare al
+             * numero che lo introduce.
              */
+            ->when($manca !== '', fn ($q) => $q->where('status', 'published'))
             ->when($manca === 'instructions', fn ($q) => $q->where(
                 fn ($q2) => $q2->whereNull('instructions')->orWhere('instructions', ''),
             ))
