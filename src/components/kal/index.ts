@@ -1,7 +1,9 @@
 export { Avatar } from "./Avatar";
 export { Card } from "./Card";
 export { GradientHeader, HeaderCircleButton } from "./GradientHeader";
+export { HeroDivider, HeroPanel } from "./HeroPanel";
 export { HistoryRow } from "./HistoryRow";
+export { ListGroup, ListRow, ROW_HEIGHT } from "./ListGroup";
 export {
   Chip,
   EmptyState,

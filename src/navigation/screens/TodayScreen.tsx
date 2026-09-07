@@ -5,8 +5,8 @@ import {
   type PhotoEstimate,
 } from "@/src/ai/estimateFromPhoto";
 import {
-  Card,
   EmptyState,
+  HeroPanel,
   MetalSurface,
   ScreenBackground,
 } from "@/src/components/kal";
@@ -372,7 +372,11 @@ export function TodayScreen() {
               { paddingBottom: ASSISTANT_FAB_CLEARANCE },
             ]}
           >
-            <Card style={styles.summary}>
+            {/* L'unica superficie chiara della schermata: e' la risposta alla
+                domanda che si viene a fare qui. Tutto il resto - acqua, pasti -
+                sta nudo sullo sfondo, e cosi' si distingue senza dover essere
+                piu' alto. */}
+            <HeroPanel contentStyle={styles.summary}>
               <CalorieRing
                 consumed={totals?.kcal ?? 0}
                 target={data?.targets?.kcal ?? null}
@@ -402,7 +406,7 @@ export function TodayScreen() {
                     : null
                 }
               />
-            </Card>
+            </HeroPanel>
 
             {/* L'acqua e' un dato del giorno: sta qui, dove si guarda ogni
                 volta, non dietro una voce di menu. */}
@@ -520,7 +524,9 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   content: {
     paddingHorizontal: theme.spacing.md,
-    gap: theme.spacing.sm,
+    // Piu' largo di prima: senza le card che le separavano, due sezioni di
+    // pasto attaccate a 8 px sembrerebbero un elenco solo.
+    gap: theme.spacing.md,
   },
   summary: {
     gap: theme.spacing.sm,

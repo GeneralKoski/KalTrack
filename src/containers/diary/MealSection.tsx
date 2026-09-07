@@ -1,4 +1,3 @@
-import { Card } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { EntryRow } from "@/src/containers/diary/EntryRow";
@@ -31,10 +30,17 @@ export const MealSection: React.FC<MealSectionProps> = ({
   const { colors } = useAppTheme();
 
   return (
-    <Card style={styles.card}>
+    /*
+      Un pasto e' contenuto che si scorre, non un oggetto da incorniciare: con
+      quattro pasti la schermata era quattro card impilate, ognuna con bordo e
+      ombra a ripetere la stessa cosa. Il nome del pasto e' ora un'etichetta di
+      sezione - lo stesso ruolo che ha ovunque nell'app - e le voci sono righe
+      separate da una linea.
+    */
+    <View style={styles.section}>
       <View style={styles.header}>
         <Text
-          style={[styles.title, { color: colors.text }]}
+          style={[styles.title, { color: colors.textMuted }]}
           numberOfLines={1}
         >
           {meal.type.name}
@@ -49,7 +55,10 @@ export const MealSection: React.FC<MealSectionProps> = ({
           key={entry.id}
           style={
             index > 0
-              ? { borderTopWidth: 1, borderTopColor: colors.border }
+              ? {
+                  borderTopWidth: StyleSheet.hairlineWidth,
+                  borderTopColor: colors.border,
+                }
               : undefined
           }
         >
@@ -63,42 +72,51 @@ export const MealSection: React.FC<MealSectionProps> = ({
         </View>
       ))}
 
-      <TouchableOpacity style={styles.add} onPress={onAdd} activeOpacity={0.6}>
-        <Plus size={16} color={colors.textMuted} />
-        <Text style={[styles.addLabel, { color: colors.textMuted }]}>
+      <TouchableOpacity
+        style={[styles.add, { borderTopColor: colors.border }]}
+        onPress={onAdd}
+        activeOpacity={0.6}
+        accessibilityRole="button"
+      >
+        <Plus size={14} color={colors.textFaint} />
+        <Text style={[styles.addLabel, { color: colors.textFaint }]}>
           {t("diary.add_here")}
         </Text>
       </TouchableOpacity>
-    </Card>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    paddingVertical: theme.spacing.sm,
+  section: {
+    paddingHorizontal: theme.spacing.xs,
   },
   header: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "baseline",
     justifyContent: "space-between",
-    paddingBottom: theme.spacing.xs,
+    gap: theme.spacing.sm,
+    paddingBottom: theme.spacing.xs + 1,
   },
+  // Stessa forma dell'etichetta di sezione del resto dell'app: e' quel che il
+  // nome di un pasto e' - un titolo di gruppo, non il titolo di una scheda.
   title: {
     flexShrink: 1,
-    fontSize: 16,
+    fontSize: 11,
     fontWeight: "700",
-    textTransform: "capitalize",
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
   kcal: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "500",
   },
   add: {
+    minHeight: 34,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     gap: 6,
-    paddingTop: theme.spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   addLabel: {
     fontSize: 13,

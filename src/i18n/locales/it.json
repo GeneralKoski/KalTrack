@@ -252,7 +252,10 @@
     "steps_weekly": "Passi, media di 14 giorni",
     "steps_empty": "Nessun passo registrato",
     "kcal_weekly": "Calorie, media di 14 giorni",
-    "kcal_empty": "Nessun pasto registrato"
+    "kcal_empty": "Nessun pasto registrato",
+    "trend": "Andamento · %{days} giorni",
+    "steps": "Passi",
+    "kcal": "Calorie"
   },
   "weekly_coach": {
     "title": "Coach settimanale",
@@ -581,7 +584,8 @@
     "ml": "ml",
     "liters": "L",
     "add_ml": "+%{ml} ml",
-    "undo": "Annulla l'ultimo bicchiere"
+    "undo": "Annulla l'ultimo bicchiere",
+    "add_short": "+%{ml}"
   },
   "measurements": {
     "title": "Misure",

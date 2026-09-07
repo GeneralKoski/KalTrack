@@ -1,4 +1,8 @@
-import { Card, ScreenBackground, SectionLabel } from "@/src/components/kal";
+import {
+  ListGroup,
+  ScreenBackground,
+  SectionLabel,
+} from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { MetricEntrySheet } from "@/src/containers/progress/MetricEntrySheet";
@@ -13,7 +17,7 @@ import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
-import { Plus } from "lucide-react-native";
+import { ChevronRight, Plus } from "lucide-react-native";
 import React, { useCallback, useRef } from "react";
 import {
   ActivityIndicator,
@@ -29,6 +33,10 @@ import {
 
 /** Finestra dei grafici: due settimane bastano a vedere una tendenza. */
 const WINDOW_DAYS = 14;
+
+/** La linea in riga: abbastanza per una tendenza, non un grafico da leggere. */
+const CHART_WIDTH = 110;
+const CHART_HEIGHT = 30;
 
 interface ProgressData {
   weights: number[];
@@ -81,18 +89,109 @@ export function ProgressScreen() {
 
   const { data, loading, reload } = useFocusData<ProgressData>(loader);
 
-  // null quando la finestra non ha dati: niente da mostrare qui, lo dice già
-  // il messaggio dedicato dentro Sparkline, sotto. Le due cose insieme
-  // ripetevano lo stesso "non c'è niente" con due frasi diverse.
-  const stat = (value: number | null, unit: string) =>
-    value === null ? null : (
-      <Text style={[styles.statValue, { color: colors.text }]}>
-        {Math.round(value).toLocaleString("it-IT")}
-        <Text style={[styles.statUnit, { color: colors.textMuted }]}>
-          {` ${unit}`}
+  /**
+   * Una riga dell'andamento.
+   *
+   * Erano tre card impilate, ognuna con la sua etichetta di sezione sopra e un
+   * riquadro alto un terzo di schermo dentro: con la finestra vuota - il caso
+   * normale di chi ha appena installato - restavano tre rettangoli grandi e
+   * vuoti, e la pagina sembrava piena e vuota insieme. Il grafico esteso vive
+   * nello storico, che si apre toccando la riga.
+   *
+   * `onAdd` assente vuol dire che quel numero non si scrive a mano: le calorie
+   * si ricavano dal diario.
+   */
+  const metric = (
+    label: string,
+    value: number | null,
+    unit: string,
+    values: number[],
+    emptyLabel: string,
+    onOpen?: () => void,
+    onAdd?: () => void,
+    addLabel?: string,
+  ) => (
+    <TouchableOpacity
+      activeOpacity={0.6}
+      disabled={!onOpen}
+      accessibilityRole={onOpen ? "button" : undefined}
+      accessibilityLabel={label}
+      onPress={onOpen}
+      style={styles.metricRow}
+    >
+      <View style={styles.metricHead}>
+        <Text style={[styles.metricLabel, { color: colors.textMuted }]} numberOfLines={1}>
+          {label}
         </Text>
-      </Text>
-    );
+        <Text style={[styles.statValue, { color: colors.text }]} numberOfLines={1}>
+          {value === null ? (
+            "–"
+          ) : (
+            <>
+              {Math.round(value).toLocaleString("it-IT")}
+              <Text style={[styles.statUnit, { color: colors.textMuted }]}>
+                {` ${unit}`}
+              </Text>
+            </>
+          )}
+        </Text>
+      </View>
+
+      <View style={styles.metricChart}>
+        {/* Da due punti in su, perche' UNO non e' una tendenza: un pallino solo
+            in mezzo al vuoto sembra un difetto, e il numero c'e' gia' a
+            sinistra. Zero punti invece e' un'informazione, e si scrive.
+            La cornice ha larghezza fissa perche' `Sparkline` disegna un `Svg` a
+            `width="100%"`: in un contenitore elastico si prenderebbe tutto lo
+            spazio e il grafico uscirebbe dalla colonna delle altre righe. */}
+        {values.length >= 2 ? (
+          <View style={styles.metricChartInner}>
+            <Sparkline
+              values={values}
+              emptyLabel={emptyLabel}
+              height={CHART_HEIGHT}
+              width={CHART_WIDTH}
+            />
+          </View>
+        ) : values.length === 0 ? (
+          <Text
+            style={[styles.metricEmpty, { color: colors.textFaint }]}
+            numberOfLines={1}
+          >
+            {emptyLabel}
+          </Text>
+        ) : null}
+      </View>
+
+      {/* Lo spazio del chevron e del "+" e' riservato anche a chi non li ha
+          (le calorie non si scrivono a mano, si ricavano dal diario): senza,
+          l'ultima riga allargherebbe il grafico e le tre non sarebbero piu'
+          incolonnate. */}
+      {onOpen ? (
+        <ChevronRight size={18} color={colors.textFaint} />
+      ) : (
+        <View style={styles.chevronSpacer} />
+      )}
+
+      {onAdd ? (
+        <TouchableOpacity
+          onPress={onAdd}
+          activeOpacity={0.6}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={addLabel}
+          style={[
+            styles.addButton,
+            { backgroundColor: colors.surfaceMuted, borderColor: colors.border },
+          ]}
+        >
+          <Plus size={15} color={colors.accent} />
+        </TouchableOpacity>
+      ) : (
+        <View style={styles.addSpacer} />
+      )}
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.root}>
@@ -113,71 +212,42 @@ export function ProgressScreen() {
           >
             <WeeklyCoachCard />
 
-            <SectionLabel
-              style={styles.section}
-              right={
-                <TouchableOpacity
-                  onPress={() => weightSheetRef.current?.present()}
-                  activeOpacity={0.6}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  accessibilityLabel={t("tracking.add_weight")}
-                >
-                  <Plus size={18} color={colors.accent} />
-                </TouchableOpacity>
-              }
-            >
-              {t("progress.weight")}
-            </SectionLabel>
-            <Card
-              style={styles.card}
-              onPress={() => navigate("WeightHistory")}
-            >
-              {stat(data?.latestWeight ?? null, "kg")}
-              <Sparkline
-                values={data?.weights ?? []}
-                emptyLabel={t("progress.weight_empty")}
-              />
-            </Card>
-
-            <SectionLabel
-              style={styles.section}
-              right={
-                <TouchableOpacity
-                  onPress={() => stepsSheetRef.current?.present()}
-                  activeOpacity={0.6}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  accessibilityLabel={t("tracking.add_steps")}
-                >
-                  <Plus size={18} color={colors.accent} />
-                </TouchableOpacity>
-              }
-            >
-              {t("progress.steps_weekly")}
-            </SectionLabel>
-            <Card style={styles.card} onPress={() => navigate("StepsHistory")}>
-              {stat(data?.stepsAverage ?? null, t("tracking.steps_unit"))}
-              <Sparkline
-                values={(data?.stepsByDay ?? []).filter(
-                  (v): v is number => v !== null,
-                )}
-                emptyLabel={t("progress.steps_empty")}
-              />
-            </Card>
-
+            {/* La finestra sta nel titolo della sezione e non in ogni riga:
+                "Passi, media di 14 giorni" non ci sta in una colonna da 88 px e
+                si troncava a "Passi, media di 1...". */}
             <SectionLabel style={styles.section}>
-              {t("progress.kcal_weekly")}
+              {t("progress.trend", { days: WINDOW_DAYS })}
             </SectionLabel>
-            <Card style={styles.card}>
-              {stat(data?.kcalAverage ?? null, "kcal")}
-              <Sparkline
-                values={(data?.kcalByDay ?? []).filter(
-                  (v): v is number => v !== null,
-                )}
-                emptyLabel={t("progress.kcal_empty")}
-              />
-            </Card>
+
+            <ListGroup indent={theme.spacing.md}>
+              {metric(
+                t("progress.weight"),
+                data?.latestWeight ?? null,
+                "kg",
+                data?.weights ?? [],
+                t("progress.weight_empty"),
+                () => navigate("WeightHistory"),
+                () => weightSheetRef.current?.present(),
+                t("tracking.add_weight"),
+              )}
+              {metric(
+                t("progress.steps"),
+                data?.stepsAverage ?? null,
+                t("tracking.steps_unit"),
+                (data?.stepsByDay ?? []).filter((v): v is number => v !== null),
+                t("progress.steps_empty"),
+                () => navigate("StepsHistory"),
+                () => stepsSheetRef.current?.present(),
+                t("tracking.add_steps"),
+              )}
+              {metric(
+                t("progress.kcal"),
+                data?.kcalAverage ?? null,
+                "kcal",
+                (data?.kcalByDay ?? []).filter((v): v is number => v !== null),
+                t("progress.kcal_empty"),
+              )}
+            </ListGroup>
           </ScrollView>
         )}
       </SafeAreaView>
@@ -218,20 +288,45 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     gap: theme.spacing.sm,
   },
-  card: {
-    gap: theme.spacing.sm,
-  },
   section: {
     marginTop: theme.spacing.md,
   },
+  metricRow: {
+    minHeight: 58,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm + 4,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+  },
+  // Larghezza fissa: senza, il numero piu' lungo sposta il grafico e le tre
+  // righe non hanno piu' la stessa colonna.
+  metricHead: { width: 88, gap: 1 },
+  metricLabel: { fontSize: 11, fontWeight: "500" },
+  metricChart: { flex: 1, alignItems: "flex-end", justifyContent: "center" },
+  metricChartInner: { width: CHART_WIDTH, height: CHART_HEIGHT },
+  metricEmpty: { fontSize: 11 },
+  chevronSpacer: { width: 18 },
   statValue: {
-    fontSize: 26,
+    fontSize: 19,
     fontWeight: "700",
   },
   statUnit: {
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: "500",
   },
+  addButton: {
+    width: 30,
+    height: 30,
+    borderRadius: theme.radius.full,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  // Solo la larghezza: riusare `addButton` disegnava il bordo del bottone
+  // anche dove il bottone non c'e', cioe' un cerchio vuoto che si poteva
+  // provare a premere.
+  addSpacer: { width: 30 },
   loader: {
     marginTop: theme.spacing.xl,
   },

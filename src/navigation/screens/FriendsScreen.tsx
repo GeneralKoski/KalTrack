@@ -2,8 +2,9 @@ import { hasBackend } from "@/src/api/config";
 import * as social from "@/src/api/social";
 import { DfButton } from "@/src/components/form/DfButton";
 import {
-  Card,
   EmptyState,
+  ListGroup,
+  ListRow,
   ScreenBackground,
   SearchBar,
   SectionLabel,
@@ -129,27 +130,22 @@ export function FriendsScreen() {
   );
   const friends = (data ?? []).filter((f) => f.status === "accepted");
 
+  /* Una riga di blocco e non piu' una card per persona: quattro amici erano
+     quattro riquadri con bordo e ombra, e la stessa sezione con due richieste
+     in arrivo ne faceva sei impilati. */
   const personRow = (
     key: string,
     name: string,
     handle: string,
     right: React.ReactNode,
   ) => (
-    <Card
+    <ListRow
       key={key}
+      label={name}
+      detail={`@${handle}`}
+      right={right}
       onPress={() => navigate("FriendProfile", { handle })}
-      style={styles.row}
-    >
-      <View style={styles.person}>
-        <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
-          {name}
-        </Text>
-        <Text style={[styles.handle, { color: colors.textMuted }]} numberOfLines={1}>
-          @{handle}
-        </Text>
-      </View>
-      {right}
-    </Card>
+    />
   );
 
   const iconButton = (
@@ -204,7 +200,8 @@ export function FriendsScreen() {
                 {t("social.no_results")}
               </Text>
             ) : (
-              results.map((user) =>
+              <ListGroup indent={theme.spacing.md}>
+                {results.map((user) =>
                 personRow(
                   `found-${user.handle}`,
                   user.displayName,
@@ -225,7 +222,8 @@ export function FriendsScreen() {
                     )
                   ),
                 ),
-              )
+                )}
+              </ListGroup>
             )}
           </>
         ) : null}
@@ -239,7 +237,8 @@ export function FriendsScreen() {
             <SectionLabel style={styles.section}>
               {t("social.incoming")}
             </SectionLabel>
-            {incoming.map((f) =>
+            <ListGroup indent={theme.spacing.md}>
+              {incoming.map((f) =>
               personRow(
                 `in-${f.id}`,
                 f.user?.displayName ?? "",
@@ -257,7 +256,8 @@ export function FriendsScreen() {
                   )}
                 </View>,
               ),
-            )}
+              )}
+            </ListGroup>
           </>
         ) : null}
 
@@ -267,7 +267,8 @@ export function FriendsScreen() {
             {t("social.no_friends")}
           </Text>
         ) : (
-          friends.map((f) =>
+          <ListGroup indent={theme.spacing.md}>
+            {friends.map((f) =>
             personRow(
               `fr-${f.id}`,
               f.user?.displayName ?? "",
@@ -278,7 +279,8 @@ export function FriendsScreen() {
                 busyId !== null,
               ),
             ),
-          )
+            )}
+          </ListGroup>
         )}
 
         {outgoing.length > 0 ? (
@@ -286,7 +288,8 @@ export function FriendsScreen() {
             <SectionLabel style={styles.section}>
               {t("social.outgoing")}
             </SectionLabel>
-            {outgoing.map((f) =>
+            <ListGroup indent={theme.spacing.md}>
+              {outgoing.map((f) =>
               personRow(
                 `out-${f.id}`,
                 f.user?.displayName ?? "",
@@ -297,7 +300,8 @@ export function FriendsScreen() {
                   busyId !== null,
                 ),
               ),
-            )}
+              )}
+            </ListGroup>
           </>
         ) : null}
 
@@ -356,10 +360,6 @@ const styles = StyleSheet.create({
   loader: { marginTop: theme.spacing.xl },
   searching: { marginTop: theme.spacing.sm },
   section: { marginTop: theme.spacing.md },
-  row: { flexDirection: "row", alignItems: "center", gap: theme.spacing.sm },
-  person: { flex: 1, gap: 2 },
-  name: { fontSize: 15, fontWeight: "600" },
-  handle: { fontSize: 13 },
   hint: { fontSize: 13, lineHeight: 18 },
   badge: { fontSize: 12, fontWeight: "600" },
   actions: { flexDirection: "row", gap: theme.spacing.sm },

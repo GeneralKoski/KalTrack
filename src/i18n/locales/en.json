@@ -235,7 +235,10 @@
     "steps_weekly": "Steps, 14-day average",
     "steps_empty": "No steps recorded",
     "kcal_weekly": "Calories, 14-day average",
-    "kcal_empty": "No meals recorded"
+    "kcal_empty": "No meals recorded",
+    "trend": "Trend · %{days} days",
+    "steps": "Steps",
+    "kcal": "Calories"
   },
   "weekly_coach": {
     "title": "Weekly coach",
@@ -558,7 +561,8 @@
     "ml": "ml",
     "liters": "L",
     "add_ml": "+%{ml} ml",
-    "undo": "Undo last glass"
+    "undo": "Undo last glass",
+    "add_short": "+%{ml}"
   },
   "measurements": {
     "title": "Measurements",

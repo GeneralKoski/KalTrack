@@ -1,4 +1,3 @@
-import { Card, MetalSurface } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import {
@@ -67,105 +66,100 @@ export const WaterCard: React.FC<WaterCardProps> = ({ date }) => {
   const liters = (total ?? 0) / 1000;
 
   return (
-    <Card style={styles.card}>
-      <View style={styles.header}>
-        <Droplet size={18} color={colors.textMuted} />
-        <Text
-          style={[styles.label, { color: colors.textMuted }]}
-          numberOfLines={1}
-        >
-          {t("water.title")}
-        </Text>
-        {known && (total ?? 0) > 0 ? (
-          <TouchableOpacity
-            onPress={undo}
-            activeOpacity={0.6}
-            hitSlop={10}
-            accessibilityLabel={t("water.undo")}
-          >
-            <Undo2 size={18} color={colors.textMuted} />
-          </TouchableOpacity>
-        ) : null}
-      </View>
+    /*
+      Una riga sola, e non piu' una card.
+      Era il riquadro piu' alto della schermata dopo il riepilogo - etichetta,
+      valore e TRE pillole da 52 px l'una in verticale - per il dato meno
+      importante di Oggi: pesava quanto le calorie della giornata. I tre
+      formati restano tre tocchi, ma come chip in fondo alla stessa riga.
+    */
+    <View style={styles.row}>
+      <Droplet size={17} color={colors.textMuted} />
+      <Text style={[styles.label, { color: colors.textSecondary }]} numberOfLines={1}>
+        {t("water.title")}
+      </Text>
 
       {known ? (
-        <View style={styles.valueRow}>
-          <Text style={[styles.value, { color: colors.text }]}>
-            {(total ?? 0) >= 1000
-              ? liters.toLocaleString("it-IT", { maximumFractionDigits: 2 })
-              : (total ?? 0).toLocaleString("it-IT")}
+        <Text style={[styles.value, { color: colors.text }]} numberOfLines={1}>
+          {(total ?? 0) >= 1000
+            ? liters.toLocaleString("it-IT", { maximumFractionDigits: 2 })
+            : (total ?? 0).toLocaleString("it-IT")}
+          <Text style={[styles.unit, { color: colors.textMuted }]}>
+            {` ${(total ?? 0) >= 1000 ? t("water.liters") : t("water.ml")}`}
           </Text>
-          <Text
-            style={[styles.unit, { color: colors.textMuted }]}
-            numberOfLines={1}
-          >
-            {(total ?? 0) >= 1000 ? t("water.liters") : t("water.ml")}
-          </Text>
-        </View>
+        </Text>
       ) : (
-        <Text style={[styles.empty, { color: colors.textFaint }]}>
+        <Text style={[styles.value, { color: colors.textFaint }]}>
           {t("water.unknown")}
         </Text>
       )}
 
-      {/* Tre formati fissi: riga a larghezza piena, non una lista scorrevole. */}
+      {known && (total ?? 0) > 0 ? (
+        <TouchableOpacity
+          onPress={undo}
+          activeOpacity={0.6}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={t("water.undo")}
+        >
+          <Undo2 size={17} color={colors.textMuted} />
+        </TouchableOpacity>
+      ) : null}
+
       <View style={styles.glasses}>
         {GLASSES.map((ml) => (
           <TouchableOpacity
             key={ml}
             onPress={() => add(ml)}
             activeOpacity={0.6}
-            style={styles.glass}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel={t("water.add_ml", { ml })}
+            style={[
+              styles.glass,
+              {
+                backgroundColor: colors.surfaceMuted,
+                borderColor: colors.border,
+              },
+            ]}
           >
-            <MetalSurface radius={theme.radius.lg} style={styles.glassInner}>
-              <Text
-                style={[styles.glassLabel, { color: colors.text }]}
-                numberOfLines={1}
-              >
-                {t("water.add_ml", { ml })}
-              </Text>
-            </MetalSurface>
+            <Text
+              style={[styles.glassLabel, { color: colors.textSecondary }]}
+              numberOfLines={1}
+            >
+              {t("water.add_short", { ml })}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
-    </Card>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  card: { gap: 8 },
-  header: {
+  row: {
+    minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: theme.spacing.sm + 1,
+    paddingHorizontal: theme.spacing.xs,
   },
-  label: {
-    flex: 1,
-    flexShrink: 1,
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  valueRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 4,
-  },
-  value: { fontSize: 22, fontWeight: "700" },
-  unit: { flexShrink: 1, fontSize: 13, fontWeight: "500" },
-  empty: { fontSize: 15, fontWeight: "500" },
+  label: { fontSize: 13, fontWeight: "500" },
+  // Prende lo spazio in mezzo: cosi' i chip restano incollati a destra e non
+  // ballano al variare della cifra.
+  value: { flex: 1, fontSize: 14, fontWeight: "700" },
+  unit: { fontSize: 11, fontWeight: "400" },
   glasses: {
     flexDirection: "row",
-    gap: theme.spacing.sm,
-    marginTop: theme.spacing.xs,
+    gap: 6,
   },
-  glass: { flex: 1 },
-  glassInner: {
-    borderRadius: theme.radius.lg,
+  glass: {
+    height: 30,
+    paddingHorizontal: 11,
+    borderRadius: theme.radius.full,
+    borderWidth: StyleSheet.hairlineWidth,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 10,
   },
-  glassLabel: { fontSize: 14, fontWeight: "600" },
+  glassLabel: { fontSize: 12, fontWeight: "600" },
 });

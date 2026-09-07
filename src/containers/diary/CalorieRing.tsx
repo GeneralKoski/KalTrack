@@ -17,7 +17,10 @@ import Svg, { Circle } from "react-native-svg";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-const SIZE = 168;
+// 168 fino al 7 settembre 2026: un solo numero prendeva un terzo dello schermo
+// e spingeva il primo pasto sotto la piega. L'anello resta l'elemento piu'
+// grande della schermata - e' l'hero - ma smette di essere l'unico.
+const SIZE = 140;
 const STROKE = 12;
 const RADIUS = (SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
@@ -161,7 +164,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   value: {
-    fontSize: 38,
+    fontSize: 34,
     fontWeight: "700",
   },
   caption: {

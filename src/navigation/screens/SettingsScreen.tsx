@@ -1,6 +1,6 @@
 import { DfAlert } from "@/src/components/DfAlert";
 import { DfButton } from "@/src/components/form/DfButton";
-import { Card, ScreenBackground } from "@/src/components/kal";
+import { ListGroup, ListRow, ScreenBackground } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useAppNav } from "@/src/hooks/useAppNav";
@@ -12,7 +12,6 @@ import { theme } from "@/src/styles";
 import { showToast } from "@/src/utils/toast";
 import {
   ChevronLeft,
-  ChevronRight,
   Globe,
   HeartPulse,
   LogOut,
@@ -73,38 +72,40 @@ export function SettingsScreen() {
             { paddingBottom: insets.bottom + theme.spacing.lg },
           ]}
         >
-          <SettingsRow
-            icon={<Palette size={20} color={colors.textSecondary} />}
-            label={t("settings.theme")}
-            value={t(`settings.theme_${themeMode}`)}
-            onPress={() => navigate("Appearance")}
-          />
-          <SettingsRow
-            icon={<Globe size={20} color={colors.textSecondary} />}
-            label={t("settings.language")}
-            value={t(`settings.language_${language}`)}
-            onPress={() => navigate("Language")}
-          />
-          <SettingsRow
-            icon={<HeartPulse size={20} color={colors.textSecondary} />}
-            label={t("settings.health")}
-            onPress={() => navigate("Health")}
-          />
-          <SettingsRow
-            icon={<Stethoscope size={20} color={colors.textSecondary} />}
-            label={t("diagnostics.title")}
-            onPress={() => navigate("Diagnostics")}
-          />
-
-          {/* Solo per l'amministratore. Il server rifiuta comunque gli altri:
-              questa e' una comodita', non la difesa. */}
-          {isAdmin ? (
+          <ListGroup>
             <SettingsRow
-              icon={<ShieldCheck size={20} color={colors.textSecondary} />}
-              label={t("admin.title")}
-              onPress={() => navigate("Admin")}
+              icon={<Palette size={20} color={colors.textSecondary} />}
+              label={t("settings.theme")}
+              value={t(`settings.theme_${themeMode}`)}
+              onPress={() => navigate("Appearance")}
             />
-          ) : null}
+            <SettingsRow
+              icon={<Globe size={20} color={colors.textSecondary} />}
+              label={t("settings.language")}
+              value={t(`settings.language_${language}`)}
+              onPress={() => navigate("Language")}
+            />
+            <SettingsRow
+              icon={<HeartPulse size={20} color={colors.textSecondary} />}
+              label={t("settings.health")}
+              onPress={() => navigate("Health")}
+            />
+            <SettingsRow
+              icon={<Stethoscope size={20} color={colors.textSecondary} />}
+              label={t("diagnostics.title")}
+              onPress={() => navigate("Diagnostics")}
+            />
+
+            {/* Solo per l'amministratore. Il server rifiuta comunque gli altri:
+                questa e' una comodita', non la difesa. */}
+            {isAdmin ? (
+              <SettingsRow
+                icon={<ShieldCheck size={20} color={colors.textSecondary} />}
+                label={t("admin.title")}
+                onPress={() => navigate("Admin")}
+              />
+            ) : null}
+          </ListGroup>
 
           {/*
             L'uscita sta in fondo alle impostazioni e in nessun altro posto:
@@ -160,18 +161,19 @@ const SettingsRow: React.FC<{
   const { colors } = useAppTheme();
 
   return (
-    <Card style={styles.rowCard} onPress={onPress}>
-      {icon}
-      <Text style={[styles.rowLabel, { color: colors.text }]} numberOfLines={1}>
-        {label}
-      </Text>
-      {value ? (
-        <Text style={[styles.rowValue, { color: colors.textMuted }]}>
-          {value}
-        </Text>
-      ) : null}
-      <ChevronRight size={20} color={colors.textFaint} />
-    </Card>
+    <ListRow
+      icon={icon}
+      label={label}
+      onPress={onPress}
+      chevron
+      right={
+        value ? (
+          <Text style={[styles.rowValue, { color: colors.textMuted }]}>
+            {value}
+          </Text>
+        ) : null
+      }
+    />
   );
 };
 
@@ -194,13 +196,6 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     gap: theme.spacing.sm,
   },
-  rowCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-    padding: theme.spacing.md,
-  },
-  rowLabel: { flex: 1, fontSize: 15, fontWeight: "600" },
-  rowValue: { fontSize: 14 },
+  rowValue: { fontSize: 13 },
   signOut: { marginTop: theme.spacing.lg },
 });

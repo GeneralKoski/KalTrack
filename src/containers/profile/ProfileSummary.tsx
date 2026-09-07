@@ -1,4 +1,4 @@
-import { Card } from "@/src/components/kal";
+import { HeroDivider, HeroPanel } from "@/src/components/kal";
 import { Avatar } from "@/src/components/kal/Avatar";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
@@ -89,7 +89,7 @@ export const ProfileSummary: React.FC = () => {
     });
 
   return (
-    <Card style={styles.card}>
+    <HeroPanel contentStyle={styles.card}>
       {/*
         L'account si gestisce toccando se stessi: e' la stessa persona di cui
         si vedono qui nome e foto, e cercarlo fra le impostazioni non lo era.
@@ -141,7 +141,9 @@ export const ProfileSummary: React.FC = () => {
         </Text>
       ) : null}
 
-      <View style={[styles.stats, { borderTopColor: colors.border }]}>
+      <HeroDivider />
+
+      <View style={styles.stats}>
         {stat(
           t("profile.stat_weight"),
           data?.weightKg == null ? "–" : `${numero(data.weightKg, 1)} kg`,
@@ -153,7 +155,7 @@ export const ProfileSummary: React.FC = () => {
           data?.avgKcal == null ? "–" : numero(Math.round(data.avgKcal)),
         )}
       </View>
-    </Card>
+    </HeroPanel>
   );
 };
 
@@ -170,8 +172,6 @@ const styles = StyleSheet.create({
   bio: { fontSize: 13, lineHeight: 18 },
   stats: {
     flexDirection: "row",
-    borderTopWidth: 1,
-    paddingTop: theme.spacing.sm,
     gap: theme.spacing.xs,
   },
   stat: { flex: 1, alignItems: "center", gap: 2 },

@@ -828,11 +828,20 @@ a dire quale giorno di scheda seguiva anche dopo che la scheda non c'e' piu'.
 Non sta piu' su Oggi. Fino al 4 settembre 2026 due card (`DayStatCard`,
 `QuickLogSheet`) permettevano di leggere e impostare **solo il valore di
 oggi**, direttamente dalla schermata Oggi. Oggi quel bottone "+" sta su
-**Progressi**, accanto alle sezioni Peso e Passi, e apre `MetricEntrySheet`
+**Progressi**, dentro la riga della metrica, e apre `MetricEntrySheet`
 - che ha un selettore di data: **si registra anche per un giorno passato**,
 non solo per oggi.
 
-Toccare la card (invece del "+") apre `WeightHistoryScreen` /
+Dal 7 settembre 2026 peso, passi e calorie sono **tre righe di un blocco**
+(§ I tre livelli di superficie) e non piu' tre card impilate, ognuna con la sua
+etichetta di sezione sopra e un riquadro alto un terzo di schermo dentro. Con la
+finestra vuota - il caso normale di chi ha appena installato - restavano tre
+rettangoli grandi e vuoti, e la pagina sembrava piena e vuota insieme. In riga
+la linea sta a destra e **compare da due punti in su**: uno solo non e' una
+tendenza, e un pallino in mezzo al vuoto sembra un difetto. Il grafico esteso
+vive nello storico, dove c'e' spazio per guardarlo.
+
+Toccare la riga (invece del "+") apre `WeightHistoryScreen` /
 `StepsHistoryScreen`: lo storico completo da `earliestRecordedDate()`, con
 selezione multipla a pressione lunga ed eliminazione in blocco - lo stesso
 schema gia' usato dalle sessioni di `GymScreen` e dalle misure di
@@ -875,6 +884,62 @@ avvertito ESPLICITAMENTE del tema con la prop `mode`, o resta fisso su
 componenti basati su classi NativeWind (l'Actionsheet di `DfSelect`, per
 esempio) restavano bianchi in tema scuro. `ThemedGluestackProvider` in
 `App.tsx` legge `useAppTheme()` e passa `mode={isDark ? "dark" : "light"}`.
+
+### I tre livelli di superficie
+
+**Dal 7 settembre 2026 i contenitori sono tre, e prima era uno solo.** Ogni
+elenco era fatto di `Card`, una per riga: una voce di menu del Profilo, un
+giorno di scheda, un allenamento passato e il riepilogo di una giornata avevano
+lo stesso bordo, la stessa ombra e lo stesso padding. Con un contenitore solo
+l'unica leva per dire "questo conta" e' fare l'elemento piu' alto - e allora
+diventa alto tutto: cinque voci del Profilo riempivano uno schermo, e le sedici
+voci erano quattro schermate di scorrimento.
+
+1. **`HeroPanel`** (`src/components/kal/HeroPanel.tsx`) - **uno per schermata**,
+   ed e' la risposta alla domanda che si viene a fare li': le calorie su Oggi,
+   la scheda attiva in Palestra, chi sei sul Profilo. Non e' un'indicazione di
+   stile: due superfici chiare sulla stessa pagina si contendono l'occhio e
+   nessuna delle due indica piu' niente.
+
+   E' anche **l'unico posto dove il metallo si vede**. `MetalSurface` e
+   `MetalPanel` esistevano dalla Fase 1 e l'unica cosa che li usava era il FAB
+   da 56 px: il carattere dichiarato in `src/styles.ts` - superficie
+   metallizzata, gradiente verticale, linea di luce sul bordo alto - era
+   implementato e poi non applicato a niente di visibile. E' da li' che veniva
+   il "sembra generico", non dalla palette.
+
+   Un separatore dentro l'hero e' `HeroDivider` e **non** `colors.border`:
+   quello e' tarato sullo sfondo delle schermate, e sopra il metallo sparisce
+   in chiaro e stacca troppo in scuro.
+
+2. **`ListGroup` + `ListRow`** (`src/components/kal/ListGroup.tsx`) - N righe
+   dentro **una** superficie, separate da una linea invece che da un vuoto. La
+   riga e' alta 48 (sopra i 44 di area di tocco) contro i 54 + 8 di gap di
+   prima, ma il guadagno vero non e' il 23% di altezza: e' che un blocco e' **un
+   oggetto solo** e cinque card sono cinque oggetti.
+
+   Il separatore rientra fino a dove finisce l'icona. **Chi fa righe senza icona
+   passa `indent={0}` o `indent={theme.spacing.md}`**, o la linea comincia in
+   mezzo alla parola.
+
+3. **Nudo** - contenuto direttamente sullo sfondo, con l'etichetta di sezione
+   sopra: i pasti di Oggi, gli allenamenti passati in Palestra. Quel che si
+   scorre e basta non chiede una scatola; bordo e ombra ripetuti N volte sono
+   rumore che dice ogni volta la stessa cosa.
+
+**`Card` resta**, e non e' un residuo: e' per quel che e' davvero una scheda a
+se' - il riquadro del coach settimanale, un pannello di spiegazione, la card
+dell'allenamento rimasto aperto. Non per fare da cornice a una riga.
+
+Il coach settimanale e' l'esempio del perche' l'hero non e' obbligatorio:
+contiene un bottone `MetalSurface`, e dentro un pannello di metallo quel bottone
+sparirebbe. Una schermata senza hero e' legittima; due hero no.
+
+`ThemePicker` e `LanguagePicker` avevano il blocco disegnato a mano, uguale in
+tutti e due: erano la prova che il componente serviva, e ora lo usano.
+
+Il canvas del ridisegno - il sistema piu' le quattro schede radice - sta in
+`design/` (`*.dc.html` + `canvas.json`).
 
 ### Styling
 
@@ -991,6 +1056,10 @@ Valgono le guide Dieffetech `docs/react-native/`:
   style-as-function (con NativeWind v4 non viene applicato: nessun feedback al
   tap). `hitSlop={8}` sui target piccoli.
 - Token da `@/src/styles`, mai hex o numeri magici inline.
+- **Un elenco di righe e' un `ListGroup`, non N `Card`** (vedi § I tre livelli
+  di superficie), e in una schermata c'e' **al massimo un `HeroPanel`**. La
+  `Card` e' per quel che e' davvero una scheda a se', non per incorniciare una
+  riga.
 - Elementi assoluti, overlay e bottoni flottanti ancorati con
   `useSafeAreaInsets()`.
 - Ogni testo visibile via `t("chiave")`, chiavi in `src/i18n/locales/it.json`

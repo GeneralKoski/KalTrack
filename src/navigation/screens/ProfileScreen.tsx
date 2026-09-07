@@ -1,4 +1,9 @@
-import { Card, ScreenBackground, SectionLabel } from "@/src/components/kal";
+import {
+  ListGroup,
+  ListRow,
+  ScreenBackground,
+  SectionLabel,
+} from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { ProfileSummary } from "@/src/containers/profile/ProfileSummary";
@@ -9,7 +14,6 @@ import {
   Bell,
   Camera,
   CalendarRange,
-  ChevronRight,
   CookingPot,
   DatabaseBackup,
   Dumbbell,
@@ -135,22 +139,16 @@ export function ProfileScreen() {
           {GROUPS.map((group) => (
             <View key={group.titleKey} style={styles.group}>
               <SectionLabel>{t(group.titleKey)}</SectionLabel>
-              {group.voices.map(({ route, labelKey, icon: IconTag }) => (
-                <Card
-                  key={route}
-                  onPress={() => navigate(route)}
-                  style={styles.row}
-                >
-                  <IconTag size={22} color={colors.text} />
-                  <Text
-                    style={[styles.rowLabel, { color: colors.text }]}
-                    numberOfLines={1}
-                  >
-                    {t(labelKey)}
-                  </Text>
-                  <ChevronRight size={20} color={colors.textFaint} />
-                </Card>
-              ))}
+              <ListGroup>
+                {group.voices.map(({ route, labelKey, icon: IconTag }) => (
+                  <ListRow
+                    key={route}
+                    label={t(labelKey)}
+                    icon={<IconTag size={20} color={colors.text} />}
+                    onPress={() => navigate(route)}
+                  />
+                ))}
+              </ListGroup>
             </View>
           ))}
         </ScrollView>
@@ -184,15 +182,5 @@ const styles = StyleSheet.create({
   },
   group: {
     gap: theme.spacing.sm,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.md,
-  },
-  rowLabel: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: "600",
   },
 });

@@ -1,5 +1,5 @@
 import { DfButton } from "@/src/components/form/DfButton";
-import { Card } from "@/src/components/kal";
+import { ListGroup, ListRow } from "@/src/components/kal";
 import { SettingsPage } from "@/src/containers/settings/SettingsPage";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
@@ -13,7 +13,7 @@ import { theme } from "@/src/styles";
 import { EQUIPMENT, type Equipment } from "@/src/types/gym";
 import { logger } from "@/src/utils/logger";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Switch, View } from "react-native";
+import { StyleSheet, Switch } from "react-native";
 import { useRoute, type RouteProp } from "@react-navigation/native";
 
 /**
@@ -70,19 +70,23 @@ export function EquipmentScreen() {
         {t("gym.equipment_hint")}
       </Text>
 
-      <Card style={styles.card}>
+      {/* Un blocco, non una card con dentro righe distanziate: cosi'
+         l'elenco ha lo stesso ritmo e la stessa linea di tutti gli altri
+         elenchi dell'app. */}
+      <ListGroup indent={theme.spacing.md}>
         {items.map((item) => (
-          <View key={item} style={styles.row}>
-            <Text style={[styles.name, { color: colors.text }]}>
-              {t(`gym.equipment.${item}`)}
-            </Text>
-            <Switch
-              value={state[item] !== false}
-              onValueChange={(next) => void toggle(item, next)}
-            />
-          </View>
+          <ListRow
+            key={item}
+            label={t(`gym.equipment.${item}`)}
+            right={
+              <Switch
+                value={state[item] !== false}
+                onValueChange={(next) => void toggle(item, next)}
+              />
+            }
+          />
         ))}
-      </Card>
+      </ListGroup>
 
       {setupForRoutine && (
         <DfButton
@@ -100,12 +104,5 @@ export function EquipmentScreen() {
 
 const styles = StyleSheet.create({
   hint: { fontSize: 13, lineHeight: 18 },
-  card: { gap: theme.spacing.sm },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  name: { fontSize: 15, fontWeight: "500" },
   continueButton: { marginTop: theme.spacing.lg },
 });

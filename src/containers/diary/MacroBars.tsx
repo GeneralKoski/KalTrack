@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
   },
   label: {
     flexShrink: 1,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
     textTransform: "uppercase",
     letterSpacing: 0.4,
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     fontWeight: "400",
   },
   track: {
-    height: 6,
+    height: 4,
     borderRadius: theme.radius.full,
     overflow: "hidden",
   },

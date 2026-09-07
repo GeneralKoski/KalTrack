@@ -52,3 +52,6 @@ app-example
 credentials.json
 credentials/
 *.keystore
+
+# Il canvas assemblato: 2,5 MB di editor rigenerabile dai .dc.html accanto.
+design/kaltrack-redesign.html

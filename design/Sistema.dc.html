@@ -1,0 +1,134 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #e5e5e7; } a:hover { color: #fafafa; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 870px; background: linear-gradient(180deg, #0a0a0c 0%, #000000 55%); font-family: Poppins, system-ui, sans-serif; color: #fafafa; box-sizing: border-box; padding: 20px 16px; overflow: hidden; display: flex; flex-direction: column; gap: 14px;">
+
+  <div style="display: flex; flex-direction: column; gap: 2px;">
+    <div style="font-size: 20px; font-weight: 700; letter-spacing: -0.2px;">Tre livelli di superficie</div>
+    <div style="font-size: 12px; font-weight: 400; color: #71717a;">oggi ce n'e' uno solo, e per questo tutto pesa uguale</div>
+  </div>
+
+  <!-- LIVELLO 1 -->
+  <div style="display: flex; flex-direction: column; gap: 7px;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: #a1a1aa;">1 · Hero</div>
+      <div style="height: 1px; flex-grow: 1; background: #2a2a2f;"></div>
+      <div style="font-size: 11px; font-weight: 500; color: #71717a;">uno per schermata</div>
+    </div>
+
+    <div style="border-radius: 16px; background: linear-gradient(180deg, #3a3a3d 0%, #232326 100%); border: 1px solid #101013; border-top-color: #4a4a4d; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
+      <div style="width: 44px; height: 44px; border-radius: 9999px; border: 5px solid #2a2a2f; border-top-color: #f59e0b; border-right-color: #3b82f6; box-sizing: border-box; flex-shrink: 0;"></div>
+      <div style="display: flex; flex-direction: column; gap: 1px;">
+        <div style="font-size: 15px; font-weight: 600;">La risposta della schermata</div>
+        <div style="font-size: 12px; font-weight: 400; color: #d4d4d8;">MetalPanel, il gradiente che gia' esiste</div>
+      </div>
+    </div>
+
+    <div style="font-size: 11px; font-weight: 400; color: #71717a; line-height: 1.45; padding-left: 2px;">
+      L'unica superficie chiara della schermata. Il metallo di <span style="color: #a1a1aa;">MetalSurface</span> oggi vive solo nel FAB da 56 px: qui si vede.
+    </div>
+  </div>
+
+  <!-- LIVELLO 2 -->
+  <div style="display: flex; flex-direction: column; gap: 7px;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: #a1a1aa;">2 · Blocco</div>
+      <div style="height: 1px; flex-grow: 1; background: #2a2a2f;"></div>
+      <div style="font-size: 11px; font-weight: 500; color: #71717a;">N righe, 1 superficie</div>
+    </div>
+
+    <div style="border-radius: 16px; background: #131316; border: 1px solid #2a2a2f; overflow: hidden;">
+      <div style="height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 14px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fafafa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+        <div style="font-size: 15px; font-weight: 500; flex-grow: 1;">Prima riga</div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="m9 18 6-6-6-6"/></svg>
+      </div>
+      <div style="height: 1px; background: #2a2a2f; margin-left: 46px;"></div>
+      <div style="height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 14px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fafafa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M3 12h18"/><path d="M3 6h18"/><path d="M3 18h18"/></svg>
+        <div style="font-size: 15px; font-weight: 500; flex-grow: 1;">Seconda riga</div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="m9 18 6-6-6-6"/></svg>
+      </div>
+      <div style="height: 1px; background: #2a2a2f; margin-left: 46px;"></div>
+      <div style="height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 14px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fafafa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4"/><path d="M16 2v4"/><path d="M3 10h18"/></svg>
+        <div style="font-size: 15px; font-weight: 500; flex-grow: 1;">Terza riga</div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="m9 18 6-6-6-6"/></svg>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; align-items: flex-start; padding-left: 2px;">
+      <div style="font-size: 11px; font-weight: 400; color: #71717a; line-height: 1.45; flex-grow: 1;">
+        Riga <span style="color: #a1a1aa;">48 px</span> invece della card da 54 + 8 di gap. Il separatore rientra di 46 px, dove finisce l'icona.
+      </div>
+      <div style="font-size: 11px; font-weight: 700; color: #22c55e; white-space: nowrap; padding-top: 1px;">−23%</div>
+    </div>
+  </div>
+
+  <!-- LIVELLO 3 -->
+  <div style="display: flex; flex-direction: column; gap: 7px;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: #a1a1aa;">3 · Nudo</div>
+      <div style="height: 1px; flex-grow: 1; background: #2a2a2f;"></div>
+      <div style="font-size: 11px; font-weight: 500; color: #71717a;">nessun contenitore</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 0 2px 6px;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: #a1a1aa;">Pranzo</div>
+        <div style="font-size: 12px; font-weight: 500; color: #71717a;">681 kcal</div>
+      </div>
+      <div style="height: 42px; display: flex; align-items: center; gap: 10px; padding: 0 2px;">
+        <div style="display: flex; flex-direction: column; flex-grow: 1;">
+          <div style="font-size: 14px; font-weight: 500;">Gnocchi alla sorrentina</div>
+        </div>
+        <div style="font-size: 13px; font-weight: 600; color: #d4d4d8;">681</div>
+      </div>
+      <div style="height: 1px; background: #1e1e22;"></div>
+      <div style="height: 36px; display: flex; align-items: center; gap: 7px; padding: 0 2px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+        <div style="font-size: 13px; font-weight: 500; color: #71717a;">Aggiungi qui</div>
+      </div>
+    </div>
+
+    <div style="font-size: 11px; font-weight: 400; color: #71717a; line-height: 1.45; padding-left: 2px;">
+      Quel che si scorre e basta non chiede una scatola: bordo e ombra su ogni pasto sono rumore ripetuto N volte.
+    </div>
+  </div>
+
+  <div style="height: 1px; background: #1e1e22; margin-top: 2px;"></div>
+
+  <!-- IL VUOTO -->
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="display: flex; flex-direction: column; gap: 3px; flex-grow: 1;">
+      <div style="font-size: 12px; font-weight: 600;">Il vuoto si accorcia</div>
+      <div style="font-size: 11px; font-weight: 400; color: #71717a; line-height: 1.4;">Un grafico senza dati non tiene l'altezza del pieno.</div>
+    </div>
+    <div style="display: flex; align-items: flex-end; gap: 6px; flex-shrink: 0;">
+      <div style="width: 52px; height: 62px; border-radius: 10px; border: 1px dashed #2a2a2f; display: flex; align-items: center; justify-content: center;">
+        <div style="width: 4px; height: 4px; border-radius: 9999px; background: #3f3f46;"></div>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 8px;"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      <div style="width: 52px; height: 26px; border-radius: 8px; background: #131316; border: 1px solid #2a2a2f; display: flex; align-items: center; justify-content: center;">
+        <div style="font-size: 9px; font-weight: 500; color: #71717a;">nessun dato</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,6 +1,6 @@
 import { DfAlert } from "@/src/components/DfAlert";
 import { SettingsPage } from "@/src/containers/settings/SettingsPage";
-import { Card } from "@/src/components/kal";
+import { ListGroup } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { DraftTextInput, Text } from "@/src/components/ui";
 import {
@@ -105,7 +105,7 @@ export function MealTypesScreen() {
         {t("meal_types.hint")}
       </Text>
 
-      <Card style={styles.card}>
+      <ListGroup indent={theme.spacing.md}>
         {types.map((type) => {
           const attivo = type.hidden === 0;
           /* L'ultimo attivo non si spegne e non si cancella: senza, il
@@ -114,7 +114,7 @@ export function MealTypesScreen() {
 
           if (editingId === type.id) {
             return (
-              <View key={type.id} style={styles.row}>
+              <View key={type.id} style={[styles.row, styles.groupRow]}>
                 <DraftTextInput
                   value={editingName}
                   onChangeText={setEditingName}
@@ -137,7 +137,7 @@ export function MealTypesScreen() {
           }
 
           return (
-            <View key={type.id} style={styles.row}>
+            <View key={type.id} style={[styles.row, styles.groupRow]}>
               <Text
                 style={[styles.name, { color: colors.text }]}
                 numberOfLines={1}
@@ -179,7 +179,7 @@ export function MealTypesScreen() {
             </View>
           );
         })}
-      </Card>
+      </ListGroup>
 
       <View style={styles.row}>
         <DraftTextInput
@@ -222,7 +222,13 @@ export function MealTypesScreen() {
 
 const styles = StyleSheet.create({
   hint: { fontSize: 13, lineHeight: 18 },
-  card: { gap: theme.spacing.sm },
+  // Il padding sta qui e non su `row`: la riga di aggiunta in fondo vive fuori
+  // dal blocco e non deve rientrare.
+  groupRow: {
+    minHeight: 48,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+  },
   row: {
     flexDirection: "row",
     alignItems: "center",

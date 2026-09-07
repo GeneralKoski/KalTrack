@@ -28,8 +28,12 @@ interface DayHeaderProps {
  * spostamento fra due giorni sembrava un salto della schermata. Adesso lo
  * spazio e' riservato comunque e il contenuto sta in mezzo, quindi cambiare
  * giorno muove solo il testo.
+ *
+ * Erano 62 px per una data: la barra piu' alta dell'app dopo il riepilogo, in
+ * cima alla schermata piu' densa. La riga resta una sola, e cede l'altezza in
+ * eccesso al diario.
  */
-const HEADER_HEIGHT = 62;
+const HEADER_HEIGHT = 50;
 
 const MONTHS = [
   "gennaio",
@@ -79,8 +83,8 @@ export const DayHeader: React.FC<DayHeaderProps> = ({
         disabled={!puoIndietro}
       >
         <ChevronLeft
-          size={24}
-          color={puoIndietro ? colors.text : colors.textFaint}
+          size={22}
+          color={puoIndietro ? colors.textSecondary : colors.textFaint}
         />
       </TouchableOpacity>
 
@@ -111,8 +115,8 @@ export const DayHeader: React.FC<DayHeaderProps> = ({
         disabled={!puoAvanti}
       >
         <ChevronRight
-          size={24}
-          color={puoAvanti ? colors.text : colors.textFaint}
+          size={22}
+          color={puoAvanti ? colors.textSecondary : colors.textFaint}
         />
       </TouchableOpacity>
     </View>
@@ -137,11 +141,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   label: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "700",
   },
   sub: {
-    fontSize: 12,
-    marginTop: 1,
+    fontSize: 11,
   },
 });

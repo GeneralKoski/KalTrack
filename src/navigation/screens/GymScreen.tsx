@@ -1,6 +1,13 @@
 import { DfAlert } from "@/src/components/DfAlert";
 import { DfButton } from "@/src/components/form/DfButton";
-import { Card, EmptyState, ScreenBackground, SectionLabel } from "@/src/components/kal";
+import {
+  Card,
+  EmptyState,
+  HeroDivider,
+  HeroPanel,
+  ScreenBackground,
+  SectionLabel,
+} from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import {
@@ -211,40 +218,66 @@ export function GymScreen() {
               </Card>
             ) : null}
 
-            <SectionLabel>{t("gym.active_routine")}</SectionLabel>
-
             {data?.routine ? (
-              <>
-                <Text style={[styles.routineName, { color: colors.text }]} numberOfLines={1}>
-                  {data.routine.name}
-                </Text>
-                {data.days.map((day, index) => (
-                  <Card
-                    key={day.id}
-                    onPress={() =>
-                      navigate("Session", {
-                        routineId: data.routine?.id ?? "",
-                        dayIndex: index,
-                      })
-                    }
-                    style={styles.dayRow}
-                  >
-                    <Play size={20} color={colors.text} />
+              /* La scheda attiva e' l'hero: aprirla e toccare il giorno e' il
+                 gesto quotidiano di questa schermata. I giorni stanno DENTRO
+                 il pannello e non sotto come quattro card - una scheda e' una
+                 cosa sola, non quattro. */
+              <HeroPanel flush>
+                <View style={styles.routineHead}>
+                  <View style={styles.routineTitles}>
                     <Text
-                      style={[styles.dayName, { color: colors.text }]}
+                      style={[styles.routineLabel, { color: colors.textMuted }]}
                       numberOfLines={1}
                     >
-                      {day.name}
+                      {t("gym.active_routine")}
                     </Text>
-                    <ChevronRight size={20} color={colors.textFaint} />
-                  </Card>
-                ))}
+                    <Text
+                      style={[styles.routineName, { color: colors.text }]}
+                      numberOfLines={1}
+                    >
+                      {data.routine.name}
+                    </Text>
+                  </View>
+                </View>
+
                 {data.days.length === 0 ? (
-                  <Text style={[styles.hint, { color: colors.textMuted }]}>
-                    {t("gym.routine_without_days")}
-                  </Text>
-                ) : null}
-              </>
+                  <>
+                    <HeroDivider />
+                    <Text
+                      style={[styles.routineHint, { color: colors.textMuted }]}
+                    >
+                      {t("gym.routine_without_days")}
+                    </Text>
+                  </>
+                ) : (
+                  data.days.map((day, index) => (
+                    <React.Fragment key={day.id}>
+                      <HeroDivider style={styles.dayDivider} />
+                      <TouchableOpacity
+                        activeOpacity={0.6}
+                        accessibilityRole="button"
+                        onPress={() =>
+                          navigate("Session", {
+                            routineId: data.routine?.id ?? "",
+                            dayIndex: index,
+                          })
+                        }
+                        style={styles.dayRow}
+                      >
+                        <Play size={18} color={colors.text} />
+                        <Text
+                          style={[styles.dayName, { color: colors.text }]}
+                          numberOfLines={1}
+                        >
+                          {day.name}
+                        </Text>
+                        <ChevronRight size={18} color={colors.textMuted} />
+                      </TouchableOpacity>
+                    </React.Fragment>
+                  ))
+                )}
+              </HeroPanel>
             ) : (
               <View style={styles.empty}>
                 <EmptyState
@@ -263,57 +296,71 @@ export function GymScreen() {
               {t("gym.recent_sessions")}
             </SectionLabel>
 
+            {/* Gli allenamenti passati sono contenuto che si scorre, non
+                oggetti da incorniciare: una card per riga ripeteva bordo e
+                ombra N volte per dire ogni volta la stessa cosa. */}
             {data && data.sessions.length > 0 ? (
-              data.sessions.map((session) => {
+              data.sessions.map((session, index) => {
                 const selected = selectedIds.has(session.id);
                 return (
-                  <Card
-                    key={session.id}
-                    onPress={() => onSessionPress(session.id)}
-                    onLongPress={() => onSessionLongPress(session.id)}
-                    style={[
-                      styles.sessionRow,
-                      selected && { borderColor: colors.accent },
-                    ]}
-                  >
-                    <View style={styles.sessionText}>
-                      <Text
-                        style={[styles.sessionName, { color: colors.text }]}
-                        numberOfLines={1}
-                      >
-                        {session.dayName ?? t("gym.free_workout")}
-                      </Text>
-                      <Text
-                        style={[styles.sessionMeta, { color: colors.textMuted }]}
-                        numberOfLines={1}
-                      >
-                        {formatShortDate(session.date)} - {t("gym.sets_count", {
-                          count: session.workingSets,
-                        })}
-                        {session.volumeKg > 0
-                          ? ` - ${Math.round(session.volumeKg).toLocaleString("it-IT")} kg`
-                          : ""}
-                      </Text>
-                    </View>
-                    {isSelecting ? (
+                  <React.Fragment key={session.id}>
+                    {index > 0 ? (
                       <View
                         style={[
-                          styles.sessionCheck,
-                          selected
-                            ? { backgroundColor: colors.accent }
-                            : {
-                                backgroundColor: "transparent",
-                                borderWidth: 1,
-                                borderColor: colors.border,
-                              },
+                          styles.sessionSeparator,
+                          { backgroundColor: colors.border },
                         ]}
-                      >
-                        {selected ? (
-                          <Check size={14} color={colors.accentOn} />
-                        ) : null}
-                      </View>
+                      />
                     ) : null}
-                  </Card>
+                    <TouchableOpacity
+                      activeOpacity={0.6}
+                      accessibilityRole="button"
+                      onPress={() => onSessionPress(session.id)}
+                      onLongPress={() => onSessionLongPress(session.id)}
+                      style={[
+                        styles.sessionRow,
+                        selected && { backgroundColor: colors.surfaceMuted },
+                      ]}
+                    >
+                      <View style={styles.sessionText}>
+                        <Text
+                          style={[styles.sessionName, { color: colors.text }]}
+                          numberOfLines={1}
+                        >
+                          {session.dayName ?? t("gym.free_workout")}
+                        </Text>
+                        <Text
+                          style={[styles.sessionMeta, { color: colors.textMuted }]}
+                          numberOfLines={1}
+                        >
+                          {formatShortDate(session.date)} - {t("gym.sets_count", {
+                            count: session.workingSets,
+                          })}
+                          {session.volumeKg > 0
+                            ? ` - ${Math.round(session.volumeKg).toLocaleString("it-IT")} kg`
+                            : ""}
+                        </Text>
+                      </View>
+                      {isSelecting ? (
+                        <View
+                          style={[
+                            styles.sessionCheck,
+                            selected
+                              ? { backgroundColor: colors.accent }
+                              : {
+                                  backgroundColor: "transparent",
+                                  borderWidth: 1,
+                                  borderColor: colors.border,
+                                },
+                          ]}
+                        >
+                          {selected ? (
+                            <Check size={14} color={colors.accentOn} />
+                          ) : null}
+                        </View>
+                      ) : null}
+                    </TouchableOpacity>
+                  </React.Fragment>
                 );
               })
             ) : (
@@ -325,18 +372,25 @@ export function GymScreen() {
             {/* In fondo perche' e' la meta di secondo livello: il gesto
                 quotidiano e' toccare il giorno di scheda qui sopra. Gli
                 esercizi si raggiungono dal profilo, non serve un secondo
-                accesso qui. */}
+                accesso qui.
+
+                Era un bottone a contorno a tutta larghezza, alto quanto una
+                card: il peso di un'azione primaria per una destinazione di
+                secondo livello. Ora e' una riga con il chevron, l'idioma che
+                l'app usa gia' ovunque per "si va di la'". */}
             {data?.routine ? (
-              <View style={[styles.links, styles.section]}>
-                <DfButton
-                  label={t("gym.routines")}
-                  variant="outlined"
-                  fullWidth={false}
-                  icon={<Dumbbell size={18} color={colors.accent} />}
-                  onPress={() => openRoutines("Routines")}
-                  style={styles.link}
-                />
-              </View>
+              <TouchableOpacity
+                activeOpacity={0.6}
+                accessibilityRole="button"
+                onPress={() => openRoutines("Routines")}
+                style={[styles.linkRow, styles.section]}
+              >
+                <Dumbbell size={18} color={colors.textMuted} />
+                <Text style={[styles.linkLabel, { color: colors.text }]}>
+                  {t("gym.routines")}
+                </Text>
+                <ChevronRight size={18} color={colors.textFaint} />
+              </TouchableOpacity>
             ) : null}
           </ScrollView>
         )}
@@ -373,26 +427,52 @@ const styles = StyleSheet.create({
   openCard: { gap: 2, marginBottom: theme.spacing.sm },
   openTitle: { fontSize: 15, fontWeight: "700" },
   openMeta: { fontSize: 13 },
-  routineName: { fontSize: 16, fontWeight: "600" },
-  dayRow: {
+  routineHead: {
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm + 4,
+  },
+  routineTitles: { flex: 1, gap: 1 },
+  routineLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  routineName: { fontSize: 17, fontWeight: "700" },
+  routineHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm + 4,
+  },
+  // A tutta larghezza, e non rientrata come nei blocchi: qui le linee separano
+  // anche l'intestazione dal primo giorno, e una rientrata in mezzo a due
+  // piene si leggerebbe come un errore di allineamento.
+  dayDivider: { marginLeft: 0 },
+  dayRow: {
+    minHeight: 46,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm + 4,
+    paddingHorizontal: theme.spacing.md,
   },
   dayName: { flex: 1, fontSize: 15, fontWeight: "500" },
-  // Il bordo c'e' sempre, trasparente finche' la riga non e' selezionata: se
-  // comparisse solo alla selezione, la card si restringerebbe di 1.5 px per
-  // lato e tutte le altre scatterebbero in su.
+  sessionSeparator: { height: StyleSheet.hairlineWidth },
   sessionRow: {
+    minHeight: 46,
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.sm,
-    borderWidth: 1.5,
-    borderColor: "transparent",
+    paddingHorizontal: theme.spacing.xs,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radius.md,
   },
   sessionText: { flex: 1, gap: 2 },
   sessionName: { fontSize: 15, fontWeight: "600" },
-  sessionMeta: { fontSize: 13 },
+  sessionMeta: { fontSize: 12 },
   sessionCheck: {
     width: 22,
     height: 22,
@@ -402,7 +482,13 @@ const styles = StyleSheet.create({
   },
   hint: { fontSize: 13, lineHeight: 18 },
   empty: { gap: theme.spacing.sm },
-  links: { flexDirection: "row", gap: theme.spacing.sm },
-  link: { flexGrow: 1, flexBasis: 0 },
+  linkRow: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm + 4,
+    paddingHorizontal: theme.spacing.xs,
+  },
+  linkLabel: { flex: 1, fontSize: 15, fontWeight: "600" },
   section: { marginTop: theme.spacing.md },
 });
