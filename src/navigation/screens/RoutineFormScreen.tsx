@@ -46,7 +46,6 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -401,20 +400,13 @@ export function RoutineFormScreen() {
             <SectionLabel style={styles.section}>{t("gym.days")}</SectionLabel>
 
             {/*
-              I giorni sono un numero variabile: la riga scorre in orizzontale,
-              così l'altezza del blocco non cambia mai e il contenuto sotto resta
-              fermo mentre se ne aggiungono.
+              I giorni vanno a capo, non scorrono. Scorrendo, "Aggiungi giorno"
+              finiva mezzo fuori schermo gia' col terzo giorno - e un'azione
+              tagliata a "+ Aggiu" non si vede che c'e'. Il blocco cresce di una
+              riga ogni tre o quattro giorni, che e' un movimento raro e
+              prevedibile; un'azione invisibile no.
             */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              // Senza il freno la ScrollView prende tutta l'altezza del form,
-              // e i chip si stirano con lei: "Aggiungi giorno" diventava un
-              // ovale alto mezzo schermo.
-              style={styles.chipScroll}
-              contentContainerStyle={styles.dayChips}
-            >
+            <View style={styles.dayChips}>
               {days.map((item, index) => (
                 <Chip
                   key={item.key}
@@ -426,20 +418,27 @@ export function RoutineFormScreen() {
               <TouchableOpacity
                 onPress={addDay}
                 activeOpacity={0.6}
+                accessibilityRole="button"
                 style={[styles.addDay, { borderColor: colors.border }]}
               >
-                <Plus size={16} color={colors.text} />
-                <Text style={[styles.addDayLabel, { color: colors.text }]}>
+                <Plus size={16} color={colors.textMuted} />
+                <Text style={[styles.addDayLabel, { color: colors.textMuted }]}>
                   {t("gym.add_day")}
                 </Text>
               </TouchableOpacity>
-            </ScrollView>
+            </View>
 
             {day ? (
               <>
+                {/*
+                  Il nome del giorno era scritto due volte: nel chip selezionato
+                  e qui in grande. Qui resta perche' e' il bersaglio di rinomina
+                  ed elimina - senza titolo quelle due icone non avrebbero un
+                  soggetto - ma sussurra invece di ripetere.
+                */}
                 <View style={styles.dayHead}>
                   <Text
-                    style={[styles.dayName, { color: colors.text }]}
+                    style={[styles.dayName, { color: colors.textMuted }]}
                     numberOfLines={1}
                   >
                     {day.name}
@@ -606,8 +605,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   section: { marginTop: theme.spacing.lg },
-  chipScroll: { flexGrow: 0 },
   dayChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     gap: theme.spacing.sm,
     paddingBottom: theme.spacing.xs,
@@ -630,7 +630,14 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.md,
     marginBottom: theme.spacing.sm,
   },
-  dayName: { flexGrow: 1, flexShrink: 1, fontSize: 17, fontWeight: "700" },
+  dayName: {
+    flexGrow: 1,
+    flexShrink: 1,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
   block: { marginBottom: theme.spacing.sm },
   addBlock: { marginTop: theme.spacing.xs },
   save: { marginTop: theme.spacing.lg },

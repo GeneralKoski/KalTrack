@@ -748,6 +748,54 @@ generata **non si salva da sola**: atterra in `RoutineForm` coi campi
 modificabili, che e' la ragione per cui un numero immaginato dal modello e'
 accettabile li' dentro.
 
+### Lo svolgimento dell'allenamento
+
+`SessionScreen`, ridisegnata il 7 settembre 2026. Tre cose che mancavano o
+gridavano:
+
+**In cima c'e' un hero, e prima non c'era niente.** Fra una serie e l'altra la
+domanda e' "quanto manca", e la schermata non la rispondeva in nessun modo: si
+scorreva contando i tondi spuntati. Ora `HeroPanel` porta serie fatte su totali
+e una barra. Il totale esce dallo **stesso** `planBlock` che disegna le righe,
+quindi non puo' divergere da quel che si vede.
+
+**Le unita' si scrivono una volta.** "kg" e "rip" stavano dentro ogni `SetRow`,
+quindi tre serie li stampavano tre volte, con in mezzo un "×" che sembrava
+un'operazione fra i due campi. Ora sono l'intestazione della colonna
+(`SetHeader`), e le righe restano numeri. **`SetHeader` e `SetRow` condividono
+le misure**: badge 28, spaziatura sm, tondo 48. Cambiandone una di la' va
+cambiata anche qui, o le etichette escono dalla loro colonna - e `SetHeader`
+avvolge i campi nello stesso `body` con `flex: 1`, perche' senza si stringevano
+sul proprio testo.
+
+**Il tondo della spunta resta 48x48.** Si preme col pollice, di fretta e con le
+mani sudate: e' l'unico elemento della schermata che non si rimpicciolisce.
+Sono i campi ad essere scesi (altezza 44, padding orizzontale) e "Proponi
+alternativa" a essere passata da pillola a contorno a collegamento - e'
+un'azione per quando il bilanciere e' occupato, non l'azione della schermata.
+
+### La composizione di un blocco
+
+`BlockEditor`. **Il tipo del blocco si diceva due volte**: un titolo "A ·
+Singolo" e sotto una riga di chip con "Singolo" selezionato. Il selettore da
+solo lo dice, e la riga scorrevole tagliava "Dropset" a "Drops" - in un
+selettore, dove il punto e' vedere le alternative. Ora e' un controllo a
+segmenti in larghezza piena: quattro tipi, nessuno tagliato.
+
+**Recupero e "Aggiungi esercizio" non sono piu' affiancati.** Erano un campo
+numerico e un bottone alti uguale, che letti insieme sembravano due bottoni - e
+per allinearli serviva un'etichetta invisibile come zeppa. Il recupero e' un
+dato del blocco e sta su una riga sua; l'aggiunta e' un'azione e sta sotto,
+come "Aggiungi qui" nel diario.
+
+**Il gruppo muscolare sta sotto il nome dell'esercizio**, non in coda ai tre
+campi: li' era sulla stessa riga del campo KG e sembrava il valore dei
+chilogrammi.
+
+Nel modulo della scheda, **i giorni vanno a capo invece di scorrere**:
+scorrendo, "Aggiungi giorno" finiva mezzo fuori schermo gia' col terzo giorno,
+e un'azione tagliata a "+ Aggiu" non si vede che c'e'.
+
 ### La serie spuntata
 
 Il tondo verde di `SetRow` e' un **interruttore**, non un punto di non ritorno:

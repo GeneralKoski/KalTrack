@@ -4,6 +4,7 @@ import { FormScreen } from "@/src/components/FormScreen";
 import {
   Card,
   EmptyState,
+  HeroPanel,
   ScreenBackground,
   SectionLabel,
 } from "@/src/components/kal";
@@ -11,7 +12,7 @@ import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { AlternativesSheet } from "@/src/containers/gym/AlternativesSheet";
 import { RestTimer } from "@/src/containers/gym/RestTimer";
-import { SetRow } from "@/src/containers/gym/SetRow";
+import { SetHeader, SetRow } from "@/src/containers/gym/SetRow";
 import {
   endSession,
   getRoutineDay,
@@ -38,7 +39,13 @@ import { showToast } from "@/src/utils/toast";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useRoute, type RouteProp } from "@react-navigation/native";
 import { ChevronLeft, Dumbbell, Repeat2 } from "lucide-react-native";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -211,6 +218,24 @@ export function SessionScreen() {
     null,
   );
   const [confirmFinish, setConfirmFinish] = useState(false);
+
+  /*
+    Quante serie sono fatte e quante ne restano.
+    In palestra, fra una serie e l'altra, la domanda e' "quanto manca" - e la
+    schermata non la rispondeva in nessun modo: si scorreva per contare i
+    tondi spuntati. Il totale esce dallo stesso `planBlock` che disegna le
+    righe, quindi non puo' divergere da quel che si vede.
+  */
+  const totalSets = useMemo(
+    () =>
+      (day?.blocks ?? []).reduce(
+        (sum, block) =>
+          sum + planBlock(block, (_id, fallback) => fallback).length,
+        0,
+      ),
+    [day],
+  );
+  const doneSets = Object.keys(logged).length;
   const [replacing, setReplacing] = useState<{
     blockExerciseId: string;
     exercise: ExerciseRow;
@@ -516,6 +541,43 @@ export function SessionScreen() {
             ]}
             keyboardShouldPersistTaps="handled"
           >
+            {/*
+              L'hero della schermata: e' la risposta alla domanda che ci si fa
+              qui dentro. Prima non c'era niente in cima, e "a che punto sono"
+              si ricavava contando le spunte a occhio.
+            */}
+            <HeroPanel contentStyle={styles.progress}>
+              <View style={styles.progressHead}>
+                <Text style={[styles.progressValue, { color: colors.text }]}>
+                  {doneSets}
+                  <Text
+                    style={[styles.progressTotal, { color: colors.textMuted }]}
+                  >
+                    {` / ${totalSets}`}
+                  </Text>
+                </Text>
+                <Text
+                  style={[styles.progressLabel, { color: colors.textMuted }]}
+                  numberOfLines={1}
+                >
+                  {t("gym.sets_done")}
+                </Text>
+              </View>
+              <View
+                style={[styles.track, { backgroundColor: colors.surfaceMuted }]}
+              >
+                <View
+                  style={[
+                    styles.fill,
+                    {
+                      backgroundColor: colors.accent,
+                      width: `${totalSets === 0 ? 0 : (doneSets / totalSets) * 100}%`,
+                    },
+                  ]}
+                />
+              </View>
+            </HeroPanel>
+
             {day.blocks.map((block) => {
               const planned = planBlock(block, resolveExercise);
               const restSeconds =
@@ -615,16 +677,14 @@ export function SessionScreen() {
                             openAlternatives(item.row.id, exercise)
                           }
                           activeOpacity={0.6}
-                          style={[
-                            styles.altButton,
-                            { borderColor: colors.border },
-                          ]}
+                          accessibilityRole="button"
+                          style={styles.altButton}
                         >
-                          <Repeat2 size={15} color={colors.textSecondary} />
+                          <Repeat2 size={14} color={colors.textMuted} />
                           <Text
                             style={[
                               styles.altLabel,
-                              { color: colors.textSecondary },
+                              { color: colors.textMuted },
                             ]}
                             numberOfLines={1}
                           >
@@ -638,6 +698,8 @@ export function SessionScreen() {
                   <View
                     style={[styles.divider, { backgroundColor: colors.border }]}
                   />
+
+                  <SetHeader />
 
                   {planned.map((entry, index) => {
                     const source = block.exercises.find(
@@ -741,6 +803,24 @@ const styles = StyleSheet.create({
   title: { flex: 1, flexShrink: 1, fontSize: 18, fontWeight: "700" },
   loader: { marginTop: theme.spacing.xl },
   emptyDay: { paddingHorizontal: theme.spacing.md, gap: theme.spacing.md },
+  progress: { gap: theme.spacing.sm },
+  progressHead: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: theme.spacing.sm,
+  },
+  progressValue: { fontSize: 26, fontWeight: "700" },
+  progressTotal: { fontSize: 17, fontWeight: "600" },
+  progressLabel: {
+    flexShrink: 1,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  track: { height: 6, borderRadius: theme.radius.full, overflow: "hidden" },
+  fill: { height: "100%", borderRadius: theme.radius.full },
   list: { paddingHorizontal: theme.spacing.md, gap: theme.spacing.md },
   block: { gap: theme.spacing.xs },
   blockTag: {
@@ -760,18 +840,19 @@ const styles = StyleSheet.create({
   exerciseName: { flexShrink: 1, fontSize: 17, fontWeight: "700" },
   meta: { flexShrink: 1, fontSize: 12 },
   suggested: { flexShrink: 1, fontSize: 13, fontWeight: "600", marginTop: 2 },
+  // Un'azione rara vestita da azione principale: era una pillola a contorno
+  // grande quanto il nome dell'esercizio, per una cosa che si fa quando il
+  // bilanciere e' occupato. Ora e' un collegamento, e la riga la si trova
+  // quando la si cerca.
   altButton: {
     alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    borderWidth: 1,
-    borderRadius: theme.radius.full,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginTop: theme.spacing.xs,
+    minHeight: 32,
+    marginTop: 2,
   },
-  altLabel: { flexShrink: 1, fontSize: 13, fontWeight: "600" },
+  altLabel: { flexShrink: 1, fontSize: 12, fontWeight: "500" },
   divider: {
     height: StyleSheet.hairlineWidth,
     marginVertical: theme.spacing.xs,

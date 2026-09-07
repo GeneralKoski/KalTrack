@@ -1,7 +1,7 @@
 import { DfAlert } from "@/src/components/DfAlert";
 import { DfSwitch } from "@/src/components/form/DfSwitch";
 import { FormScreen } from "@/src/components/FormScreen";
-import { Card, Chip, EmptyState, ScreenBackground } from "@/src/components/kal";
+import { Card, EmptyState, ScreenBackground } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { DraftTextInput, Text } from "@/src/components/ui";
 import {
@@ -11,6 +11,10 @@ import {
   saveReminder,
   type Reminder,
 } from "@/src/db/queries/reminders";
+import {
+  WEEKDAYS,
+  WeekdayPicker,
+} from "@/src/containers/settings/WeekdayPicker";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
@@ -68,8 +72,6 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-
-const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6];
 
 const REMINDER_ICONS: {
   key: string;
@@ -300,22 +302,11 @@ function ReminderCard({
         </Text>
       </TouchableOpacity>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        style={!reminder.enabled && styles.daysOff}
-        contentContainerStyle={styles.days}
-      >
-        {WEEKDAYS.map((day) => (
-          <Chip
-            key={day}
-            label={t(`reminders.weekdays.${day}`)}
-            active={reminder.weekdays.includes(day)}
-            onPress={() => onToggleWeekday(reminder, day)}
-          />
-        ))}
-      </ScrollView>
+      <WeekdayPicker
+        value={reminder.weekdays}
+        muted={!reminder.enabled}
+        onToggle={(day) => onToggleWeekday(reminder, day)}
+      />
     </Card>
   );
 }
@@ -886,25 +877,16 @@ export function RemindersScreen() {
           <Text style={[styles.modalLabel, { color: colors.text }]}>
             {t("reminders.days")}
           </Text>
-          <View style={styles.modalDaysRow}>
-            {WEEKDAYS.map((day) => {
-              const active = formWeekdays.includes(day);
-              return (
-                <Chip
-                  key={day}
-                  label={t(`reminders.weekdays.${day}`)}
-                  active={active}
-                  onPress={() => {
-                    setFormWeekdays((current) =>
-                      current.includes(day)
-                        ? current.filter((d) => d !== day)
-                        : [...current, day].sort((a, b) => a - b),
-                    );
-                  }}
-                />
-              );
-            })}
-          </View>
+          <WeekdayPicker
+            value={formWeekdays}
+            onToggle={(day) =>
+              setFormWeekdays((current) =>
+                current.includes(day)
+                  ? current.filter((d) => d !== day)
+                  : [...current, day].sort((a, b) => a - b),
+              )
+            }
+          />
         </View>
       </DfAlert>
 
@@ -1051,8 +1033,6 @@ const styles = StyleSheet.create({
   },
   timeLabel: { flexShrink: 1, fontSize: 13 },
   timeValue: { fontSize: 16, fontWeight: "700", marginLeft: "auto" },
-  daysOff: { opacity: 0.45 },
-  days: { gap: 6, paddingRight: theme.spacing.xs },
   loader: { marginTop: theme.spacing.xl },
   modalBody: {
     gap: theme.spacing.sm,
@@ -1093,11 +1073,6 @@ const styles = StyleSheet.create({
   modalTimeText: {
     fontSize: 16,
     fontWeight: "700",
-  },
-  modalDaysRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
   },
   overlay: {
     flex: 1,

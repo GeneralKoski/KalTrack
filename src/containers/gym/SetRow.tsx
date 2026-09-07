@@ -52,7 +52,6 @@ export const SetRow: React.FC<SetRowProps> = ({
   onDone,
   onUndo,
 }) => {
-  const { t } = useTranslation();
   const { colors } = useAppTheme();
   const [focused, setFocused] = useState<"weight" | "reps" | null>(null);
 
@@ -83,46 +82,40 @@ export const SetRow: React.FC<SetRowProps> = ({
           </Text>
         ) : null}
 
+        {/*
+          "kg" e "rip" stavano dentro OGNI riga, quindi tre serie li
+          stampavano tre volte per dire sempre la stessa cosa, e in mezzo un
+          "×" che sembrava un'operazione fra i due campi. Ora le unita' sono
+          l'intestazione della colonna (`SetHeader`), scritta una volta sopra
+          l'elenco - e le righe restano solo numeri.
+        */}
         <View style={styles.fields}>
-          <View style={styles.field}>
-            <DraftTextInput
-              value={weight}
-              onChangeText={onChangeWeight}
-              sanitize={sanitizeDecimalInput}
-              onFocus={() => setFocused("weight")}
-              onBlur={() => setFocused(null)}
-              editable={!done}
-              keyboardType="decimal-pad"
-              selectTextOnFocus
-              placeholder="-"
-              placeholderTextColor={colors.textFaint}
-              style={fieldStyle("weight")}
-            />
-            <Text style={[styles.unit, { color: colors.textMuted }]}>
-              {t("gym.kg")}
-            </Text>
-          </View>
-
-          <Text style={[styles.times, { color: colors.textFaint }]}>×</Text>
-
-          <View style={styles.field}>
-            <DraftTextInput
-              value={reps}
-              onChangeText={onChangeReps}
-              sanitize={sanitizeIntegerInput}
-              onFocus={() => setFocused("reps")}
-              onBlur={() => setFocused(null)}
-              editable={!done}
-              keyboardType="number-pad"
-              selectTextOnFocus
-              placeholder={targetReps ?? "-"}
-              placeholderTextColor={colors.textFaint}
-              style={fieldStyle("reps")}
-            />
-            <Text style={[styles.unit, { color: colors.textMuted }]}>
-              {t("gym.reps")}
-            </Text>
-          </View>
+          <DraftTextInput
+            value={weight}
+            onChangeText={onChangeWeight}
+            sanitize={sanitizeDecimalInput}
+            onFocus={() => setFocused("weight")}
+            onBlur={() => setFocused(null)}
+            editable={!done}
+            keyboardType="decimal-pad"
+            selectTextOnFocus
+            placeholder="-"
+            placeholderTextColor={colors.textFaint}
+            style={fieldStyle("weight")}
+          />
+          <DraftTextInput
+            value={reps}
+            onChangeText={onChangeReps}
+            sanitize={sanitizeIntegerInput}
+            onFocus={() => setFocused("reps")}
+            onBlur={() => setFocused(null)}
+            editable={!done}
+            keyboardType="number-pad"
+            selectTextOnFocus
+            placeholder={targetReps ?? "-"}
+            placeholderTextColor={colors.textFaint}
+            style={fieldStyle("reps")}
+          />
         </View>
       </View>
 
@@ -147,6 +140,39 @@ export const SetRow: React.FC<SetRowProps> = ({
   );
 };
 
+/**
+ * L'intestazione delle colonne di un elenco di serie.
+ *
+ * Le misure sono le stesse di `SetRow` e devono restarlo: il segnaposto a
+ * sinistra e' largo quanto il numero della serie, quello a destra quanto il
+ * tondo della spunta. Cambiando una misura li' va cambiata anche qui, o le
+ * etichette smettono di stare sopra la loro colonna.
+ */
+export const SetHeader: React.FC = () => {
+  const { t } = useTranslation();
+  const { colors } = useAppTheme();
+
+  return (
+    <View style={styles.header}>
+      <View style={styles.badge} />
+      {/* `styles.body` come nella riga: li' i campi stanno dentro un contenitore
+          `flex: 1`, e senza lo stesso involucro le etichette si stringevano sul
+          proprio testo invece di stare sopra la loro colonna. */}
+      <View style={styles.body}>
+        <View style={styles.fields}>
+          <Text style={[styles.headerLabel, { color: colors.textMuted }]}>
+            {t("gym.kg")}
+          </Text>
+          <Text style={[styles.headerLabel, { color: colors.textMuted }]}>
+            {t("gym.reps")}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.check} />
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
@@ -162,21 +188,34 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   badgeText: { fontSize: 13, fontWeight: "700" },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    paddingBottom: 2,
+  },
+  headerLabel: {
+    flex: 1,
+    fontSize: 11,
+    fontWeight: "600",
+    textAlign: "center",
+  },
   body: { flex: 1, gap: 2 },
   exercise: { flexShrink: 1, fontSize: 12, fontWeight: "600" },
-  fields: { flexDirection: "row", alignItems: "center", gap: theme.spacing.xs },
-  field: { flex: 1, flexDirection: "row", alignItems: "center", gap: 4 },
+  fields: { flexDirection: "row", alignItems: "center", gap: theme.spacing.sm },
   input: {
     flex: 1,
     minWidth: 0,
-    fontSize: 16,
+    height: 44,
+    fontSize: 17,
+    fontWeight: "600",
+    textAlign: "center",
+    // Su Android un input ad altezza fissa allinea il testo in alto.
+    textAlignVertical: "center",
     borderWidth: 1.5,
     borderRadius: theme.radius.lg,
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: 14,
+    paddingHorizontal: theme.spacing.sm,
   },
-  unit: { fontSize: 12, fontWeight: "600" },
-  times: { fontSize: 14, fontWeight: "600" },
   // 48x48: si preme con il pollice, spesso di fretta e con le mani sudate.
   check: {
     width: 48,

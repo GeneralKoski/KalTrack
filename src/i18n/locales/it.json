@@ -62,7 +62,8 @@
     "section_library": "In libreria",
     "section_off": "Dall'archivio",
     "off_no_brand": "Marca non indicata",
-    "off_import_failed": "Non è stato possibile aggiungere il prodotto"
+    "off_import_failed": "Non è stato possibile aggiungere il prodotto",
+    "empty_library": "La tua libreria e' vuota. Gli alimenti che aggiungi a mano, dall'archivio o dal codice a barre finiscono qui."
   },
   "profile": {
     "my_foods": "I miei alimenti",
@@ -478,7 +479,8 @@
     "session_duration": "%{minutes} min",
     "warmup": "Riscaldamento",
     "instructions_placeholder": "Una riga su come farlo bene, o sull'errore da evitare",
-    "edit_routine": "Modifica la scheda"
+    "edit_routine": "Modifica la scheda",
+    "sets_done": "serie fatte"
   },
   "assistant": {
     "open": "Parla con l'assistente",

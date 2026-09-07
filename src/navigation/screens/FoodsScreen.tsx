@@ -196,8 +196,13 @@ export function FoodsScreen() {
             keyboardShouldPersistTaps="handled"
             stickySectionHeadersEnabled={false}
             ListEmptyComponent={
+              /* Due frasi diverse per due situazioni diverse: "non trovato"
+                 e' la risposta a una ricerca, e diceva la cosa sbagliata a chi
+                 apriva la libreria per la prima volta - dove non c'e' niente
+                 perche' `searchMyFoods` esclude i seed, non perche' la ricerca
+                 non abbia trovato nulla. */
               <EmptyState
-                message={t("foods.empty")}
+                message={t(debounced ? "foods.empty" : "foods.empty_library")}
                 icon={<Salad size={40} color={colors.textFaint} />}
               />
             }

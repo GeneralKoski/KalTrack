@@ -1,4 +1,4 @@
-import { Chip, MetalPanel } from "@/src/components/kal";
+import { MetalPanel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { DraftTextInput, Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
@@ -6,7 +6,7 @@ import { theme } from "@/src/styles";
 import type { BlockKind, MuscleGroup } from "@/src/types/gym";
 import { ArrowDown, Plus, Trash2, X } from "lucide-react-native";
 import React from "react";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 /**
  * Numeri e ripetizioni restano testo finché si è nel form: "3" a metà digitazione
@@ -93,39 +93,58 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
 
   const content = (
     <>
+      {/*
+        Il tipo del blocco si diceva DUE volte: un titolo "A · Singolo" e sotto
+        una riga di chip con "Singolo" selezionato. Il selettore da solo lo dice
+        gia', e la riga scorrevole tagliava "Dropset" a "Drops" - in un
+        selettore, dove il punto e' vedere le alternative. Quattro segmenti in
+        larghezza piena ci stanno tutti.
+      */}
       <View style={styles.head}>
         <View style={[styles.letter, { backgroundColor: colors.accent }]}>
           <Text style={[styles.letterText, { color: colors.accentOn }]}>
             {letter}
           </Text>
         </View>
-        <Text
-          style={[styles.kindName, { color: colors.text }]}
-          numberOfLines={1}
+
+        <View
+          style={[
+            styles.kinds,
+            { backgroundColor: colors.surfaceMuted, borderColor: colors.border },
+          ]}
         >
-          {t(`gym.block_${block.kind}`)}
-        </Text>
+          {BLOCK_KINDS.map((kind) => {
+            const active = kind === block.kind;
+            return (
+              <TouchableOpacity
+                key={kind}
+                onPress={() => onChange({ ...block, kind })}
+                activeOpacity={0.6}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                style={[
+                  styles.kind,
+                  active && { backgroundColor: colors.accent },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.kindLabel,
+                    { color: active ? colors.accentOn : colors.textMuted },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {t(`gym.block_${kind}`)}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
         <TouchableOpacity onPress={onRemove} activeOpacity={0.6} hitSlop={10}>
           <Trash2 size={18} color={colors.textFaint} />
         </TouchableOpacity>
       </View>
-
-      {/* Quattro tipi oggi, ma la riga resta scorrevole: non deve andare a capo. */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.kinds}
-      >
-        {BLOCK_KINDS.map((kind) => (
-          <Chip
-            key={kind}
-            label={t(`gym.block_${kind}`)}
-            active={kind === block.kind}
-            onPress={() => onChange({ ...block, kind })}
-          />
-        ))}
-      </ScrollView>
 
       {hintKey ? (
         <Text style={[styles.hint, { color: colors.textMuted }]}>
@@ -165,12 +184,24 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
                   >
                     {grouped ? `${letter}${position + 1}` : letter}
                   </Text>
-                  <Text
-                    style={[styles.name, { color: colors.text }]}
-                    numberOfLines={1}
-                  >
-                    {exercise.name}
-                  </Text>
+                  {/* Il gruppo muscolare stava in coda ai tre campi, sulla
+                      stessa riga del campo KG: sembrava il valore dei
+                      chilogrammi. E' un dato dell'esercizio, e sta sotto il
+                      suo nome. */}
+                  <View style={styles.names}>
+                    <Text
+                      style={[styles.name, { color: colors.text }]}
+                      numberOfLines={1}
+                    >
+                      {exercise.name}
+                    </Text>
+                    <Text
+                      style={[styles.muscle, { color: colors.textMuted }]}
+                      numberOfLines={1}
+                    >
+                      {t(`gym.muscle.${exercise.muscleGroup}`)}
+                    </Text>
+                  </View>
                   <TouchableOpacity
                     onPress={() => removeExercise(exercise.key)}
                     activeOpacity={0.6}
@@ -208,12 +239,6 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
                       updateExercise(exercise.key, { weight: value })
                     }
                   />
-                  <Text
-                    style={[styles.muscle, { color: colors.textFaint }]}
-                    numberOfLines={1}
-                  >
-                    {t(`gym.muscle.${exercise.muscleGroup}`)}
-                  </Text>
                 </View>
               </View>
             </React.Fragment>
@@ -221,38 +246,43 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
         </View>
       </View>
 
-      <View style={styles.footer}>
-        <MiniField
-          label={t("gym.rest_seconds")}
+      {/*
+        Erano affiancati e alti uguale: un campo numerico e un bottone, che
+        letti insieme sembravano due bottoni - e per allinearli serviva
+        un'etichetta invisibile come zeppa. Il recupero e' un dato del blocco e
+        sta su una riga sua; l'aggiunta e' un'azione e sta sotto, a tutta
+        larghezza, come "Aggiungi qui" nel diario.
+      */}
+      <View style={[styles.restRow, { borderTopColor: colors.border }]}>
+        <Text style={[styles.restLabel, { color: colors.textMuted }]} numberOfLines={1}>
+          {t("gym.rest_seconds")}
+        </Text>
+        <DraftTextInput
           value={block.rest}
-          keyboardType="number-pad"
-          // Largo quanto la sua etichetta: a 72 "Recupero (s)" veniva
-          // troncato in "RECUPERO ...", e l'unita' e' meta' dell'informazione.
-          width={112}
           onChangeText={(value) => onChange({ ...block, rest: value })}
+          keyboardType="number-pad"
+          style={[
+            styles.restField,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              color: colors.text,
+            },
+          ]}
         />
-        <View style={styles.addColumn}>
-          {/* Stessa etichetta di MiniField ma invisibile: il pulsante non ne
-              ha una propria, e senza questo spazio il bottone risultava alto
-              quanto etichetta+campo insieme invece che quanto il solo campo. */}
-          <Text
-            style={[styles.fieldLabel, styles.addSpacer]}
-            numberOfLines={1}
-          >
-            {" "}
-          </Text>
-          <TouchableOpacity
-            onPress={onAddExercise}
-            activeOpacity={0.6}
-            style={[styles.add, { borderColor: colors.border }]}
-          >
-            <Plus size={16} color={colors.text} />
-            <Text style={[styles.addLabel, { color: colors.text }]} numberOfLines={1}>
-              {t("gym.add_exercise")}
-            </Text>
-          </TouchableOpacity>
-        </View>
       </View>
+
+      <TouchableOpacity
+        onPress={onAddExercise}
+        activeOpacity={0.6}
+        accessibilityRole="button"
+        style={styles.add}
+      >
+        <Plus size={14} color={colors.textMuted} />
+        <Text style={[styles.addLabel, { color: colors.textMuted }]} numberOfLines={1}>
+          {t("gym.add_exercise")}
+        </Text>
+      </TouchableOpacity>
     </>
   );
 
@@ -341,8 +371,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   letterText: { fontSize: 13, fontWeight: "700" },
-  kindName: { flexShrink: 1, flexGrow: 1, fontSize: 15, fontWeight: "700" },
-  kinds: { gap: theme.spacing.xs },
+  // Selettore a segmenti: prende tutta la larghezza che avanza, cosi' i
+  // quattro tipi entrano e nessuno viene tagliato.
+  kinds: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexDirection: "row",
+    borderRadius: theme.radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 2,
+    gap: 2,
+  },
+  kind: {
+    flexGrow: 1,
+    flexBasis: 0,
+    height: 28,
+    borderRadius: theme.radius.sm,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  kindLabel: { fontSize: 11, fontWeight: "600" },
   hint: { fontSize: 12, lineHeight: 17 },
   group: {
     flexDirection: "row",
@@ -378,19 +426,20 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   tag: { fontSize: 12, fontWeight: "700", minWidth: 22 },
-  name: { flexShrink: 1, flexGrow: 1, fontSize: 15, fontWeight: "600" },
+  names: { flexShrink: 1, flexGrow: 1, gap: 1 },
+  name: { fontSize: 15, fontWeight: "600" },
   fields: {
     flexDirection: "row",
     alignItems: "flex-end",
     gap: theme.spacing.sm,
     marginTop: theme.spacing.xs,
   },
+  // In tondo, non in maiuscolo spaziato: e' l'etichetta di un campo largo 56
+  // px, e il maiuscolo la faceva gridare piu' del numero che descrive.
   fieldLabel: {
     fontSize: 11,
-    fontWeight: "600",
-    marginBottom: 2,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    fontWeight: "500",
+    marginBottom: 3,
   },
   field: {
     height: MINI_CONTROL_HEIGHT,
@@ -403,30 +452,30 @@ const styles = StyleSheet.create({
     // default: senza questo il numero non sarebbe centrato nel campo.
     textAlignVertical: "center",
   },
-  muscle: { flexShrink: 1, fontSize: 12, paddingBottom: 8 },
-  footer: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: theme.spacing.sm,
-  },
-  addColumn: {
-    flexGrow: 1,
-    flexShrink: 1,
-  },
-  // Stessa altezza di riga di fieldLabel, resa invisibile: allinea il
-  // pulsante al campo accanto invece che al blocco etichetta+campo.
-  addSpacer: {
-    opacity: 0,
-  },
-  add: {
-    height: MINI_CONTROL_HEIGHT,
+  muscle: { fontSize: 12 },
+  restRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: theme.spacing.xs,
+    gap: theme.spacing.sm,
+    paddingTop: theme.spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  restLabel: { flexGrow: 1, flexShrink: 1, fontSize: 13, fontWeight: "500" },
+  restField: {
+    width: 76,
+    height: 40,
     borderWidth: 1,
     borderRadius: theme.radius.md,
     paddingHorizontal: theme.spacing.sm,
+    fontSize: 15,
+    textAlign: "center",
+    textAlignVertical: "center",
   },
-  addLabel: { flexShrink: 1, fontSize: 13, fontWeight: "600" },
+  add: {
+    minHeight: 36,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  addLabel: { flexShrink: 1, fontSize: 13, fontWeight: "500" },
 });
