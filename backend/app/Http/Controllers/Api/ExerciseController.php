@@ -76,6 +76,20 @@ class ExerciseController extends Controller
             return $this->nomeVuoto();
         }
 
+        // Chi ha tolto questa voce dal catalogo lo ha fatto apposta: una
+        // proposta con lo stesso nome non deve resuscitarla, la stessa regola
+        // per cui `applyExerciseSeeds` sul telefono non resuscita mai un
+        // esercizio cancellato. Nessuna perdita per chi propone: il suo
+        // esercizio resta salvato sul telefono, che e' dove lo usa, e
+        // `publishToCatalog` e' fire-and-forget - un 200 che non crea nulla
+        // non cambia niente per lui.
+        $cancellata = Exercise::onlyTrashed()->where('name_norm', $norm)->first();
+        if ($cancellata) {
+            return response()->json([
+                'data' => $this->publicShape($cancellata, $request->user()->id),
+            ]);
+        }
+
         $exercise = Exercise::firstOrCreate(
             ['name_norm' => $norm],
             [
@@ -144,11 +158,14 @@ class ExerciseController extends Controller
     /**
      * Toglie una voce dal catalogo. SOLO LA PROPRIA.
      *
-     * Cancellazione vera e non `deleted_at`: questa tabella non si sincronizza
-     * con nessun telefono - e' un elenco che il server serve e basta - quindi
-     * non esiste il difetto per cui una riga tolta risorge al giro dopo. Il
-     * telefono che l'aveva importata se la tiene: e' roba sua, ed e' quel che
-     * ci si aspetta da un catalogo che si e' copiato in casa.
+     * Cancellazione morbida (`deleted_at`), non piu' vera. "Questa tabella non
+     * si sincronizza con nessun telefono" era la premessa di quando bastava
+     * essere un elenco che il server serve e basta: da quando esiste la
+     * moderazione una voce tolta deve poter dire a un pannello di
+     * amministrazione - e domani ai telefoni - che non c'e' piu', e una riga
+     * sparita davvero non ha modo di raccontare nulla. Il telefono che
+     * l'aveva importata se la tiene comunque: e' roba sua, ed e' quel che ci
+     * si aspetta da un catalogo che si e' copiato in casa.
      */
     public function destroy(Request $request, Exercise $exercise): JsonResponse
     {

@@ -185,6 +185,57 @@ class ExerciseCatalogTest extends TestCase
     }
 
     /**
+     * La cancellazione e' morbida: sparisce dall'elenco ma resta in tabella
+     * con `deleted_at` valorizzato, perche' una voce tolta deve poter dire a
+     * un pannello di amministrazione che non c'e' piu'.
+     */
+    public function test_cancello_una_voce_e_resta_come_cancellata(): void
+    {
+        $anna = $this->user('anna');
+        $id = $this->actingAs($anna)->postJson('/api/exercises', [
+            'name' => 'Sbagliato',
+            'muscleGroup' => 'chest',
+        ])->json('data.id');
+
+        $this->actingAs($anna)
+            ->deleteJson("/api/exercises/{$id}")
+            ->assertOk();
+
+        $this->assertNull(Exercise::find($id));
+        $this->assertNotNull(Exercise::withTrashed()->find($id)->deleted_at);
+    }
+
+    /**
+     * Chi ha tolto una voce dal catalogo lo ha fatto apposta: una proposta
+     * con lo stesso nome non deve resuscitarla, la stessa regola per cui
+     * `applyExerciseSeeds` sul telefono non resuscita mai un esercizio
+     * cancellato.
+     */
+    public function test_proporre_il_nome_di_una_voce_cancellata_non_la_resuscita(): void
+    {
+        $anna = $this->user('anna');
+        $id = $this->actingAs($anna)->postJson('/api/exercises', [
+            'name' => 'Panca piana',
+            'muscleGroup' => 'chest',
+        ])->json('data.id');
+
+        $this->actingAs($anna)->deleteJson("/api/exercises/{$id}")->assertOk();
+
+        $bea = $this->user('bea');
+        $this->actingAs($bea)
+            ->postJson('/api/exercises', [
+                'name' => 'Panca piana',
+                'muscleGroup' => 'chest',
+            ])
+            ->assertOk();
+
+        // Nessuna riga in piu' e nessuna resuscitata.
+        $this->assertSame(0, Exercise::count());
+        $this->assertSame(1, Exercise::withTrashed()->count());
+        $this->assertNotNull(Exercise::withTrashed()->find($id)->deleted_at);
+    }
+
+    /**
      * La regola che rende il catalogo comune sopportabile: e' di tutti da
      * leggere, di ciascuno da correggere. Senza, chiunque potrebbe riscrivere
      * l'esercizio di chiunque altro nell'app di tutti quanti.
