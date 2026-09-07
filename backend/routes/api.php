@@ -83,6 +83,8 @@ Route::middleware('auth:sanctum')->group(function () {
      */
     Route::get('catalog/exercises', [CatalogController::class, 'exercises']);
     Route::get('catalog/foods', [CatalogController::class, 'foods']);
+    Route::get('catalog/taxonomies', [CatalogController::class, 'taxonomies']);
+    Route::get('catalog/images/{name}', [CatalogController::class, 'image']);
 
     /*
      * Proporre, correggere e ritirare una proposta.

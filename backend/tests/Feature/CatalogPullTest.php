@@ -3,9 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\Exercise;
+use App\Models\Food;
+use App\Models\MuscleGroup;
 use App\Models\User;
 use App\Support\Text;
+use Database\Seeders\TaxonomySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class CatalogPullTest extends TestCase
@@ -180,5 +184,114 @@ class CatalogPullTest extends TestCase
         $this->actingAs($this->anna())
             ->getJson('/api/catalog/exercises?limit=-1')
             ->assertStatus(422);
+    }
+
+    /**
+     * Gemello di `test_il_pull_non_dice_chi_ha_aggiunto_cosa`, per gli
+     * alimenti: il payload ha piu' campi e la stessa promessa di privacy da
+     * mantenere, e non c'era ancora un test che la fissasse con una
+     * whitelist.
+     */
+    public function test_il_pull_dei_cibi_non_dice_chi_ha_aggiunto_cosa(): void
+    {
+        $anna = $this->anna();
+        $bea = $this->anna();
+
+        Food::create([
+            'uid' => 'f-1',
+            'name' => 'Petto di pollo',
+            'name_norm' => Text::normalize('Petto di pollo'),
+            'kcal' => 165,
+            'status' => 'published',
+            'created_by' => $anna->id,
+        ]);
+
+        $risposta = $this->actingAs($bea)
+            ->getJson('/api/catalog/foods')
+            ->assertOk();
+
+        $corpo = $risposta->json('data.0');
+        $this->assertSame(
+            [
+                'uid',
+                'name',
+                'nameNorm',
+                'brand',
+                'barcode',
+                'offId',
+                'kcal',
+                'protein',
+                'carbs',
+                'sugars',
+                'fat',
+                'saturatedFat',
+                'fiber',
+                'salt',
+                'isLiquid',
+                'defaultServingG',
+                'servingLabel',
+                'image',
+                'mine',
+                'deletedAt',
+            ],
+            array_keys($corpo),
+        );
+        // Bea non l'ha aggiunto lei, e da qui non ha modo di sapere chi.
+        $this->assertFalse($corpo['mine']);
+    }
+
+    public function test_le_tassonomie_escono_ordinate(): void
+    {
+        $this->seed(TaxonomySeeder::class);
+
+        $r = $this->actingAs($this->anna())
+            ->getJson('/api/catalog/taxonomies')
+            ->assertOk();
+
+        $this->assertCount(12, $r->json('muscleGroups'));
+        $this->assertCount(11, $r->json('equipment'));
+        // L'ordine e' quello di `sort`, non alfabetico: nessuno pensa il
+        // corpo in ordine alfabetico.
+        $this->assertSame('petto', $r->json('muscleGroups.0.slug'));
+        $this->assertSame('Chest', $r->json('muscleGroups.0.labelEn'));
+    }
+
+    public function test_una_tassonomia_cancellata_esce_come_tombstone(): void
+    {
+        $this->seed(TaxonomySeeder::class);
+        MuscleGroup::where('slug', 'polpacci')->first()->delete();
+
+        $r = $this->actingAs($this->anna())
+            ->getJson('/api/catalog/taxonomies')
+            ->assertOk();
+
+        // Esce comunque, con la data: il telefono ha esercizi che nominano
+        // quello slug, e togliergli la riga senza dirglielo li lascerebbe
+        // senza etichetta e senza un motivo leggibile.
+        $polpacci = collect($r->json('muscleGroups'))->firstWhere('slug', 'polpacci');
+        $this->assertNotNull($polpacci['deletedAt']);
+    }
+
+    public function test_una_foto_di_catalogo_si_scarica(): void
+    {
+        Storage::fake('local');
+        Storage::disk('local')
+            ->put('catalog/abc.jpg', 'byte');
+
+        $this->actingAs($this->anna())
+            ->get('/api/catalog/images/abc.jpg')
+            ->assertOk();
+    }
+
+    public function test_una_foto_di_catalogo_non_si_scarica_senza_account(): void
+    {
+        $this->get('/api/catalog/images/abc.jpg')->assertUnauthorized();
+    }
+
+    public function test_un_nome_di_foto_con_traversata_non_passa(): void
+    {
+        $this->actingAs($this->anna())
+            ->get('/api/catalog/images/..')
+            ->assertNotFound();
     }
 }

@@ -3,13 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\EquipmentType;
 use App\Models\Exercise;
 use App\Models\Food;
+use App\Models\MuscleGroup;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Il catalogo comune, per l'app.
@@ -73,6 +77,62 @@ class CatalogController extends Controller
             'image' => $f->image,
             'mine' => $f->created_by !== null && $f->created_by === $userId,
         ]);
+    }
+
+    /**
+     * I gruppi muscolari e gli attrezzi che il catalogo conosce.
+     *
+     * Escono INTERI a ogni chiamata, cancellati compresi, e non
+     * incrementalmente: sono ventitre' righe in tutto, e un cursore su
+     * ventitre' righe e' complessita' che non compra niente.
+     *
+     * I cancellati escono con la loro data invece di sparire. Sul telefono
+     * ci sono esercizi che nominano quello slug in colonna: togliere la riga
+     * senza dire niente li lascerebbe senza etichetta, e chi la cerca
+     * penserebbe a un difetto dell'app.
+     */
+    public function taxonomies(): JsonResponse
+    {
+        $forma = fn ($riga) => [
+            'slug' => $riga->slug,
+            'labelIt' => $riga->label_it,
+            'labelEn' => $riga->label_en,
+            'sort' => $riga->sort,
+            'deletedAt' => $riga->deleted_at?->toIso8601String(),
+        ];
+
+        return response()->json([
+            'muscleGroups' => MuscleGroup::withTrashed()
+                ->orderBy('sort')->orderBy('slug')->get()->map($forma),
+            'equipment' => EquipmentType::withTrashed()
+                ->orderBy('sort')->orderBy('slug')->get()->map($forma),
+        ]);
+    }
+
+    /**
+     * I byte di una foto del catalogo.
+     *
+     * Stanno in `storage/app/private/catalog/` e NON sotto
+     * `images/{utente}/`: una foto di catalogo e' comune a tutti gli
+     * iscritti, e il percorso per utente la renderebbe di uno solo - il primo
+     * che l'ha caricata - lasciando gli altri con un rettangolo vuoto.
+     *
+     * Resta fuori da `public/` come le foto dei progressi: sotto
+     * `auth:sanctum` come tutto il resto di questa API. Il catalogo e' di
+     * tutti gli iscritti, non del mondo.
+     *
+     * Il regex sul nome e' lo stesso di `ImageController`, e per lo stesso
+     * motivo: il nome finisce in un percorso su disco, e il primo carattere
+     * che non puo' essere un punto esclude `.` e `..` insieme.
+     */
+    public function image(string $name): StreamedResponse
+    {
+        abort_unless(preg_match('/^[A-Za-z0-9_-][A-Za-z0-9._-]{0,119}$/', $name) === 1, 404);
+
+        $percorso = "catalog/{$name}";
+        abort_unless(Storage::disk('local')->exists($percorso), 404);
+
+        return Storage::disk('local')->response($percorso);
     }
 
     /**
