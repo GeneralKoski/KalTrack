@@ -1,160 +1,95 @@
 {
-  "pages": [
-    {
-      "id": "page-1",
-      "name": "Le quattro radici"
-    },
-    {
-      "id": "page-2",
-      "name": "Sottopagine"
-    },
-    {
-      "id": "page-3",
-      "name": "Palestra"
-    }
-  ],
   "artboards": [
     {
-      "file": "Sistema.dc.html",
+      "file": "Main.dc.html",
       "x": 0,
       "y": 0,
-      "w": 390,
-      "h": 870,
-      "title": "Il sistema",
-      "page": "page-1"
-    },
-    {
-      "file": "Main.dc.html",
-      "x": 490,
-      "y": 0,
-      "w": 390,
-      "h": 870,
-      "title": "Oggi",
-      "page": "page-1"
+      "w": 700,
+      "h": 800,
+      "title": "Oggi"
     },
     {
       "file": "Progressi.dc.html",
-      "x": 980,
+      "x": 800,
       "y": 0,
-      "w": 390,
-      "h": 870,
-      "title": "Progressi",
-      "page": "page-1"
+      "w": 700,
+      "h": 800,
+      "title": "Progressi"
     },
     {
       "file": "Palestra.dc.html",
-      "x": 1470,
+      "x": 1600,
       "y": 0,
-      "w": 390,
-      "h": 870,
-      "title": "Palestra",
-      "page": "page-1"
+      "w": 700,
+      "h": 800,
+      "title": "Palestra"
     },
     {
       "file": "Profilo.dc.html",
-      "x": 1960,
-      "y": 0,
-      "w": 390,
-      "h": 870,
-      "title": "Profilo",
-      "page": "page-1"
+      "x": 0,
+      "y": 940,
+      "w": 700,
+      "h": 800,
+      "title": "Profilo"
     },
     {
-      "file": "Moduli.dc.html",
+      "file": "ProfiloFondo.dc.html",
+      "x": 800,
+      "y": 940,
+      "w": 700,
+      "h": 800,
+      "title": "Profilo, in fondo"
+    },
+    {
+      "file": "Obiettivi.dc.html",
+      "x": 1600,
+      "y": 940,
+      "w": 700,
+      "h": 800,
+      "title": "Obiettivi"
+    },
+    {
+      "file": "PianoPasti.dc.html",
       "x": 0,
-      "y": 0,
-      "w": 390,
-      "h": 870,
-      "title": "Moduli, liste, vuoti",
-      "page": "page-2"
+      "y": 1880,
+      "w": 700,
+      "h": 800,
+      "title": "Piano pasti"
+    },
+    {
+      "file": "Esercizi.dc.html",
+      "x": 800,
+      "y": 1880,
+      "w": 700,
+      "h": 800,
+      "title": "Esercizi"
+    },
+    {
+      "file": "Traguardi.dc.html",
+      "x": 1600,
+      "y": 1880,
+      "w": 700,
+      "h": 800,
+      "title": "Traguardi"
     },
     {
       "file": "Allenamento.dc.html",
       "x": 0,
-      "y": 0,
-      "w": 390,
-      "h": 870,
-      "title": "Lo svolgimento",
-      "page": "page-3"
+      "y": 2820,
+      "w": 700,
+      "h": 800,
+      "title": "Allenamento"
     },
     {
       "file": "Blocco.dc.html",
-      "x": 490,
-      "y": 0,
-      "w": 390,
-      "h": 870,
-      "title": "La composizione",
-      "page": "page-3"
-    }
-  ],
-  "annotations": [
-    {
-      "id": "nota-sistema",
-      "x": 0,
-      "y": -150,
-      "w": 390,
-      "page": "page-1",
-      "text": "Il nodo: oggi c'e' UN solo contenitore, la Card, quindi l'unica leva per dire \"questo conta\" e' farlo piu' alto - e allora tutto diventa alto. Qui i livelli sono tre."
-    },
-    {
-      "id": "nota-oggi",
-      "x": 490,
-      "y": -150,
-      "w": 390,
-      "page": "page-1",
-      "text": "Acqua: da card con tre pillole da 52 px a una riga sola, stessi tre tocchi. I pasti escono dalle card: sono contenuto che si scorre, non oggetti da incorniciare."
-    },
-    {
-      "id": "nota-progressi",
-      "x": 980,
-      "y": -150,
-      "w": 390,
-      "page": "page-1",
-      "text": "Tre card alte un terzo di schermo diventano tre righe con la linea a destra. Il grafico grande resta, ma nello storico che si apre da qui - dove c'e' spazio per guardarlo."
-    },
-    {
-      "id": "nota-palestra",
-      "x": 1470,
-      "y": -150,
-      "w": 390,
-      "page": "page-1",
-      "text": "I quattro giorni entrano NELL'hero invece di stargli sotto come quattro card: la scheda attiva e' una cosa sola, non quattro. \"Le mie schede\" da bottone pieno a collegamento."
-    },
-    {
-      "id": "nota-profilo",
-      "x": 1960,
-      "y": -150,
-      "w": 390,
-      "page": "page-1",
-      "text": "Sedici card diventano quattro blocchi. Il menu passa da quattro schermate di scorrimento a circa due e mezza, e i gruppi si distinguono perche' sono oggetti separati, non solo etichette."
-    },
-    {
-      "id": "nota-moduli",
-      "x": 0,
-      "y": -180,
-      "w": 390,
-      "page": "page-2",
-      "text": "Tre regole emerse dal giro sulle sottopagine, che il sistema a tre livelli da solo non copriva: un modulo non e' un elenco di sezioni, una lista lunga non e' un blocco, e uno stato vuoto dentro un contenitore non tiene l'altezza del pieno."
-    },
-    {
-      "id": "nota-allenamento",
-      "x": 0,
-      "y": -190,
-      "w": 390,
-      "page": "page-3",
-      "text": "Fra una serie e l'altra la domanda e' \"quanto manca\", e la schermata non la rispondeva: si contavano i tondi verdi scorrendo. Ora c'e' un hero. Le unita' si scrivono una volta in intestazione invece che dentro ogni riga."
-    },
-    {
-      "id": "nota-blocco",
-      "x": 490,
-      "y": -190,
-      "w": 390,
-      "page": "page-3",
-      "text": "Il tipo del blocco era scritto due volte e la riga scorrevole tagliava \"Dropset\" a \"Drops\" - in un selettore, dove il punto e' vedere le alternative."
+      "x": 800,
+      "y": 2820,
+      "w": 700,
+      "h": 800,
+      "title": "Blocco della scheda"
     }
   ],
   "launch": {
-    "view": "canvas",
-    "page": "page-3"
+    "view": "canvas"
   }
 }
