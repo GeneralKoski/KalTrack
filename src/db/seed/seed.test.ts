@@ -6,6 +6,7 @@ import { runMigrations } from "@/src/db/migrations";
 import { toggleExerciseBan } from "@/src/db/queries/exercises";
 import { deleteFood, searchFoods, updateFood } from "@/src/db/queries/foods";
 import { applyExerciseSeeds, applySeeds } from "@/src/db/seed";
+import { toCatalogExercises, toCatalogFoods } from "@/src/db/seed/catalogExport";
 import { SEED_EXERCISES } from "@/src/db/seed/exercises";
 import { SEED_FOODS } from "@/src/db/seed/foods";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
@@ -271,7 +272,7 @@ describe("dati del seed esercizi", () => {
 });
 
 describe("export del seed per il catalogo del server", () => {
-  const leggi = (nome: string): unknown[] =>
+  const leggi = (nome: string): unknown =>
     JSON.parse(
       readFileSync(
         join(__dirname, "..", "..", "..", "backend", "database", "seeders", "data", nome),
@@ -280,31 +281,29 @@ describe("export del seed per il catalogo del server", () => {
     );
 
   /*
-   * I due JSON sono la copia che il server legge: `catalog:seed` non puo'
-   * leggere `src/db/seed/` perche' in produzione `backend/` viaggia da sola
-   * (vedi § In produzione in backend/README.md), e quella cartella li' non
-   * esiste.
-   *
-   * Un esercizio aggiunto al seed e non riesportato e' un esercizio che il
-   * catalogo non conosce: sui telefoni c'e' e sul server no, quindi il pull
-   * lo riproporrebbe come voce nuova e ne nascerebbe un doppione. Senza
-   * questo test nessuno se ne accorgerebbe.
+   * Il confronto e' profondo, non solo di conteggio o di id: i due JSON sono
+   * la copia che il server legge, e il server non puo' leggere `src/db/seed/`
+   * perche' in produzione solo `backend/` viaggia via rsync - quella cartella
+   * li' non esiste. Una copia disallineata dall'originale - id invariato ma
+   * un campo corretto a mano e non riesportato - non lascerebbe traccia con
+   * un confronto piu' debole: e' esattamente il doppione silenzioso su ogni
+   * telefono che questo task esiste per evitare.
    */
-  it("ha tante voci quante le costanti", () => {
-    expect(leggi("exercises.json")).toHaveLength(SEED_EXERCISES.length);
-    expect(leggi("foods.json")).toHaveLength(SEED_FOODS.length);
+  it("gli esercizi esportati combaciano col seed", () => {
+    expect(leggi("exercises.json")).toEqual(toCatalogExercises(SEED_EXERCISES));
   });
 
-  it("porta le istruzioni di ogni esercizio", () => {
-    const esportati = leggi("exercises.json") as { uid: string; instructions: string }[];
-    for (const e of esportati) {
+  it("gli alimenti esportati combaciano col seed", () => {
+    expect(leggi("foods.json")).toEqual(toCatalogFoods(SEED_FOODS));
+  });
+
+  /*
+   * Contro le costanti dal vivo e non contro l'export: deve fallire sul
+   * seed, non sulla sua copia.
+   */
+  it("ogni esercizio del seed ha istruzioni non banali", () => {
+    for (const e of SEED_EXERCISES) {
       expect(e.instructions.length).toBeGreaterThan(10);
     }
-  });
-
-  it("usa l'id del seed come uid", () => {
-    const esportati = leggi("exercises.json") as { uid: string }[];
-    const attesi = SEED_EXERCISES.map((e) => e.id).sort();
-    expect(esportati.map((e) => e.uid).sort()).toEqual(attesi);
   });
 });
