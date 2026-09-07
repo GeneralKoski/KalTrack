@@ -75,7 +75,12 @@ export const MetricHistoryHero: React.FC<MetricHistoryHeroProps> = ({
         </View>
       </View>
 
-      <TrendChart values={values} emptyLabel={emptyLabel} variant={variant} />
+      <TrendChart
+        values={values}
+        emptyLabel={emptyLabel}
+        sparseLabel={t("tracking.chart_needs_two")}
+        variant={variant}
+      />
 
       <Segmented
         compact

@@ -93,7 +93,10 @@ export function OnboardingProfileScreen() {
         }
         if (profile.goal) setGoal(profile.goal as Goal);
       }
-      if (weight) setWeightKg(String(weight.weight_kg));
+      // Con la virgola: `String(76.1)` scriveva "76.1" nel campo di un'app in
+      // italiano. `num` legge entrambe, ma quel che si vede deve essere scritto
+      // come lo si scriverebbe a mano.
+      if (weight) setWeightKg(String(weight.weight_kg).replace(".", ","));
       setLoading(false);
     })();
     return () => {

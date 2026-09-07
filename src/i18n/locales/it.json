@@ -246,6 +246,7 @@
     "steps_total": "totale nel periodo",
     "steps_list": "I giorni",
     "window_empty": "Nessuna misura in questo periodo",
+    "chart_needs_two": "Una misura sola non è un andamento",
     "weight_selected_one": "%{count} selezionato",
     "weight_selected_many": "%{count} selezionati",
     "delete_weight_title": "Eliminare %{count} pesate?",
@@ -993,7 +994,6 @@
     "tdee_waiting": "Compila i campi qui sopra e qui comparirà il tuo fabbisogno giornaliero: è il motivo per cui te li stiamo chiedendo.",
     "theme_title": "Scegli l'aspetto",
     "account_title": "Vuoi un account?",
-    "account_body": "Serve solo a tenere una copia dei dati sul server e a ritrovarli su un altro telefono. Agli altri non arriva niente, e senza account l'app funziona uguale.",
     "start_without_account": "Inizia senza account",
     "next": "Avanti"
   }

@@ -8,7 +8,10 @@ import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 
 interface TrendChartProps {
   values: number[];
+  /** Quando non c'è nessuna misura nel periodo. */
   emptyLabel: string;
+  /** Quando ce n'è una sola: c'è un dato, ma non basta a disegnare. */
+  sparseLabel: string;
   height?: number;
   /**
    * Una linea per una grandezza che scorre (il peso), barre per un conteggio
@@ -30,6 +33,7 @@ interface TrendChartProps {
 export const TrendChart: React.FC<TrendChartProps> = ({
   values,
   emptyLabel,
+  sparseLabel,
   height = 120,
   variant = "line",
 }) => {
@@ -44,11 +48,25 @@ export const TrendChart: React.FC<TrendChartProps> = ({
   // in chiaro, mentre il bordo scuro e la luce alta ci sono tarati sopra.
   const axis = isDark ? colors.metalHighlight : colors.metalEdge;
 
-  if (values.length === 0) {
+  /*
+    Una LINEA parte da due punti in su, ed è la stessa regola delle sparkline
+    in riga su Progressi: uno solo non è una tendenza, e un pallino in mezzo a
+    un riquadro alto 120 sembra un difetto dell'app - è esattamente com'è uscito
+    lo storico del peso al primo avvio, con una sola pesata.
+
+    Le BARRE invece reggono da una: una barra è una quantità, non una tendenza,
+    e "un giorno, tanti passi" si legge benissimo da sola.
+
+    Lo spazio del vuoto è ridotto: uno stato vuoto che tiene l'altezza del pieno
+    è la stessa cosa che `EmptyState compact` risolve altrove.
+  */
+  const tooFewPoints = variant === "line" ? values.length < 2 : values.length < 1;
+
+  if (tooFewPoints) {
     return (
-      <View style={[styles.empty, { height }]}>
+      <View style={[styles.empty, { height: EMPTY_HEIGHT }]}>
         <Text style={[styles.emptyLabel, { color: colors.textFaint }]}>
-          {emptyLabel}
+          {values.length === 0 ? emptyLabel : sparseLabel}
         </Text>
       </View>
     );
@@ -87,6 +105,9 @@ const AXIS_GAP = 10;
 const INSET = 5;
 /** Larghezza minima di una barra, sotto la quale sparirebbe. */
 const MIN_BAR = 2;
+
+/** Altezza dello stato vuoto: il vuoto non tiene lo spazio del pieno. */
+const EMPTY_HEIGHT = 56;
 
 function renderLine(
   values: number[],

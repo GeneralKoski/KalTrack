@@ -86,7 +86,8 @@
     "group_gym": "Gym",
     "group_progress": "Progress",
     "group_app": "App",
-    "exercises": "Exercises"
+    "exercises": "Exercises",
+    "equipment": "Equipment"
   },
   "recipes": {
     "title": "My meals",
@@ -230,6 +231,11 @@
   "tracking": {
     "steps_unit": "steps",
     "weight": "Weight",
+    "add_weight": "New weight",
+    "add_steps": "New steps",
+    "date_label": "Date",
+    "weight_history": "Weight history",
+    "steps_history": "Steps history",
     "window_30d": "30 days",
     "window_6m": "6 months",
     "window_all": "All",
@@ -239,7 +245,18 @@
     "steps_daily": "daily average",
     "steps_total": "total for the period",
     "steps_list": "Days",
-    "window_empty": "No entries in this period"
+    "window_empty": "No entries in this period",
+    "chart_needs_two": "One entry is not a trend",
+    "weight_selected_one": "%{count} selected",
+    "weight_selected_many": "%{count} selected",
+    "delete_weight_title": "Delete %{count} weigh-ins?",
+    "delete_weight_message": "Deleting can't be undone.",
+    "weight_deleted": "Weigh-ins deleted",
+    "steps_selected_one": "%{count} selected",
+    "steps_selected_many": "%{count} selected",
+    "delete_steps_title": "Delete %{count} days?",
+    "delete_steps_message": "Deleting can't be undone.",
+    "steps_deleted": "Steps deleted"
   },
   "progress": {
     "weight": "Weight",
@@ -388,6 +405,7 @@
     "alternatives": "Suggest alternative",
     "no_alternatives": "No alternatives available",
     "equipment_title": "My equipment",
+    "equipment_continue": "Continue",
     "block_superset": "Superset",
     "block_circuit": "Circuit",
     "block_dropset": "Dropset",
@@ -432,6 +450,11 @@
     "routine_without_days": "This routine has no days yet: open it to add some.",
     "recent_sessions": "Recent workouts",
     "no_sessions": "No workouts recorded.",
+    "sessions_selected_one": "%{count} selected",
+    "sessions_selected_many": "%{count} selected",
+    "delete_sessions_title": "Delete %{count} workouts?",
+    "delete_sessions_message": "Deleting can't be undone.",
+    "sessions_deleted": "Workouts deleted",
     "session_open": "Workout in progress",
     "free_workout": "Free workout",
     "sets_count": "%{count} sets",
@@ -582,6 +605,8 @@
   "measurements": {
     "title": "Measurements",
     "unit": "cm",
+    "add": "Add measurement",
+    "add_for": "New measurement · %{site}",
     "sites": {
       "vita": "Waist",
       "fianchi": "Hips",
@@ -595,7 +620,12 @@
     "chart_empty": "You need more than one measurement to see a trend",
     "since_first": "%{delta} cm since your first measurement on %{date}",
     "only_one": "Just one measurement: the difference will show from the next one",
-    "history": "History"
+    "history": "History",
+    "selected_one": "%{count} selected",
+    "selected_many": "%{count} selected",
+    "delete_title": "Delete %{count} measurements?",
+    "delete_message": "Deleting can't be undone.",
+    "deleted": "Measurements deleted"
   },
   "progress_photos": {
     "title": "Progress photos",
@@ -960,7 +990,6 @@
     "tdee_hint": "This is where your daily targets come from. You can see and change them in Profile > Targets.",
     "tdee_waiting": "Fill in the fields above and your daily needs will appear here: that is why we are asking for them.",
     "account_title": "Want an account?",
-    "account_body": "It only keeps a copy of your data on the server and brings it back on another phone. Nothing reaches anyone else, and the app works the same without one.",
     "start_without_account": "Start without an account",
     "welcome_title": "Welcome to KalTrack",
     "welcome_body": "Track nutrition, weight, steps and workouts. Your phone stays yours: it works without a connection, and without an account.",

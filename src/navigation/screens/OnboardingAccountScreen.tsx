@@ -1,5 +1,3 @@
-import { useAppTheme } from "@/src/components/ThemeContext";
-import { Text } from "@/src/components/ui";
 import {
   OnboardingShell,
   OnboardingTitle,
@@ -9,9 +7,7 @@ import { resetToTabs, useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { useOnboardingStore } from "@/src/stores/onboardingStore";
-import { theme } from "@/src/styles";
 import React, { useEffect, useRef } from "react";
-import { StyleSheet } from "react-native";
 
 /**
  * Ultimo passo: l'account, che si può non fare.
@@ -22,13 +18,13 @@ import { StyleSheet } from "react-native";
  * wizard, si sa cosa fa l'app, e chi non vuole un account preme il bottone in
  * fondo ed entra.
  *
- * L'account non serve a usare KalTrack e non cambierà (`CLAUDE.md` § Cos'è
- * KalTrack): serve alla copia sul server e agli amici. Il testo lo dice qui,
- * dove la domanda si pone.
+ * **La spiegazione non si scrive qui**: `AccountForm` ne porta già una, e
+ * scrivendone una seconda sopra la stessa cosa era detta due volte di fila,
+ * con parole diverse. Quella del modulo è la più completa e la vedono anche
+ * Profilo e Impostazioni: una sola, in un posto solo.
  */
 export function OnboardingAccountScreen() {
   const { t } = useTranslation();
-  const { colors } = useAppTheme();
   const { goBack } = useAppNav();
   const complete = useOnboardingStore((s) => s.complete);
   const token = useAccountStore((s) => s.token);
@@ -57,14 +53,7 @@ export function OnboardingAccountScreen() {
       onPrimary={() => void finish()}
     >
       <OnboardingTitle>{t("onboarding.account_title")}</OnboardingTitle>
-      <Text style={[styles.body, { color: colors.textSecondary }]}>
-        {t("onboarding.account_body")}
-      </Text>
       <AccountForm />
     </OnboardingShell>
   );
 }
-
-const styles = StyleSheet.create({
-  body: { fontSize: 14, lineHeight: 20, marginBottom: theme.spacing.lg },
-});

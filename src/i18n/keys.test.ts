@@ -1,5 +1,6 @@
 // Non si chiama `it`: quel nome e' la funzione di jest, e l'import
 // la coprirebbe rendendo impossibile scrivere un test in questo file.
+import english from "@/src/i18n/locales/en.json";
 import italian from "@/src/i18n/locales/it.json";
 import { CSV_DATASETS } from "@/src/services/csvExport";
 import { EQUIPMENT, MUSCLE_GROUPS, BLOCK_KINDS } from "@/src/types/gym";
@@ -114,5 +115,30 @@ describe("chiavi di traduzione", () => {
       return !available.has(key);
     });
     expect(missing).toEqual([]);
+  });
+});
+
+/**
+ * Le due lingue portano le STESSE chiavi.
+ *
+ * Una chiave che sta solo in `it.json` non si traduce mai piu': chi usa l'app
+ * in inglese legge `[missing "en.tracking.steps_history"]` come titolo di
+ * pagina, e nessuno se ne accorge finche' non apre quella schermata in quella
+ * lingua. Erano ventinove l'8 settembre 2026 - storico peso e passi, misure,
+ * sessioni di palestra - e questo test e' la ragione per cui non torneranno.
+ *
+ * Vale in tutti e due i versi: una chiave rimasta in `en.json` dopo essere
+ * stata tolta da `it.json` e' testo morto che nessuno rileggera'.
+ */
+describe("parita' fra le due lingue", () => {
+  const italiane = flatten(italian as Record<string, unknown>);
+  const inglesi = flatten(english as Record<string, unknown>);
+
+  it("ogni chiave italiana esiste in inglese", () => {
+    expect([...italiane].filter((key) => !inglesi.has(key))).toEqual([]);
+  });
+
+  it("ogni chiave inglese esiste in italiano", () => {
+    expect([...inglesi].filter((key) => !italiane.has(key))).toEqual([]);
   });
 });

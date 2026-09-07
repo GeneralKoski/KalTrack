@@ -587,10 +587,13 @@ Impostazioni > Lingua (`LanguageScreen`) e il primo passo dell'onboarding
 condividono lo stesso selettore (`LanguagePicker`,
 `src/containers/settings/`).
 
-**`en.json` non e' ancora completo**: le chiavi delle funzioni piu' recenti
-(attrezzatura, storico peso/passi, storico misure, storico sessioni) non ci
-sono tutte. Chi aggiunge una chiave nuova in `it.json` la aggiunge anche li',
-o quella stringa non si traduce mai piu' finche' qualcuno non se ne accorge.
+**`en.json` e' completo dall'8 settembre 2026, e un test lo tiene tale.** Ne
+mancavano ventinove - attrezzatura, storico peso/passi, storico misure, storico
+sessioni - e non si vedeva finche' non si apriva quella schermata in inglese:
+il titolo della pagina diceva `[missing "en.tracking.steps_history"]`. Ora
+`keys.test.ts` confronta le due lingue **in tutti e due i versi**: una chiave
+solo in italiano non si traduce mai piu', una rimasta solo in inglese e' testo
+morto.
 
 **Il server segue la lingua dell'app, non una sua**. `src/api/client.ts` manda
 `Accept-Language` con la lingua di `translationStore`
@@ -996,7 +999,10 @@ cose da non rompere:
 - **Il peso disegna una linea, i passi delle barre**, e le barre partono da
   zero: una barra e' una quantita', e tagliarne la base farebbe sembrare 9.000
   passi il doppio di 8.000. Una linea invece puo' partire dal minimo della
-  serie, perche' quel che dice e' la forma.
+  serie, perche' quel che dice e' la forma. Da questo segue anche **quanti
+  punti servono**: la linea parte da due (uno solo non e' una tendenza, ed e'
+  un pallino in mezzo a un riquadro alto 120 - il primo avvio con una sola
+  pesata usciva cosi'), le barre da una.
 - **Il delta non ha un colore.** Verde su un calo direbbe che calare e' bene, e
   non e' l'app a saperlo: e' la stessa ragione per cui il confronto con gli
   amici non da' un vincitore sulle calorie e sul peso non lo fa affatto
