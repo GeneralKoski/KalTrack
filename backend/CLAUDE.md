@@ -50,7 +50,10 @@ del container all'avvio. Procedura di deploy in `README.md` § In produzione.
    sa: `User::whereHandle`. Vale ovunque - accesso, unicita', apertura di un
    profilo, ricerca.
 6. **Il controllo dei permessi sta nel server**, mai solo nella schermata. Per
-   `is_admin` e' dentro il controller, accanto a cio' che protegge.
+   `is_admin` e' un middleware (`EnsureAdmin`) sul gruppo di rotte, non un
+   controllo scritto a mano in ogni controller: il gestionale ne porta una
+   ventina, e un controllo ripetuto venti volte e' un controllo che prima o
+   poi manca in uno.
 
 ## Convenzioni di codice
 
@@ -60,7 +63,8 @@ scostamenti dal template, entrambi voluti:
 - **Nessuna policy** e nessuna `authorizeResource`. Il diritto qui non e' "puo'
   questo ruolo": e' "sono amici" oppure "e' una voce che ho aggiunto io",
   cioe' una condizione sui dati che vive nelle query. Il controllo di
-  `is_admin` sta dentro `AdminController`, accanto a cio' che protegge.
+  `is_admin` sta nel middleware `admin` sul gruppo di rotte, non in ogni
+  controller.
 - **Nessuna Spatie QueryBuilder.** Non c'e' un endpoint con filtri
   componibili: l'API ha un solo consumatore, che chiede quel che gli serve.
 

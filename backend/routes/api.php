@@ -52,20 +52,26 @@ Route::middleware('auth:sanctum')->group(function () {
      * sull'altro telefono con un rettangolo vuoto al posto dell'immagine.
      */
     /*
-     * Amministrazione: solo per chi ha `is_admin`. Il controllo e' dentro il
-     * controller e non qui, cosi' vive accanto a cio' che protegge.
-     */
-    Route::get('admin/users', [AdminController::class, 'users']);
-    /*
-     * Limitato per tentativi come `login` e `register`.
+     * Amministrazione.
      *
-     * Il controllo su `is_admin` sta nel controller e basta a fermare chi non
-     * lo e', ma questo endpoint assegna password: un limite lo rende anche
-     * inutile da usare a raffica, e un amministratore legittimo non ne cambia
-     * dieci al minuto.
+     * Il controllo su `is_admin` sta nel middleware e non piu' dentro il
+     * controller: le rotte del gestionale sono una ventina, e un controllo
+     * ripetuto in ogni metodo e' un controllo che prima o poi manca in uno.
      */
-    Route::post('admin/users/{user}/password', [AdminController::class, 'resetPassword'])
-        ->middleware('throttle:10,1');
+    Route::middleware('admin')->prefix('admin')->group(function () {
+        Route::get('users', [AdminController::class, 'users']);
+
+        /*
+         * Limitato per tentativi come `login` e `register`.
+         *
+         * Il middleware basta a fermare chi non e' amministratore, ma questo
+         * endpoint assegna password: un limite lo rende anche inutile da
+         * usare a raffica, e un amministratore legittimo non ne cambia dieci
+         * al minuto.
+         */
+        Route::post('users/{user}/password', [AdminController::class, 'resetPassword'])
+            ->middleware('throttle:10,1');
+    });
 
     Route::get('images', [ImageController::class, 'index']);
     Route::post('images', [ImageController::class, 'store']);

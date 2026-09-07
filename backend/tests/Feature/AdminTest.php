@@ -114,6 +114,23 @@ class AdminTest extends TestCase
         $this->assertFalse($anna->is_admin);
     }
 
+    public function test_il_gruppo_admin_e_chiuso_a_chi_non_lo_e(): void
+    {
+        $anna = User::factory()->create(['is_admin' => false]);
+
+        // Ogni rotta del gruppo, una per una: un controllo scritto a mano in
+        // ogni metodo e' un controllo che prima o poi si dimentica in uno, ed
+        // e' esattamente il motivo per cui e' diventato un middleware.
+        foreach (['/api/admin/users'] as $rotta) {
+            $this->actingAs($anna)->getJson($rotta)->assertForbidden();
+        }
+    }
+
+    public function test_il_gruppo_admin_e_chiuso_a_chi_non_ha_un_account(): void
+    {
+        $this->getJson('/api/admin/users')->assertUnauthorized();
+    }
+
     public function test_il_profilo_dice_se_l_ai_e_attiva(): void
     {
         $user = User::factory()->create();

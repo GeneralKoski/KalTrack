@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\SetLocaleFromHeader;
 use App\Support\ValidationMessage;
 use Illuminate\Foundation\Application;
@@ -29,6 +30,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn () => null);
 
         $middleware->api(append: [SetLocaleFromHeader::class]);
+
+        $middleware->alias(['admin' => EnsureAdmin::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
