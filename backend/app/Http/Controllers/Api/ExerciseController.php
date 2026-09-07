@@ -132,7 +132,18 @@ class ExerciseController extends Controller
         // Rinominando si potrebbe finire addosso a un'altra voce: il nome
         // normalizzato e' unico, e senza questo controllo il database
         // risponderebbe con un errore che l'utente non puo' interpretare.
-        $altra = Exercise::where('name_norm', $norm)
+        // `withTrashed()`: l'indice unico su `name_norm` copre anche le righe
+        // cancellate, quindi non puo' fare finta di niente nemmeno questo
+        // controllo - altrimenti il database lo tradirebbe con la stessa
+        // eccezione non gestita che questo controllo esiste per evitare.
+        //
+        // Qui si rifiuta con 422 invece di tornare la voce cancellata come fa
+        // `store()`: non e' un'incoerenza, sono due domande diverse. Una
+        // proposta puo' diventare "prendi questa che gia' esiste"; una
+        // correzione chiede di *diventare* quel nome, e quel nome e'
+        // davvero occupato - anche se dall'ombra di una voce tolta.
+        $altra = Exercise::withTrashed()
+            ->where('name_norm', $norm)
             ->whereKeyNot($exercise->id)
             ->exists();
         if ($altra) {

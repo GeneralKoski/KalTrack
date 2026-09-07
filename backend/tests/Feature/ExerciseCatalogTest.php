@@ -307,6 +307,36 @@ class ExerciseCatalogTest extends TestCase
             ->assertStatus(422);
     }
 
+    /**
+     * L'indice unico su `name_norm` copre anche le righe cancellate: senza
+     * `withTrashed()` sul controllo, questa rinomina avrebbe superato il
+     * controllo e sarebbe finita sull'eccezione non gestita del database
+     * invece che su un 422 leggibile.
+     */
+    public function test_non_ci_si_rinomina_sul_nome_di_una_voce_cancellata(): void
+    {
+        $anna = $this->user('anna');
+
+        $cancellataId = $this->actingAs($anna)->postJson('/api/exercises', [
+            'name' => 'Panca piana',
+            'muscleGroup' => 'chest',
+        ])->json('data.id');
+        $this->actingAs($anna)->deleteJson("/api/exercises/{$cancellataId}")->assertOk();
+
+        $id = $this->actingAs($anna)->postJson('/api/exercises', [
+            'name' => 'Squat',
+            'muscleGroup' => 'legs',
+        ])->json('data.id');
+
+        $this->actingAs($anna)
+            ->patchJson("/api/exercises/{$id}", [
+                'name' => 'Panca piana',
+                'muscleGroup' => 'legs',
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.name.0', 'Nome gia\' in catalogo.');
+    }
+
     public function test_il_catalogo_si_cerca_per_nome(): void
     {
         $user = $this->user();
