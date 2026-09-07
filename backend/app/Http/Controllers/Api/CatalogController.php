@@ -7,6 +7,7 @@ use App\Models\EquipmentType;
 use App\Models\Exercise;
 use App\Models\Food;
 use App\Models\MuscleGroup;
+use App\Support\FileName;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
@@ -121,13 +122,15 @@ class CatalogController extends Controller
      * `auth:sanctum` come tutto il resto di questa API. Il catalogo e' di
      * tutti gli iscritti, non del mondo.
      *
-     * Il regex sul nome e' lo stesso di `ImageController`, e per lo stesso
-     * motivo: il nome finisce in un percorso su disco, e il primo carattere
-     * che non puo' essere un punto esclude `.` e `..` insieme.
+     * Il nome si controlla con `FileName`, condivisa con `ImageController`
+     * per lo stesso motivo: il nome finisce in un percorso su disco.
+     *
+     * `response()` e non `download()`: questi byte si mostrano, non si
+     * salvano, a differenza di una foto dei progressi.
      */
     public function image(string $name): StreamedResponse
     {
-        abort_unless(preg_match('/^[A-Za-z0-9_-][A-Za-z0-9._-]{0,119}$/', $name) === 1, 404);
+        abort_unless(FileName::isAcceptable($name), 404);
 
         $percorso = "catalog/{$name}";
         abort_unless(Storage::disk('local')->exists($percorso), 404);

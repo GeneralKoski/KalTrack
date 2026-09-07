@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Support\FileName;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -31,20 +32,6 @@ class ImageController extends Controller
     private const MAX_KB = 5120;
 
     /**
-     * Un nome accettabile.
-     *
-     * Non e' pignoleria: il nome finisce in un percorso su disco, e senza
-     * questo controllo un `../` ci farebbe scrivere dove non dobbiamo.
-     *
-     * Il primo carattere non puo' essere un punto, e questo esclude `.` e `..`
-     * insieme ai file nascosti. Senza quel vincolo `..` passava - non contiene
-     * `/`, quindi la traversata vera restava esclusa, ma `images/{id}/..` e' un
-     * percorso che il codice qui sotto costruisce volentieri, e un nome deve
-     * nominare un file, non una cartella.
-     */
-    private const NAME = '/^[A-Za-z0-9_-][A-Za-z0-9._-]{0,119}$/';
-
-    /**
      * Un archivio di immagini contiene immagini.
      *
      * `file` e `max` non dicono niente sul contenuto: qualunque cosa sotto i
@@ -62,7 +49,7 @@ class ImageController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name' => ['required', 'string', 'regex:'.self::NAME],
+            'name' => ['required', 'string', FileName::rule()],
             'file' => ['required', 'file', 'mimes:'.self::MIMES, 'max:'.self::MAX_KB],
         ]);
 
@@ -77,7 +64,7 @@ class ImageController extends Controller
 
     public function show(Request $request, string $name): StreamedResponse
     {
-        abort_unless(preg_match(self::NAME, $name) === 1, 404);
+        abort_unless(FileName::isAcceptable($name), 404);
 
         $path = $this->dir($request->user()->id).'/'.$name;
         abort_unless(Storage::disk('local')->exists($path), 404);
@@ -87,7 +74,7 @@ class ImageController extends Controller
 
     public function destroy(Request $request, string $name): JsonResponse
     {
-        abort_unless(preg_match(self::NAME, $name) === 1, 404);
+        abort_unless(FileName::isAcceptable($name), 404);
 
         Storage::disk('local')->delete($this->dir($request->user()->id).'/'.$name);
 
