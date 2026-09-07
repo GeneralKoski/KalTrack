@@ -25,6 +25,7 @@ import { ONBOARDING_STEPS } from "@/src/domain/onboarding";
 import { navigationRef } from "@/src/navigation/navigationRef";
 import { OnboardingStack } from "@/src/navigation/onboardingStack";
 import { useOnboardingStore } from "@/src/stores/onboardingStore";
+import { useTranslationStore } from "@/src/stores/translationStore";
 import { Text } from "@/src/components/ui";
 import { AchievementsScreen } from "@/src/navigation/screens/AchievementsScreen";
 import { AdminScreen } from "@/src/navigation/screens/AdminScreen";
@@ -392,6 +393,23 @@ const LINKING = {
 export function Navigation() {
   const { colors, isDark } = useAppTheme();
   const { completed, resumeStep } = useOnboardingStore();
+  /*
+    La lingua e' la CHIAVE del navigatore, e cambiarla lo rimonta da capo.
+    Sembra esagerato e non lo e': numeri e date si formattano leggendo
+    `i18n.locale`, che e' una globale invisibile a React. Col React Compiler
+    attivo ogni chiamata viene memoizzata sui suoi argomenti, quindi
+    `formatLongDate(date)` con la stessa data non si rifa' - e cambiando lingua
+    la schermata si traduceva lasciando "7 settembre 2026" sotto "Today".
+    Verificato sull'emulatore con un log dentro la funzione: al cambio lingua
+    non veniva chiamata affatto.
+
+    Le alternative erano passare la lingua a ogni chiamata (quarantasei file, e
+    la disciplina da ricordare per sempre) oppure questa riga, che azzera ogni
+    memo di ogni componente in un colpo solo e vale anche per il codice che
+    verra'. Il prezzo e' che dopo il cambio si riparte dalla schermata
+    iniziale: e' un gesto che si fa una volta, non un'operazione quotidiana.
+  */
+  const language = useTranslationStore((state) => state.language);
 
   /*
    * L'onboarding e' un'entrata alternativa a "Tabs", non una schermata come
@@ -448,6 +466,7 @@ export function Navigation() {
   // per aprire una schermata.
   return (
     <StaticNavigation
+      key={language}
       ref={navigationRef}
       theme={navigationTheme}
       initialState={initialState}

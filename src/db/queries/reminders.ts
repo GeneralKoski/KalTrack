@@ -1,5 +1,6 @@
 import { newId, nowIso } from "@/src/db/ids";
 import { getDb } from "@/src/db/index";
+import { defaultWaterReminderLabel } from "@/src/services/seedLabels";
 import { logger } from "@/src/utils/logger";
 
 /**
@@ -125,7 +126,7 @@ export async function ensureDefaultReminder(): Promise<void> {
       [
         newId(),
         "water",
-        "Bevi un bicchiere d'acqua",
+        defaultWaterReminderLabel(),
         0,
         "09:00",
         "[0,1,2,3,4,5,6]",

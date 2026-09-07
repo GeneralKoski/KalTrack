@@ -1,5 +1,6 @@
 import { setLanguageProvider } from "@/src/api/client";
 import { i18n } from "@/src/i18n";
+import { relabelSeededRows } from "@/src/services/seedLabels";
 import { logger } from "@/src/utils/logger";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getLocales } from "expo-localization";
@@ -51,6 +52,11 @@ export const useTranslationStore = create<TranslationStore>()(
         }
         i18n.locale = lang;
         set({ language: lang });
+        // I nomi seminati nel database seguono la lingua come tutto il resto,
+        // ma solo se nessuno li ha rinominati: vedi `seedLabels`. Non si
+        // aspetta - e' una riscrittura cosmetica, e la schermata si rimonta
+        // comunque al cambio lingua (§ Navigation).
+        void relabelSeededRows();
       },
 
       reset: () => {

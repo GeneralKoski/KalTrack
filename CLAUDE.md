@@ -587,6 +587,40 @@ Impostazioni > Lingua (`LanguageScreen`) e il primo passo dell'onboarding
 condividono lo stesso selettore (`LanguagePicker`,
 `src/containers/settings/`).
 
+**Cambiare lingua RIMONTA il navigatore**, ed e' una riga voluta:
+`<StaticNavigation key={language}>` in `src/navigation/index.tsx`. Numeri e
+date si formattano leggendo `i18n.locale`, che e' una globale che React non
+vede: col React Compiler attivo ogni chiamata viene memoizzata sui suoi
+argomenti, quindi `formatLongDate(date)` con la stessa data non si rifa' - e
+cambiando lingua la schermata si traduceva lasciando "7 settembre 2026" sotto
+"Today". Provato sull'emulatore con un log dentro la funzione: al cambio lingua
+non veniva chiamata affatto.
+
+L'alternativa era passare la lingua a ogni chiamata - quarantasei file, e la
+disciplina da ricordare per sempre. La chiave azzera ogni memo di ogni
+componente in un colpo solo e vale anche per il codice che verra'. **Il prezzo
+e' che dopo il cambio si riparte dalla schermata iniziale**: e' un gesto che si
+fa una volta, non un'operazione quotidiana. Chi trova questa riga e la toglie
+perche' "sembra inutile" rimette esattamente quel difetto.
+
+**Anche le righe seminate nel database seguono la lingua**
+(`src/services/seedLabels.ts`), e sono un caso a parte perche' non sono testo
+dell'interfaccia: i cinque tipi di pasto nascono da una migrazione SQL e il
+promemoria dell'acqua da un insert, quindi nessuna `t("chiave")` li raggiunge -
+in inglese il diario diceva "CENA". `relabelSeededRows()` li riscrive
+all'avvio e a ogni cambio lingua.
+
+**Si riscrive la riga invece di tradurre a schermo** perche' quei nomi non li
+legge solo il diario: li manda il catalogo all'assistente, li scrive il CSV, li
+mostrano il piano e il foglio Aggiungi. Tradurre al momento del disegno
+vorrebbe dire ricordarsene in ognuno di quei posti, per sempre.
+
+E si riscrive **solo una riga che porta ancora un nome del seed**, in una
+qualunque delle lingue supportate: un pasto rinominato a mano non si tocca, e
+nemmeno uno creato dall'utente (§ I pasti che si possono usare). Cambiare
+lingua non e' un'occasione per riscrivere quel che uno ha scritto, e c'e' un
+test per ciascuno dei due versi.
+
 **Anche i numeri hanno una lingua**, e dall'8 settembre 2026 seguono quella
 dell'app: `formatInteger` e `formatDecimal` (`src/utils/number.ts`) leggono il
 locale da `i18n`, come gia' faceva `formatShortDate`. C'era

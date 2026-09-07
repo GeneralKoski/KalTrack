@@ -11,6 +11,7 @@ import "@/global.css";
 import { ThemeProvider, useAppTheme } from "@/src/components/ThemeContext";
 import { toastConfig } from "@/src/components/toastConfig";
 import { initDatabase } from "@/src/db";
+import { relabelSeededRows } from "@/src/services/seedLabels";
 import { ExitConfirm } from "@/src/components/ExitConfirm";
 import { Navigation } from "@/src/navigation";
 import { syncStepsOnStartup } from "@/src/services/healthConnect";
@@ -75,6 +76,10 @@ export function App() {
     (async () => {
       try {
         await initDatabase();
+        // I nomi seminati nel database (tipi di pasto, promemoria dell'acqua)
+        // nella lingua dell'app: nascono da una migrazione SQL e da un insert,
+        // quindi nessuna traduzione li raggiunge.
+        await relabelSeededRows();
         // Prima che Navigation monti: sceglie se la prima schermata e' Oggi
         // o il wizard, e quella scelta si legge una volta sola all'avvio.
         await useOnboardingStore.getState().hydrate();
