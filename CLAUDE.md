@@ -889,6 +889,12 @@ la linea sta a destra e **compare da due punti in su**: uno solo non e' una
 tendenza, e un pallino in mezzo al vuoto sembra un difetto. Il grafico esteso
 vive nello storico, dove c'e' spazio per guardarlo.
 
+**Quella frase e' stata falsa per una settimana**, ed e' il difetto piu' caro di
+tutto il ridisegno: gli storici non avevano nessun grafico e non l'avevano mai
+avuto, quindi togliere le tre sparkline a piena larghezza non ha spostato il
+grafico grande - lo ha tolto dall'app. Chi scrive "vive altrove" in un commento
+ha finito il lavoro solo dopo essere andato a vedere che li' ci sia davvero.
+
 Toccare la riga (invece del "+") apre `WeightHistoryScreen` /
 `StepsHistoryScreen`: lo storico completo da `earliestRecordedDate()`, con
 selezione multipla a pressione lunga ed eliminazione in blocco - lo stesso
@@ -896,6 +902,35 @@ schema gia' usato dalle sessioni di `GymScreen` e dalle misure di
 `MeasurementsScreen`. Nessuna nuova migrazione: la cancellazione riusa
 `deleted_at`, gia' presente sulle tabelle coinvolte (regola 1 della
 sincronizzazione).
+
+Dall'8 settembre 2026 in cima c'e' `MetricHistoryHero`: il numero di adesso, il
+secondo numero che lo mette in prospettiva, il grafico e la finestra. Quattro
+cose da non rompere:
+
+- **La finestra vale per tutta la schermata**, non solo per il grafico: numeri,
+  linea ed elenco parlano dello stesso periodo, o il totale in cima non
+  tornerebbe con le righe sotto. E cambiandola **la selezione si azzera**: una
+  riga selezionata e poi uscita dalla finestra resterebbe nel gruppo da
+  cancellare senza vedersi piu'.
+- **I due numeri non sono gli stessi per le due grandezze.** Il peso e' una
+  grandezza che scorre: ultima pesata e variazione sul periodo. I passi
+  ripartono da zero ogni giorno, quindi l'ultimo valore non dice niente - li'
+  sono media al giorno e totale. La media e' sui giorni **registrati**: un
+  giorno senza registrazione non e' un giorno a zero passi (§ `average`).
+- **Il peso disegna una linea, i passi delle barre**, e le barre partono da
+  zero: una barra e' una quantita', e tagliarne la base farebbe sembrare 9.000
+  passi il doppio di 8.000. Una linea invece puo' partire dal minimo della
+  serie, perche' quel che dice e' la forma.
+- **Il delta non ha un colore.** Verde su un calo direbbe che calare e' bene, e
+  non e' l'app a saperlo: e' la stessa ragione per cui il confronto con gli
+  amici non da' un vincitore sulle calorie e sul peso non lo fa affatto
+  (§ Il confronto con gli amici).
+
+`TrendChart` non e' `Sparkline` con altri numeri: quella disegna un `Svg` a
+`width="100%"` con un `viewBox` fisso, quindi stira il disegno in orizzontale -
+accettabile per una linea alta 30 in fondo a una riga, non dove i pallini devono
+essere tondi e le barre larghe uguali. `TrendChart` misura la larghezza e
+disegna in pixel veri; `Sparkline` resta a Progressi e alle misure.
 
 ### Organizzazione dei componenti
 
@@ -1131,6 +1166,10 @@ Valgono le guide Dieffetech `docs/react-native/`:
 - **L'etichetta di un campo e' `FieldLabel` (14/500 in tondo), non
   `SectionLabel`** (12/700 maiuscolo): sono due cose diverse e per un anno si
   sono somigliate.
+- **Poche opzioni fisse sono un `Segmented`, non dei chip che scorrono.** In un
+  selettore il punto e' vedere le alternative, e una riga che scorre le taglia a
+  meta' parola ("Dropset" -> "Drops"). I chip restano per i filtri, dove le voci
+  sono tante e non si conoscono in anticipo.
 - Elementi assoluti, overlay e bottoni flottanti ancorati con
   `useSafeAreaInsets()`.
 - Ogni testo visibile via `t("chiave")`, chiavi in `src/i18n/locales/it.json`

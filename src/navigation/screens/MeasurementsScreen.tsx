@@ -4,6 +4,7 @@ import {
   Chip,
   EmptyState,
   HistoryRow,
+  NO_DELTA,
   ScreenBackground,
   SectionLabel,
 } from "@/src/components/kal";
@@ -340,9 +341,7 @@ export function MeasurementsScreen() {
                                 date={row.date}
                                 value={`${formatCm(row.value_cm)} ${t("measurements.unit")}`}
                                 delta={
-                                  delta === null
-                                    ? t("measurements.first")
-                                    : formatDelta(delta)
+                                  delta === null ? NO_DELTA : formatDelta(delta)
                                 }
                                 note={row.note}
                               />

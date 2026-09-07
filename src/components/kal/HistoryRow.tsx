@@ -5,11 +5,20 @@ import { formatDate } from "@/src/utils/dateUtils";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 
+/**
+ * Il posto del delta sulla misura più vecchia, quella che non ha un prima.
+ *
+ * Era la parola "prima", tradotta: a destra di "80,0 kg" si leggeva come
+ * l'etichetta di quel numero e non come l'assenza di un secondo numero. Un
+ * trattino non si traduce e non si legge come una parola.
+ */
+export const NO_DELTA = "—";
+
 interface HistoryRowProps {
   date: string;
   /** Già formattato con la sua unità (es. "72,4 kg", "8.412 passi"). */
   value: string;
-  /** Già formattato (es. "+0,4", "prima"): il significato del delta dipende dal dominio. */
+  /** Già formattato (es. "+0,4", `NO_DELTA`): il significato dipende dal dominio. */
   delta: string;
   note?: string | null;
 }

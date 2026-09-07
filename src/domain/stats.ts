@@ -1,3 +1,37 @@
+import { addDays, toIsoDate } from "@/src/domain/date";
+
+/** Le finestre di uno storico. L'ordine è quello dei segmenti a schermo. */
+export const TREND_WINDOWS = ["30d", "6m", "all"] as const;
+
+export type TrendWindow = (typeof TREND_WINDOWS)[number];
+
+/**
+ * La data da cui parte una finestra, o `null` per "tutto".
+ *
+ * Null e non una data lontanissima: "tutto" comincia dalla prima misura
+ * registrata, che è un fatto del database e non un numero scelto qui.
+ */
+export function trendWindowStart(
+  window: TrendWindow,
+  today: string,
+): string | null {
+  switch (window) {
+    // 30 giorni CONTANDO oggi: da oggi a ventinove giorni fa sono trenta
+    // giornate, e partire da -30 ne mostrerebbe trentuno.
+    case "30d":
+      return addDays(today, -29);
+    // Non `addMonths`: quello serve al calendario e si aggancia al primo del
+    // mese, quindi "sei mesi" sarebbe da sei mesi a sei mesi e trenta giorni a
+    // seconda del giorno in cui lo si guarda.
+    case "6m": {
+      const [year, month, day] = today.split("-").map(Number);
+      return toIsoDate(new Date(year, month - 1 - 6, day));
+    }
+    case "all":
+      return null;
+  }
+}
+
 /**
  * Media dei valori presenti. Un giorno senza misura (`null`) non conta come
  * zero: non aver registrato non è aver camminato zero passi.

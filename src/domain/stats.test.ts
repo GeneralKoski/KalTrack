@@ -1,4 +1,9 @@
-import { average, buildSparkline, movingAverage } from "@/src/domain/stats";
+import {
+  average,
+  buildSparkline,
+  movingAverage,
+  trendWindowStart,
+} from "@/src/domain/stats";
 
 describe("average", () => {
   it("media di valori presenti", () => {
@@ -56,5 +61,23 @@ describe("buildSparkline", () => {
 
   it("su serie vuota ritorna vuoto", () => {
     expect(buildSparkline([], 100, 50)).toEqual([]);
+  });
+});
+
+describe("trendWindowStart", () => {
+  it("conta trenta giornate incluso oggi", () => {
+    // Dal 9 agosto al 7 settembre sono trenta giorni: partire dall'8 agosto
+    // ne mostrerebbe trentuno.
+    expect(trendWindowStart("30d", "2026-09-07")).toBe("2026-08-09");
+  });
+
+  it("torna indietro di sei mesi di calendario", () => {
+    expect(trendWindowStart("6m", "2026-09-07")).toBe("2026-03-07");
+  });
+
+  it("su tutto non ha un inizio", () => {
+    // Null e non una data lontanissima: l'inizio è la prima misura scritta,
+    // che è un fatto del database e non un numero deciso qui.
+    expect(trendWindowStart("all", "2026-09-07")).toBeNull();
   });
 });

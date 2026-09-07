@@ -1,10 +1,18 @@
 import { DfAlert } from "@/src/components/DfAlert";
-import { Card, EmptyState, HistoryRow, ScreenBackground } from "@/src/components/kal";
+import {
+  EmptyState,
+  NO_DELTA,
+  ScreenBackground,
+  SectionLabel,
+} from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
+import { HistoryList } from "@/src/containers/progress/HistoryList";
+import { MetricHistoryHero } from "@/src/containers/progress/MetricHistoryHero";
 import { earliestRecordedDate } from "@/src/db/queries/history";
 import { deleteSteps, listSteps } from "@/src/db/queries/tracking";
 import { todayIso } from "@/src/domain/date";
+import { average, trendWindowStart, type TrendWindow } from "@/src/domain/stats";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
@@ -12,8 +20,8 @@ import { theme } from "@/src/styles";
 import type { StepLogRow } from "@/src/types/nutrition";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
-import { Check, ChevronLeft, Footprints, Trash2, X } from "lucide-react-native";
-import React, { useCallback, useState } from "react";
+import { ChevronLeft, Footprints, Trash2, X } from "lucide-react-native";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -47,12 +55,56 @@ export function StepsHistoryScreen() {
   }, []);
 
   const { data, loading, reload } = useFocusData<StepLogRow[]>(loader);
-  const rows = data ?? [];
+  const rows = useMemo(() => data ?? [], [data]);
 
+  const [window, setWindow] = useState<TrendWindow>("30d");
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const isSelecting = selectedDates.size > 0;
+
+  const visible = useMemo(() => {
+    const from = trendWindowStart(window, todayIso());
+    return from === null ? rows : rows.filter((row) => row.date >= from);
+  }, [rows, window]);
+
+  const values = visible.map((row) => row.steps);
+
+  /**
+   * In cima la media al giorno e il totale, non l'ultimo valore: i passi non
+   * sono una grandezza che scorre come il peso - un martedì in casa non dice
+   * niente su come si sta camminando.
+   *
+   * La media è sui giorni REGISTRATI e non su quelli della finestra: un giorno
+   * senza registrazione non è un giorno a zero passi.
+   */
+  const daily = average(values);
+  const total = values.reduce((sum, v) => sum + v, 0);
+
+  const items = useMemo(
+    () =>
+      visible
+        .map((row, index) => ({
+          id: row.id,
+          date: row.date,
+          value: `${formatSteps(row.steps)} ${t("tracking.steps_unit")}`,
+          delta:
+            index === 0
+              ? NO_DELTA
+              : formatStepsDelta(row.steps - visible[index - 1].steps),
+        }))
+        .reverse(),
+    [visible, t],
+  );
+
+  const exitSelection = () => setSelectedDates(new Set());
+
+  const changeWindow = (next: TrendWindow) => {
+    // Come nel peso: una riga selezionata fuori dalla finestra sparirebbe
+    // dalla vista restando nel gruppo da cancellare.
+    exitSelection();
+    setWindow(next);
+  };
 
   const toggleSelection = (date: string) => {
     setSelectedDates((prev) => {
@@ -62,8 +114,6 @@ export function StepsHistoryScreen() {
       return next;
     });
   };
-
-  const exitSelection = () => setSelectedDates(new Set());
 
   const onRowPress = (date: string) => {
     if (isSelecting) toggleSelection(date);
@@ -157,66 +207,33 @@ export function StepsHistoryScreen() {
               { paddingBottom: insets.bottom + theme.spacing.lg },
             ]}
           >
-            <Card style={styles.historyCard}>
-              {/* Dal più recente in giù: lo storico si legge a ritroso. */}
-              {rows
-                .map((row, index) => ({
-                  row,
-                  delta: index === 0 ? null : row.steps - rows[index - 1].steps,
-                }))
-                .reverse()
-                .map(({ row, delta }, index) => {
-                  const selected = selectedDates.has(row.date);
-                  return (
-                    <View key={row.id}>
-                      {index > 0 ? (
-                        <View
-                          style={[
-                            styles.separator,
-                            { backgroundColor: colors.border },
-                          ]}
-                        />
-                      ) : null}
-                      <TouchableOpacity
-                        onPress={() => onRowPress(row.date)}
-                        onLongPress={() => onRowLongPress(row.date)}
-                        activeOpacity={0.6}
-                        style={styles.rowTouchable}
-                      >
-                        <View style={styles.rowMain}>
-                          <HistoryRow
-                            date={row.date}
-                            value={`${formatSteps(row.steps)} ${t("tracking.steps_unit")}`}
-                            delta={
-                              delta === null
-                                ? t("tracking.first_entry")
-                                : formatStepsDelta(delta)
-                            }
-                          />
-                        </View>
-                        {isSelecting ? (
-                          <View
-                            style={[
-                              styles.rowCheck,
-                              selected
-                                ? { backgroundColor: colors.accent }
-                                : {
-                                    backgroundColor: "transparent",
-                                    borderWidth: 1,
-                                    borderColor: colors.border,
-                                  },
-                            ]}
-                          >
-                            {selected ? (
-                              <Check size={14} color={colors.accentOn} />
-                            ) : null}
-                          </View>
-                        ) : null}
-                      </TouchableOpacity>
-                    </View>
-                  );
-                })}
-            </Card>
+            <MetricHistoryHero
+              value={daily === null ? "–" : formatSteps(daily)}
+              unit={t("tracking.steps_unit")}
+              valueLabel={t("tracking.steps_daily")}
+              detail={values.length === 0 ? NO_DELTA : formatSteps(total)}
+              detailLabel={t("tracking.steps_total")}
+              values={values}
+              emptyLabel={t("tracking.window_empty")}
+              variant="bars"
+              window={window}
+              onWindowChange={changeWindow}
+            />
+
+            <SectionLabel style={styles.section}>
+              {t("tracking.steps_list")}
+            </SectionLabel>
+
+            {items.length === 0 ? (
+              <EmptyState compact message={t("tracking.window_empty")} />
+            ) : (
+              <HistoryList
+                items={items}
+                selected={selectedDates}
+                onPress={onRowPress}
+                onLongPress={onRowLongPress}
+              />
+            )}
           </ScrollView>
         )}
       </SafeAreaView>
@@ -252,27 +269,7 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing.xs,
     gap: theme.spacing.sm,
   },
-  historyCard: {
-    paddingVertical: 4,
-  },
-  separator: {
-    height: StyleSheet.hairlineWidth,
-  },
-  rowTouchable: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-  },
-  rowMain: {
-    flex: 1,
-  },
-  rowCheck: {
-    width: 22,
-    height: 22,
-    borderRadius: theme.radius.full,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  section: { marginTop: theme.spacing.sm },
   loader: {
     marginTop: theme.spacing.xl,
   },

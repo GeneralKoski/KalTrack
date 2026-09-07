@@ -228,7 +228,17 @@
   },
   "tracking": {
     "steps_unit": "steps",
-    "weight": "Weight"
+    "weight": "Weight",
+    "window_30d": "30 days",
+    "window_6m": "6 months",
+    "window_all": "All",
+    "weight_latest": "last weigh-in",
+    "weight_change": "change",
+    "weight_list": "Weigh-ins",
+    "steps_daily": "daily average",
+    "steps_total": "total for the period",
+    "steps_list": "Days",
+    "window_empty": "No entries in this period"
   },
   "progress": {
     "weight": "Weight",
@@ -584,8 +594,7 @@
     "chart_empty": "You need more than one measurement to see a trend",
     "since_first": "%{delta} cm since your first measurement on %{date}",
     "only_one": "Just one measurement: the difference will show from the next one",
-    "history": "History",
-    "first": "first"
+    "history": "History"
   },
   "progress_photos": {
     "title": "Progress photos",

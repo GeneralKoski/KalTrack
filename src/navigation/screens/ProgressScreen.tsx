@@ -95,8 +95,12 @@ export function ProgressScreen() {
    * Erano tre card impilate, ognuna con la sua etichetta di sezione sopra e un
    * riquadro alto un terzo di schermo dentro: con la finestra vuota - il caso
    * normale di chi ha appena installato - restavano tre rettangoli grandi e
-   * vuoti, e la pagina sembrava piena e vuota insieme. Il grafico esteso vive
-   * nello storico, che si apre toccando la riga.
+   * vuoti, e la pagina sembrava piena e vuota insieme.
+   *
+   * Il grafico esteso vive nello storico (`MetricHistoryHero`), che si apre
+   * toccando la riga. Per una settimana questo commento lo ha promesso e basta:
+   * gli storici non avevano nessun grafico, quindi il grafico grande non
+   * esisteva piu' da nessuna parte.
    *
    * `onAdd` assente vuol dire che quel numero non si scrive a mano: le calorie
    * si ricavano dal diario.

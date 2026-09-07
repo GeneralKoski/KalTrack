@@ -1,10 +1,18 @@
 import { DfAlert } from "@/src/components/DfAlert";
-import { Card, EmptyState, HistoryRow, ScreenBackground } from "@/src/components/kal";
+import {
+  EmptyState,
+  NO_DELTA,
+  ScreenBackground,
+  SectionLabel,
+} from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
+import { HistoryList } from "@/src/containers/progress/HistoryList";
+import { MetricHistoryHero } from "@/src/containers/progress/MetricHistoryHero";
 import { earliestRecordedDate } from "@/src/db/queries/history";
 import { deleteWeight, listWeights } from "@/src/db/queries/tracking";
 import { todayIso } from "@/src/domain/date";
+import { trendWindowStart, type TrendWindow } from "@/src/domain/stats";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
@@ -12,8 +20,8 @@ import { theme } from "@/src/styles";
 import type { WeightLogRow } from "@/src/types/nutrition";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
-import { Check, ChevronLeft, Scale, Trash2, X } from "lucide-react-native";
-import React, { useCallback, useState } from "react";
+import { ChevronLeft, Scale, Trash2, X } from "lucide-react-native";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -47,12 +55,53 @@ export function WeightHistoryScreen() {
   }, []);
 
   const { data, loading, reload } = useFocusData<WeightLogRow[]>(loader);
-  const rows = data ?? [];
+  const rows = useMemo(() => data ?? [], [data]);
 
+  const [window, setWindow] = useState<TrendWindow>("30d");
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const isSelecting = selectedDates.size > 0;
+
+  /** La finestra vale per tutta la schermata: grafico, numeri ed elenco. */
+  const visible = useMemo(() => {
+    const from = trendWindowStart(window, todayIso());
+    return from === null ? rows : rows.filter((row) => row.date >= from);
+  }, [rows, window]);
+
+  const values = visible.map((row) => row.weight_kg);
+  const latest = values.length > 0 ? values[values.length - 1] : null;
+  const change =
+    values.length > 1 ? values[values.length - 1] - values[0] : null;
+
+  /**
+   * Il delta si calcola nell'ordine in cui le pesate sono avvenute e si
+   * disegna a ritroso: invertire prima cambierebbe il segno di ogni riga.
+   */
+  const items = useMemo(
+    () =>
+      visible
+        .map((row, index) => ({
+          id: row.id,
+          date: row.date,
+          value: `${formatWeight(row.weight_kg)} kg`,
+          delta:
+            index === 0
+              ? NO_DELTA
+              : formatWeightDelta(row.weight_kg - visible[index - 1].weight_kg),
+        }))
+        .reverse(),
+    [visible],
+  );
+
+  const exitSelection = () => setSelectedDates(new Set());
+
+  const changeWindow = (next: TrendWindow) => {
+    // Una riga selezionata e poi uscita dalla finestra resterebbe selezionata
+    // senza vedersi, e la cancellazione porterebbe via anche quella.
+    exitSelection();
+    setWindow(next);
+  };
 
   const toggleSelection = (date: string) => {
     setSelectedDates((prev) => {
@@ -62,8 +111,6 @@ export function WeightHistoryScreen() {
       return next;
     });
   };
-
-  const exitSelection = () => setSelectedDates(new Set());
 
   const onRowPress = (date: string) => {
     if (isSelecting) toggleSelection(date);
@@ -157,69 +204,34 @@ export function WeightHistoryScreen() {
               { paddingBottom: insets.bottom + theme.spacing.lg },
             ]}
           >
-            <Card style={styles.historyCard}>
-              {/* Dal più recente in giù: lo storico si legge a ritroso. */}
-              {rows
-                .map((row, index) => ({
-                  row,
-                  delta:
-                    index === 0
-                      ? null
-                      : row.weight_kg - rows[index - 1].weight_kg,
-                }))
-                .reverse()
-                .map(({ row, delta }, index) => {
-                  const selected = selectedDates.has(row.date);
-                  return (
-                    <View key={row.id}>
-                      {index > 0 ? (
-                        <View
-                          style={[
-                            styles.separator,
-                            { backgroundColor: colors.border },
-                          ]}
-                        />
-                      ) : null}
-                      <TouchableOpacity
-                        onPress={() => onRowPress(row.date)}
-                        onLongPress={() => onRowLongPress(row.date)}
-                        activeOpacity={0.6}
-                        style={styles.rowTouchable}
-                      >
-                        <View style={styles.rowMain}>
-                          <HistoryRow
-                            date={row.date}
-                            value={`${formatWeight(row.weight_kg)} kg`}
-                            delta={
-                              delta === null
-                                ? t("tracking.first_entry")
-                                : formatWeightDelta(delta)
-                            }
-                          />
-                        </View>
-                        {isSelecting ? (
-                          <View
-                            style={[
-                              styles.rowCheck,
-                              selected
-                                ? { backgroundColor: colors.accent }
-                                : {
-                                    backgroundColor: "transparent",
-                                    borderWidth: 1,
-                                    borderColor: colors.border,
-                                  },
-                            ]}
-                          >
-                            {selected ? (
-                              <Check size={14} color={colors.accentOn} />
-                            ) : null}
-                          </View>
-                        ) : null}
-                      </TouchableOpacity>
-                    </View>
-                  );
-                })}
-            </Card>
+            <MetricHistoryHero
+              value={latest === null ? "–" : formatWeight(latest)}
+              unit="kg"
+              valueLabel={t("tracking.weight_latest")}
+              detail={change === null ? NO_DELTA : formatWeightDelta(change)}
+              detailLabel={t("tracking.weight_change")}
+              values={values}
+              emptyLabel={t("tracking.window_empty")}
+              window={window}
+              onWindowChange={changeWindow}
+            />
+
+            <SectionLabel style={styles.section}>
+              {t("tracking.weight_list")}
+            </SectionLabel>
+
+            {items.length === 0 ? (
+              // Compatto: uno stato vuoto a piena altezza sotto un hero
+              // riserverebbe lo spazio del pieno.
+              <EmptyState compact message={t("tracking.window_empty")} />
+            ) : (
+              <HistoryList
+                items={items}
+                selected={selectedDates}
+                onPress={onRowPress}
+                onLongPress={onRowLongPress}
+              />
+            )}
           </ScrollView>
         )}
       </SafeAreaView>
@@ -255,27 +267,7 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing.xs,
     gap: theme.spacing.sm,
   },
-  historyCard: {
-    paddingVertical: 4,
-  },
-  separator: {
-    height: StyleSheet.hairlineWidth,
-  },
-  rowTouchable: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-  },
-  rowMain: {
-    flex: 1,
-  },
-  rowCheck: {
-    width: 22,
-    height: 22,
-    borderRadius: theme.radius.full,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  section: { marginTop: theme.spacing.sm },
   loader: {
     marginTop: theme.spacing.xl,
   },

@@ -2,7 +2,7 @@ export { Avatar } from "./Avatar";
 export { Card } from "./Card";
 export { GradientHeader, HeaderCircleButton } from "./GradientHeader";
 export { HeroDivider, HeroPanel } from "./HeroPanel";
-export { HistoryRow } from "./HistoryRow";
+export { HistoryRow, NO_DELTA } from "./HistoryRow";
 export { ListGroup, ListRow, ROW_HEIGHT } from "./ListGroup";
 export {
   Chip,
@@ -25,4 +25,5 @@ export { MetalPanel, MetalSurface } from "./MetalSurface";
 export { PhotoField } from "./PhotoField";
 export { ScreenBackground } from "./ScreenBackground";
 export { SearchBar } from "./SearchBar";
+export { Segmented, type SegmentedOption } from "./Segmented";
 export { TargetDot, targetColor } from "./TargetDot";

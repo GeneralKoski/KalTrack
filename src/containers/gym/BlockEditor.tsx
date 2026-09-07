@@ -1,4 +1,4 @@
-import { MetalPanel } from "@/src/components/kal";
+import { MetalPanel, Segmented } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { DraftTextInput, Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
@@ -107,39 +107,16 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           </Text>
         </View>
 
-        <View
-          style={[
-            styles.kinds,
-            { backgroundColor: colors.surfaceMuted, borderColor: colors.border },
-          ]}
-        >
-          {BLOCK_KINDS.map((kind) => {
-            const active = kind === block.kind;
-            return (
-              <TouchableOpacity
-                key={kind}
-                onPress={() => onChange({ ...block, kind })}
-                activeOpacity={0.6}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                style={[
-                  styles.kind,
-                  active && { backgroundColor: colors.accent },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.kindLabel,
-                    { color: active ? colors.accentOn : colors.textMuted },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {t(`gym.block_${kind}`)}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        <Segmented
+          compact
+          style={styles.kinds}
+          value={block.kind}
+          onChange={(kind) => onChange({ ...block, kind })}
+          options={BLOCK_KINDS.map((kind) => ({
+            value: kind,
+            label: t(`gym.block_${kind}`),
+          }))}
+        />
 
         <TouchableOpacity onPress={onRemove} activeOpacity={0.6} hitSlop={10}>
           <Trash2 size={18} color={colors.textFaint} />
@@ -373,24 +350,12 @@ const styles = StyleSheet.create({
   letterText: { fontSize: 13, fontWeight: "700" },
   // Selettore a segmenti: prende tutta la larghezza che avanza, cosi' i
   // quattro tipi entrano e nessuno viene tagliato.
+  // Solo la larghezza: il selettore lo disegna `Segmented`. Qui deve prendersi
+  // tutto lo spazio che avanza fra la lettera del blocco e il cestino.
   kinds: {
     flexGrow: 1,
     flexShrink: 1,
-    flexDirection: "row",
-    borderRadius: theme.radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: 2,
-    gap: 2,
   },
-  kind: {
-    flexGrow: 1,
-    flexBasis: 0,
-    height: 28,
-    borderRadius: theme.radius.sm,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  kindLabel: { fontSize: 11, fontWeight: "600" },
   hint: { fontSize: 12, lineHeight: 17 },
   group: {
     flexDirection: "row",
