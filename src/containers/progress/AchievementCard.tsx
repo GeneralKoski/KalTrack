@@ -2,6 +2,7 @@ import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import type { AchievementMetric } from "@/src/domain/achievements";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { formatInteger } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import { formatDate } from "@/src/utils/dateUtils";
 import { Lock, Trophy } from "lucide-react-native";
@@ -29,7 +30,7 @@ export interface AchievementView {
 
 /** Sono tutti conteggi: nessuna metrica ha decimali. */
 const formatValue = (value: number): string =>
-  Math.round(value).toLocaleString("it-IT");
+  formatInteger(value);
 
 export const AchievementCard: React.FC<{ item: AchievementView }> = ({
   item,

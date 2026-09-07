@@ -18,6 +18,7 @@ import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import type { StepLogRow } from "@/src/types/nutrition";
+import { formatInteger } from "@/src/utils/number";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
 import { ChevronLeft, Footprints, Trash2, X } from "lucide-react-native";
@@ -35,7 +36,7 @@ import {
 } from "react-native-safe-area-context";
 
 function formatSteps(steps: number): string {
-  return Math.round(steps).toLocaleString("it-IT");
+  return formatInteger(steps);
 }
 
 function formatStepsDelta(delta: number): string {

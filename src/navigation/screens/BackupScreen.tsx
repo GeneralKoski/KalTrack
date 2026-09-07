@@ -4,6 +4,7 @@ import { Card, ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { getSetting, setSetting } from "@/src/db/queries/settings";
+import { formatDateTime } from "@/src/utils/dateUtils";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { useAccountStore } from "@/src/stores/accountStore";
@@ -155,7 +156,7 @@ export function BackupScreen() {
             {lastExport ? (
               <Text style={[styles.meta, { color: colors.textMuted }]}>
                 {t("backup.last_export", {
-                  date: new Date(lastExport).toLocaleString("it-IT"),
+                  date: formatDateTime(lastExport),
                 })}
               </Text>
             ) : (
@@ -220,7 +221,7 @@ export function BackupScreen() {
           {pending?.exportedAt ? (
             <Text style={[styles.meta, { color: colors.textMuted }]}>
               {t("backup.file_date", {
-                date: new Date(pending.exportedAt).toLocaleString("it-IT"),
+                date: formatDateTime(pending.exportedAt),
               })}
             </Text>
           ) : null}

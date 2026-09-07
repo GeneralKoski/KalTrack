@@ -7,6 +7,7 @@ import { Text } from "@/src/components/ui";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { formatDecimal } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import { formatDate } from "@/src/utils/dateUtils";
 import { useRoute, type RouteProp } from "@react-navigation/native";
@@ -17,7 +18,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
 /** Un numero non condiviso si scrive con un trattino, non con uno zero. */
 const value = (n: number | null, unit: string): string =>
-  n === null ? "—" : `${n.toLocaleString("it-IT")}${unit ? ` ${unit}` : ""}`;
+  n === null ? "—" : `${formatDecimal(n)}${unit ? ` ${unit}` : ""}`;
 
 /**
  * Il profilo di qualcun altro.

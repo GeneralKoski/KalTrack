@@ -43,3 +43,22 @@ export const formatDate = (date?: Date | string) => {
   if (!d) return "";
   return d.toLocaleDateString(getLocale());
 };
+
+/**
+ * Data e ora leggibili, senza secondi: la precisione al secondo non serve a
+ * nessuna delle schermate che la mostrano (backup, diagnostica).
+ *
+ * Un istante illeggibile torna com'era invece di diventare "Invalid Date": in
+ * diagnostica quella stringa è un dato da leggere, non da rendere bello.
+ */
+export const formatDateTime = (iso: string): string => {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? iso
+    : d.toLocaleString(getLocale(), {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+};

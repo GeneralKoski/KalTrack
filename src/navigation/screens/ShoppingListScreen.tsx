@@ -14,6 +14,7 @@ import { formatQuantity, type ShoppingItem } from "@/src/domain/shoppingList";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { decimalSeparator } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import { useRoute, type RouteProp } from "@react-navigation/native";
 import { Check, ChevronLeft, ShoppingCart } from "lucide-react-native";
@@ -171,7 +172,7 @@ export function ShoppingListScreen() {
         ]}
         numberOfLines={1}
       >
-        {formatQuantity(item.grams)}
+        {formatQuantity(item.grams, decimalSeparator())}
       </Text>
     </TouchableOpacity>
   );

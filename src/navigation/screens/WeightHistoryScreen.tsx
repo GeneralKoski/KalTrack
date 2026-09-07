@@ -18,6 +18,7 @@ import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import type { WeightLogRow } from "@/src/types/nutrition";
+import { formatDecimal } from "@/src/utils/number";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
 import { ChevronLeft, Scale, Trash2, X } from "lucide-react-native";
@@ -35,7 +36,7 @@ import {
 } from "react-native-safe-area-context";
 
 function formatWeight(kg: number): string {
-  return kg.toLocaleString("it-IT", { maximumFractionDigits: 1 });
+  return formatDecimal(kg, 1);
 }
 
 function formatWeightDelta(deltaKg: number): string {

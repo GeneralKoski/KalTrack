@@ -33,6 +33,7 @@ import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { formatDate } from "@/src/utils/dateUtils";
+import { formatDecimal, formatInteger } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import { logger } from "@/src/utils/logger";
 import { ChevronLeft, ChevronRight, Users } from "lucide-react-native";
@@ -67,10 +68,10 @@ const PERIODI = [1, 7, 30] as const;
 
 /** Un numero che manca si scrive con un trattino, mai con uno zero. */
 const numero = (v: number | null): string =>
-  v === null ? "—" : Math.round(v).toLocaleString("it-IT");
+  v === null ? "—" : formatInteger(v);
 
 const peso = (v: number | null): string =>
-  v === null ? "—" : `${v.toLocaleString("it-IT")} kg`;
+  v === null ? "—" : `${formatDecimal(v)} kg`;
 
 /**
  * I miei numeri del periodo, letti dal database locale.

@@ -8,6 +8,7 @@ import {
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
+import { formatDecimal, formatInteger } from "@/src/utils/number";
 import { logger } from "@/src/utils/logger";
 import { Droplet, Undo2 } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
@@ -82,8 +83,8 @@ export const WaterCard: React.FC<WaterCardProps> = ({ date }) => {
       {known ? (
         <Text style={[styles.value, { color: colors.text }]} numberOfLines={1}>
           {(total ?? 0) >= 1000
-            ? liters.toLocaleString("it-IT", { maximumFractionDigits: 2 })
-            : (total ?? 0).toLocaleString("it-IT")}
+            ? formatDecimal(liters, 2)
+            : formatInteger(total ?? 0)}
           <Text style={[styles.unit, { color: colors.textMuted }]}>
             {` ${(total ?? 0) >= 1000 ? t("water.liters") : t("water.ml")}`}
           </Text>

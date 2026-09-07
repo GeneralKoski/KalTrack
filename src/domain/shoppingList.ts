@@ -28,10 +28,15 @@ export function buildShoppingList(items: ShoppingItem[]): ShoppingItem[] {
   return [...totals.values()].sort((a, b) => a.name.localeCompare(b.name, "it"));
 }
 
-/** Quantità leggibile al supermercato: grammi sotto il chilo, chili sopra. */
-export function formatQuantity(grams: number): string {
+/**
+ * Quantità leggibile al supermercato: grammi sotto il chilo, chili sopra.
+ *
+ * Il separatore decimale arriva da chi chiama, come in `formatGrams`: qui si
+ * sta nel dominio, che non conosce la lingua dell'app.
+ */
+export function formatQuantity(grams: number, separator = ","): string {
   if (grams < 1000) return `${Math.round(grams)} g`;
   const kg = grams / 1000;
   const rounded = Math.round(kg * 10) / 10;
-  return `${String(rounded).replace(".", ",")} kg`;
+  return `${String(rounded).replace(".", separator)} kg`;
 }

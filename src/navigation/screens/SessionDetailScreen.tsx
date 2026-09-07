@@ -12,6 +12,7 @@ import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { logger } from "@/src/utils/logger";
+import { formatInteger } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import { formatShortDate } from "@/src/utils/dateUtils";
 import { useRoute, type RouteProp } from "@react-navigation/native";
@@ -90,7 +91,7 @@ export function SessionDetailScreen() {
       t("gym.sets_count", { count: session.workingSets }),
     ];
     if (session.volumeKg > 0) {
-      parts.push(`${Math.round(session.volumeKg)} ${t("gym.kg")}`);
+      parts.push(`${formatInteger(session.volumeKg)} ${t("gym.kg")}`);
     }
     // La durata solo quando l'allenamento e' finito: su uno ancora aperto
     // sarebbe il tempo trascorso da quando e' cominciato, che non e' la stessa

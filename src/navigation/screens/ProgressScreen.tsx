@@ -15,6 +15,7 @@ import { average } from "@/src/domain/stats";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { formatInteger } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { ChevronRight, Plus } from "lucide-react-native";
@@ -132,7 +133,7 @@ export function ProgressScreen() {
             "–"
           ) : (
             <>
-              {Math.round(value).toLocaleString("it-IT")}
+              {formatInteger(value)}
               <Text style={[styles.statUnit, { color: colors.textMuted }]}>
                 {` ${unit}`}
               </Text>

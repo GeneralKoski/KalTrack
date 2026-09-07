@@ -2,6 +2,7 @@ import { DfAlert } from "@/src/components/DfAlert";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text, TextInput } from "@/src/components/ui";
 import { FoodThumb, MacroTriple } from "@/src/containers/foods/FoodFacts";
+import { decimalSeparator } from "@/src/utils/number";
 import { formatGrams } from "@/src/domain/serving";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
@@ -70,7 +71,7 @@ export const QuantityPrompt: React.FC<QuantityPromptProps> = ({
     ? food.serving_label?.trim()
       ? food.serving_label
       : t("quantity.serving_is", {
-          grams: formatGrams(food.default_serving_g),
+          grams: formatGrams(food.default_serving_g, decimalSeparator()),
         })
     : null;
 

@@ -587,6 +587,31 @@ Impostazioni > Lingua (`LanguageScreen`) e il primo passo dell'onboarding
 condividono lo stesso selettore (`LanguagePicker`,
 `src/containers/settings/`).
 
+**Anche i numeri hanno una lingua**, e dall'8 settembre 2026 seguono quella
+dell'app: `formatInteger` e `formatDecimal` (`src/utils/number.ts`) leggono il
+locale da `i18n`, come gia' faceva `formatShortDate`. C'era
+`toLocaleString("it-IT")` scritto a mano in una ventina di posti, e in inglese
+lo storico passi diceva "9.400 steps" - che in inglese si legge nove virgola
+quattro. **Un numero formattato con le convenzioni di un'altra lingua non e'
+brutto, e' un altro numero**, e `number.test.ts` vieta di scrivere di nuovo un
+locale a mano.
+
+Le due lingue non si distinguono solo per il segno ma per **quando** lo mettono:
+in italiano il raggruppamento parte da cinque cifre, in inglese da quattro.
+Nessuno lo indovina, ed e' la ragione per cui la scelta non si scrive a mano.
+
+Il separatore che si **digita** e' un'altra cosa dal separatore che si **vede**.
+`sanitizeDecimalInput` e i vari `Number(text.replace(",", "."))` accettano
+virgola e punto in tutte e due le lingue - la tastiera numerica di Android
+offre entrambi - e non vanno toccati; quel che si vede lo decide
+`decimalSeparator()`, che `DfNumberInput` passa a `numberFormat.ts`. Quel
+modulo resta senza `i18n` dentro: e' separato dal componente proprio per
+poterlo caricare in un test.
+
+Restano deliberatamente in italiano **l'assistente** (prompt, risposte parlate,
+`speak.ts`) e il **CSV di esportazione**, che deve combaciare con quel che si
+aspetta il foglio di calcolo che lo apre, non con la lingua dell'app.
+
 **`en.json` e' completo dall'8 settembre 2026, e un test lo tiene tale.** Ne
 mancavano ventinove - attrezzatura, storico peso/passi, storico misure, storico
 sessioni - e non si vedeva finche' non si apriva quella schermata in inglese:

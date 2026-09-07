@@ -26,6 +26,7 @@ import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import { MEASUREMENT_SITES } from "@/src/types/wellbeing";
 import { formatDate } from "@/src/utils/dateUtils";
+import { formatDecimal } from "@/src/utils/number";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -55,7 +56,7 @@ import {
 
 /** Un centimetro e mezzo è una differenza reale: il decimo di cm no, è rumore del metro. */
 function formatCm(value: number): string {
-  return value.toLocaleString("it-IT", { maximumFractionDigits: 1 });
+  return formatDecimal(value, 1);
 }
 
 /** Delta con segno esplicito: senza il "+" un aumento si legge come un valore assoluto. */

@@ -3,6 +3,7 @@ import { ComparisonColumns } from "@/src/containers/social/ComparisonColumns";
 import { dailyExerciseSummary } from "@/src/db/queries/workouts";
 import { buildGymComparison, type Participant } from "@/src/domain/comparison";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { formatDecimal, formatInteger } from "@/src/utils/number";
 import { logger } from "@/src/utils/logger";
 import React, { useEffect, useState } from "react";
 
@@ -14,10 +15,10 @@ interface Props {
 
 /** Un numero che manca si scrive con un trattino, mai con uno zero. */
 const numero = (v: number | null): string =>
-  v === null ? "—" : Math.round(v).toLocaleString("it-IT");
+  v === null ? "—" : formatInteger(v);
 
 const peso = (v: number | null): string =>
-  v === null ? "—" : `${v.toLocaleString("it-IT")} kg`;
+  v === null ? "—" : `${formatDecimal(v)} kg`;
 
 const vuoto = (handle: string, exercises: SharedExercise[]): Participant => ({
   handle,

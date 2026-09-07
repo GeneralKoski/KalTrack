@@ -11,6 +11,7 @@ import {
 } from "@/src/domain/comparison";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
+import { formatDecimal } from "@/src/utils/number";
 import { logger } from "@/src/utils/logger";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -112,7 +113,7 @@ export const FriendComparison: React.FC<Props> = ({ date, theirs, shares }) => {
   // Stesso formato del riquadro sopra: 7.200 e non 7200. Due modi di scrivere
   // lo stesso numero nella stessa schermata si notano.
   const numero = (v: number | null) =>
-    v === null ? "—" : v.toLocaleString("it-IT");
+    v === null ? "—" : formatDecimal(v);
 
   return (
     <>

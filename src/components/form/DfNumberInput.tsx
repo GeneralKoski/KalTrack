@@ -6,6 +6,7 @@ import {
   parseToNumber,
 } from "@/src/components/form/numberFormat";
 import { theme } from "@/src/styles";
+import { decimalSeparator } from "@/src/utils/number";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import {
   Controller,
@@ -55,6 +56,13 @@ export const DfNumberInput = ({
 }: DfNumberInputProps) => {
   const { colors } = useAppTheme();
   const { control, clearErrors } = useFormContext();
+  /*
+    Il separatore che si VEDE segue la lingua: la virgola stava scritta dentro
+    `numberFormat`, e chi usa l'app in inglese si vedeva riscrivere "3.2" in
+    "3,2" mentre digitava. Quel che finisce nel form resta il punto in tutti e
+    due i casi - e' il contratto di `parseToNumber`.
+  */
+  const separator = decimalSeparator();
 
   const InputComponent = isInBottomSheet ? BottomSheetTextInput : TextInput;
 
@@ -72,11 +80,11 @@ export const DfNumberInput = ({
           fieldState: { error },
         }) => {
           // Converti il valore del form in display
-          const displayValue = numberToDisplay(value, decimals);
+          const displayValue = numberToDisplay(value, decimals, separator);
 
           const handleChangeText = (text: string) => {
             // Formatta per il display
-            const formatted = formatNumber(text, decimals);
+            const formatted = formatNumber(text, decimals, separator);
             // Converti in numero per il form
             const numericValue = parseToNumber(formatted);
             onChange(numericValue);

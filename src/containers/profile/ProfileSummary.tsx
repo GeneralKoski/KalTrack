@@ -10,6 +10,7 @@ import { currentStreak } from "@/src/domain/achievements";
 import { addDays, startOfWeek, todayIso } from "@/src/domain/date";
 import { average } from "@/src/domain/stats";
 import { useAppNav } from "@/src/hooks/useAppNav";
+import { formatDecimal } from "@/src/utils/number";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { useAccountStore } from "@/src/stores/accountStore";
@@ -83,10 +84,7 @@ export const ProfileSummary: React.FC = () => {
   );
 
   const numero = (value: number | null, decimals = 0): string =>
-    value === null ? "–" : value.toLocaleString("it-IT", {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    });
+    value === null ? "–" : formatDecimal(value, decimals, { fixed: true });
 
   return (
     <HeroPanel contentStyle={styles.card}>

@@ -9,12 +9,18 @@
  */
 
 /**
- * Grammi come li scrive un italiano: virgola per i decimali, niente zeri in
- * coda. Il campo quantita' la riaccetta in lettura, quindi scrivere qui la
- * virgola non rompe la conferma.
+ * Grammi da scrivere: niente zeri in coda, e il separatore che la lingua
+ * corrente si aspetta.
+ *
+ * Il separatore arriva da fuori (`decimalSeparator()` in `utils/number`)
+ * invece di stare scritto qui: questo modulo e' dominio puro e non legge
+ * `i18n`. Di serie resta la virgola, che e' la lingua di partenza dell'app.
+ *
+ * Il campo quantita' riaccetta in lettura sia la virgola sia il punto
+ * (`toGrams`), quindi qualunque dei due si scriva qui la conferma regge.
  */
-export const formatGrams = (grams: number): string =>
-  String(Number(grams.toFixed(2))).replace(".", ",");
+export const formatGrams = (grams: number, separator = ","): string =>
+  String(Number(grams.toFixed(2))).replace(".", separator);
 
 /**
  * Grammi da quel che si e' digitato. La virgola e' il separatore decimale

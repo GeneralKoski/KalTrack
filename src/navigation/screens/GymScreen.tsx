@@ -21,6 +21,7 @@ import {
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { formatInteger } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import { formatShortDate } from "@/src/utils/dateUtils";
 import type { RoutineDayRow, RoutineRow } from "@/src/types/gym";
@@ -337,7 +338,7 @@ export function GymScreen() {
                             count: session.workingSets,
                           })}
                           {session.volumeKg > 0
-                            ? ` - ${Math.round(session.volumeKg).toLocaleString("it-IT")} kg`
+                            ? ` - ${formatInteger(session.volumeKg)} kg`
                             : ""}
                         </Text>
                       </View>

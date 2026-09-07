@@ -1,12 +1,26 @@
 /**
- * Le tre conversioni del campo numerico italiano, tenute fuori dal componente
- * perche' siano verificabili: DfNumberInput importa react-native-worklets e
- * non si puo' caricare in un test.
+ * Le tre conversioni del campo numerico, tenute fuori dal componente perche'
+ * siano verificabili: DfNumberInput importa react-native-worklets e non si
+ * puo' caricare in un test.
  *
  * IL CONTRATTO, che vale per chiunque legga il form: quel che finisce NEL FORM
- * e' gia' normalizzato ("3.2"), non il testo italiano che si vede a schermo
- * ("3,2"). Chi lo rinormalizza legge un numero dieci volte piu' grande.
+ * e' gia' normalizzato ("3.2"), non il testo che si vede a schermo ("3,2" in
+ * italiano). Chi lo rinormalizza legge un numero dieci volte piu' grande.
+ *
+ * **Il separatore che si VEDE arriva da fuori** (`DfNumberInput` lo prende da
+ * `decimalSeparator()`): la virgola era scritta qui dentro, e da quando l'app
+ * parla due lingue mostrava "3,2" anche a chi ha il punto sotto il dito. Il
+ * separatore che si SCRIVE resta invece sempre entrambi - la tastiera numerica
+ * di Android offre virgola e punto, e chi digita l'uno o l'altro intende la
+ * stessa cosa.
+ *
+ * Quel modulo NON si importa qui: questo file deve restare caricabile in un
+ * test senza tirarsi dietro `i18n`, ed e' la ragione per cui esiste separato
+ * dal componente.
  */
+
+/** Il separatore di serie: l'italiano, che e' la lingua di partenza dell'app. */
+const DEFAULT_SEPARATOR = ",";
 
 /**
  * Formatta un numero decimale in formato italiano: cifre e, al massimo, una
@@ -24,7 +38,11 @@
  * tastiera numerica di Android offre sia la virgola sia il punto, e scrivere
  * "3.2" e' normale quanto scrivere "3,2".
  */
-export const formatNumber = (value: string, decimals: number): string => {
+export const formatNumber = (
+  value: string,
+  decimals: number,
+  separator: string = DEFAULT_SEPARATOR,
+): string => {
   if (!value) return "";
 
   // Solo cifre e separatori: le lettere non arrivano dalla tastiera numerica,
@@ -33,20 +51,20 @@ export const formatNumber = (value: string, decimals: number): string => {
 
   // Il primo separatore e' quello decimale, come in `sanitizeDecimalInput`:
   // gli altri sono un ripensamento a metà digitazione e si scartano.
-  const separator = cleaned.search(/[.,]/);
-  const rawInteger = separator === -1 ? cleaned : cleaned.slice(0, separator);
+  const at = cleaned.search(/[.,]/);
+  const rawInteger = at === -1 ? cleaned : cleaned.slice(0, at);
 
   // Zeri iniziali via, ma almeno uno zero resta (",5" si legge "0,5").
   const integer = rawInteger.replace(/^0+/, "") || "0";
 
-  if (separator === -1 || decimals === 0) return integer;
+  if (at === -1 || decimals === 0) return integer;
 
   const decimal = cleaned
-    .slice(separator + 1)
+    .slice(at + 1)
     .replace(/[.,]/g, "")
     .slice(0, decimals);
 
-  return `${integer},${decimal}`;
+  return `${integer}${separator}${decimal}`;
 };
 
 /**
@@ -61,27 +79,26 @@ export const formatNumber = (value: string, decimals: number): string => {
 export const parseToNumber = (formattedValue: string): string => {
   if (!formattedValue) return "";
 
-  // Una virgola sola, e nessun punto: e' quel che `formatNumber` produce.
+  // Un separatore solo, virgola o punto secondo la lingua: e' quel che
+  // `formatNumber` produce, e in tutti e due i casi il form vuole il punto.
   return formattedValue.replace(",", ".");
 };
 
 /**
- * Converte un numero/stringa in formato display (italiano)
+ * Converte un numero/stringa nel testo da mostrare, col separatore della
+ * lingua corrente.
  */
 export const numberToDisplay = (
   value: string | number | undefined | null,
   decimals: number,
+  separator: string = DEFAULT_SEPARATOR,
 ): string => {
   if (value === undefined || value === null || value === "") return "";
 
   const numStr = typeof value === "number" ? value.toString() : value;
 
-  // Se il valore è già nel formato italiano (con virgola), formattalo direttamente
-  if (numStr.includes(",")) {
-    return formatNumber(numStr, decimals);
-  }
-
-  // Altrimenti converti dal formato con punto decimale
-  const formatted = numStr.replace(".", ",");
-  return formatNumber(formatted, decimals);
+  // `formatNumber` prende il primo separatore che trova, quale che sia: il
+  // valore del form ("3.2") e quello gia' scritto a mano ("3,2") passano di
+  // qui allo stesso modo.
+  return formatNumber(numStr, decimals, separator);
 };

@@ -32,6 +32,7 @@ import { matchLoggedSets } from "@/src/domain/session";
 import { suggestNextWeight } from "@/src/domain/strength";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { decimalSeparator } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import type { ExerciseRow, SessionSetRow } from "@/src/types/gym";
 import { rankAlternatives } from "@/src/ai/rankAlternatives";
@@ -99,7 +100,9 @@ interface PlannedSet {
 }
 
 const formatNumber = (value: number): string =>
-  Number.isInteger(value) ? String(value) : String(value).replace(".", ",");
+  Number.isInteger(value)
+    ? String(value)
+    : String(value).replace(".", decimalSeparator());
 
 const parseNumber = (text: string): number | null => {
   const parsed = Number(text.replace(",", "."));

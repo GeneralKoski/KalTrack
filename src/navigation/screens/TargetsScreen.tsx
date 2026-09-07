@@ -19,6 +19,7 @@ import {
 } from "@/src/domain/targets";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { formatDecimal, formatInteger } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import { formatDate } from "@/src/utils/dateUtils";
 import { showToast } from "@/src/utils/toast";
@@ -359,14 +360,18 @@ export function TargetsScreen() {
             </SectionLabel>
 
             {/* Il numero suggerito va spiegato, non calato dall'alto. */}
-            {basal !== null && daily !== null && (
+            {basal !== null && daily !== null && weightKg !== null && (
               <MetalPanel radius={theme.radius.xl} style={styles.explain}>
                 <View style={styles.explainInner}>
                   <Text style={[styles.explainText, { color: colors.textSecondary }]}>
                     {t("targets.explain", {
-                      bmr: Math.round(basal),
-                      tdee: Math.round(daily),
-                      weight: weightKg,
+                      // Formattati e non passati grezzi: i18n-js li
+                      // interpolerebbe con `String()`, cioè col punto
+                      // decimale e senza separatore di migliaia in
+                      // qualunque lingua.
+                      bmr: formatInteger(basal),
+                      tdee: formatInteger(daily),
+                      weight: formatDecimal(weightKg, 1),
                     })}
                   </Text>
                 </View>

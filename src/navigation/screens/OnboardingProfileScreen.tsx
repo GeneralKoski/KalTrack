@@ -25,6 +25,8 @@ import {
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { useOnboardingStore } from "@/src/stores/onboardingStore";
+
+import { decimalSeparator, formatInteger } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -93,10 +95,12 @@ export function OnboardingProfileScreen() {
         }
         if (profile.goal) setGoal(profile.goal as Goal);
       }
-      // Con la virgola: `String(76.1)` scriveva "76.1" nel campo di un'app in
-      // italiano. `num` legge entrambe, ma quel che si vede deve essere scritto
-      // come lo si scriverebbe a mano.
-      if (weight) setWeightKg(String(weight.weight_kg).replace(".", ","));
+      // Col separatore della lingua: `String(76.1)` scriveva "76.1" nel campo
+      // di un'app in italiano. `num` legge entrambi, ma quel che si vede deve
+      // essere scritto come lo si scriverebbe a mano.
+      if (weight) {
+        setWeightKg(String(weight.weight_kg).replace(".", decimalSeparator()));
+      }
       setLoading(false);
     })();
     return () => {
@@ -224,7 +228,7 @@ export function OnboardingProfileScreen() {
         {suggestion ? (
           <>
             <Text style={[styles.kcal, { color: colors.text }]}>
-              {suggestion.kcal.toLocaleString("it-IT")}
+              {formatInteger(suggestion.kcal)}
               <Text style={[styles.kcalUnit, { color: colors.textMuted }]}>
                 {" kcal"}
               </Text>

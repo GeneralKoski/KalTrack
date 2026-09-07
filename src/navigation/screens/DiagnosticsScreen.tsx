@@ -15,9 +15,10 @@ import {
 } from "@/src/db/queries/logs";
 import { groupLogs, type LogGroup } from "@/src/domain/logs";
 import { useAppNav } from "@/src/hooks/useAppNav";
-import { i18n } from "@/src/i18n";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { shareLogReport } from "@/src/services/logExport";
+import { formatDateTime } from "@/src/utils/dateUtils";
+import { formatInteger } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
@@ -28,24 +29,6 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-
-/**
- * Data e ora leggibili, senza secondi: la precisione al secondo qui non serve.
- *
- * Segue la lingua dell'app e non una fissa: aveva `it-IT` scritto dentro, e
- * chi usa l'app in inglese leggeva le date in italiano.
- */
-const quando = (iso: string): string => {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime())
-    ? iso
-    : d.toLocaleString(i18n.locale, {
-        day: "2-digit",
-        month: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-};
 
 /**
  * La quota di token in entrata servita dalla cache.
@@ -198,9 +181,9 @@ export function DiagnosticsScreen() {
 
   /** Quando, di chi, e - da due in su - da quando si ripete. */
   const sottotitolo = (gruppo: LogGroup): string => {
-    const testa = `${quando(gruppo.lastAt)}${gruppo.scope ? ` \u00b7 ${gruppo.scope}` : ""}`;
+    const testa = `${formatDateTime(gruppo.lastAt)}${gruppo.scope ? ` \u00b7 ${gruppo.scope}` : ""}`;
     return gruppo.count > 1
-      ? `${testa} \u00b7 ${t("diagnostics.repeated_since", { first: quando(gruppo.firstAt) })}`
+      ? `${testa} \u00b7 ${t("diagnostics.repeated_since", { first: formatDateTime(gruppo.firstAt) })}`
       : testa;
   };
 
@@ -308,8 +291,8 @@ export function DiagnosticsScreen() {
                 </Text>
                 <Text style={[styles.consumo, { color: colors.text }]}>
                   {t("diagnostics.usage_tokens", {
-                    tokensIn: usage.tokensIn.toLocaleString("it-IT"),
-                    tokensOut: usage.tokensOut.toLocaleString("it-IT"),
+                    tokensIn: formatInteger(usage.tokensIn),
+                    tokensOut: formatInteger(usage.tokensOut),
                   })}
                 </Text>
                 <Text
@@ -354,7 +337,7 @@ export function DiagnosticsScreen() {
                     <RigaApribile
                       key={call.id}
                       titolo={t(`diagnostics.capability.${call.capability}`)}
-                      sottotitolo={`${quando(call.createdAt)} \u00b7 ${call.model}`}
+                      sottotitolo={`${formatDateTime(call.createdAt)} \u00b7 ${call.model}`}
                       dettaglio={call.error ?? t("diagnostics.no_message")}
                       colore={theme.colors.error}
                     />

@@ -17,18 +17,15 @@ import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
+import { formatDecimal, formatInteger } from "@/src/utils/number";
 import { Sparkles } from "lucide-react-native";
 import React, { useCallback, useState } from "react";
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
 
-const integer = (value: number): string =>
-  Math.round(value).toLocaleString("it-IT");
+const integer = (value: number): string => formatInteger(value);
 
 const oneDecimal = (value: number): string =>
-  value.toLocaleString("it-IT", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  });
+  formatDecimal(value, 1, { fixed: true });
 
 /**
  * Uno scostamento senza segno non dice da che parte sta.

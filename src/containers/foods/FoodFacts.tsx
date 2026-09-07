@@ -1,6 +1,7 @@
 import { SyncedPhoto } from "@/src/components/kal/SyncedPhoto";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
+import { decimalSeparator } from "@/src/utils/number";
 import { formatGrams } from "@/src/domain/serving";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
@@ -65,7 +66,7 @@ export const MacroTriple: React.FC<{
     <View style={styles.macro}>
       <View style={[styles.macroDot, { backgroundColor: color }]} />
       <Text style={[styles.macroValue, { color: colors.text }]}>
-        {formatGrams(value)} g
+        {formatGrams(value, decimalSeparator())} g
       </Text>
       <Text
         style={[styles.macroLabel, { color: colors.textMuted }]}
@@ -108,7 +109,7 @@ export const FoodFacts: React.FC<FoodFactsProps> = ({ food }) => {
         {label}
       </Text>
       <Text style={[styles.minorValue, { color: colors.textSecondary }]}>
-        {formatGrams(value)} g
+        {formatGrams(value, decimalSeparator())} g
       </Text>
     </View>
   );
@@ -143,7 +144,7 @@ export const FoodFacts: React.FC<FoodFactsProps> = ({ food }) => {
               {food.serving_label?.trim()
                 ? food.serving_label
                 : t("quantity.serving_is", {
-                    grams: formatGrams(food.default_serving_g),
+                    grams: formatGrams(food.default_serving_g, decimalSeparator()),
                   })}
             </Text>
           ) : null}
