@@ -1,7 +1,7 @@
 import type { PhotoEstimate } from "@/src/ai/estimateFromPhoto";
 import { DfAlert } from "@/src/components/DfAlert";
 import { useAppTheme } from "@/src/components/ThemeContext";
-import { Text, TextInput } from "@/src/components/ui";
+import { DraftTextInput, Text } from "@/src/components/ui";
 import {
   includedTotals,
   rowNutrients,
@@ -112,7 +112,7 @@ export const PhotoEstimateSheet: React.FC<PhotoEstimateSheetProps> = ({
               </TouchableOpacity>
 
               <View style={styles.rowMain}>
-                <TextInput
+                <DraftTextInput
                   value={row.label}
                   onChangeText={(label) => patch(row.key, { label })}
                   placeholder={t("photo_entry.label_placeholder")}
@@ -130,10 +130,10 @@ export const PhotoEstimateSheet: React.FC<PhotoEstimateSheetProps> = ({
               </View>
 
               <View style={styles.gramsBox}>
-                <TextInput
+                <DraftTextInput
                   value={gramsText[row.key] ?? ""}
-                  onChangeText={(raw) => {
-                    const text = sanitizeDecimalInput(raw);
+                  sanitize={sanitizeDecimalInput}
+                  onChangeText={(text) => {
                     setGramsText((current) => ({
                       ...current,
                       [row.key]: text,

@@ -8,7 +8,7 @@ import {
   SectionLabel,
 } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
-import { Text, TextInput } from "@/src/components/ui";
+import { DraftTextInput, Text } from "@/src/components/ui";
 import {
   BlockEditor,
   type DraftBlock,
@@ -381,7 +381,9 @@ export function RoutineFormScreen() {
             <Text style={[styles.label, { color: colors.textMuted }]}>
               {t("gym.routine_name")}
             </Text>
-            <TextInput
+            {/* Il nome sta sopra i blocchi, e ogni tasto li ridisegnava tutti:
+                vedi il commento in `DraftTextInput`. */}
+            <DraftTextInput
               value={name}
               onChangeText={setName}
               placeholder={t("gym.routine_name_placeholder")}
@@ -525,7 +527,7 @@ export function RoutineFormScreen() {
         }}
         onClose={() => setRenameText(null)}
       >
-        <TextInput
+        <DraftTextInput
           value={renameText ?? ""}
           onChangeText={setRenameText}
           autoFocus

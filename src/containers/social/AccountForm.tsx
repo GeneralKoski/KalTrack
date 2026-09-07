@@ -90,6 +90,13 @@ export const AccountForm: React.FC = () => {
       secure?: boolean;
       autoCapitalize?: "none" | "words";
       keyboardType?: "email-address" | "default";
+      /**
+       * Cosa suggerire dal gestore di password. `ui/TextInput` spegne
+       * l'autofill di serie (vedi il suo commento), e questo modulo e' l'unico
+       * posto dove serve accesa: qui la compilazione automatica e' quel che
+       * l'utente vuole, non il suggerimento a caso in un campo dei grammi.
+       */
+      autoComplete?: "email" | "username" | "current-password" | "name";
       hint?: string;
       inputRef?: React.RefObject<RNTextInput | null>;
       /** Il campo dopo questo: l'invio ci porta il cursore. */
@@ -106,6 +113,7 @@ export const AccountForm: React.FC = () => {
           secureTextEntry={options.secure && !showPassword}
           autoCapitalize={options.autoCapitalize ?? "none"}
           autoCorrect={false}
+          autoComplete={options.autoComplete}
           keyboardType={options.keyboardType}
           /*
            * L'invio porta al campo dopo, e sull'ultimo manda il modulo.
@@ -166,12 +174,13 @@ export const AccountForm: React.FC = () => {
             t("social.display_name"),
             displayName,
             setDisplayName,
-            { autoCapitalize: "words", next: handleRef },
+            { autoCapitalize: "words", autoComplete: "name", next: handleRef },
           )
         : null}
       {isRegistering
         ? field("handle", t("social.handle"), handle, setHandle, {
             hint: t("social.handle_hint"),
+            autoComplete: "username",
             inputRef: handleRef,
             next: emailRef,
           })
@@ -179,16 +188,19 @@ export const AccountForm: React.FC = () => {
       {isRegistering
         ? field("email", t("social.email"), email, setEmail, {
             keyboardType: "email-address",
+            autoComplete: "email",
             inputRef: emailRef,
             next: passwordRef,
           })
         : field("login", t("social.login_field"), login, setLogin, {
             hint: t("social.login_hint"),
+            autoComplete: "username",
             inputRef: loginRef,
             next: passwordRef,
           })}
       {field("password", t("social.password"), password, setPassword, {
         secure: true,
+        autoComplete: "current-password",
         inputRef: passwordRef,
       })}
 

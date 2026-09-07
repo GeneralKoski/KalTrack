@@ -2,7 +2,7 @@ import { DfAlert } from "@/src/components/DfAlert";
 import { SettingsPage } from "@/src/containers/settings/SettingsPage";
 import { Card } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
-import { Text, TextInput } from "@/src/components/ui";
+import { DraftTextInput, Text } from "@/src/components/ui";
 import {
   createMealType,
   deleteMealType,
@@ -115,7 +115,7 @@ export function MealTypesScreen() {
           if (editingId === type.id) {
             return (
               <View key={type.id} style={styles.row}>
-                <TextInput
+                <DraftTextInput
                   value={editingName}
                   onChangeText={setEditingName}
                   autoFocus
@@ -182,7 +182,7 @@ export function MealTypesScreen() {
       </Card>
 
       <View style={styles.row}>
-        <TextInput
+        <DraftTextInput
           value={draft}
           onChangeText={setDraft}
           placeholder={t("meal_types.new_placeholder")}

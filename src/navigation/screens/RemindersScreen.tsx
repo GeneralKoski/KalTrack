@@ -3,7 +3,7 @@ import { DfSwitch } from "@/src/components/form/DfSwitch";
 import { FormScreen } from "@/src/components/FormScreen";
 import { Card, Chip, EmptyState, ScreenBackground } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
-import { Text, TextInput } from "@/src/components/ui";
+import { DraftTextInput, Text } from "@/src/components/ui";
 import {
   deleteReminder,
   listReminders,
@@ -812,7 +812,7 @@ export function RemindersScreen() {
           <Text style={[styles.modalLabel, { color: colors.text }]}>
             {t("reminders.reminder_name")}
           </Text>
-          <TextInput
+          <DraftTextInput
             value={formName}
             onChangeText={setFormName}
             placeholder={t("reminders.reminder_name_placeholder")}

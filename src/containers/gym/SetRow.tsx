@@ -1,5 +1,5 @@
 import { useAppTheme } from "@/src/components/ThemeContext";
-import { Text, TextInput } from "@/src/components/ui";
+import { DraftTextInput, Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import { sanitizeDecimalInput, sanitizeIntegerInput } from "@/src/utils/utils";
@@ -14,6 +14,7 @@ interface SetRowProps {
   exerciseName?: string;
   /** Ripetizioni previste dalla scheda ("8-10"): finisce nel placeholder, non nel valore. */
   targetReps?: string | null;
+  /** Valori di partenza, letti al montaggio: dopo comanda quel che si digita. */
   weight: string;
   reps: string;
   done: boolean;
@@ -33,6 +34,11 @@ interface SetRowProps {
  * interruttore e non un punto di non ritorno: ritoccarlo disfa la serie
  * (`deleteSet`) e restituisce i campi, perche' il numero sbagliato ci si
  * accorge di averlo scritto un secondo dopo averlo confermato.
+ *
+ * **I campi sono `DraftTextInput`**: tengono il testo digitato accanto a se'
+ * invece di aspettarlo da `SessionScreen`, dove ogni tasto ridisegna tutti i
+ * blocchi e tutte le righe prima di restituire il carattere. Vedi il commento
+ * in `DraftTextInput` per cosa faceva quel ritardo al cursore.
  */
 export const SetRow: React.FC<SetRowProps> = ({
   setNumber,
@@ -79,9 +85,10 @@ export const SetRow: React.FC<SetRowProps> = ({
 
         <View style={styles.fields}>
           <View style={styles.field}>
-            <TextInput
+            <DraftTextInput
               value={weight}
-              onChangeText={(text) => onChangeWeight(sanitizeDecimalInput(text))}
+              onChangeText={onChangeWeight}
+              sanitize={sanitizeDecimalInput}
               onFocus={() => setFocused("weight")}
               onBlur={() => setFocused(null)}
               editable={!done}
@@ -99,9 +106,10 @@ export const SetRow: React.FC<SetRowProps> = ({
           <Text style={[styles.times, { color: colors.textFaint }]}>×</Text>
 
           <View style={styles.field}>
-            <TextInput
+            <DraftTextInput
               value={reps}
-              onChangeText={(text) => onChangeReps(sanitizeIntegerInput(text))}
+              onChangeText={onChangeReps}
+              sanitize={sanitizeIntegerInput}
               onFocus={() => setFocused("reps")}
               onBlur={() => setFocused(null)}
               editable={!done}

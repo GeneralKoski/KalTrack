@@ -6,7 +6,7 @@ import {
 import { DfAlert } from "@/src/components/DfAlert";
 import { Chip } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
-import { Text, TextInput } from "@/src/components/ui";
+import { DraftTextInput, Text } from "@/src/components/ui";
 import { addDays } from "@/src/domain/date";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
@@ -230,11 +230,12 @@ export const GenerateMealPlanModal: React.FC<GenerateMealPlanModalProps> = ({
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             {t("plan.ai_notes_title")}
           </Text>
-          <TextInput
+          <DraftTextInput
             value={notes}
             onChangeText={setNotes}
             placeholder={t("plan.ai_notes_placeholder")}
             placeholderTextColor={colors.textFaint}
+            autoCorrect
             multiline
             numberOfLines={2}
             style={[

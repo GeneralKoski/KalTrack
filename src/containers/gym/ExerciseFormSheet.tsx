@@ -3,7 +3,7 @@ import { DfBottomSheet } from "@/src/components/DfBottomSheet";
 import { DfButton } from "@/src/components/form/DfButton";
 import { PhotoField } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
-import { Text, TextInput } from "@/src/components/ui";
+import { DraftTextInput, Text } from "@/src/components/ui";
 import {
   createExercise,
   findExerciseByName,
@@ -274,7 +274,7 @@ export const ExerciseFormSheet = forwardRef<
           <Text style={[styles.label, { color: colors.text }]}>
             {t("gym.exercise_name")}
           </Text>
-          <TextInput
+          <DraftTextInput
             style={[
               styles.input,
               { color: colors.text, borderColor: colors.border },
@@ -329,7 +329,7 @@ export const ExerciseFormSheet = forwardRef<
           <Text style={[styles.label, { color: colors.text }]}>
             {t("gym.description_label")}
           </Text>
-          <TextInput
+          <DraftTextInput
             style={[
               styles.input,
               styles.multiline,
@@ -340,6 +340,7 @@ export const ExerciseFormSheet = forwardRef<
             placeholder={t("gym.instructions_placeholder")}
             placeholderTextColor={colors.textFaint}
             autoCapitalize="sentences"
+            autoCorrect
             multiline
           />
 

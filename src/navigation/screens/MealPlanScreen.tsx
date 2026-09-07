@@ -3,7 +3,7 @@ import { DfButton } from "@/src/components/form/DfButton";
 import { FormScreen } from "@/src/components/FormScreen";
 import { ScreenBackground } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
-import { Text, TextInput } from "@/src/components/ui";
+import { DraftTextInput, Text } from "@/src/components/ui";
 import {
   AddEntrySheet,
   type DiaryPick,
@@ -532,7 +532,7 @@ export function MealPlanScreen() {
         onConfirm={saveLabel}
         onClose={() => setPendingPick(null)}
       >
-        <TextInput
+        <DraftTextInput
           value={labelText}
           onChangeText={setLabelText}
           placeholder={t("plan.label_placeholder")}

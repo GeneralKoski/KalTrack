@@ -2,7 +2,7 @@ import { DfAlert } from "@/src/components/DfAlert";
 import { DfButton } from "@/src/components/form/DfButton";
 import { EmptyState, SearchBar } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
-import { Text, TextInput } from "@/src/components/ui";
+import { DraftTextInput, Text } from "@/src/components/ui";
 import {
   getEntryComposition,
   materializeComposition,
@@ -262,10 +262,10 @@ export const EntryCompositionSheet: React.FC<EntryCompositionSheetProps> = ({
                   </Text>
                 </View>
 
-                <TextInput
+                <DraftTextInput
                   value={gramsText[index] ?? ""}
-                  onChangeText={(raw) => {
-                    const text = sanitizeDecimalInput(raw);
+                  sanitize={sanitizeDecimalInput}
+                  onChangeText={(text) => {
                     setGramsText((current) => ({ ...current, [index]: text }));
                     if (composition) {
                       setComposition(
@@ -408,7 +408,7 @@ export const EntryCompositionSheet: React.FC<EntryCompositionSheetProps> = ({
             {t("diary.quick_food_hint")}
           </Text>
 
-          <TextInput
+          <DraftTextInput
             value={newName}
             onChangeText={setNewName}
             placeholder={t("foods.name")}
@@ -430,10 +430,11 @@ export const EntryCompositionSheet: React.FC<EntryCompositionSheetProps> = ({
               [newCarbs, setNewCarbs, t("diary.carbs_short")] as const,
               [newFat, setNewFat, t("diary.fat_short")] as const,
             ].map(([value, setValue, placeholder]) => (
-              <TextInput
+              <DraftTextInput
                 key={placeholder}
                 value={value}
-                onChangeText={(text) => setValue(sanitizeDecimalInput(text))}
+                onChangeText={setValue}
+                sanitize={sanitizeDecimalInput}
                 placeholder={placeholder}
                 placeholderTextColor={colors.textFaint}
                 keyboardType="decimal-pad"

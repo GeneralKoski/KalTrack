@@ -3,7 +3,7 @@ import { FormScreen } from "@/src/components/FormScreen";
 import { DfButton } from "@/src/components/form/DfButton";
 import { MetalPanel, ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
-import { Text, TextInput } from "@/src/components/ui";
+import { DraftTextInput, Text } from "@/src/components/ui";
 import { getProfile, getTargetsFor, saveProfile, saveTargets } from "@/src/db/queries/settings";
 import { latestWeight } from "@/src/db/queries/tracking";
 import { todayIso, toIsoDate } from "@/src/domain/date";
@@ -212,15 +212,21 @@ export function TargetsScreen() {
     goBack();
   };
 
+  /*
+    `DraftTextInput` e non `TextInput`: sei campi, i suggerimenti calcolati e i
+    selettori si ridisegnavano a ogni tasto prima che il carattere tornasse nel
+    campo. Vedi il commento in `DraftTextInput`.
+  */
   const input = (
     value: string,
     onChangeText: (v: string) => void,
     numeric = true,
     placeholder?: string,
   ) => (
-    <TextInput
+    <DraftTextInput
       value={value}
-      onChangeText={numeric ? (text) => onChangeText(sanitizeDecimalInput(text)) : onChangeText}
+      onChangeText={onChangeText}
+      sanitize={numeric ? sanitizeDecimalInput : undefined}
       keyboardType={numeric ? "decimal-pad" : "default"}
       placeholder={placeholder}
       placeholderTextColor={colors.textFaint}

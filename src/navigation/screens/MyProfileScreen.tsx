@@ -3,7 +3,7 @@ import { DfButton } from "@/src/components/form/DfButton";
 import { FormScreen } from "@/src/components/FormScreen";
 import { ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
-import { Text, TextInput } from "@/src/components/ui";
+import { DraftTextInput, Text } from "@/src/components/ui";
 import { ShareSettings } from "@/src/containers/social/ShareSettings";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
@@ -132,7 +132,7 @@ export function MyProfileScreen() {
             <Text style={[styles.label, { color: colors.textMuted }]}>
               {t("social.handle")}
             </Text>
-            <TextInput
+            <DraftTextInput
               value={handle}
               onChangeText={setHandle}
               autoCapitalize="none"
@@ -150,7 +150,7 @@ export function MyProfileScreen() {
             <Text style={[styles.label, { color: colors.textMuted }]}>
               {t("social.email")}
             </Text>
-            <TextInput
+            <DraftTextInput
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
@@ -169,7 +169,7 @@ export function MyProfileScreen() {
             <Text style={[styles.label, { color: colors.textMuted }]}>
               {t("social.display_name")}
             </Text>
-            <TextInput
+            <DraftTextInput
               value={displayName}
               onChangeText={setDisplayName}
               style={[
@@ -185,10 +185,11 @@ export function MyProfileScreen() {
             <Text style={[styles.label, { color: colors.textMuted }]}>
               {t("social.bio")}
             </Text>
-            <TextInput
+            <DraftTextInput
               value={bio}
               onChangeText={setBio}
               multiline
+              autoCorrect
               maxLength={160}
               style={[
                 styles.input,

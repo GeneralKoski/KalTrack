@@ -3,7 +3,7 @@ import { FormScreen } from "@/src/components/FormScreen";
 import { DfButton } from "@/src/components/form/DfButton";
 import { PhotoField, ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
-import { Text, TextInput } from "@/src/components/ui";
+import { DraftTextInput, Text } from "@/src/components/ui";
 import {
   IngredientPicker,
   type PickedIngredient,
@@ -280,7 +280,10 @@ export function RecipeFormScreen() {
             <Text style={[styles.label, { color: colors.textMuted }]}>
               {t("recipes.name")}
             </Text>
-            <TextInput
+            {/* I tre campi sono `DraftTextInput` e non `TextInput`: sotto ci
+                sono la lista degli ingredienti e i totali, che si ridisegnavano
+                a ogni tasto. Vedi il commento in `DraftTextInput`. */}
+            <DraftTextInput
               value={name}
               onChangeText={setName}
               placeholder={t("recipes.name_placeholder")}
@@ -298,9 +301,10 @@ export function RecipeFormScreen() {
             <Text style={[styles.label, { color: colors.textMuted }]}>
               {t("recipes.servings")}
             </Text>
-            <TextInput
+            <DraftTextInput
               value={servingsText}
-              onChangeText={(text) => setServingsText(sanitizeDecimalInput(text))}
+              onChangeText={setServingsText}
+              sanitize={sanitizeDecimalInput}
               keyboardType="decimal-pad"
               placeholderTextColor={colors.textFaint}
               style={[
@@ -353,10 +357,11 @@ export function RecipeFormScreen() {
             <Text style={[styles.label, { color: colors.textMuted }]}>
               {t("recipes.notes")}
             </Text>
-            <TextInput
+            <DraftTextInput
               value={notes}
               onChangeText={setNotes}
               multiline
+              autoCorrect
               placeholderTextColor={colors.textFaint}
               style={[
                 styles.input,

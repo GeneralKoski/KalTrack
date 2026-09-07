@@ -1,6 +1,6 @@
 import { Chip, MetalPanel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
-import { Text, TextInput } from "@/src/components/ui";
+import { DraftTextInput, Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import type { BlockKind, MuscleGroup } from "@/src/types/gym";
@@ -282,6 +282,12 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   );
 };
 
+/**
+ * `DraftTextInput` e non `TextInput`: `days` sta in `RoutineFormScreen`, quindi
+ * ogni tasto qui dentro ricostruisce tutte le giornate e ridisegna tutti i
+ * blocchi coi loro campi prima di restituire il carattere. Vedi il commento in
+ * `DraftTextInput` per cosa faceva quel ritardo al cursore.
+ */
 const MiniField: React.FC<{
   label: string;
   value: string;
@@ -297,7 +303,7 @@ const MiniField: React.FC<{
       <Text style={[styles.fieldLabel, { color: colors.textMuted }]} numberOfLines={1}>
         {label}
       </Text>
-      <TextInput
+      <DraftTextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}

@@ -228,6 +228,7 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
                 ]}
               >
                 <TextInput
+                  autoCorrect
                   style={[styles.textInput, { color: colors.text }]}
                   placeholder={t("assistant.text_input_placeholder")}
                   placeholderTextColor={colors.textMuted}

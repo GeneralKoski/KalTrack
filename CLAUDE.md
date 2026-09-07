@@ -894,6 +894,59 @@ disegnato da `MacroArc`), e lo usano sia la home sia i cerchietti del
 calendario: il grigio in coda e' la parte di calorie che i macro non spiegano,
 non un quarto macro.
 
+### Quel che si digita
+
+**Un campo il cui stato non vive accanto all'input usa `DraftTextInput`**
+(`src/components/ui/`), non `TextInput`. Dal 7 settembre 2026, ed e' il rimedio
+a una digitazione che in tutta l'app perdeva caratteri, riportava il cursore a
+inizio riga e a tratti rimetteva testo che nessuno stava scrivendo.
+
+Il meccanismo, che vale la pena capire una volta perche' si ripresenta a ogni
+campo nuovo: lo stato stava in cima alla schermata, quindi ogni tasto
+ridisegnava tutto - la sessione con tutte le sue righe, il modulo di una scheda
+con tutti i suoi blocchi, i sei campi degli obiettivi coi loro suggerimenti -
+**prima** di restituire il carattere al campo. Se quel giro non chiude entro il
+fotogramma, RN si ritrova il `value` indietro rispetto al testo nativo e
+riscrive il campo con quello vecchio; Android, riscrivendolo, riporta il cursore
+all'inizio. `DraftTextInput` tiene il testo digitato accanto a se' e al
+chiamante ne manda una copia: il `value` del nativo combacia sempre, e non c'e'
+niente da riscrivere per quanto lenta sia la schermata sopra.
+
+Si riallinea comunque a un valore che **non** viene da lui - una scheda generata
+dall'IA che arriva a modulo aperto, un foglio che si svuota alla chiusura - e a
+distinguerlo da un'eco in ritardo serve la coda di quel che ha consegnato: il
+confronto col solo ultimo valore non regge, e i test in
+`DraftTextInput.test.tsx` enunciano i quattro casi. **Un chiamante che
+trasforma il valore prima di rimandarlo indietro non puo' usarlo**, perche'
+ogni sua eco sembrerebbe un valore esterno: quello e' il mestiere di
+`DfNumberInput`, che resta controllato.
+
+Restano `TextInput` nudo i campi il cui stato e' gia' accanto a loro e serve a
+disegnare la finestra stessa (`QuantityPrompt`, `MetricEntrySheet`) e la
+`SearchBar`, che ridisegna solo se stessa - non a caso era l'unico campo
+dell'app che si scriveva bene.
+
+**`DfNumberInput` non scrive il separatore di migliaia.** Lo faceva, e al tasto
+dopo rileggeva quel punto come separatore decimale, perche' la virgola non
+c'era: la quinta cifra di 10005 mandava il campo a "1,00", e cancellare una
+cifra da 2000 lo mandava a 2. Un numero corrotto, salvato senza un segno a
+schermo. Un separatore che non scriviamo noi non c'e' da interpretare, e i
+numeri di quest'app arrivano a quattro cifre.
+
+**Correttore e compilazione automatica sono spenti di serie** in
+`ui/TextInput`, e il rapporto e' rovesciato rispetto a quel che RN presume: qui
+quasi tutto quel che si scrive e' un nome o un numero, e su un nome il
+correttore di Android fa danni ("lat machine" diventa "la machine") mentre
+l'autofill di Google propone quel che ha salvato altrove. Le eccezioni passano
+props esplicite: `autoCorrect` sui campi di prosa (note della ricetta, bio,
+istruzioni di un esercizio, note per il piano, assistente) e `autoComplete` in
+`AccountForm`, dove i gestori di password devono funzionare.
+
+**`useWatch` ridisegna chi lo chiama a ogni tasto**, quindi non sta in un
+componente che contiene dei campi: in `NutrientFields` stava accanto agli otto
+valori nutrizionali e li ridisegnava tutti mentre se ne scriveva uno. Ora
+l'avviso sulle kcal ricalcolate e' un componente a se' (`KcalFromMacros`).
+
 ### L'icona
 
 Una K bianca con un punto verde su `#18181b`. Non e' un file da ritoccare a
@@ -928,6 +981,10 @@ Valgono le guide Dieffetech `docs/react-native/`:
 - Icona e testo sulla stessa riga stanno allineati in altezza: il padding del
   font lo togliono gia' `Text` e `TextInput` di `ui/` (vedi § Styling), quindi
   non si aggiunge `includeFontPadding` nelle schermate.
+- **Un campo di testo il cui stato non vive accanto all'input e'
+  `DraftTextInput`, non `TextInput`** (vedi § Quel che si digita): col `value`
+  che torna dall'alto la digitazione perde caratteri e il cursore salta a
+  inizio riga.
 - Animazioni con `react-native-reanimated`; il suo plugin babel resta l'ultimo.
 - TypeScript strict, mai `any`.
 - Logging solo via `logger`, mai `console.*`.

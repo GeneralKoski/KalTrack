@@ -23,11 +23,17 @@ const toNumber = (value: unknown): number => {
 };
 
 /**
- * Gli otto valori nutrizionali per 100 g/ml. Sotto le calorie mostra il valore
- * ricalcolato dai macro: se i due numeri divergono molto c'è un refuso, e si
- * vede mentre si digita invece che mesi dopo nei totali.
+ * L'avviso sulle kcal ricalcolate dai macro, e il `useWatch` che lo alimenta,
+ * stanno in un componente a se'.
+ *
+ * Non e' una spezzettatura estetica: `useWatch` ridisegna chi lo chiama a ogni
+ * tasto, e da dentro `NutrientFields` questo voleva dire ridisegnare tutti e
+ * otto i campi mentre si scriveva in uno. Otto `TextInput` controllati che
+ * ricevono props nuove nello stesso fotogramma della battuta sono
+ * esattamente il ritardo che fa riscrivere a RN il testo nativo, e il cursore
+ * torna a inizio campo.
  */
-export const NutrientFields: React.FC = () => {
+const KcalFromMacros: React.FC = () => {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const [kcal, protein, carbs, fat] = useWatch({
@@ -40,7 +46,29 @@ export const NutrientFields: React.FC = () => {
     toNumber(fat),
   );
   const entered = toNumber(kcal);
-  const drifted = entered > 0 && Math.abs(computed - entered) > entered * 0.25 + 25;
+  const drifted =
+    entered > 0 && Math.abs(computed - entered) > entered * 0.25 + 25;
+
+  return (
+    <Text
+      style={[
+        styles.hint,
+        { color: colors.textMuted },
+        drifted && styles.hintWarning,
+      ]}
+    >
+      {t("foods.kcal_from_macros", { value: Math.round(computed) })}
+    </Text>
+  );
+};
+
+/**
+ * Gli otto valori nutrizionali per 100 g/ml. Sotto le calorie mostra il valore
+ * ricalcolato dai macro: se i due numeri divergono molto c'è un refuso, e si
+ * vede mentre si digita invece che mesi dopo nei totali.
+ */
+export const NutrientFields: React.FC = () => {
+  const { t } = useTranslation();
 
   return (
     <View>
@@ -50,15 +78,7 @@ export const NutrientFields: React.FC = () => {
         decimals={0}
         rules={{ required: t("required_field") }}
       />
-      <Text
-        style={[
-          styles.hint,
-          { color: colors.textMuted },
-          drifted && styles.hintWarning,
-        ]}
-      >
-        {t("foods.kcal_from_macros", { value: Math.round(computed) })}
-      </Text>
+      <KcalFromMacros />
 
       <View style={styles.row}>
         <View style={styles.col}>

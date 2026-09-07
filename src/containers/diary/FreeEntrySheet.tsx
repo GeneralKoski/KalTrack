@@ -1,6 +1,6 @@
 import { DfAlert } from "@/src/components/DfAlert";
 import { useAppTheme } from "@/src/components/ThemeContext";
-import { Text, TextInput } from "@/src/components/ui";
+import { DraftTextInput, Text } from "@/src/components/ui";
 import { EMPTY_NUTRIENTS, type Nutrients } from "@/src/domain/nutrition";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
@@ -76,9 +76,10 @@ export const FreeEntrySheet: React.FC<FreeEntrySheetProps> = ({
       >
         {label}
       </Text>
-      <TextInput
+      <DraftTextInput
         value={value}
-        onChangeText={(text) => onChangeText(sanitizeDecimalInput(text))}
+        onChangeText={onChangeText}
+        sanitize={sanitizeDecimalInput}
         placeholder={t("diary.free_macro_placeholder")}
         placeholderTextColor={colors.textFaint}
         keyboardType="decimal-pad"
@@ -100,7 +101,7 @@ export const FreeEntrySheet: React.FC<FreeEntrySheetProps> = ({
       onClose={onClose}
     >
       <View style={styles.body}>
-        <TextInput
+        <DraftTextInput
           value={label}
           onChangeText={setLabel}
           placeholder={t("diary.free_label_placeholder")}
@@ -112,9 +113,10 @@ export const FreeEntrySheet: React.FC<FreeEntrySheetProps> = ({
           ]}
         />
 
-        <TextInput
+        <DraftTextInput
           value={kcal}
-          onChangeText={(text) => setKcal(sanitizeDecimalInput(text))}
+          onChangeText={setKcal}
+          sanitize={sanitizeDecimalInput}
           placeholder={t("diary.free_kcal_placeholder")}
           placeholderTextColor={colors.textFaint}
           keyboardType="decimal-pad"
