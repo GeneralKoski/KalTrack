@@ -61,9 +61,15 @@ class AuthController extends Controller
         // Un messaggio solo per credenziali sbagliate e utente inesistente:
         // distinguerli direbbe a chiunque quali email e quali nomi utente sono
         // registrati.
+        //
+        // `__('auth.failed')` e non una stringa fissa: era "Credenziali non
+        // corrette." scritta qui a mano, quindi un telefono in inglese
+        // vedeva comunque l'italiano - l'unica stringa del server che non
+        // seguiva `Accept-Language` nonostante tutta la pipeline
+        // (`SetLocaleFromHeader`) esista apposta per questo.
         if (! $user || ! Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'login' => ['Credenziali non corrette.'],
+                'login' => [__('auth.failed')],
             ]);
         }
 

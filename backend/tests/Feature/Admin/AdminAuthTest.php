@@ -82,6 +82,28 @@ class AdminAuthTest extends TestCase
         $this->assertGuest();
     }
 
+    /**
+     * `/admin/login` sta nel gruppo `web`, non `api`: senza una rotta che
+     * appenda `SetLocaleFromHeader` anche li', questo test fallirebbe con
+     * l'inglese a prescindere dall'intestazione mandata qui.
+     */
+    public function test_il_rifiuto_segue_la_lingua_dell_intestazione(): void
+    {
+        User::factory()->create([
+            'email' => 'martin@example.test',
+            'password' => 'password123',
+            'is_admin' => true,
+        ]);
+
+        $this->withHeader('Accept-Language', 'it')
+            ->postJson('/admin/login', [
+                'login' => 'martin@example.test',
+                'password' => 'sbagliata',
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Credenziali non corrette.');
+    }
+
     public function test_con_la_sessione_si_chiamano_le_rotte_admin(): void
     {
         $admin = User::factory()->create([

@@ -65,6 +65,34 @@ class AccountTest extends TestCase
         ])->assertStatus(422);
     }
 
+    /**
+     * Prima di `__('auth.failed')` questo messaggio era una stringa fissa in
+     * italiano scritta dentro `AuthController`: un telefono in inglese
+     * riceveva comunque "Credenziali non corrette.", nonostante
+     * `SetLocaleFromHeader` esista apposta perche' i messaggi del server
+     * seguano `Accept-Language`.
+     */
+    public function test_il_rifiuto_segue_la_lingua_dell_intestazione(): void
+    {
+        $this->postJson('/api/register', $this->valid)->assertCreated();
+
+        $this->withHeader('Accept-Language', 'en')
+            ->postJson('/api/login', [
+                'login' => 'nessuno',
+                'password' => 'password123',
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'These credentials do not match our records.');
+
+        $this->withHeader('Accept-Language', 'it')
+            ->postJson('/api/login', [
+                'login' => 'nessuno',
+                'password' => 'password123',
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Credenziali non corrette.');
+    }
+
     public function test_un_handle_gia_preso_viene_rifiutato(): void
     {
         $this->postJson('/api/register', $this->valid)->assertCreated();
@@ -184,6 +212,7 @@ class AccountTest extends TestCase
             'days' => [['date' => '28/08/2026']],
         ])->assertUnprocessable();
     }
+
     /**
      * Le maiuscole si conservano ma non distinguono: due nomi utente che
      * differiscono solo per quelle sarebbero due persone che nessuna lista sa
@@ -248,5 +277,4 @@ class AccountTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.handle', 'GeneralKoski');
     }
-
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminAuthController;
+use App\Http\Middleware\SetLocaleFromHeader;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -16,9 +17,16 @@ Route::get('/', function () {
  * arrivano da un dominio dichiarato stateful.
  */
 Route::post('admin/login', [AdminAuthController::class, 'login'])
-    // Come `login` e `register` dell'app: e' l'unica porta che chiunque puo'
-    // bussare, e va limitata per tentativi.
-    ->middleware('throttle:6,1');
+    ->middleware([
+        // Come `login` e `register` dell'app: e' l'unica porta che chiunque
+        // puo' bussare, e va limitata per tentativi.
+        'throttle:6,1',
+        // `SetLocaleFromHeader` e' appesa al gruppo `api` in bootstrap/app.php,
+        // ma questa rotta e' nel gruppo `web` e non la eredita: senza,
+        // "Credenziali non corrette" risponderebbe sempre nella lingua di
+        // default del server, a prescindere da `Accept-Language`.
+        SetLocaleFromHeader::class,
+    ]);
 Route::post('admin/logout', [AdminAuthController::class, 'logout']);
 
 /*
