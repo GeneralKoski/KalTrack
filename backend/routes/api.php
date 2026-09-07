@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\SubmissionController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CatalogController;
@@ -71,6 +72,14 @@ Route::middleware('auth:sanctum')->group(function () {
          */
         Route::post('users/{user}/password', [AdminController::class, 'resetPassword'])
             ->middleware('throttle:10,1');
+
+        /*
+         * La coda di revisione delle proposte: alimenti ed esercizi creati a
+         * mano restano privati finche' un amministratore non li approva.
+         */
+        Route::get('submissions', [SubmissionController::class, 'index']);
+        Route::post('submissions/{type}/{id}/approve', [SubmissionController::class, 'approve']);
+        Route::post('submissions/{type}/{id}/reject', [SubmissionController::class, 'reject']);
     });
 
     Route::get('images', [ImageController::class, 'index']);

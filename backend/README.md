@@ -62,12 +62,19 @@ voce scritta male restava nell'app di tutti per sempre perche' nessuno aveva il
 diritto di correggerla.
 
 **Quel che non e' cambiato e' cosa esce**: `created_by` non compare in nessuna
-risposta. Al suo posto c'e' `mine`, cioe' "questa la puoi correggere tu". Sapere
-che un esercizio l'ha inventato Tizio resta un fatto su Tizio che non serve a
-nessuno per allenarsi; sapere che l'hai inventato tu serve a te per correggerlo.
-Una voce senza autore - vecchia, o di un account cancellato - resta in elenco e
-non la modifica piu' nessuno: sparire dal servizio non deve poter svuotare il
-catalogo di tutti.
+risposta verso un altro utente. Al suo posto c'e' `mine`, cioe' "questa la puoi
+correggere tu". Sapere che un esercizio l'ha inventato Tizio resta un fatto su
+Tizio che non serve a nessuno per allenarsi; sapere che l'hai inventato tu
+serve a te per correggerlo. Una voce senza autore - vecchia, o di un account
+cancellato - resta in elenco e non la modifica piu' nessuno: sparire dal
+servizio non deve poter svuotare il catalogo di tutti.
+
+**Un'unica eccezione**, in un posto che un utente normale non raggiunge: la
+coda di revisione sotto `/api/admin/*` (`SubmissionController`) mostra
+l'autore di ogni proposta. Chi guarda li' e' chi decide se quella voce entra
+nel catalogo di tutti, e deve sapere chi la propone - se non altro per
+riconoscere chi propone spazzatura. E' un fatto che serve a chi revisiona, non
+un fatto che il catalogo pubblica.
 
 La cancellazione e' morbida (`deleted_at`), non piu' vera: una voce tolta dal
 catalogo deve poter dire ai telefoni che non c'e' piu', e una riga sparita

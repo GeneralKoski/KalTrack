@@ -35,9 +35,11 @@ del container all'avvio. Procedura di deploy in `README.md` § In produzione.
    gli iscritti **una volta pubblicati** - una proposta la vede solo il server
    e chi la revisiona. Sono descritte in `README.md` § L'eccezione dichiarata,
    e non se ne aggiungono altre senza scriverle la'.
-2. **`created_by` non esce da nessuna risposta.** Al suo posto viaggia `mine`:
-   il catalogo dice a te che una voce e' tua, non dice a nessun altro di chi
-   e'.
+2. **`created_by` non esce da nessuna risposta, con un'unica eccezione:** la
+   coda di revisione sotto `/api/admin/*` (`SubmissionController`), dove chi
+   guarda e' chi decide e deve sapere chi propone. Ovunque altro viaggia
+   `mine`: il catalogo dice a te che una voce e' tua, non dice a nessun altro
+   di chi e'.
 3. **Le cinque regole della sincronizzazione stanno in `CLAUDE.md` alla radice**
    (§ Sincronizzazione). La prima vale anche qui: una riga di una tabella
    sincronizzata non si cancella davvero, si scrive `deleted_at`.

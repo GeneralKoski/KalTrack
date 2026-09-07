@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -77,5 +78,18 @@ class Food extends Model
             'default_serving_g' => 'float',
             'reviewed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Chi ha proposto la voce.
+     *
+     * ESCE SOLO DALLE ROTTE `/api/admin/*`. Verso un utente normale il
+     * catalogo continua a non dire di chi e' una voce, e la migrazione della
+     * tabella spiega perche': sapere che un esercizio l'ha inventato Tizio e'
+     * un fatto su Tizio, e non serve a nessuno per allenarsi.
+     */
+    public function author(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }
