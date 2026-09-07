@@ -931,6 +931,16 @@ Valgono le guide Dieffetech `docs/react-native/`:
 - Animazioni con `react-native-reanimated`; il suo plugin babel resta l'ultimo.
 - TypeScript strict, mai `any`.
 - Logging solo via `logger`, mai `console.*`.
+- **Un foglio o una finestra che si chiude si svuota.** Riaprire non deve
+  mostrare la ricerca di prima, la linguetta di prima o il testo che si stava
+  scrivendo: lo stato locale va riportato ai valori di partenza. Il posto e'
+  `onDismiss` per i fogli gorhom (scatta a animazione finita, quindi lo
+  svuotamento non si vede) e un effetto su `!isOpen` per quelli su `DfAlert`
+  (dalla finestra si esce anche toccando fuori o confermando, non solo dal
+  bottone). Un foglio che si **riempie** da una prop - `editing`, `initialValue`
+  - alla chiusura torna a quella prop e non al vuoto: `editing` immutato non
+  fa ripartire l'effetto di riempimento, e riaprendo la stessa voce da
+  correggere il modulo si presenterebbe vuoto.
 - **Un overlay aperto consuma il back di Android.** `DfBottomSheet` intercetta
   `hardwareBackPress` finche' e' aperto e ritorna `true`: senza, l'evento gli
   passa attraverso e arriva a react-navigation, che fa il pop della schermata

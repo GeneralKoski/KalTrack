@@ -72,7 +72,19 @@ export const ExercisePickerSheet = forwardRef<
   }, [debounced, group]);
 
   return (
-    <DfBottomSheet ref={ref} title={t("gym.pick_exercise")}>
+    <DfBottomSheet
+      ref={ref}
+      title={t("gym.pick_exercise")}
+      /* Chiudendo si svuota: il testo cercato e il muscolo filtrato restavano,
+         e chi riapriva per aggiungere il secondo esercizio del blocco
+         ritrovava l'elenco stretto sulla ricerca del primo. Anche `debounced`,
+         o al giro dopo la ricerca ripartirebbe dal termine vecchio. */
+      onDismiss={() => {
+        setTerm("");
+        setDebounced("");
+        setGroup(null);
+      }}
+    >
       <View style={styles.search}>
         <SearchBar
           value={term}

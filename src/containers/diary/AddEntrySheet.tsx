@@ -85,7 +85,16 @@ export const AddEntrySheet = forwardRef<BottomSheetModal, AddEntrySheetProps>(
         }
         titleOpen={pickingMeal}
         onAndroidBack={onAndroidBack}
-        onDismiss={() => setPickingMeal(false)}
+        /* Chiudendo si svuota: riaprendo il foglio si ripartiva dalla ricerca
+           di prima, dalla linguetta di prima e con aperto il pannello valori
+           dell'alimento che si stava guardando. `onDismiss` scatta a
+           animazione finita, quindi lo svuotamento non si vede. */
+        onDismiss={() => {
+          setPickingMeal(false);
+          setTab("foods");
+          setTerm("");
+          setDetail(null);
+        }}
       >
         {/*
           Il pasto sceglie dove finisce la riga, ed e' il titolo del foglio:

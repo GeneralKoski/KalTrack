@@ -114,6 +114,22 @@ export const EntryCompositionSheet: React.FC<EntryCompositionSheetProps> = ({
     };
   }, [isOpen, entryId, adopt]);
 
+  /**
+   * Chiusa la finestra si svuota il modulo dell'ingrediente a mano. L'effetto
+   * di apertura qui sopra rimette `mode` e `term`, ma questi cinque campi no:
+   * chi cominciava a scrivere un ingrediente, chiudeva e riapriva se li
+   * ritrovava compilati dentro la composizione di un'altra voce.
+   */
+  useEffect(() => {
+    if (isOpen) return;
+    setResults([]);
+    setNewName("");
+    setNewKcal("");
+    setNewProtein("");
+    setNewCarbs("");
+    setNewFat("");
+  }, [isOpen]);
+
   useEffect(() => {
     if (mode !== "add") return;
     let active = true;

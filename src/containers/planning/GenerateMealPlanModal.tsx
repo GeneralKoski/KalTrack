@@ -53,6 +53,22 @@ export const GenerateMealPlanModal: React.FC<GenerateMealPlanModalProps> = ({
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
+  /**
+   * Chiusa la finestra si torna ai valori di partenza. Le note in particolare
+   * restavano scritte: chi aveva chiesto "senza latticini" per lunedi' se le
+   * ritrovava addosso alla generazione di mercoledi' senza accorgersene.
+   *
+   * Sul `!isOpen` e non su `onClose`, perche' dalla finestra si esce anche
+   * toccando fuori e confermando, non solo dal bottone.
+   */
+  React.useEffect(() => {
+    if (isOpen) return;
+    setRangeMode("day");
+    setDietStyle("balanced");
+    setUseSavedItems(true);
+    setNotes("");
+  }, [isOpen]);
+
   const getTargetDates = (): string[] => {
     if (rangeMode === "day") {
       return [selectedDate];

@@ -82,7 +82,14 @@ export const ExerciseFormSheet = forwardRef<
 
   // Riempie il modulo quando si apre su una voce da correggere, e lo svuota
   // quando si torna a crearne una nuova.
-  useEffect(() => {
+  //
+  // La stessa funzione gira alla chiusura del foglio (`onDismiss`), e non solo
+  // al cambio di `editing`: creando una voce nuova `editing` resta `undefined`,
+  // quindi chi scriveva un nome, chiudeva e riapriva se lo ritrovava scritto.
+  // Riporta ai valori di `editing` invece di svuotare sempre, o riaprendo la
+  // stessa voce da correggere - `editing` immutato, effetto che non riparte -
+  // il modulo si presenterebbe vuoto.
+  const fillFromEditing = useCallback(() => {
     setName(editing?.name ?? "");
     setMuscleGroup((editing?.muscle_group as MuscleGroup) ?? "petto");
     setSecondary(editing ? exerciseSecondary(editing) : []);
@@ -91,6 +98,10 @@ export const ExerciseFormSheet = forwardRef<
     setInstructions(editing?.instructions ?? "");
     setView("form");
   }, [editing]);
+
+  useEffect(() => {
+    fillFromEditing();
+  }, [fillFromEditing]);
 
   const condiviso = hasBackend() && token !== null;
 
@@ -195,7 +206,7 @@ export const ExerciseFormSheet = forwardRef<
       onPressTitle={view !== "form" ? () => setView("form") : undefined}
       titleOpen={view !== "form"}
       onAndroidBack={onAndroidBack}
-      onDismiss={() => setView("form")}
+      onDismiss={fillFromEditing}
     >
       {view === "muscle" ? (
         <View>

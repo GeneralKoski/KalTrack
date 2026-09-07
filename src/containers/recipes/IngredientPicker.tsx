@@ -55,7 +55,16 @@ export const IngredientPicker = forwardRef<
   }, [tab, term, excludeRecipeId]);
 
   return (
-    <DfBottomSheet ref={ref} title={t("recipes.add_ingredient")}>
+    <DfBottomSheet
+      ref={ref}
+      title={t("recipes.add_ingredient")}
+      /* Chiudendo si svuota: aggiungendo il secondo ingrediente si ripartiva
+         dalla ricerca del primo, e dalla linguetta dov'era rimasto. */
+      onDismiss={() => {
+        setTab("foods");
+        setTerm("");
+      }}
+    >
       <View style={styles.tabs}>
         <TabButton
           label={t("recipes.tab_foods")}
