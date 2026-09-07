@@ -6,7 +6,7 @@ import { useAppTheme } from "@/src/components/ThemeContext";
 import { DraftTextInput, Text } from "@/src/components/ui";
 import { getProfile, getTargetsFor, saveProfile, saveTargets } from "@/src/db/queries/settings";
 import { latestWeight } from "@/src/db/queries/tracking";
-import { todayIso, toIsoDate } from "@/src/domain/date";
+import { birthdatePickerStart, todayIso, toIsoDate } from "@/src/domain/date";
 import {
   ACTIVITY_FACTORS,
   ageAt,
@@ -125,7 +125,10 @@ export function TargetsScreen() {
   const daily = basal !== null ? tdee(basal, activity) : null;
 
   const openBirthdatePicker = () => {
-    const base = birthdate.length === 10 ? parseIso(birthdate) : new Date();
+    // Senza data scritta la ruota parte da trent'anni fa e non da oggi:
+    // vedi `birthdatePickerStart`.
+    const base =
+      birthdate.length === 10 ? parseIso(birthdate) : birthdatePickerStart();
     if (Platform.OS === "android") {
       DateTimePickerAndroid.open({
         value: base,

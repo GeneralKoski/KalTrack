@@ -1,6 +1,7 @@
 import {
   addDays,
   addMonths,
+  birthdatePickerStart,
   clampDay,
   dayLabelKind,
   isRealIsoDate,
@@ -195,5 +196,15 @@ describe("addMonths e startOfMonth", () => {
   it("non scivola su un mese piu' corto", () => {
     // Il 31 gennaio + 1 mese non deve diventare il 3 marzo.
     expect(addMonths("2026-01-31", 1)).toBe("2026-02-01");
+  });
+});
+
+describe("birthdatePickerStart", () => {
+  it("apre la ruota su trent'anni fa e non su oggi", () => {
+    // Da oggi, un solo "OK" scriveva la nascita di un neonato: età zero, e il
+    // fabbisogno calcolato su quella senza che niente lo dicesse.
+    expect(birthdatePickerStart(new Date(2026, 8, 7))).toEqual(
+      new Date(1996, 8, 7),
+    );
   });
 });

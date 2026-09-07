@@ -35,7 +35,12 @@ export const useOnboardingStore = create<OnboardingStore>()((set) => ({
         getSetting(STEP_KEY),
       ]);
       set({
-        completed: completedValue !== null,
+        // Il VALORE, non la presenza della chiave. Leggendo `!== null`,
+        // scrivere `"0"` da qualunque parte - un ripristino, una prova, un
+        // giorno una funzione che azzera il primo avvio - valeva "completato",
+        // e non c'era modo di dire "no" se non cancellando la riga. Solo `"1"`
+        // e' completato, perche' `complete()` scrive esattamente quello.
+        completed: completedValue === "1",
         resumeStep: isOnboardingStep(stepValue) ? stepValue : FIRST_ONBOARDING_STEP,
         isHydrated: true,
       });

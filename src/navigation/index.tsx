@@ -1,6 +1,5 @@
 import { useTranslation } from "@/src/hooks/useTranslation";
 import * as Linking from "expo-linking";
-import { i18n } from "@/src/i18n";
 import { theme } from "@/src/styles";
 import {
   BottomTabBar,
@@ -108,6 +107,17 @@ function TabLabel({ color, labelKey }: { color: string; labelKey: string }) {
 
 // ─── Tab navigator ────────────────────────────────────────────────────────────
 
+/*
+  Nessuna delle quattro schede dichiara `title`.
+
+  Lo faceva, con una traduzione risolta al caricamento del modulo, cioe'
+  prima che `translationStore` fosse idratato: la stringa restava congelata
+  nella lingua di partenza per tutta la vita dell'app. Non si vedeva - la
+  scritta la disegna `TabLabel` - ma un nome accessibile sbagliato e' comunque
+  sbagliato, e un valore che nessuno legge e che non si puo' aggiornare e' solo
+  un errore che aspetta chi lo leggera'. Il nome accessibile della scheda e' il
+  testo che `TabLabel` renderizza, che segue la lingua.
+*/
 const Tab = createBottomTabNavigator({
   tabBar: (props) => <TabBar {...props} />,
   screenOptions: {
@@ -134,9 +144,6 @@ const Tab = createBottomTabNavigator({
       screen: TodayScreen,
       linking: { path: "oggi" },
       options: {
-        // `title` resta la stringa di partenza e non si vede: l'etichetta
-        // visibile la disegna `TabLabel`, che traduce a ogni render.
-        title: i18n.t("tabs.today"),
         tabBarLabel: ({ color }) => (
           <TabLabel color={color} labelKey="tabs.today" />
         ),
@@ -153,9 +160,6 @@ const Tab = createBottomTabNavigator({
       screen: ProgressScreen,
       linking: { path: "progressi" },
       options: {
-        // `title` resta la stringa di partenza e non si vede: l'etichetta
-        // visibile la disegna `TabLabel`, che traduce a ogni render.
-        title: i18n.t("tabs.progress"),
         tabBarLabel: ({ color }) => (
           <TabLabel color={color} labelKey="tabs.progress" />
         ),
@@ -168,9 +172,6 @@ const Tab = createBottomTabNavigator({
       screen: GymScreen,
       linking: { path: "palestra" },
       options: {
-        // `title` resta la stringa di partenza e non si vede: l'etichetta
-        // visibile la disegna `TabLabel`, che traduce a ogni render.
-        title: i18n.t("tabs.gym"),
         tabBarLabel: ({ color }) => (
           <TabLabel color={color} labelKey="tabs.gym" />
         ),
@@ -183,9 +184,6 @@ const Tab = createBottomTabNavigator({
       screen: ProfileScreen,
       linking: { path: "profilo" },
       options: {
-        // `title` resta la stringa di partenza e non si vede: l'etichetta
-        // visibile la disegna `TabLabel`, che traduce a ogni render.
-        title: i18n.t("tabs.profile"),
         tabBarLabel: ({ color }) => (
           <TabLabel color={color} labelKey="tabs.profile" />
         ),

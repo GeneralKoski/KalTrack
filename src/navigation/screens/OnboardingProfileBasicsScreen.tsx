@@ -10,7 +10,7 @@ import {
   OnboardingTextField,
 } from "@/src/containers/onboarding/OnboardingFields";
 import { getProfile, saveProfile } from "@/src/db/queries/settings";
-import { toIsoDate } from "@/src/domain/date";
+import { birthdatePickerStart, toIsoDate } from "@/src/domain/date";
 import type { ActivityLevel, Goal, Sex } from "@/src/domain/targets";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
@@ -79,7 +79,10 @@ export function OnboardingProfileBasicsScreen() {
   const canProceed = birthdate.length === 10 && Number.isFinite(heightValue) && heightValue > 0;
 
   const openBirthdatePicker = () => {
-    const base = birthdate.length === 10 ? parseIso(birthdate) : new Date();
+    // Senza data scritta la ruota parte da trent'anni fa e non da oggi:
+    // vedi `birthdatePickerStart`.
+    const base =
+      birthdate.length === 10 ? parseIso(birthdate) : birthdatePickerStart();
     if (Platform.OS === "android") {
       DateTimePickerAndroid.open({
         value: base,

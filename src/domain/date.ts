@@ -117,6 +117,31 @@ export function addMonths(iso: string, months: number): string {
   return toIsoDate(d);
 }
 
+/**
+ * L'età da cui parte la ruota quando una data di nascita non c'è ancora.
+ *
+ * Non è la verità su nessuno, ed è il punto: è l'ordine di grandezza giusto per
+ * chi apre il selettore, e da lì la si sposta di pochi giri invece che di
+ * trenta.
+ */
+const DEFAULT_BIRTH_AGE = 30;
+
+/**
+ * Il giorno su cui aprire il selettore di una data di nascita mancante.
+ *
+ * Partiva da OGGI, e non era una scelta: un solo "OK" scriveva la data di
+ * nascita di un neonato. Da lì l'età calcolata è zero, il TDEE esce da una
+ * formula alimentata con quello, e nessuna schermata dice niente - il numero
+ * sbagliato ha lo stesso aspetto di quello giusto.
+ */
+export function birthdatePickerStart(today: Date = new Date()): Date {
+  return new Date(
+    today.getFullYear() - DEFAULT_BIRTH_AGE,
+    today.getMonth(),
+    today.getDate(),
+  );
+}
+
 /** Le settimane che ogni mese occupa nella griglia, sempre le stesse. */
 export const WEEKS_IN_GRID = 6;
 
