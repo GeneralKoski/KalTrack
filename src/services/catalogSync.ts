@@ -619,6 +619,23 @@ export async function amendExerciseSubmission(
 ): Promise<void> {
   try {
     if (!attivo()) return;
+    /*
+     * `catalog_uid` da solo non basta a dire "e' una mia proposta": lo scrive
+     * anche il pull, su OGNI riga che tocca - dal primo giro, duecento
+     * esercizi del seed ne portano uno. Il server risponde 403 a un
+     * PATCH/DELETE su una voce che non e' una PROPRIA proposta ancora in
+     * attesa, e ogni 403 finisce in `app_logs`: senza questo cancello,
+     * correggere o cancellare un esercizio di catalogo riempirebbe
+     * Diagnostica di guasti previsti. `is_custom === 1` e' lo stesso
+     * marcatore che il pull gia' usa per "e' dell'utente" (regola 2).
+     *
+     * Residuo noto e non risolto qui: una PROPRIA proposta approvata resta
+     * `is_custom = 1` (il pull non tocca mai il contenuto di una riga
+     * dell'utente) e passa questo cancello, ma il server la rifiuta lo
+     * stesso perche' non e' piu' `pending`. Distinguerla richiede uno stato
+     * in colonna, che non c'e' ancora.
+     */
+    if (row.is_custom !== 1) return;
     if (row.catalog_uid === null) {
       await submitExerciseToCatalog(row.id, input);
       return;
@@ -637,6 +654,10 @@ export async function withdrawExerciseSubmission(
 ): Promise<void> {
   try {
     if (!attivo()) return;
+    // Stesso cancello di `amendExerciseSubmission`, e per la stessa ragione:
+    // `catalog_uid` da solo non distingue una propria proposta da una riga
+    // di catalogo arrivata col pull.
+    if (row.is_custom !== 1) return;
     if (row.catalog_uid === null) return;
     await catalog.withdrawExercise(row.catalog_uid);
   } catch (error) {
@@ -685,6 +706,10 @@ export async function amendFoodSubmission(
 ): Promise<void> {
   try {
     if (!attivo()) return;
+    // Come `amendExerciseSubmission`: il pull scrive `catalog_uid` su ogni
+    // riga di catalogo, quindi non basta da solo. `source !== 'seed'` e' il
+    // marcatore con cui il pull stesso distingue una riga dell'utente.
+    if (row.source === "seed") return;
     if (row.catalog_uid === null) {
       await submitFoodToCatalog(row.id, input);
       return;
@@ -701,6 +726,7 @@ export async function amendFoodSubmission(
 export async function withdrawFoodSubmission(row: FoodRow): Promise<void> {
   try {
     if (!attivo()) return;
+    if (row.source === "seed") return;
     if (row.catalog_uid === null) return;
     await catalog.withdrawFood(row.catalog_uid);
   } catch (error) {

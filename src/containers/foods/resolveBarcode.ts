@@ -56,9 +56,10 @@ export async function resolveBarcode(
   if (!prodotto) return { kind: "unknown", barcode: code };
 
   /*
-   * `source: "off"` e non "user": dice da dove vengono i valori, e serve a
-   * `publishFood` per non rimettere nel catalogo comune, come se fossero
-   * propri, dati che vengono da un archivio pubblico.
+   * `source: "off"` e non "user": registra da dove vengono i valori. Il
+   * catalogo lo legge per non riscrivere mai una riga che non ha scritto lui
+   * (`source !== 'seed'`, vedi `catalogSync.ts`) - un pull non tratta un
+   * alimento arrivato da OpenFoodFacts come se fosse un seed suo.
    */
   const id = await createFood({ ...prodotto, barcode: code, source: "off" });
   return { kind: "off", id };

@@ -19,6 +19,7 @@ import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
 import {
   amendExerciseSubmission,
+  amendFoodSubmission,
   pullExercises,
   pullFoods,
   submitExerciseToCatalog,
@@ -35,6 +36,7 @@ import {
 } from "@/src/services/syncMarkers";
 import { useAccountStore } from "@/src/stores/accountStore";
 import type { Equipment, MuscleGroup } from "@/src/types/gym";
+import { logger } from "@/src/utils/logger";
 
 jest.mock("@/src/api/config", () => ({
   API_URL: "https://esempio.tld/api",
@@ -1001,6 +1003,9 @@ describe("proporre e correggere una propria voce", () => {
   // Tipizzata esplicitamente: senza, `muscleGroup`/`secondaryMuscles`/
   // `equipment` si allargano a `string`/`string[]` e non bastano piu' a
   // `createExercise`, che vuole `MuscleGroup`/`Equipment[]`.
+  // Due elementi in `secondaryMuscles`/`equipment`, non uno: con un solo
+  // elemento `join(",")`, `join(";")` e `join("")` producono la stessa
+  // stringa, e il separatore smetterebbe di essere davvero verificato.
   const proposta: {
     name: string;
     muscleGroup: MuscleGroup;
@@ -1009,8 +1014,8 @@ describe("proporre e correggere una propria voce", () => {
   } = {
     name: "Spinte sopra la testa",
     muscleGroup: "spalle",
-    secondaryMuscles: ["tricipiti"],
-    equipment: ["manubri"],
+    secondaryMuscles: ["tricipiti", "petto"],
+    equipment: ["manubri", "panca"],
   };
 
   it("propone e salva l'uid che il server risponde", async () => {
@@ -1026,8 +1031,8 @@ describe("proporre e correggere una propria voce", () => {
         body: {
           name: "Spinte sopra la testa",
           muscleGroup: "spalle",
-          secondaryMuscles: "tricipiti",
-          equipment: "manubri",
+          secondaryMuscles: "tricipiti,petto",
+          equipment: "manubri,panca",
         },
       }),
     );
@@ -1037,15 +1042,20 @@ describe("proporre e correggere una propria voce", () => {
   /**
    * Il server risponde `{ ok: true }` senza `data` quando il nome combacia
    * con una voce che qualcuno ha tolto dal catalogo: non ha creato niente, e
-   * non c'e' nessun uid da salvare. Non e' un errore.
+   * non c'e' nessun uid da salvare. Non e' un errore, e la prova non e' solo
+   * che `catalog_uid` resta nullo - un `TypeError` incassato dal `catch`
+   * darebbe lo stesso risultato - ma che non c'e' stato niente da incassare.
    */
   it("una risposta senza uid non scrive niente e non solleva", async () => {
     const id = await createExercise({ ...proposta });
     mockApiRequest.mockResolvedValue({ ok: true });
+    const warnSpy = jest.spyOn(logger, "warn").mockImplementation(() => {});
 
     await submitExerciseToCatalog(id, proposta);
 
     expect((await getExercise(id))?.catalog_uid).toBeNull();
+    expect(warnSpy).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
   });
 
   /**
@@ -1159,5 +1169,157 @@ describe("proporre e correggere una propria voce", () => {
         path: "/catalog/foods/uuid-riso",
       }),
     );
+  });
+
+  /**
+   * La terza regola per gli alimenti, che il test sopra non copre: correggere
+   * per uid invece di cercare per nome, lo stesso difetto chiuso per gli
+   * esercizi.
+   */
+  it("corregge la propria proposta di alimento per uid, senza cercarla per nome", async () => {
+    const id = await createFood({
+      name: "Riso",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 358 },
+      catalogUid: "uuid-riso",
+    });
+    const riga = await getFood(id);
+    mockApiRequest.mockResolvedValue({ data: { uid: "uuid-riso" } });
+
+    await amendFoodSubmission(riga!, {
+      name: "Riso integrale",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 358 },
+    });
+
+    expect(mockApiRequest).toHaveBeenCalledTimes(1);
+    expect(mockApiRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: "patch",
+        path: "/catalog/foods/uuid-riso",
+      }),
+    );
+  });
+
+  /** Senza uid non c'e' niente da correggere: si propone come alimento nuovo. */
+  it("un alimento senza uid diventa una proposta nuova", async () => {
+    const id = await createFood({
+      name: "Riso",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 358 },
+    });
+    const riga = await getFood(id);
+    mockApiRequest.mockResolvedValue({ data: { uid: "uuid-nuovo-riso" } });
+
+    await amendFoodSubmission(riga!, {
+      name: "Riso",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 358 },
+    });
+
+    expect(mockApiRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ method: "post" }),
+    );
+    expect((await getFood(id))?.catalog_uid).toBe("uuid-nuovo-riso");
+  });
+
+  it("senza uid non chiede niente al server per un alimento", async () => {
+    const id = await createFood({
+      name: "Riso",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 358 },
+    });
+    const riga = await getFood(id);
+
+    await withdrawFoodSubmission(riga!);
+
+    expect(mockApiRequest).not.toHaveBeenCalled();
+  });
+
+  it("senza account non propone niente per un alimento", async () => {
+    useAccountStore.setState({ token: null, profile: null });
+    const id = await createFood({
+      name: "Riso",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 358 },
+    });
+
+    await submitFoodToCatalog(id, {
+      name: "Riso",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 358 },
+    });
+
+    expect(mockApiRequest).not.toHaveBeenCalled();
+  });
+});
+
+describe("il cancello di proprieta': una riga di catalogo non e' una propria proposta", () => {
+  /**
+   * Il difetto chiuso qui: `catalog_uid` da solo non dice "e' mia" - lo
+   * scrive anche il pull su ogni riga che tocca, seed compresi. Senza questo
+   * cancello, correggere o cancellare un esercizio di catalogo (`is_custom =
+   * 0`) manda comunque un PATCH/DELETE, che il server rifiuta con 403 - e
+   * ogni 403 finisce in `app_logs`.
+   */
+  it("una riga di catalogo (is_custom = 0) non manda niente ad amend", async () => {
+    const id = await createExercise({
+      name: "Panca piana",
+      muscleGroup: "petto",
+      secondaryMuscles: [],
+      equipment: ["bilanciere"],
+      catalogUid: "ex-panca-piana-bilanciere",
+      isCustom: false,
+    });
+    const riga = await getExercise(id);
+
+    await amendExerciseSubmission(riga!, {
+      name: "Panca piana",
+      muscleGroup: "petto",
+      secondaryMuscles: [],
+      equipment: ["bilanciere"],
+    });
+
+    expect(mockApiRequest).not.toHaveBeenCalled();
+  });
+
+  it("una riga di catalogo (is_custom = 0) non manda niente a withdraw", async () => {
+    const id = await createExercise({
+      name: "Panca piana",
+      muscleGroup: "petto",
+      secondaryMuscles: [],
+      equipment: ["bilanciere"],
+      catalogUid: "ex-panca-piana-bilanciere",
+      isCustom: false,
+    });
+    const riga = await getExercise(id);
+
+    await withdrawExerciseSubmission(riga!);
+
+    expect(mockApiRequest).not.toHaveBeenCalled();
+  });
+
+  it("un alimento di catalogo (source = 'seed') non manda niente ad amend", async () => {
+    const id = await createFood({
+      name: "Riso",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 358 },
+      source: "seed",
+      catalogUid: "food-riso",
+    });
+    const riga = await getFood(id);
+
+    await amendFoodSubmission(riga!, {
+      name: "Riso",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 358 },
+    });
+
+    expect(mockApiRequest).not.toHaveBeenCalled();
+  });
+
+  it("un alimento di catalogo (source = 'seed') non manda niente a withdraw", async () => {
+    const id = await createFood({
+      name: "Riso",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 358 },
+      source: "seed",
+      catalogUid: "food-riso",
+    });
+    const riga = await getFood(id);
+
+    await withdrawFoodSubmission(riga!);
+
+    expect(mockApiRequest).not.toHaveBeenCalled();
   });
 });

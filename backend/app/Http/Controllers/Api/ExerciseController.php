@@ -90,8 +90,8 @@ class ExerciseController extends Controller
         // per cui `applyExerciseSeeds` sul telefono non resuscita mai un
         // esercizio cancellato. Nessuna perdita per chi propone: il suo
         // esercizio resta salvato sul telefono, che e' dove lo usa, e
-        // `publishToCatalog` e' fire-and-forget - un 200 che non crea nulla
-        // non cambia niente per lui.
+        // `submitExerciseToCatalog` e' fire-and-forget - un 200 che non crea
+        // nulla non cambia niente per lui.
         //
         // La risposta NON porta `publicShape($cancellata, ...)`: quella voce
         // ha un `muscleGroup`/`equipment` che chi chiama non ha mandato e non

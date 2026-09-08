@@ -76,7 +76,7 @@ class FoodController extends Controller
         // proposta con lo stesso nome non deve resuscitarlo, la stessa regola
         // per cui l'archivio sul telefono non resuscita mai un alimento
         // cancellato. Nessuna perdita per chi propone: l'alimento resta
-        // salvato sul telefono, che e' dove lo usa, e `publishFood` e'
+        // salvato sul telefono, che e' dove lo usa, e `submitFoodToCatalog` e'
         // fire-and-forget - un 200 che non crea nulla non cambia niente per
         // lui.
         //
