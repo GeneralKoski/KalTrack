@@ -13,6 +13,7 @@ import { MEAL_TYPE_IDS, runMigrations } from "@/src/db/migrations";
 import { getDayDiary } from "@/src/db/queries/diary";
 import { createFood } from "@/src/db/queries/foods";
 import { createRecipe } from "@/src/db/queries/recipes";
+import { replaceTaxonomy } from "@/src/db/queries/taxonomies";
 import { getTargetsFor, saveTargets } from "@/src/db/queries/settings";
 import { getSteps, getWeight, setSteps } from "@/src/db/queries/tracking";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
@@ -738,6 +739,59 @@ describe("create_exercise", () => {
         equipment: ["astronave"],
       }),
     ).rejects.toThrow(AiResponseError);
+  });
+
+  /**
+   * Il difetto per cui questo file e' stato aperto: uno slug aggiunto dal
+   * pannello un'ora fa non e' nell'`enum` delle costanti compilate, ma la
+   * tassonomia locale lo conosce - e non deve essere rifiutato.
+   */
+  it("accetta un gruppo muscolare che le costanti non conoscono ma la tassonomia si'", async () => {
+    await replaceTaxonomy("muscle_groups", [
+      { slug: "trapezi", label_it: "Trapezi", label_en: "Traps", sort: 130, deleted_at: null },
+    ]);
+    await useTaxonomyStore.getState().hydrate();
+
+    const result = await tool("create_exercise").execute({
+      name: "Shrug con bilanciere",
+      muscleGroup: "trapezi",
+    });
+    expect(result.message).toContain("creato");
+  });
+
+  /**
+   * L'assistente scrive una riga NUOVA, quindi legge come ogni selettore
+   * dell'interfaccia: `live*`, non "tutti, cancellati compresi". Un gruppo
+   * che un amministratore ha appena tolto dal catalogo non deve poter finire
+   * su un esercizio creato in questo momento, anche se e' ancora uno dei
+   * ventitre' del seme.
+   */
+  it("rifiuta un gruppo muscolare cancellato dalla tassonomia", async () => {
+    await replaceTaxonomy("muscle_groups", [
+      { slug: "femorali", label_it: "Femorali", label_en: "Hamstrings", sort: 90, deleted_at: "2026-09-08T09:00:00+00:00" },
+    ]);
+    await useTaxonomyStore.getState().hydrate();
+
+    await expect(
+      tool("create_exercise").execute({
+        name: "Test",
+        muscleGroup: "femorali",
+      }),
+    ).rejects.toThrow(AiResponseError);
+  });
+
+  /**
+   * Il messaggio deve dare al modello un'informazione nuova su cui
+   * correggersi, non solo dire cosa era sbagliato: l'unico elenco che ha
+   * visto e' l'`enum` sulle costanti, che non e' piu' il metro.
+   */
+  it("il rifiuto elenca i valori accettati", async () => {
+    await expect(
+      tool("create_exercise").execute({
+        name: "Test",
+        muscleGroup: "muscolo_inventato",
+      }),
+    ).rejects.toThrow(/petto/);
   });
 });
 

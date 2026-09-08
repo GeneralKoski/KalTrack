@@ -1573,12 +1573,32 @@ const createExerciseTool: ToolFactory = () =>
        * locale, che il pull tiene aggiornata anche con quel che il pannello
        * ha aggiunto un'ora fa. Un gruppo cosi' nuovo supererebbe l'enum-guida
        * solo per caso; qui passa perche' la tassonomia lo conosce davvero.
+       *
+       * Lettura VIVA (`liveMuscleGroups`/`liveEquipment`) e non "tutti,
+       * cancellati compresi": qui si scrive una riga NUOVA, cioe' si offre
+       * una scelta esattamente come ogni selettore dell'interfaccia. Un
+       * gruppo che un amministratore ha cancellato non e' piu' un'opzione da
+       * proporre, ne' per un modulo ne' per l'assistente che scrive al suo
+       * posto - e' la stessa domanda di `listAvailableEquipment` vs
+       * `listUsableEquipment`, con la risposta opposta perche' qui non si
+       * disegna un esercizio che esiste gia'.
        */
-      const muscoliNoti = knownSlugs(useTaxonomyStore.getState().muscleGroups);
-      const attrezziNoti = knownSlugs(useTaxonomyStore.getState().equipment);
+      const muscoliNoti = knownSlugs(useTaxonomyStore.getState().liveMuscleGroups);
+      const attrezziNoti = knownSlugs(useTaxonomyStore.getState().liveEquipment);
 
+      /*
+       * Il messaggio riporta i valori ACCETTATI, non solo quello rifiutato:
+       * l'unico elenco che il modello ha visto e' l'`enum` sulle costanti,
+       * che non e' piu' il metro. Senza questo il modello riprova alla cieca
+       * e puo' bruciare fino a tre delle venti richieste giornaliere per
+       * modello (CLAUDE.md § La quota) su un solo slug, senza aver ricevuto
+       * un'informazione in piu' su cui correggersi.
+       */
       if (!muscoliNoti.has(muscleGroup)) {
-        fail(`Gruppo muscolare "${muscleGroup}" non valido`);
+        fail(
+          `Gruppo muscolare "${muscleGroup}" non valido. Valori validi: ` +
+            `${[...muscoliNoti].sort().join(", ")}`,
+        );
       }
 
       /*
@@ -1593,7 +1613,10 @@ const createExerciseTool: ToolFactory = () =>
       if (Array.isArray(root.secondaryMuscles)) {
         for (const m of root.secondaryMuscles) {
           if (typeof m !== "string" || !muscoliNoti.has(m)) {
-            fail(`Muscolo secondario "${String(m)}" non valido`);
+            fail(
+              `Muscolo secondario "${String(m)}" non valido. Valori validi: ` +
+                `${[...muscoliNoti].sort().join(", ")}`,
+            );
           }
           secondaryMuscles.push(m);
         }
@@ -1602,7 +1625,10 @@ const createExerciseTool: ToolFactory = () =>
       if (Array.isArray(root.equipment)) {
         for (const eq of root.equipment) {
           if (typeof eq !== "string" || !attrezziNoti.has(eq)) {
-            fail(`Attrezzo "${String(eq)}" non valido`);
+            fail(
+              `Attrezzo "${String(eq)}" non valido. Valori validi: ` +
+                `${[...attrezziNoti].sort().join(", ")}`,
+            );
           }
           equipment.push(eq);
         }
