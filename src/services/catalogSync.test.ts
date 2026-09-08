@@ -18,6 +18,7 @@ import { getSetting } from "@/src/db/queries/settings";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
 import { pullExercises, pullFoods, syncCatalog } from "@/src/services/catalogSync";
+import { catalogPhotoPath } from "@/src/services/photoSync";
 import {
   CATALOG_EXERCISES_CURSOR,
   CATALOG_FOODS_CURSOR,
@@ -516,6 +517,57 @@ describe("pullFoods", () => {
     expect(riga.serving_label).toBe("1 porzione = 80 g");
   });
 
+  /**
+   * `barcode` e `off_id` sono identita': sull'AGGIORNAMENTO il catalogo non li
+   * tocca mai (vedi il test piu' sotto), ma sull'INSERIMENTO non c'e' niente
+   * da proteggere - la riga non esiste ancora. Ometterli farebbe arrivare un
+   * alimento di catalogo senza codice a barre: la scansione successiva non lo
+   * troverebbe in libreria e ne creerebbe un doppione da OpenFoodFacts (§ Il
+   * codice a barre in CLAUDE.md).
+   */
+  it("l'inserimento porta anche codice a barre e provenienza OFF", async () => {
+    mockApiRequest.mockResolvedValue(
+      pagina([alimento({ barcode: "8001234567890", offId: "off-riso" })]),
+    );
+
+    await pullFoods();
+
+    const [riga] = await searchFoods("riso");
+    expect(riga.barcode).toBe("8001234567890");
+    expect(riga.off_id).toBe("off-riso");
+  });
+
+  /**
+   * Il PERCORSO si scrive subito, i byte arrivano dopo (come per gli
+   * esercizi): `image_uri` deve portare il prefisso dell'archivio di
+   * catalogo, non il nome nudo del file - altrimenti `isCatalogPhoto` non lo
+   * riconoscerebbe e la foto non comparirebbe mai, senza errori a schermo.
+   */
+  it("il percorso della foto passa da catalogPhotoPath, non il nome nudo", async () => {
+    mockApiRequest.mockResolvedValue(pagina([alimento({ image: "riso.jpg" })]));
+
+    await pullFoods();
+
+    const [riga] = await searchFoods("riso");
+    expect(riga.image_uri).toBe(catalogPhotoPath("riso.jpg"));
+  });
+
+  /**
+   * `!= null` e non `!== null` (vedi il commento in `catalogSync.ts`): un
+   * `deletedAt` assente non deve passare per un tombstone. Con `alimento()`
+   * intero (nome e valori compresi) e nessuna riga preesistente, un
+   * `deletedAt: undefined` trattato come tombstone troverebbe `perUid` nullo
+   * e uscirebbe con `false` senza inserire niente.
+   */
+  it("un deletedAt assente non passa per un tombstone", async () => {
+    mockApiRequest.mockResolvedValue(pagina([alimento({ deletedAt: undefined })]));
+
+    expect(await pullFoods()).toBe(1);
+
+    const [riga] = await searchFoods("riso");
+    expect(riga.source).toBe("seed");
+  });
+
   it("riconosce l'uid e rinomina invece di duplicare", async () => {
     await createFood({
       name: "Riso",
@@ -569,6 +621,30 @@ describe("pullFoods", () => {
   });
 
   /**
+   * L'uid si scrive PRIMA del veto di proprieta', non dopo: una riga
+   * dell'utente agganciata per nome riceve comunque l'uid, cosi' un
+   * tombstone futuro sa di quale riga parla. Invertire l'ordine (veto prima
+   * della scrittura) lascerebbe la riga senza identita' e un tombstone
+   * successivo diventerebbe un no-op silenzioso su una riga che era proprio
+   * quella di cui parlava - lo stesso difetto chiuso per gli esercizi.
+   */
+  it("da' l'uid a un alimento dell'utente senza uid, ma non ne scrive il contenuto", async () => {
+    const id = await createFood({
+      name: "Riso",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 111 },
+      source: "user",
+      // Nessun catalogUid: si aggancia per nome, come una riga pre-migrazione.
+    });
+    mockApiRequest.mockResolvedValue(pagina([alimento()]));
+
+    await pullFoods();
+
+    const riga = await getFood(id);
+    expect(riga?.catalog_uid).toBe("food-riso");
+    expect(riga?.kcal).toBe(111);
+  });
+
+  /**
    * `barcode` e `off_id` sono identita' e non contenuto, e il preferito e' uno
    * stato d'uso di questo telefono: e' la stessa regola per cui `updateFood`
    * non li tocca.
@@ -610,6 +686,61 @@ describe("pullFoods", () => {
     const riga = await getFood(id);
     expect(riga).not.toBeNull();
     expect(riga?.source).toBe("user");
+  });
+
+  /**
+   * L'altra meta' della guardia sul tombstone: non basta trovare la riga per
+   * uid, dev'essere anche una riga del catalogo. Una riga con provenienza
+   * OFF che ha ricevuto l'uid per fallback sul nome non e' `source = 'seed'`,
+   * e un tombstone su di lei non deve toccarla - cancellare la provenienza
+   * `'off'`/`'ai'` sarebbe un giudizio che il catalogo non ha titolo di dare.
+   */
+  it("un tombstone non tocca una riga che non e' del catalogo", async () => {
+    const id = await createFood({
+      name: "Riso",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 111 },
+      source: "off",
+      catalogUid: "food-riso",
+    });
+    mockApiRequest.mockResolvedValue(
+      pagina([{ uid: "food-riso", deletedAt: "2026-09-08T09:00:00+00:00" }]),
+    );
+
+    expect(await pullFoods()).toBe(0);
+
+    const riga = await getFood(id);
+    expect(riga?.source).toBe("off");
+  });
+
+  /**
+   * Non basta `toBe(0)`: anche il `catch` esterno di `pullFoods` torna 0, e
+   * un tombstone sconosciuto che sollevasse un'eccezione ingoiata darebbe lo
+   * stesso numero. Il cursore scritto e' quel che distingue il no-op vero da
+   * un errore incassato - succede solo sul percorso normale.
+   */
+  it("un tombstone sconosciuto non fa niente e non solleva", async () => {
+    mockApiRequest.mockResolvedValue(
+      pagina([{ uid: "food-mai-vista", deletedAt: "2026-09-08T09:00:00+00:00" }]),
+    );
+
+    expect(await pullFoods()).toBe(0);
+    expect(await getSetting(CATALOG_FOODS_CURSOR)).not.toBeNull();
+  });
+
+  /**
+   * `voce.kcal == null` e non `=== undefined`: la colonna `kcal` e' `NOT
+   * NULL`, quindi un `kcal: null` non filtrato qui arriverebbe fino
+   * all'INSERT, SQLite solleverebbe e il giro fallirebbe - la stessa trappola
+   * del tombstone ignoto: la pagina si ripeterebbe identica per sempre. Oggi
+   * il server non puo' produrlo (colonna non nullable, castata a float), ma
+   * e' un confine che l'app non controlla.
+   */
+  it("un kcal nullo non entra, e non blocca il cursore", async () => {
+    mockApiRequest.mockResolvedValue(pagina([alimento({ kcal: null })]));
+
+    expect(await pullFoods()).toBe(0);
+    expect(await searchFoods("riso")).toHaveLength(0);
+    expect(await getSetting(CATALOG_FOODS_CURSOR)).not.toBeNull();
   });
 
   it("legge il proprio cursore, non quello degli esercizi", async () => {

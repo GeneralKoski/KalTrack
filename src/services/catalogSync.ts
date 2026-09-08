@@ -281,7 +281,7 @@ async function applyFood(voce: catalog.CatalogFood): Promise<boolean> {
     return true;
   }
 
-  if (!voce.name || voce.kcal === undefined) return false;
+  if (!voce.name || voce.kcal == null) return false;
 
   /*
    * La ricaduta sul nome vale SOLO per una riga che non ha ancora un uid.
@@ -295,11 +295,9 @@ async function applyFood(voce: catalog.CatalogFood): Promise<boolean> {
    * soluzione, non il problema: l'altra voce si rinomina da se' al proprio
    * aggiornamento.
    */
-  const perNome = perUid ?? (await findFoodByName(voce.name));
+  const perNome = perUid ? null : await findFoodByName(voce.name);
   const esistente =
-    perNome === null || perNome.catalog_uid === null || perNome === perUid
-      ? perNome
-      : null;
+    perUid ?? (perNome?.catalog_uid === null ? perNome : null);
 
   /*
    * `satisfies` e non un'annotazione: annotare allargherebbe i campi al tipo
@@ -330,6 +328,16 @@ async function applyFood(voce: catalog.CatalogFood): Promise<boolean> {
   } satisfies CatalogFoodFields;
 
   if (!esistente) {
+    /*
+     * `barcode` e `off_id` NON sono in `campi`/`CatalogFoodFields`: sulla
+     * riscrittura (`applyCatalogFood`) sono identita' che il catalogo non
+     * tocca mai, la stessa regola di `updateFood`. Qui pero' e' un
+     * INSERIMENTO, e la riga non esiste ancora: non c'e' niente da
+     * proteggere, e ometterli lascerebbe arrivare un alimento di catalogo
+     * senza codice a barre - la scansione successiva non lo troverebbe in
+     * libreria e creerebbe un doppione da OpenFoodFacts (§ Il codice a barre
+     * in CLAUDE.md).
+     */
     await createFood({
       name: campi.name,
       brand: campi.brand,
@@ -338,6 +346,8 @@ async function applyFood(voce: catalog.CatalogFood): Promise<boolean> {
       defaultServingG: campi.defaultServingG,
       servingLabel: campi.servingLabel,
       imageUri: campi.imageUri,
+      barcode: voce.barcode ?? null,
+      offId: voce.offId ?? null,
       source: "seed",
       catalogUid: voce.uid,
     });
