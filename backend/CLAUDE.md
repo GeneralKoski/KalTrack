@@ -103,7 +103,7 @@ Il resto segue il template, e va seguito:
 ## Il pannello
 
 `resources/js/admin/`. React 19 + Ant Design 6 + TanStack Query + React
-Router, TypeScript strict, test con Vitest. Tre cose da non rompere:
+Router, TypeScript strict, test con Vitest. Quattro cose da non rompere:
 
 - **Ogni richiesta passa da `apiFetch`.** Un `fetch` nudo non porta il token
   CSRF e torna 419 - e' quel che faceva l'upload di serie di AntD, che fa un
