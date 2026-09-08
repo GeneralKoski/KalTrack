@@ -5,7 +5,7 @@ import { __setDbForTesting } from "@/src/db/index";
 import { runMigrations } from "@/src/db/migrations";
 import { toggleExerciseBan } from "@/src/db/queries/exercises";
 import { deleteFood, searchFoods, updateFood } from "@/src/db/queries/foods";
-import { replaceTaxonomy } from "@/src/db/queries/taxonomies";
+import { listAllTaxonomy, replaceTaxonomy } from "@/src/db/queries/taxonomies";
 import { applyExerciseSeeds, applySeeds, applyTaxonomySeeds } from "@/src/db/seed";
 import { toCatalogExercises, toCatalogFoods } from "@/src/db/seed/catalogExport";
 import { SEED_EXERCISES } from "@/src/db/seed/exercises";
@@ -272,6 +272,61 @@ describe("applyTaxonomySeeds", () => {
     expect(row?.label_it).toBe("Torace");
     expect(await countRows("muscle_groups")).toBe(SEED_MUSCLE_GROUPS.length);
   });
+
+  /**
+   * Il presente della funzione (`SELECT slug FROM <table>`, SENZA
+   * `deleted_at IS NULL`) e' deliberato: uno slug cancellato dal pannello
+   * conta come presente, quindi non viene reinserito. Girando a OGNI avvio,
+   * filtrare sui vivi lo avrebbe resuscitato al riavvio successivo - in
+   * silenzio, e di nuovo a ogni avvio dopo quello - disfacendo per sempre una
+   * scelta amministrativa deliberata.
+   */
+  it("non resuscita uno slug cancellato dal pannello", async () => {
+    await applyTaxonomySeeds(db);
+    await replaceTaxonomy("muscle_groups", [
+      { slug: "petto", label_it: "Petto", label_en: "Chest", sort: 10, deleted_at: "2026-09-08T09:00:00+00:00" },
+    ]);
+
+    await applyTaxonomySeeds(db);
+
+    const row = await db.getFirstAsync<{ deleted_at: string | null }>(
+      "SELECT deleted_at FROM muscle_groups WHERE slug = ?",
+      ["petto"],
+    );
+    expect(row?.deleted_at).not.toBeNull();
+  });
+});
+
+describe("dati del seed tassonomie", () => {
+  /**
+   * `SEED_MUSCLE_GROUPS`/`SEED_EQUIPMENT_TYPES` sono una QUINTA copia a mano
+   * della tassonomia (le altre: la migrazione 020, `it.json`, `en.json`,
+   * `types/gym.ts`), e sono l'UNICA fonte che `applyTaxonomySeeds` scrive -
+   * cioe' quel che l'utente rilegge dopo un ripristino. Un refuso qui non lo
+   * vede nessun test che confronti solo il conteggio o gli slug: serve un
+   * confronto riga per riga, sullo stampo di quello che
+   * `taxonomies.test.ts` gia' fa fra il seme e i18n.
+   *
+   * Il termine di paragone e' il database MIGRATO, non un secondo elenco
+   * scritto a mano: e' li' che gli `INSERT` di `020_taxonomies.ts` finiscono
+   * davvero, quindi un disallineamento fra questo file e la migrazione si
+   * vede qui, non si presume.
+   */
+  it.each(["muscle_groups", "equipment_types"] as const)(
+    "combacia riga per riga con la migrazione 020 (%s)",
+    async (kind) => {
+      const seed = kind === "muscle_groups" ? SEED_MUSCLE_GROUPS : SEED_EQUIPMENT_TYPES;
+      const daMigrazione = await listAllTaxonomy(kind);
+
+      // Senza questa riga un elenco vuoto contro un elenco vuoto passerebbe
+      // senza aver confrontato niente.
+      expect(daMigrazione).toHaveLength(seed.length);
+
+      expect(seed.map((r) => [r.slug, r.label_it, r.label_en, r.sort])).toEqual(
+        daMigrazione.map((r) => [r.slug, r.label_it, r.label_en, r.sort]),
+      );
+    },
+  );
 });
 
 describe("dati del seed esercizi", () => {

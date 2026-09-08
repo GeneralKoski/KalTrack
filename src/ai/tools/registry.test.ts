@@ -785,13 +785,26 @@ describe("create_exercise", () => {
    * correggersi, non solo dire cosa era sbagliato: l'unico elenco che ha
    * visto e' l'`enum` sulle costanti, che non e' piu' il metro.
    */
-  it("il rifiuto elenca i valori accettati", async () => {
+  /**
+   * L'asserzione cade su uno slug che SOLO la tassonomia conosce, non sulle
+   * costanti: MUSCLE_GROUPS non ha mai contenuto "trapezi". Un'asserzione su
+   * "petto" - presente in entrambi gli elenchi - passerebbe anche se il
+   * messaggio tornasse a leggere `[...MUSCLE_GROUPS]` invece della
+   * tassonomia dal vivo, cioe' proprio la regressione che questa correzione
+   * esiste per impedire.
+   */
+  it("il rifiuto elenca i valori accettati, letti dalla tassonomia e non dalle costanti", async () => {
+    await replaceTaxonomy("muscle_groups", [
+      { slug: "trapezi", label_it: "Trapezi", label_en: "Traps", sort: 130, deleted_at: null },
+    ]);
+    await useTaxonomyStore.getState().hydrate();
+
     await expect(
       tool("create_exercise").execute({
         name: "Test",
         muscleGroup: "muscolo_inventato",
       }),
-    ).rejects.toThrow(/petto/);
+    ).rejects.toThrow(/trapezi/);
   });
 });
 
