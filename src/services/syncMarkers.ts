@@ -17,6 +17,23 @@ export const CURSOR_KEY = "sync.cursor";
 export const PUSHED_KEY = "sync.pushed_at";
 
 /**
+ * I tre segnaposto del catalogo comune.
+ *
+ * Sono separati da `sync.cursor` perche' sono due flussi diversi: quello e' il
+ * contatore della copia dei dati dell'utente, questi sono la posizione dentro
+ * un elenco che il server pubblica per tutti. Azzerare l'uno non deve
+ * azzerare l'altro.
+ *
+ * I due cursori sono JSON, `{"since":...,"afterId":...}`, perche' il cursore
+ * del catalogo e' una coppia: i timestamp del server hanno la risoluzione del
+ * secondo e `catalog:seed` scrive duecento righe nello stesso secondo.
+ */
+export const CATALOG_EXERCISES_CURSOR = "catalog.exercises_cursor";
+export const CATALOG_FOODS_CURSOR = "catalog.foods_cursor";
+/** L'ora dell'ultimo pull su QUESTO telefono, per la finestra del task 8. */
+export const CATALOG_PULLED_AT = "catalog.pulled_at";
+
+/**
  * Impostazioni che NON viaggiano: sono stato di questo dispositivo, non dati
  * dell'utente.
  *
@@ -54,6 +71,16 @@ export const LOCAL_ONLY_SETTINGS = new Set([
    * secondo dispositivo sullo stesso account non lo richieda daccapo.
    */
   "onboarding_step",
+  /*
+   * I segnaposto del catalogo dicono a che punto e' arrivato QUESTO telefono
+   * a leggere un elenco che il server pubblica per tutti. Sincronizzarli
+   * porterebbe la posizione di un telefono sull'altro, che salterebbe le voci
+   * arrivate prima di quel punto senza averle mai ricevute - lo stesso danno
+   * che `sync.cursor` fa quando viaggia.
+   */
+  CATALOG_EXERCISES_CURSOR,
+  CATALOG_FOODS_CURSOR,
+  CATALOG_PULLED_AT,
 ]);
 
 /**
