@@ -1,4 +1,5 @@
 import { getDb } from "@/src/db/index";
+import { getSetting, setSetting } from "@/src/db/queries/settings";
 import { logger } from "@/src/utils/logger";
 
 /**
@@ -32,6 +33,17 @@ export const CATALOG_EXERCISES_CURSOR = "catalog.exercises_cursor";
 export const CATALOG_FOODS_CURSOR = "catalog.foods_cursor";
 /** L'ora dell'ultimo pull su QUESTO telefono, per la finestra del task 8. */
 export const CATALOG_PULLED_AT = "catalog.pulled_at";
+
+/**
+ * L'ULTIMO VALORE NOTO di `users.ai_enabled`, non la verita' del momento.
+ *
+ * `accountStore.profile` non e' persistito - solo il token sta in SecureStore
+ * - quindi offline il profilo e' `null` e con lui sparirebbe anche il diritto
+ * di chi paga, proprio in palestra dove il segnale manca. Questo segnaposto
+ * tiene l'ultima risposta di `/api/me`, cosi' `aiAvailable()` ha qualcosa da
+ * leggere anche senza rete.
+ */
+export const AI_ENABLED = "ai.enabled";
 
 /**
  * Impostazioni che NON viaggiano: sono stato di questo dispositivo, non dati
@@ -81,6 +93,13 @@ export const LOCAL_ONLY_SETTINGS = new Set([
   CATALOG_EXERCISES_CURSOR,
   CATALOG_FOODS_CURSOR,
   CATALOG_PULLED_AT,
+  /*
+   * L'autorita' su questo fatto e' il SERVER, non questo telefono: e'
+   * `users.ai_enabled` letto da `/api/me`. Sincronizzarlo lo farebbe
+   * rimbalzare fra due copie che non decidono niente - esattamente il
+   * problema che i segnaposto del catalogo risolvono per la stessa ragione.
+   */
+  AI_ENABLED,
 ]);
 
 /**
@@ -124,4 +143,28 @@ export async function resetSyncMarkers(): Promise<void> {
   // La riconciliazione completa che segue e' voluta: senza questa riga nel
   // log sembrerebbe un difetto.
   logger.info("[sync] segnaposto azzerati: si riparte dall'inizio");
+}
+
+/**
+ * L'ultimo `aiEnabled` visto da `/api/me`, o `null` se non si sa ancora.
+ *
+ * Non lancia mai: la legge `aiAvailable()` per decidere se mostrare un
+ * comando o la pagina dei piani, e un errore di lettura non deve spegnere
+ * quel comando a chi ha diritto - deve solo farlo ragionare con l'ultimo
+ * valore che ha, cioe' "non lo so".
+ */
+export async function readAiEnabled(): Promise<boolean | null> {
+  try {
+    const stored = await getSetting(AI_ENABLED);
+    if (stored === null) return null;
+    return stored === "1";
+  } catch (error) {
+    logger.warn("[ai] lettura del diritto salvato fallita", error);
+    return null;
+  }
+}
+
+/** Scrive l'ultima risposta del server. Va chiamata a ogni `/api/me` riuscito. */
+export async function writeAiEnabled(value: boolean): Promise<void> {
+  await setSetting(AI_ENABLED, value ? "1" : "0");
 }

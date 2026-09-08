@@ -21,9 +21,12 @@ import {
   type SyncChange,
 } from "@/src/services/sync";
 import {
+  AI_ENABLED,
   CURSOR_KEY,
   PUSHED_KEY,
+  readAiEnabled,
   resetSyncMarkers,
+  writeAiEnabled,
 } from "@/src/services/syncMarkers";
 
 let db: LocalDatabase;
@@ -839,6 +842,29 @@ describe("impostazioni di questo telefono", () => {
 
     // Senza, l'altro telefono riapplicherebbe il piano e duplicherebbe i pasti.
     expect(chiavi).toContain("plan_applied:2026-08-29");
+  });
+
+  it("non viaggia l'ultimo valore noto del diritto AI: l'autorita' e' il server", async () => {
+    await writeAiEnabled(false);
+
+    const changes = await collectChanges(null);
+    const chiavi = changes.filter((c) => c.table === "settings").map((c) => c.id);
+
+    expect(chiavi).not.toContain(AI_ENABLED);
+  });
+});
+
+describe("readAiEnabled / writeAiEnabled", () => {
+  it("torna null quando la riga non c'e' ancora, e non lancia", async () => {
+    expect(await readAiEnabled()).toBeNull();
+  });
+
+  it("torna quel che e' stato scritto l'ultima volta", async () => {
+    await writeAiEnabled(true);
+    expect(await readAiEnabled()).toBe(true);
+
+    await writeAiEnabled(false);
+    expect(await readAiEnabled()).toBe(false);
   });
 });
 

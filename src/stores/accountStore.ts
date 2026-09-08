@@ -1,6 +1,10 @@
 import { setAuthTokenProvider } from "@/src/api/client";
 import * as social from "@/src/api/social";
-import { resetSyncMarkers } from "@/src/services/syncMarkers";
+import {
+  readAiEnabled,
+  resetSyncMarkers,
+  writeAiEnabled,
+} from "@/src/services/syncMarkers";
 import { logger } from "@/src/utils/logger";
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
@@ -21,6 +25,11 @@ const TOKEN_KEY = "kaltrack_account_token";
 interface AccountStore {
   token: string | null;
   profile: social.MyProfile | null;
+  /**
+   * L'ULTIMO VALORE NOTO di `users.ai_enabled`, non la verita' del momento:
+   * vedi `aiAvailable()` in `domain/aiAccess.ts` per il perche'.
+   */
+  aiEnabled: boolean | null;
   isHydrated: boolean;
   restore: () => Promise<void>;
   signIn: (token: string) => Promise<void>;
@@ -32,16 +41,21 @@ interface AccountStore {
 export const useAccountStore = create<AccountStore>()((set, get) => ({
   token: null,
   profile: null,
+  aiEnabled: null,
   isHydrated: false,
 
   restore: async () => {
+    // Letto a prescindere dal token: senza account `aiAvailable()` torna
+    // comunque spenta, e leggerlo comunque evita di dover distinguere due
+    // percorsi per un valore che non danneggia nessuno stando in memoria.
+    const aiEnabled = await readAiEnabled();
     try {
       const token = await SecureStore.getItemAsync(TOKEN_KEY);
-      set({ token, isHydrated: true });
+      set({ token, aiEnabled, isHydrated: true });
       if (token) void get().refreshProfile();
     } catch (error) {
       logger.error("[account] lettura del token fallita", error);
-      set({ isHydrated: true });
+      set({ aiEnabled, isHydrated: true });
     }
   },
 
@@ -80,7 +94,11 @@ export const useAccountStore = create<AccountStore>()((set, get) => ({
 
   refreshProfile: async () => {
     try {
-      set({ profile: await social.fetchMyProfile() });
+      const profile = await social.fetchMyProfile();
+      // Si riscrive a ogni `/api/me` riuscito: e' l'unico momento in cui
+      // questo telefono sa davvero cosa dice il server.
+      await writeAiEnabled(profile.aiEnabled);
+      set({ profile, aiEnabled: profile.aiEnabled });
     } catch (error) {
       logger.warn("[account] profilo non letto", error);
       // Un token rifiutato non e' un errore di rete: e' una sessione finita.
@@ -95,7 +113,14 @@ export const useAccountStore = create<AccountStore>()((set, get) => ({
     }
   },
 
-  setProfile: (profile) => set({ profile }),
+  setProfile: (profile) => {
+    // Anche qui arriva un profilo fresco (risposta di `updateMyProfile`, o
+    // l'aggiornamento ottimistico di `ShareSettings` che riusa quello gia' in
+    // stato): lo stesso segnaposto, altrimenti divergerebbe da quel che
+    // `refreshProfile` scrive.
+    void writeAiEnabled(profile.aiEnabled);
+    set({ profile, aiEnabled: profile.aiEnabled });
+  },
 }));
 
 // Il client legge il token da qui: cosi' non conosce lo store e lo store non

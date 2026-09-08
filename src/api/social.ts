@@ -66,6 +66,13 @@ export interface MyProfile {
   email: string;
   /** Puo' rimettere a posto la password degli altri. Spento per tutti. */
   isAdmin: boolean;
+  /**
+   * `users.ai_enabled` dal pannello. E' un cartello, non una serratura: la
+   * chiave Gemini sta nel bundle e l'app la chiama diretta (vedi CLAUDE.md
+   * § AI), quindi questo campo pilota solo l'UX - se il microfono apre
+   * l'assistente o la pagina dei piani.
+   */
+  aiEnabled: boolean;
   shares: AccountShares;
 }
 
