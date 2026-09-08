@@ -22,6 +22,7 @@ import { startSyncScheduler } from "@/src/services/syncScheduler";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { configureNotificationHandler } from "@/src/services/reminders";
 import { useOnboardingStore } from "@/src/stores/onboardingStore";
+import { useTaxonomyStore } from "@/src/stores/taxonomyStore";
 import { useThemeStore } from "@/src/stores/themeStore";
 import { logger } from "@/src/utils/logger";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
@@ -81,6 +82,10 @@ export function App() {
         // nella lingua dell'app: nascono da una migrazione SQL e da un insert,
         // quindi nessuna traduzione li raggiunge.
         await relabelSeededRows();
+        // Le etichette dei gruppi muscolari e dell'attrezzatura, dalla
+        // tabella locale: prima che una schermata di palestra si disegni, o
+        // ricadrebbe su i18n per il primo fotogramma.
+        await useTaxonomyStore.getState().hydrate();
         // Prima che Navigation monti: sceglie se la prima schermata e' Oggi
         // o il wizard, e quella scelta si legge una volta sola all'avvio.
         await useOnboardingStore.getState().hydrate();

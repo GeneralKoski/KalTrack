@@ -5,9 +5,21 @@ import {
   listAllTaxonomy,
   listTaxonomy,
   replaceTaxonomy,
+  type TaxonomyKind,
 } from "@/src/db/queries/taxonomies";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
+import localeEn from "@/src/i18n/locales/en.json";
+import localeIt from "@/src/i18n/locales/it.json";
 import { EQUIPMENT, MUSCLE_GROUPS } from "@/src/types/gym";
+
+/** Le etichette che l'app mostrava prima che venissero dalla tabella. */
+const daI18n: Record<
+  TaxonomyKind,
+  { it: Record<string, string>; en: Record<string, string> }
+> = {
+  muscle_groups: { it: localeIt.gym.muscle, en: localeEn.gym.muscle },
+  equipment_types: { it: localeIt.gym.equipment, en: localeEn.gym.equipment },
+};
 
 let db: LocalDatabase;
 
@@ -42,11 +54,33 @@ describe("il seme della migrazione 020", () => {
     expect(muscoli.at(-1)?.slug).toBe("full_body");
   });
 
-  it("porta le etichette nelle due lingue", async () => {
-    const [petto] = await listTaxonomy("muscle_groups");
-    expect(petto.label_it).toBe("Petto");
-    expect(petto.label_en).toBe("Chest");
-  });
+  /**
+   * LE ETICHETTE DEL SEME SONO ESATTAMENTE QUELLE CHE i18n MOSTRAVA, tutte e
+   * ventitre'.
+   *
+   * Dal task 11 l'etichetta a schermo viene dalla riga e non piu' dalla
+   * chiave `gym.muscle.*` / `gym.equipment.*`: se le due divergessero, la
+   * palestra cambierebbe nome a un gruppo muscolare al primo avvio dopo
+   * l'aggiornamento, senza che nessuno abbia toccato niente.
+   *
+   * Si confrontano TUTTE le righe e non una sola (com'era fin qui): un
+   * refuso in una riga in mezzo all'elenco non lo vedrebbe nessuno finche'
+   * non si apre proprio quella schermata in proprio quella lingua.
+   */
+  it.each(["muscle_groups", "equipment_types"] as const)(
+    "porta le etichette di i18n, riga per riga (%s)",
+    async (kind) => {
+      const righe = await listTaxonomy(kind);
+
+      expect(righe.map((r) => [r.slug, r.label_it, r.label_en])).toEqual(
+        righe.map((r) => [
+          r.slug,
+          daI18n[kind].it[r.slug],
+          daI18n[kind].en[r.slug],
+        ]),
+      );
+    },
+  );
 });
 
 describe("replaceTaxonomy", () => {

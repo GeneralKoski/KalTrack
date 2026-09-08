@@ -20,6 +20,10 @@ import {
   type CatalogFoodFields,
 } from "@/src/db/queries/foods";
 import { getSetting, setSetting } from "@/src/db/queries/settings";
+import {
+  replaceTaxonomy,
+  type TaxonomyRow,
+} from "@/src/db/queries/taxonomies";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
 import { catalogPhotoPath } from "@/src/services/photoSync";
 import {
@@ -28,6 +32,7 @@ import {
   CATALOG_PULLED_AT,
 } from "@/src/services/syncMarkers";
 import { useAccountStore } from "@/src/stores/accountStore";
+import { useTaxonomyStore } from "@/src/stores/taxonomyStore";
 import {
   EQUIPMENT,
   MUSCLE_GROUPS,
@@ -438,6 +443,39 @@ export async function pullFoods(): Promise<number> {
   return (await giroAlimenti()).toccate;
 }
 
+const toTaxonomyRow = (entry: catalog.TaxonomyEntry): TaxonomyRow => ({
+  slug: entry.slug,
+  label_it: entry.labelIt,
+  label_en: entry.labelEn,
+  sort: entry.sort,
+  deleted_at: entry.deletedAt,
+});
+
+/**
+ * Le tassonomie, intere a ogni giro.
+ *
+ * Ventitre' righe: un cursore non comprerebbe niente. Escono anche le
+ * cancellate, con la loro data, perche' sul telefono ci sono esercizi che
+ * nominano quello slug in colonna.
+ *
+ * Ridrata lo store subito dopo: senza, le etichette nuove resterebbero in
+ * tabella e a schermo si vedrebbero quelle vecchie fino al riavvio.
+ */
+export async function pullTaxonomies(): Promise<void> {
+  try {
+    if (!attivo()) return;
+
+    const { muscleGroups, equipment } = await catalog.fetchTaxonomies();
+    await replaceTaxonomy("muscle_groups", muscleGroups.map(toTaxonomyRow));
+    await replaceTaxonomy("equipment_types", equipment.map(toTaxonomyRow));
+    await useTaxonomyStore.getState().hydrate();
+  } catch (error) {
+    if (!alreadyLogged(error)) {
+      logger.warn("[catalogo] tassonomie non aggiornate", error);
+    }
+  }
+}
+
 /**
  * Sotto quest'ora dall'ultimo giro non se ne fa un altro.
  *
@@ -528,6 +566,12 @@ async function eseguiGiroCatalogo(force: boolean): Promise<EsitoGiro> {
   if (!attivo()) return { toccate: 0, riuscito: false };
   if (!force && !(await finestraScaduta())) return { toccate: 0, riuscito: true };
 
+  /*
+   * Le tassonomie per prime, e non e' indifferente: il filtro di `applyExercise`
+   * misura gli slug che arrivano contro quel che la tassonomia conosce, e
+   * leggendole dopo un gruppo nuovo verrebbe buttato per un giro intero.
+   */
+  await pullTaxonomies();
   const esercizi = await giroEsercizi();
   const alimenti = await giroAlimenti();
   const riuscito = esercizi.riuscito && alimenti.riuscito;

@@ -17,11 +17,13 @@ import {
 import { getSetting, setSetting } from "@/src/db/queries/settings";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
+import { i18n } from "@/src/i18n";
 import {
   amendExerciseSubmission,
   amendFoodSubmission,
   pullExercises,
   pullFoods,
+  pullTaxonomies,
   submitExerciseToCatalog,
   submitFoodToCatalog,
   syncCatalog,
@@ -35,6 +37,7 @@ import {
   CATALOG_PULLED_AT,
 } from "@/src/services/syncMarkers";
 import { useAccountStore } from "@/src/stores/accountStore";
+import { useTaxonomyStore } from "@/src/stores/taxonomyStore";
 import type { Equipment, MuscleGroup } from "@/src/types/gym";
 import { logger } from "@/src/utils/logger";
 
@@ -85,6 +88,28 @@ const pagina = (voci: unknown[], cursore = { since: "2026-09-08T10:00:00+00:00",
   cursor: voci.length > 0 ? cursore : null,
   next: null,
 });
+
+/**
+ * Le tassonomie, vuote: un elenco vuoto non cancella niente, quindi darle
+ * come risposta non cambia il resto di un test.
+ */
+const tassonomieVuote = { muscleGroups: [], equipment: [] };
+
+/**
+ * Una risposta per i due cataloghi, e la forma giusta per le tassonomie.
+ *
+ * `syncCatalog` pesca le tassonomie prima dei due cataloghi, e
+ * `mockResolvedValue` da sola darebbe una pagina di catalogo anche a
+ * `/catalog/taxonomies`: quella non porta `muscleGroups`, `pullTaxonomies`
+ * incassa l'errore e scrive un warn: un warn previsto in coda all'output dei
+ * test prima o poi qualcuno lo inseguirebbe come se fosse un difetto.
+ */
+const rispondi = (perCatalogo: unknown) =>
+  mockApiRequest.mockImplementation(({ path }: { path: string }) =>
+    Promise.resolve(
+      path === "/catalog/taxonomies" ? tassonomieVuote : perCatalogo,
+    ),
+  );
 
 describe("pullExercises, l'aggancio di una riga", () => {
   it("inserisce una voce che qui non c'e'", async () => {
@@ -850,22 +875,27 @@ describe("syncCatalog", () => {
    * una sola coppia di richieste HTTP, una riga sola.
    */
   it("due giri in volo insieme si agganciano allo stesso giro, non ne fanno due", async () => {
-    mockApiRequest.mockResolvedValue(pagina([voce()]));
+    rispondi(pagina([voce()]));
 
     const [a, b] = await Promise.all([syncCatalog(true), syncCatalog(true)]);
 
     expect(a).toBe(b);
-    expect(mockApiRequest).toHaveBeenCalledTimes(2);
+    // Tre e non due: le tassonomie, gli esercizi, gli alimenti. Il conto e'
+    // di un giro solo - due giri sovrapposti ne farebbero sei.
+    expect(mockApiRequest).toHaveBeenCalledTimes(3);
     expect(await searchExercises({ term: "panca" })).toHaveLength(1);
   });
 
   it("fa i due pull e somma quel che hanno toccato", async () => {
     mockApiRequest
+      // Le tassonomie per prime: e' l'ordine di `syncCatalog`, e il filtro
+      // degli slug misura contro quel che la tassonomia conosce.
+      .mockResolvedValueOnce(tassonomieVuote)
       .mockResolvedValueOnce(pagina([voce()]))
       .mockResolvedValueOnce(pagina([alimento()]));
 
     expect(await syncCatalog()).toEqual({ toccate: 2, riuscito: true });
-    expect(mockApiRequest).toHaveBeenCalledTimes(2);
+    expect(mockApiRequest).toHaveBeenCalledTimes(3);
   });
 
   /**
@@ -877,6 +907,7 @@ describe("syncCatalog", () => {
    */
   it("il secondo pull parte anche se il primo e' andato male, ma il giro resta fallito", async () => {
     mockApiRequest
+      .mockResolvedValueOnce(tassonomieVuote)
       .mockRejectedValueOnce(new Error("rete assente"))
       .mockResolvedValueOnce(pagina([alimento()]));
 
@@ -890,7 +921,7 @@ describe("syncCatalog", () => {
    * ogni passaggio.
    */
   it("due chiamate ravvicinate fanno un giro solo", async () => {
-    mockApiRequest.mockResolvedValue(pagina([]));
+    rispondi(pagina([]));
 
     await syncCatalog();
     const dopoIlPrimo = mockApiRequest.mock.calls.length;
@@ -900,7 +931,7 @@ describe("syncCatalog", () => {
   });
 
   it("`force` scavalca la finestra: e' il bottone dell'utente", async () => {
-    mockApiRequest.mockResolvedValue(pagina([]));
+    rispondi(pagina([]));
 
     await syncCatalog();
     const dopoIlPrimo = mockApiRequest.mock.calls.length;
@@ -910,7 +941,7 @@ describe("syncCatalog", () => {
   });
 
   it("passata l'ora si rifa'", async () => {
-    mockApiRequest.mockResolvedValue(pagina([]));
+    rispondi(pagina([]));
     await syncCatalog();
 
     // Un'ora e un minuto fa. Si scrive il segnaposto invece di spostare
@@ -937,7 +968,7 @@ describe("syncCatalog", () => {
   /** Finding 7: `force` scavalca la finestra, non l'account. */
   it("`force` non scavalca l'account: senza token il segnaposto resta vuoto", async () => {
     useAccountStore.setState({ token: null, profile: null });
-    mockApiRequest.mockResolvedValue(pagina([]));
+    rispondi(pagina([]));
 
     expect(await syncCatalog(true)).toEqual({ toccate: 0, riuscito: false });
     expect(await getSetting(CATALOG_PULLED_AT)).toBeNull();
@@ -949,7 +980,7 @@ describe("syncCatalog", () => {
    * primo piano - la finestra smetterebbe di applicarsi a chi usa il bottone.
    */
   it("`force` scrive comunque il segnaposto", async () => {
-    mockApiRequest.mockResolvedValue(pagina([]));
+    rispondi(pagina([]));
 
     await syncCatalog(true);
     const dopoIlPrimo = mockApiRequest.mock.calls.length;
@@ -966,7 +997,7 @@ describe("syncCatalog", () => {
    */
   it("un segnaposto illeggibile conta come 'mai fatto'", async () => {
     await setSetting(CATALOG_PULLED_AT, "non-una-data");
-    mockApiRequest.mockResolvedValue(pagina([]));
+    rispondi(pagina([]));
 
     await syncCatalog();
 
@@ -988,7 +1019,7 @@ describe("syncCatalog", () => {
       // Le 15:00+02:00 sono le 13:00 UTC: due ore prima delle 15:00 UTC di
       // "adesso", oltre la finestra di un'ora.
       await setSetting(CATALOG_PULLED_AT, "2026-09-08T15:00:00+02:00");
-      mockApiRequest.mockResolvedValue(pagina([]));
+      rispondi(pagina([]));
 
       await syncCatalog();
 
@@ -1321,5 +1352,50 @@ describe("il cancello di proprieta': una riga di catalogo non e' una propria pro
     await withdrawFoodSubmission(riga!);
 
     expect(mockApiRequest).not.toHaveBeenCalled();
+  });
+});
+
+describe("pullTaxonomies", () => {
+  // Le etichette dei ventitre' slug del seme sono italiane e inglesi; qui si
+  // guarda `label_it`, quindi il locale va scelto invece di essere ereditato
+  // dal default dei test ("en").
+  beforeEach(() => {
+    i18n.locale = "it";
+  });
+  afterEach(() => {
+    i18n.locale = "en";
+  });
+
+  it("scrive quel che il server manda e ridrata lo store", async () => {
+    mockApiRequest.mockResolvedValue({
+      muscleGroups: [
+        { slug: "femorali", labelIt: "Ischiocrurali", labelEn: "Hamstrings", sort: 90, deletedAt: null },
+        { slug: "trapezi", labelIt: "Trapezi", labelEn: "Traps", sort: 130, deletedAt: null },
+      ],
+      equipment: [
+        { slug: "cavi", labelIt: "Cavi", labelEn: "Cables", sort: 50, deletedAt: "2026-09-08T09:00:00+00:00" },
+      ],
+    });
+
+    await pullTaxonomies();
+
+    expect(mockApiRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ method: "get", path: "/catalog/taxonomies" }),
+    );
+
+    const stato = useTaxonomyStore.getState();
+    expect(stato.muscleLabel("femorali")).toBe("Ischiocrurali");
+    expect(stato.muscleLabel("trapezi")).toBe("Trapezi");
+    // Cancellato: non si offre in una scelta, ma l'etichetta ce l'ha ancora.
+    expect(stato.liveEquipment.map((r) => r.slug)).not.toContain("cavi");
+    expect(stato.equipmentLabel("cavi")).toBe("Cavi");
+  });
+
+  it("un errore di rete non solleva e lascia in piedi le etichette di prima", async () => {
+    await useTaxonomyStore.getState().hydrate();
+    mockApiRequest.mockRejectedValue(new Error("rete assente"));
+
+    await expect(pullTaxonomies()).resolves.toBeUndefined();
+    expect(useTaxonomyStore.getState().muscleLabel("petto")).toBe("Petto");
   });
 });
