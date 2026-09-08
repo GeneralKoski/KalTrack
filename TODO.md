@@ -343,6 +343,25 @@ che un utente vede oggi.
       deve sostituire il confronto per nome normalizzato (vedi `CLAUDE.md`
       § L'unica cosa che esce verso i non amici): senza, una voce rinominata
       dal pannello si duplica al pull successivo invece di aggiornarsi.
+
+      **Da ordinata a urgente da quando il pannello esiste**, ed e' la voce
+      piu' pressante di questa fase. Non e' un difetto del pannello - `uid`
+      sta in ogni risposta e in `api/types.ts`, semplicemente non lo legge
+      nessuno di qua - ma il pannello e' il primo strumento che rende una
+      rinomina facile: correggere il nome di una proposta mentre la si
+      approva e' il primo campo del modulo di revisione, ed e' proprio la
+      correzione che la spec chiede di poter fare.
+
+      Il conto lo pagano i telefoni. `exerciseCatalog.ts` ritrova la propria
+      voce dal nome normalizzato (`miaInCatalogo(previousName)`) e
+      `updatePublishedExercise`, quando quella ricerca non trova niente,
+      **crea** invece di aggiornare: dopo una rinomina dal pannello, la
+      prossima correzione locale di chi aveva proposto la voce deposita una
+      **seconda proposta** per la stessa cosa. E `importCatalog` salta per
+      nome, quindi ogni telefono che importa si porta a casa un esercizio
+      nuovo e si tiene quello col nome vecchio. Una rinomina = N doppioni.
+      Dichiarato in `backend/README.md` § L'eccezione dichiarata, cosi' che
+      chi revisiona lo sappia prima di riscrivere un nome.
 - [ ] **Tassonomie dinamiche.** Gruppi muscolari e attrezzatura sono ora
       tabelle vere lato server, seminate dalle costanti dell'app; l'app
       continua a leggerle dalle sue costanti proprie invece che dal server.

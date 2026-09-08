@@ -76,6 +76,31 @@ nel catalogo di tutti, e deve sapere chi la propone - se non altro per
 riconoscere chi propone spazzatura. E' un fatto che serve a chi revisiona, non
 un fatto che il catalogo pubblica.
 
+**Correggere il NOME di una proposta mentre la si approva costa oggi un
+doppione su ogni telefono**, e va saputo prima di farlo: e' il primo campo del
+modulo di revisione ed e' esattamente la correzione che la spec chiede.
+
+Il difetto non e' nel pannello, che manda gia' `uid` in ogni risposta e non
+assume niente di sbagliato: e' che **lato app quell'`uid` non lo legge
+nessuno**. `src/services/exerciseCatalog.ts` ritrova la propria voce di
+catalogo dal **nome normalizzato** (`miaInCatalogo(previousName)`), e
+`updatePublishedExercise` quando quella ricerca non trova niente **crea una
+voce nuova** invece di aggiornare; `importCatalog` salta per nome allo stesso
+modo. Quindi, dopo una rinomina fatta da qui:
+
+- la prossima correzione locale di chi aveva proposto la voce deposita una
+  **seconda proposta** per la stessa cosa, perche' col nome nuovo la sua non
+  si riconosce piu';
+- ogni telefono che importa si porta a casa un esercizio **nuovo**, e quello
+  col nome vecchio gli resta.
+
+Il pannello non ha introdotto il difetto - il confronto per nome c'era da
+prima - ma e' il primo strumento che rende una rinomina facile e frequente,
+e per questo l'adozione di `uid` lato app e' passata da ordinata a urgente
+(`TODO.md` § 5.3). Finche' non c'e', una rinomina in revisione costa N
+doppioni: se il nome e' solo brutto e non sbagliato, conviene approvare
+com'e'.
+
 La cancellazione e' morbida (`deleted_at`), non piu' vera: una voce tolta dal
 catalogo deve poter dire ai telefoni che non c'e' piu', e una riga sparita
 davvero non ha modo di raccontare nulla. Il telefono che l'aveva importata se
