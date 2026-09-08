@@ -30,13 +30,25 @@ interface Props {
 
 /*
  * `fields` arriva come `Record<string, unknown>` perche' la sua forma dipende
- * dal tipo. Tre letture strette invece di un cast: il server puo' mandare
+ * dal tipo. Quattro letture strette invece di un cast: il server puo' mandare
  * `null` su qualunque colonna nullable, e un `as number` su un null farebbe
  * scrivere "null" dentro un campo numerico senza che niente protesti.
  */
 const testo = (valore: unknown): string | null => (typeof valore === 'string' ? valore : null);
 const numero = (valore: unknown): number | null => (typeof valore === 'number' ? valore : null);
 const booleano = (valore: unknown): boolean => valore === true;
+
+/*
+ * La quarta lettura serve altrove: non su `fields` ma su `form.getFieldsValue()`,
+ * che e' lo stesso genere di `Record<string, unknown>`. Un `Select
+ * mode="multiple"` promette un `string[]`, ma e' una promessa di AntD e non
+ * un fatto che il tipo di `valori` porti scritto - un `as string[]` la
+ * accetterebbe senza controllare. Si filtra invece: quel che non e' una
+ * stringa sparisce, e un valore che non e' nemmeno un array diventa elenco
+ * vuoto.
+ */
+const elenco = (valore: unknown): string[] =>
+    Array.isArray(valore) ? valore.filter((v): v is string => typeof v === 'string') : [];
 
 /** I campi che si correggono, per tipo, gia' nella forma che il server accetta. */
 function valoriIniziali(proposta: SubmissionRow): Record<string, unknown> {
@@ -161,8 +173,8 @@ export const ReviewDrawer = ({ proposta, aperto, onChiudi }: Props): React.React
             proposta.type === 'exercise'
                 ? {
                       ...valori,
-                      secondaryMuscles: joinCsv(valori.secondaryMuscles as string[] | undefined),
-                      equipment: joinCsv(valori.equipment as string[] | undefined),
+                      secondaryMuscles: joinCsv(elenco(valori.secondaryMuscles)),
+                      equipment: joinCsv(elenco(valori.equipment)),
                   }
                 : valori;
         const dopo = normalizzaTesto(dopoCsv);
