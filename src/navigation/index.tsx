@@ -300,7 +300,7 @@ const RootStack = createNativeStackNavigator({
     },
     Plans: {
       screen: PlansScreen,
-      linking: { path: "piani" },
+      linking: { path: "abbonamento" },
     },
     Measurements: {
       screen: MeasurementsScreen,

@@ -10,6 +10,7 @@ import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { useAccountStore } from "@/src/stores/accountStore";
 import { theme } from "@/src/styles";
 import {
   Camera,
@@ -18,6 +19,8 @@ import {
   ScanLine,
   Sparkles,
   Sprout,
+  TrendingUp,
+  Utensils,
   type LucideIcon,
 } from "lucide-react-native";
 import React from "react";
@@ -38,7 +41,7 @@ import {
  */
 
 interface Feature {
-  key: "assistant" | "photo" | "label" | "routine";
+  key: "assistant" | "photo" | "label" | "routine" | "meal_plan" | "weekly_coach";
   Icon: LucideIcon;
 }
 
@@ -47,13 +50,25 @@ const FEATURES: Feature[] = [
   { key: "photo", Icon: Camera },
   { key: "label", Icon: ScanLine },
   { key: "routine", Icon: Sparkles },
+  { key: "meal_plan", Icon: Utensils },
+  { key: "weekly_coach", Icon: TrendingUp },
 ];
 
 export function PlansScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
-  const { goBack } = useAppNav();
+  const { navigate, goBack } = useAppNav();
+  /*
+   * Il motivo per cui si e' arrivati qui NON e' lo stesso per tutti. Chi non
+   * ha un account e' la popolazione piu' grande che tocca questo cancello
+   * (`ai_enabled` nasce ACCESO): per lei la pagina dei piani e' un vicolo
+   * cieco vero se dice "abbonati", quando il rimedio reale e oggi disponibile
+   * e' accedere. Chi ha gia' un account e non ha il diritto e' l'unico caso
+   * in cui parlare di abbonamento e' onesto. Un motivo vero ma irrilevante e'
+   * comunque una bugia, e questa schermata la vede un utente vero.
+   */
+  const hasAccount = useAccountStore((s) => s.token !== null);
 
   return (
     <View style={styles.root}>
@@ -77,13 +92,22 @@ export function PlansScreen() {
           <HeroPanel>
             <Sprout size={26} color={colors.text} />
             <Text style={[styles.heroTitle, { color: colors.text }]}>
-              {t("plans.hero_title")}
+              {t(hasAccount ? "plans.hero_title" : "plans.no_account_title")}
             </Text>
             <HeroDivider style={styles.heroDivider} />
             <Text style={[styles.heroBody, { color: colors.textSecondary }]}>
-              {t("plans.hero_body")}
+              {t(hasAccount ? "plans.hero_body" : "plans.no_account_body")}
             </Text>
           </HeroPanel>
+
+          {hasAccount ? null : (
+            <ListGroup indent={0}>
+              <ListRow
+                label={t("plans.no_account_action")}
+                onPress={() => navigate("Friends")}
+              />
+            </ListGroup>
+          )}
 
           <SectionLabel style={styles.section}>
             {t("plans.section_included")}
@@ -99,9 +123,11 @@ export function PlansScreen() {
             ))}
           </ListGroup>
 
-          <Text style={[styles.note, { color: colors.textMuted }]}>
-            {t("plans.not_available")}
-          </Text>
+          {hasAccount ? (
+            <Text style={[styles.note, { color: colors.textMuted }]}>
+              {t("plans.not_available")}
+            </Text>
+          ) : null}
         </ScrollView>
       </SafeAreaView>
     </View>

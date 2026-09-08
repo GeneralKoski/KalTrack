@@ -630,25 +630,36 @@
   },
   "plans": {
     "title": "Piani",
-    "hero_title": "L'IA diventerà una funzione a pagamento",
+    "hero_title": "L'AI diventerà una funzione a pagamento",
     "hero_body": "Le funzioni che usano l'intelligenza artificiale entreranno in un abbonamento. Per ora restano visibili, ma non sono ancora acquistabili.",
-    "section_included": "COSA COMPRENDE",
+    "no_account_title": "Le funzioni AI servono un account",
+    "no_account_body": "Senza account le funzioni AI restano spente. Accedi o creane uno per accenderle: è gratis, ed è il rimedio che funziona oggi.",
+    "no_account_action": "Accedi o crea un account",
+    "section_included": "Cosa comprende",
     "feature": {
       "assistant": {
         "label": "Assistente vocale",
-        "detail": "Registra pasti, peso, passi e obiettivi parlando"
+        "detail": "Registra a voce pasti, peso e passi"
       },
       "photo": {
         "label": "Stima da foto",
-        "detail": "Riconosce gli alimenti di un piatto da una fotografia"
+        "detail": "Riconosce il cibo da una foto"
       },
       "label": {
         "label": "Lettura etichetta",
-        "detail": "Legge i valori nutrizionali dalla confezione"
+        "detail": "Legge i valori dalla confezione"
       },
       "routine": {
         "label": "Generazione scheda",
-        "detail": "Propone una scheda di allenamento su misura"
+        "detail": "Propone una scheda su misura"
+      },
+      "meal_plan": {
+        "label": "Piano pasti con AI",
+        "detail": "Genera il piano pasti"
+      },
+      "weekly_coach": {
+        "label": "Coach settimanale",
+        "detail": "Commenta i numeri della settimana"
       }
     },
     "not_available": "Non ancora acquistabile: questa pagina arriverà quando le funzioni AI diventeranno parte di un abbonamento."

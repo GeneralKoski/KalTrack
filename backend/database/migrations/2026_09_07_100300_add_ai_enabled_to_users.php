@@ -17,9 +17,12 @@ use Illuminate\Support\Facades\Schema;
  *
  * FINCHE' QUEL GIORNO NON ARRIVA, QUESTA COLONNA E' UN CARTELLO E NON UNA
  * SERRATURA. La chiave Gemini sta nel bundle e le chiamate partono dal
- * telefono: spegnerla nasconde il microfono e nient'altro, e chi
- * ripacchettizza l'APK lo riaccende. Sta qui perche' l'amministratore possa
- * gia' regalare l'AI a chi vuole, non perche' protegga qualcosa.
+ * telefono: spegnerla non nasconde il microfono, lo lascia visibile e lo fa
+ * puntare alla pagina dei piani di abbonamento (decisione di prodotto
+ * dell'app - un percorso di conversione, non un comando spento con una
+ * spiegazione), e chi ripacchettizza l'APK la riaccende comunque. Sta qui
+ * perche' l'amministratore possa gia' regalare l'AI a chi vuole, non perche'
+ * protegga qualcosa.
  */
 return new class extends Migration
 {

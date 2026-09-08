@@ -632,23 +632,34 @@
     "title": "Plans",
     "hero_title": "AI is becoming a paid feature",
     "hero_body": "The features that use artificial intelligence will become part of a subscription. For now they stay visible, but they aren't purchasable yet.",
-    "section_included": "WHAT IT INCLUDES",
+    "no_account_title": "AI features need an account",
+    "no_account_body": "Without an account the AI features stay off. Sign in or create one to turn them on - it's free, and it's the remedy that works today.",
+    "no_account_action": "Sign in or create an account",
+    "section_included": "What it includes",
     "feature": {
       "assistant": {
         "label": "Voice assistant",
-        "detail": "Logs meals, weight, steps and targets by voice"
+        "detail": "Logs meals, weight and steps by voice"
       },
       "photo": {
         "label": "Photo estimate",
-        "detail": "Recognises the foods on a plate from a photo"
+        "detail": "Recognises food from a photo"
       },
       "label": {
         "label": "Label scan",
-        "detail": "Reads the nutrition facts off the package"
+        "detail": "Reads the nutrition label"
       },
       "routine": {
         "label": "Routine generation",
-        "detail": "Suggests a tailored workout routine"
+        "detail": "Suggests a tailored routine"
+      },
+      "meal_plan": {
+        "label": "AI meal plan",
+        "detail": "Generates your meal plan"
+      },
+      "weekly_coach": {
+        "label": "Weekly coach",
+        "detail": "Reviews your week"
       }
     },
     "not_available": "Not purchasable yet: this page will come to life once AI features become part of a subscription."
