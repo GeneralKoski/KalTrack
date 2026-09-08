@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { App, Button, Card, Form, Input, Typography } from 'antd';
-import { ApiError, messageOf, toFormFields } from '@admin/api/errors';
-import type { FieldError } from '@admin/api/errors';
+import { applicaErroriServer } from '@admin/api/formErrors';
 import { login } from '@admin/auth/session';
 import { useAuth } from '@admin/auth/AuthProvider';
 
@@ -10,16 +9,7 @@ interface Credenziali {
     password: string;
 }
 
-/**
- * `toFormFields` restituisce un `name: string` generico - lo stesso helper
- * serve moduli con campi diversi. `Form.useForm<Credenziali>()` invece vuole
- * un nome fra quelli che il modulo conosce davvero: questa guardia scarta un
- * campo che il server nominasse fuori da "login"/"password" invece di farlo
- * fallire a runtime con un nome che `setFields` non saprebbe dove mettere.
- */
-function eCampoDelModulo(campo: FieldError): campo is FieldError & { name: keyof Credenziali } {
-    return campo.name === 'login' || campo.name === 'password';
-}
+const CAMPI: (keyof Credenziali)[] = ['login', 'password'];
 
 /**
  * L'unica pagina che esiste per chi non e' entrato.
@@ -41,11 +31,7 @@ export const LoginPage = (): React.ReactElement => {
             await login(valori);
             await rileggi();
         } catch (error) {
-            if (error instanceof ApiError && Object.keys(error.errors).length > 0) {
-                form.setFields(toFormFields(error.errors).filter(eCampoDelModulo));
-            }
-
-            message.error(messageOf(error));
+            applicaErroriServer(form, CAMPI, error, message.error);
         } finally {
             setInCorso(false);
         }
