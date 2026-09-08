@@ -28,7 +28,7 @@ import {
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
-import type { ExerciseRow } from "@/src/types/gym";
+import { DEFAULT_MUSCLE_GROUP, type ExerciseRow } from "@/src/types/gym";
 import { showToast } from "@/src/utils/toast";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import {
@@ -124,7 +124,7 @@ export function RoutineFormScreen() {
             key: newId(),
             exerciseId: e.exerciseId,
             name: ex?.name ?? "Esercizio",
-            muscleGroup: ex?.muscle_group ?? "petto",
+            muscleGroup: ex?.muscle_group ?? DEFAULT_MUSCLE_GROUP,
             sets: e.targetSets === null ? "3" : String(e.targetSets),
             reps: e.targetReps ?? "8-10",
             weight:

@@ -39,6 +39,7 @@ import { navigationRef } from "@/src/navigation/navigationRef";
 import {
   EQUIPMENT,
   MUSCLE_GROUPS,
+  UNKNOWN_MUSCLE_GROUP,
   type Equipment,
   type MuscleGroup,
 } from "@/src/types/gym";
@@ -1755,7 +1756,7 @@ const createRoutineTool: ToolFactory = () =>
           } else {
             exerciseId = await createExercise({
               name: ex.name,
-              muscleGroup: "full_body",
+              muscleGroup: UNKNOWN_MUSCLE_GROUP,
               secondaryMuscles: [],
               equipment: [],
             });
@@ -1910,7 +1911,7 @@ const logWorkout: ToolFactory = (context) =>
         } else {
           exerciseId = await createExercise({
             name: ex.name,
-            muscleGroup: "full_body",
+            muscleGroup: UNKNOWN_MUSCLE_GROUP,
             secondaryMuscles: [],
             equipment: [],
           });

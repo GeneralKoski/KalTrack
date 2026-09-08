@@ -17,6 +17,7 @@ import {
 import { useAccountStore } from "@/src/stores/accountStore";
 import { theme } from "@/src/styles";
 import {
+  DEFAULT_MUSCLE_GROUP,
   EQUIPMENT,
   MUSCLE_GROUPS,
   exerciseEquipment,
@@ -73,7 +74,7 @@ export const ExerciseFormSheet = forwardRef<
 
   const [view, setView] = useState<FormView>("form");
   const [name, setName] = useState("");
-  const [muscleGroup, setMuscleGroup] = useState<MuscleGroup>("petto");
+  const [muscleGroup, setMuscleGroup] = useState<MuscleGroup>(DEFAULT_MUSCLE_GROUP);
   const [secondary, setSecondary] = useState<MuscleGroup[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -91,7 +92,7 @@ export const ExerciseFormSheet = forwardRef<
   // il modulo si presenterebbe vuoto.
   const fillFromEditing = useCallback(() => {
     setName(editing?.name ?? "");
-    setMuscleGroup((editing?.muscle_group as MuscleGroup) ?? "petto");
+    setMuscleGroup(editing?.muscle_group ?? DEFAULT_MUSCLE_GROUP);
     setSecondary(editing ? exerciseSecondary(editing) : []);
     setEquipment(editing ? exerciseEquipment(editing) : []);
     setPhotoUri(editing?.photo_uri ?? null);

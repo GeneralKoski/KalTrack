@@ -54,6 +54,48 @@ export const EQUIPMENT = [
 /** Come `MuscleGroup`: era un'union degli undici valori qui sopra. */
 export type Equipment = string;
 
+/**
+ * Uno slug SCRITTO A MANO nel codice di quest'app.
+ *
+ * `MuscleGroup` ed `Equipment` sono `string` perche' l'elenco vive in una
+ * tabella che il server riscrive: un valore che arriva da fuori non si puo'
+ * piu' verificare a compilazione. Un letterale che sta **in questo
+ * repository** e' un'altra cosa - un valore di partenza, una ricaduta - e
+ * puo' essere solo uno di questi, perche' e' l'unico elenco che il codice
+ * conosce nel momento in cui lo si scrive.
+ *
+ * Servono a restituire al compilatore il controllo che l'allargamento gli ha
+ * tolto proprio li': `MUSCLE_GROUPS` ed `EQUIPMENT` sono ancora `as const`,
+ * quindi il tipo letterale esiste ancora - solo non e' piu' quello che dice
+ * cosa puo' stare in colonna. Un refuso in uno di questi letterali non e' un
+ * gruppo sconosciuto arrivato dalla rete: e' un errore di battitura, e va
+ * fermato dove si scrive.
+ */
+export type SeedMuscleGroup = (typeof MUSCLE_GROUPS)[number];
+export type SeedEquipment = (typeof EQUIPMENT)[number];
+
+/**
+ * Il gruppo con cui si apre il modulo di un esercizio.
+ *
+ * Sta qui e non in tre schermate perche' era scritto tre volte, e da quando
+ * `MuscleGroup` e' `string` nessuna delle tre copie era piu' verificata: un
+ * `"pettto"` avrebbe aperto un modulo con nessun chip selezionato e, salvando,
+ * scritto quello slug in colonna su un esercizio dell'utente - una riga che
+ * non compare piu' sotto nessun filtro e mostra lo slug crudo al posto
+ * dell'etichetta.
+ */
+export const DEFAULT_MUSCLE_GROUP: SeedMuscleGroup = "petto";
+
+/**
+ * Il gruppo di un esercizio creato al volo, di cui non si sa il gruppo.
+ *
+ * Lo usano i tool dell'assistente quando l'esercizio nominato non esiste in
+ * libreria: "full body" e' l'unica risposta onesta a "non lo so", e per un
+ * refuso qui vale quel che vale per `DEFAULT_MUSCLE_GROUP` - con la
+ * differenza che questa riga la scrive l'assistente e nessuno la rilegge.
+ */
+export const UNKNOWN_MUSCLE_GROUP: SeedMuscleGroup = "full_body";
+
 /** Blocchi: è il livello che rende esprimibili superset, circuiti e dropset. */
 export const BLOCK_KINDS = [
   "single",
