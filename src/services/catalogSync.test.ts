@@ -15,6 +15,7 @@ import {
   toggleFoodFavorite,
 } from "@/src/db/queries/foods";
 import { getSetting, setSetting } from "@/src/db/queries/settings";
+import * as taxonomyQueries from "@/src/db/queries/taxonomies";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
 import { i18n } from "@/src/i18n";
@@ -1371,6 +1372,9 @@ describe("pullTaxonomies", () => {
       muscleGroups: [
         { slug: "femorali", labelIt: "Ischiocrurali", labelEn: "Hamstrings", sort: 90, deletedAt: null },
         { slug: "trapezi", labelIt: "Trapezi", labelEn: "Traps", sort: 130, deletedAt: null },
+        // Cancellato: come `cavi` sotto, ma sul campo dei gruppi muscolari.
+        // `liveEquipment` aveva gia' un caso cosi', `liveMuscleGroups` no.
+        { slug: "avambracci", labelIt: "Avambracci", labelEn: "Forearms", sort: 60, deletedAt: "2026-09-08T09:00:00+00:00" },
       ],
       equipment: [
         { slug: "cavi", labelIt: "Cavi", labelEn: "Cables", sort: 50, deletedAt: "2026-09-08T09:00:00+00:00" },
@@ -1387,8 +1391,16 @@ describe("pullTaxonomies", () => {
     expect(stato.muscleLabel("femorali")).toBe("Ischiocrurali");
     expect(stato.muscleLabel("trapezi")).toBe("Trapezi");
     // Cancellato: non si offre in una scelta, ma l'etichetta ce l'ha ancora.
+    expect(stato.liveMuscleGroups.map((r) => r.slug)).not.toContain(
+      "avambracci",
+    );
+    expect(stato.muscleLabel("avambracci")).toBe("Avambracci");
     expect(stato.liveEquipment.map((r) => r.slug)).not.toContain("cavi");
     expect(stato.equipmentLabel("cavi")).toBe("Cavi");
+    // I campi "tutti", cancellati compresi: senza consumatore oggi, ma il
+    // task 12 li legge per il filtro del pull (`knownSlugs`).
+    expect(stato.muscleGroups.map((r) => r.slug)).toContain("avambracci");
+    expect(stato.equipment.map((r) => r.slug)).toContain("cavi");
   });
 
   it("un errore di rete non solleva e lascia in piedi le etichette di prima", async () => {
@@ -1397,5 +1409,44 @@ describe("pullTaxonomies", () => {
 
     await expect(pullTaxonomies()).resolves.toBeUndefined();
     expect(useTaxonomyStore.getState().muscleLabel("petto")).toBe("Petto");
+  });
+
+  it("senza account non chiede niente", async () => {
+    useAccountStore.setState({ token: null, profile: null });
+
+    await pullTaxonomies();
+
+    expect(mockApiRequest).not.toHaveBeenCalled();
+  });
+
+  /**
+   * I due `replaceTaxonomy` non condividono una transazione: se il secondo
+   * solleva, il primo e' gia' su disco. Senza il `finally` lo store
+   * resterebbe con le etichette vecchie anche per i gruppi muscolari appena
+   * scritti - qui verificato idratando comunque dopo l'errore.
+   */
+  it("una scrittura parziale idrata comunque lo store con quel che e' gia' su disco", async () => {
+    mockApiRequest.mockResolvedValue({
+      muscleGroups: [
+        { slug: "petto", labelIt: "Torace", labelEn: "Chest", sort: 10, deletedAt: null },
+      ],
+      equipment: [],
+    });
+
+    const originale = taxonomyQueries.replaceTaxonomy;
+    jest
+      .spyOn(taxonomyQueries, "replaceTaxonomy")
+      .mockImplementation(async (kind, rows) => {
+        if (kind === "equipment_types") {
+          throw new Error("scrittura attrezzi fallita");
+        }
+        return originale(kind, rows);
+      });
+
+    await expect(pullTaxonomies()).resolves.toBeUndefined();
+
+    // I gruppi muscolari sono scritti davvero (l'implementazione originale
+    // e' girata) e lo store li riflette, anche se il giro e' fallito a meta'.
+    expect(useTaxonomyStore.getState().muscleLabel("petto")).toBe("Torace");
   });
 });

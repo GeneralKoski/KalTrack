@@ -200,14 +200,15 @@ async function applyExercise(voce: catalog.CatalogExercise): Promise<boolean> {
      */
     photoUri: voce.photo ? catalogPhotoPath(voce.photo) : null,
     /*
-     * `satisfies` e non `:` - un'annotazione di tipo allargherebbe
-     * `muscleGroup` a `string` (il confine di `applyCatalogExercise`, che
-     * scrive anche righe di cui SQLite non sa nulla di enum) e quella
-     * stringa larga non basterebbe piu' a `createExercise`, che vuole
-     * `MuscleGroup`. `satisfies` tiene il tipo letterale stretto E riattiva
-     * il controllo delle proprieta' in eccesso: senza, un campo estraneo come
-     * `notes` si infilerebbe qui dentro zitto, e sarebbe scritto sull'insert
-     * - esattamente il giudizio personale che la regola 2 vieta.
+     * `satisfies` e non `:` - non piu' per tenere `muscleGroup` stretto a un
+     * letterale: da quando `MuscleGroup` e' `string` (il task che ha
+     * allargato l'union), un'annotazione qui allargherebbe a `string`
+     * esattamente quel che `createExercise` accetta gia', quindi quella meta'
+     * della ragione e' caduta con l'union. Quella che resta e' l'altra:
+     * `satisfies` riattiva il controllo delle proprieta' in eccesso che
+     * un'annotazione spegnerebbe. Senza, un campo estraneo come `notes` si
+     * infilerebbe qui dentro zitto, e sarebbe scritto sull'insert -
+     * esattamente il giudizio personale che la regola 2 vieta.
      */
   } satisfies CatalogExerciseFields;
 
@@ -466,9 +467,17 @@ export async function pullTaxonomies(): Promise<void> {
     if (!attivo()) return;
 
     const { muscleGroups, equipment } = await catalog.fetchTaxonomies();
-    await replaceTaxonomy("muscle_groups", muscleGroups.map(toTaxonomyRow));
-    await replaceTaxonomy("equipment_types", equipment.map(toTaxonomyRow));
-    await useTaxonomyStore.getState().hydrate();
+    try {
+      await replaceTaxonomy("muscle_groups", muscleGroups.map(toTaxonomyRow));
+      await replaceTaxonomy("equipment_types", equipment.map(toTaxonomyRow));
+    } finally {
+      // Anche se la seconda scrittura solleva, la prima e' gia' su disco:
+      // l'idratazione allinea lo store a quel che c'e' scritto, invece di
+      // lasciarlo con etichette vecchie su righe che sul telefono sono gia'
+      // nuove. Le due `replaceTaxonomy` non condividono una transazione, e
+      // questo `finally` e' il rimedio a quella mancanza.
+      await useTaxonomyStore.getState().hydrate();
+    }
   } catch (error) {
     if (!alreadyLogged(error)) {
       logger.warn("[catalogo] tassonomie non aggiornate", error);

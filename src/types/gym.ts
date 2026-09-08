@@ -245,7 +245,7 @@ export const parseStringArray = (value: string | null): string[] => {
  * leggere la tassonomia, e regge perche' sul server "corpo_libero" non e'
  * cancellabile: senza quella garanzia sarebbe un valore inventato qui.
  */
-export const ALWAYS_AVAILABLE_EQUIPMENT: Equipment[] = ["corpo_libero"];
+export const ALWAYS_AVAILABLE_EQUIPMENT: SeedEquipment[] = ["corpo_libero"];
 
 /** True se l'esercizio si puo' fare con l'attrezzatura indicata. */
 export const canDoWith = (

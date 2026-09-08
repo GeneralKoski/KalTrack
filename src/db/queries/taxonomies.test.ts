@@ -72,6 +72,12 @@ describe("il seme della migrazione 020", () => {
     async (kind) => {
       const righe = await listTaxonomy(kind);
 
+      // Senza questa riga il confronto sotto e' `[] toEqual []` su un
+      // elenco vuoto e passa senza aver guardato niente: e' il numero di
+      // righe che rende l'`it.each` una prova sulle 23 righe del seme, non
+      // solo sulla loro forma quando ce ne sono zero.
+      expect(righe).toHaveLength(kind === "muscle_groups" ? 12 : 11);
+
       expect(righe.map((r) => [r.slug, r.label_it, r.label_en])).toEqual(
         righe.map((r) => [
           r.slug,
