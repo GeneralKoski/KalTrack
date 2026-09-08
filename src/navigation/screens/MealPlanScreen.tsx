@@ -23,6 +23,7 @@ import {
 } from "@/src/db/queries/mealPlan";
 import { getTargetsFor } from "@/src/db/queries/settings";
 import { addDays, startOfWeek, todayIso, toIsoDate } from "@/src/domain/date";
+import { useAiGate } from "@/src/hooks/useAiGate";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
@@ -106,6 +107,7 @@ export function MealPlanScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const { goBack } = useAppNav();
+  const gate = useAiGate();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
 
@@ -388,7 +390,7 @@ export function MealPlanScreen() {
           </Text>
           <View style={styles.headerRight}>
             <TouchableOpacity
-              onPress={() => setAiModalOpen(true)}
+              onPress={() => gate(() => setAiModalOpen(true))}
               activeOpacity={0.6}
               hitSlop={10}
             >

@@ -12,6 +12,7 @@ import { Card, MetalSurface, targetColor } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { targetStatus } from "@/src/domain/targets";
+import { useAiGate } from "@/src/hooks/useAiGate";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
@@ -96,6 +97,7 @@ const StatRow: React.FC<{ row: Row; emptyLabel: string }> = ({
 export const WeeklyCoachCard: React.FC = () => {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
+  const gate = useAiGate();
 
   const loader = useCallback(() => weeklyStats(), []);
   const { data, loading } = useFocusData<WeeklyStats>(loader);
@@ -292,7 +294,7 @@ export const WeeklyCoachCard: React.FC = () => {
               ) : null}
 
               <TouchableOpacity
-                onPress={generate}
+                onPress={() => gate(generate)}
                 activeOpacity={0.6}
                 disabled={busy}
               >

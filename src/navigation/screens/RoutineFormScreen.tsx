@@ -25,6 +25,7 @@ import {
   updateRoutine,
   type RoutineInput,
 } from "@/src/db/queries/workouts";
+import { useAiGate } from "@/src/hooks/useAiGate";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
@@ -86,6 +87,7 @@ export function RoutineFormScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const { navigate, goBack } = useAppNav();
+  const gate = useAiGate();
   const navigation = useNavigation();
   const route =
     useRoute<
@@ -349,7 +351,7 @@ export function RoutineFormScreen() {
           >
             {!id && days.length === 0 ? (
               <TouchableOpacity
-                onPress={() => navigate("GenerateRoutine")}
+                onPress={() => gate(() => navigate("GenerateRoutine"))}
                 activeOpacity={0.7}
                 style={[
                   styles.aiBanner,

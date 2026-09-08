@@ -13,7 +13,6 @@ import { Card, ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { listAvailableEquipment } from "@/src/db/queries/exercises";
-import { useAiGate } from "@/src/hooks/useAiGate";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { useTaxonomyStore } from "@/src/stores/taxonomyStore";
@@ -61,7 +60,6 @@ export function GenerateRoutineScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const { navigate, popTo, goBack } = useAppNav();
-  const gate = useAiGate();
   const equipmentLabel = useTaxonomyStore((s) => s.equipmentLabel);
   const formRef = useRef<DfFormRef>(null);
   const [loading, setLoading] = useState(false);
@@ -284,7 +282,7 @@ export function GenerateRoutineScreen() {
                 label={t("gym.generate_action")}
                 icon={<Sparkles size={16} color={colors.accentOn} />}
                 loading={loading}
-                onPress={() => gate(() => formRef.current?.submit())}
+                onPress={() => formRef.current?.submit()}
                 style={styles.generate}
               />
             </View>
