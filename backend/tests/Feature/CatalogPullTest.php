@@ -294,4 +294,41 @@ class CatalogPullTest extends TestCase
             ->get('/api/catalog/images/..')
             ->assertNotFound();
     }
+
+    /**
+     * Il difetto che questo test blocca: con `next` come unico segnaposto, il
+     * telefono non sa dove e' arrivato quando la pagina non e' piena - e
+     * l'ultima pagina non lo e' mai. Riscaricava la coda del catalogo a ogni
+     * giro, per sempre, senza che niente lo dicesse.
+     */
+    public function test_il_cursore_torna_anche_quando_non_c_e_altro(): void
+    {
+        $anna = $this->anna();
+        $voce = $this->esercizio('a', 'Panca piana');
+
+        $risposta = $this->actingAs($anna)
+            ->getJson('/api/catalog/exercises')
+            ->assertOk();
+
+        // Non c'e' altro da chiedere...
+        $this->assertNull($risposta->json('next'));
+        // ...ma dove siamo arrivati si sa comunque.
+        $this->assertSame(
+            $voce->updated_at->toIso8601String(),
+            $risposta->json('cursor.since'),
+        );
+        $this->assertSame($voce->id, $risposta->json('cursor.afterId'));
+    }
+
+    /** Su una pagina vuota non c'e' nessuna posizione da dichiarare. */
+    public function test_una_pagina_vuota_non_ha_cursore(): void
+    {
+        $anna = $this->anna();
+
+        $this->actingAs($anna)
+            ->getJson('/api/catalog/exercises')
+            ->assertOk()
+            ->assertJsonPath('cursor', null)
+            ->assertJsonPath('next', null);
+    }
 }

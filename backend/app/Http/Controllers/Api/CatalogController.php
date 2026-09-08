@@ -217,6 +217,26 @@ class CatalogController extends Controller
             ->limit($limit)
             ->get();
 
+        /*
+         * Due campi e non uno, e la differenza e' la domanda a cui rispondono.
+         *
+         * `cursor` e' DOVE SIAMO ARRIVATI, e c'e' sempre tranne che su una
+         * pagina vuota. `next` e' SE C'E' ALTRO DA CHIEDERE, e sparisce
+         * appena la pagina non e' piena.
+         *
+         * Con `next` da solo il telefono non sapeva dove fosse arrivato
+         * quando la pagina non era piena - e l'ultima pagina non lo e' mai:
+         * di una voce non esce `updated_at`, e di un tombstone escono solo
+         * `uid` e `deletedAt`, quindi la posizione non e' ricavabile dal
+         * contenuto. Il risultato era la coda del catalogo riscaricata e
+         * riapplicata a ogni giro, in silenzio perche' idempotente.
+         */
+        $ultima = $righe->last();
+        $posizione = $ultima === null ? null : [
+            'since' => $ultima->updated_at->toIso8601String(),
+            'afterId' => $ultima->id,
+        ];
+
         return response()->json([
             'data' => $righe->map(function (Model $riga) use ($forma, $userId) {
                 /*
@@ -238,16 +258,8 @@ class CatalogController extends Controller
 
                 return [...$forma($riga, $userId), 'deletedAt' => null];
             }),
-            /*
-             * Null quando la pagina non e' piena: non c'e' altro da chiedere.
-             * E' la stessa convenzione di `ExerciseController::index`.
-             */
-            'next' => $righe->count() === $limit
-                ? [
-                    'since' => $righe->last()->updated_at->toIso8601String(),
-                    'afterId' => $righe->last()->id,
-                ]
-                : null,
+            'cursor' => $posizione,
+            'next' => $righe->count() === $limit ? $posizione : null,
         ]);
     }
 }
