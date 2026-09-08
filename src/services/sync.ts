@@ -88,6 +88,15 @@ export const LOCAL_ONLY_TABLES: Record<string, string> = {
   ai_calls: "registro locale, non e' un dato dell'utente",
   /** La diagnostica: descrive i guasti di questa installazione. */
   app_logs: "diagnostica locale, vedi CLAUDE.md § La diagnostica",
+  /*
+   * Le tassonomie sono la copia locale di un elenco che il server pubblica
+   * per tutti: si ricostruiscono col pull, e mandarle al server vorrebbe dire
+   * rispedirgli quel che ha appena mandato lui. Non sono dati dell'utente -
+   * quel che l'utente decide sull'attrezzatura sta in `user_equipment`, che
+   * invece viaggia.
+   */
+  muscle_groups: "copia locale del catalogo comune, si ricostruisce dal server",
+  equipment_types: "copia locale del catalogo comune, si ricostruisce dal server",
 };
 
 

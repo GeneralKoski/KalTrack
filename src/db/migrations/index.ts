@@ -17,6 +17,7 @@ import { migration016 } from "@/src/db/migrations/016_meal_type_hidden";
 import { migration017 } from "@/src/db/migrations/017_drop_fasting";
 import { migration018 } from "@/src/db/migrations/018_exercise_photo";
 import { migration019 } from "@/src/db/migrations/019_catalog_uid";
+import { migration020 } from "@/src/db/migrations/020_taxonomies";
 import type { Migration } from "@/src/db/migrations/types";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 import { logger } from "@/src/utils/logger";
@@ -44,6 +45,7 @@ export const MIGRATIONS: Migration[] = [
   migration017,
   migration018,
   migration019,
+  migration020,
 ];
 
 /**
