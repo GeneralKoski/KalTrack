@@ -307,8 +307,8 @@ separato da quello a token dell'app. Dettagli in `backend/README.md`
 § L'eccezione dichiarata.
 
 **L'app stessa non e' stata toccata**, a parte uno script che esporta il suo
-seed in JSON per `catalog:seed`. E' la ragione per cui restano tre voci
-aperte sotto, di cui la prima e' la piu' urgente delle tre perche' e' l'unica
+seed in JSON per `catalog:seed`. E' la ragione per cui restano due voci
+aperte sotto, di cui la prima e' la piu' urgente delle due perche' e' l'unica
 che un utente vede oggi.
 
 ### 5.1 Una promessa che l'app fa e il server non mantiene piu'
@@ -326,13 +326,12 @@ che un utente vede oggi.
 
 ### 5.2 Fase 2 del gestionale: il pannello
 
-- [ ] **Il pannello vero, in React.** Oggi
-      `backend/resources/js/admin/main.tsx` e' un placeholder di nove righe:
-      serve solo perche' `npm run build` funzioni e `GET /admin` non risponda
-      500. La SPA che ci va al posto - coda di revisione, CRUD di esercizi e
-      alimenti con caricamento della foto, tassonomie, utenti con
-      l'interruttore AI, statistiche della dashboard - e' tutta da scrivere,
-      servita su `/admin`.
+- [x] ~~**Il pannello vero, in React.**~~ Fatto l'8 settembre 2026: la SPA
+      vive su `/admin` con le sue sette pagine - accesso, dashboard, proposte,
+      esercizi, alimenti, tassonomie, utenti - coda di revisione compresa,
+      CRUD di esercizi e alimenti con caricamento della foto, tassonomie,
+      utenti con l'interruttore AI, statistiche della dashboard. Piano
+      eseguito in `docs/superpowers/plans/2026-09-08-gestionale-fase-2-pannello.md`.
 
 ### 5.3 Fase 3 del gestionale: il lato app
 

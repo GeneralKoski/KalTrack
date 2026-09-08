@@ -278,6 +278,22 @@ sue chiamate autenticate rispondono 401. E' una riga che senza il gestionale
 non serviva, e chi rifa' il server da zero non la indovinerebbe: verificala
 con `php artisan tinker --execute="print_r(config('sanctum.stateful'));"`.
 
+**Il sintomo, se questa riga manca, e' il piu' difficile da leggere di tutta
+la fase: l'accesso riesce - 200, cookie ricevuto - e poi ogni richiesta
+successiva risponde 401, senza che niente a schermo lo spieghi.** La causa
+sta in `EnsureFrontendRequestsAreStateful`, che decide se allegare la
+sessione confrontando l'host della richiesta con `sanctum.stateful`; se
+`SANCTUM_STATEFUL_DOMAINS` non e' valorizzato, quell'elenco si costruisce da
+solo a partire da `APP_URL` (`config/sanctum.php`,
+`Sanctum::currentApplicationUrlWithPort()`). Un `APP_URL` che non combacia con
+l'host - o la porta - da cui il pannello viene servito non finisce
+nell'elenco, e il pannello sembra rotto per un motivo che nessun test coglie -
+`php artisan test` verde non e' la prova che questa riga sia a posto
+(`TODO.md` § 5.4). Il rimedio e' l'uno o l'altro: allineare `APP_URL` all'host
+vero, o
+valorizzare `SANCTUM_STATEFUL_DOMAINS` esplicitamente - la riga sopra fa gia'
+questo per la produzione.
+
 Gli asset di `/admin` (`resources/js/admin/`) si compilano **dentro
 l'immagine**: il `Dockerfile` ha uno stadio Node a parte (`FROM node:22-alpine
 AS assets`) che gira `npm ci && npm run build` e passa `public/build` allo
@@ -394,5 +410,21 @@ esiste dal 7 settembre 2026: una voce creata a mano nasce `pending` e non
 `published`, un amministratore la approva o la rifiuta sotto `/api/admin/*`
 (`SubmissionController`), e il pannello web (`/admin`, dietro
 `EnsureAdmin`) corregge o toglie qualunque voce - non solo le proprie, che
-resta la regola dell'app. La Fase 2 costruisce l'interfaccia di quel
-pannello; l'API sotto e' gia' completa.
+resta la regola dell'app.
+
+Il pannello vive in `resources/js/admin/`, servito da `GET /admin/{any?}` e
+costruito con `npm run build` come ogni altro asset - dentro l'immagine Docker
+al deploy, vedi § In produzione. Sette pagine: accesso, dashboard, proposte,
+esercizi, alimenti, tassonomie, utenti.
+
+L'accesso e' a **sessione** e non a token (`POST /admin/login`): un token per
+una SPA va custodito nel browser, e cio' che sta in `localStorage` un XSS se
+lo porta via; il cookie di sessione e' `httpOnly` e la sessione, per chi ha
+appena fatto l'accesso, c'e' gia'. L'app continua a usare `POST /api/login` e
+i suoi token: sono due client diversi con due esigenze diverse, e non c'e'
+motivo di forzarli sullo stesso meccanismo. Le richieste del pannello a
+`/api/admin/*` passano con lo stesso cookie di sessione perche' `statefulApi()`
+(`bootstrap/app.php`) vale anche sulle rotte `/api/*`, non solo su `/admin/*`.
+
+Tre cancelli, tutti da lanciare in `backend/`: `npm run typecheck`, `npm test`,
+`npm run build`.

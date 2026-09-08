@@ -99,3 +99,21 @@ Il resto segue il template, e va seguito:
   e' cortesia: le due regole della privacy si verificano solo da fuori.
 - **Throttle su tutto quel che chiunque puo' chiamare** (`login`, `register`) e
   su quel che assegna credenziali (`admin/.../password`).
+
+## Il pannello
+
+`resources/js/admin/`. React 19 + Ant Design 6 + TanStack Query + React
+Router, TypeScript strict, test con Vitest. Tre cose da non rompere:
+
+- **Ogni richiesta passa da `apiFetch`.** Un `fetch` nudo non porta il token
+  CSRF e torna 419 - e' quel che faceva l'upload di serie di AntD, che fa un
+  `fetch` suo per conto proprio, ed e' il motivo per cui `PhotoUpload` usa
+  `customRequest`.
+- **Una PATCH manda solo cio' che e' cambiato.** I controller ammin fanno
+  `array_key_exists` campo per campo apposta: mandare tutto vorrebbe dire
+  azzerare le proteine mentre si corregge il sale, e far ripassare il nome dal
+  controllo di unicita' di `name_norm` per una voce che nessuno ha rinominato.
+- **Gli errori 422 si vedono in due posti**: il `message` in un toast, gli
+  `errors` sotto il campo. E' il contrario della regola dell'app (`CLAUDE.md`
+  alla radice, § Convenzioni non negoziabili), e qui e' voluto: li' il toast
+  e' l'unico posto perche' un telefono non ha spazio, qui il modulo ce l'ha.
