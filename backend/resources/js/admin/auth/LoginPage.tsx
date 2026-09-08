@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { App, Button, Card, Form, Input, Typography } from 'antd';
+import { Navigate, useLocation } from 'react-router-dom';
 import { applicaErroriServer } from '@admin/api/formErrors';
 import { login } from '@admin/auth/session';
 import { useAuth } from '@admin/auth/AuthProvider';
@@ -12,6 +13,32 @@ interface Credenziali {
 const CAMPI: (keyof Credenziali)[] = ['login', 'password'];
 
 /**
+ * Dove tornare dopo essere entrati: il percorso che `Protected` ha messo da
+ * parte quando ha rimandato qui, o la dashboard.
+ *
+ * Quello stato veniva scritto e mai letto - `Protected` lo mette in
+ * `state={{ da: pathname }}` da sempre e nessuno lo guardava - quindi chi
+ * arrivava su una pagina interna con la sessione scaduta, dopo aver rifatto
+ * l'accesso, si ritrovava sulla dashboard invece che dove stava andando.
+ *
+ * `useLocation().state` e' `unknown` e non si restringe con un cast: si
+ * guarda com'e' fatto, come `ReviewDrawer` fa con `fields`. Solo un percorso
+ * assoluto, e non `/login`: uno stato scritto male non deve poter mandare
+ * altrove ne' far girare in tondo.
+ */
+function percorsoDiRitorno(stato: unknown): string {
+    if (typeof stato === 'object' && stato !== null && 'da' in stato) {
+        const da = stato.da;
+
+        if (typeof da === 'string' && da.startsWith('/') && da !== '/login') {
+            return da;
+        }
+    }
+
+    return '/';
+}
+
+/**
  * L'unica pagina che esiste per chi non e' entrato.
  *
  * Non c'e' una registrazione e non c'e' un recupero password: gli account li
@@ -21,8 +48,25 @@ const CAMPI: (keyof Credenziali)[] = ['login', 'password'];
 export const LoginPage = (): React.ReactElement => {
     const [form] = Form.useForm<Credenziali>();
     const [inCorso, setInCorso] = useState(false);
-    const { rileggi } = useAuth();
+    const { stato, rileggi } = useAuth();
+    const { state } = useLocation();
     const { message } = App.useApp();
+
+    /*
+     * Chi e' dentro non ha niente da fare qui, e questo ramo e' l'unica via
+     * d'ingresso al pannello: `entra` fa il POST e rilegge la sessione, ma
+     * fermandosi li' le credenziali venivano accettate, il cookie scritto,
+     * `stato` passava a `dentro` - e l'amministratore restava a guardare il
+     * modulo compilato. L'unico modo di entrare era scrivere `/admin` nella
+     * barra degli indirizzi.
+     *
+     * `replace` e non un `navigate` normale: il login non deve restare nella
+     * cronologia dietro la dashboard, o l'indietro del browser ci
+     * riporterebbe sopra.
+     */
+    if (stato === 'dentro') {
+        return <Navigate to={percorsoDiRitorno(state)} replace />;
+    }
 
     const entra = async (valori: Credenziali): Promise<void> => {
         setInCorso(true);

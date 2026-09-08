@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { hashKey, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchMe, logout } from '@admin/auth/session';
 import type { AdminMe } from '@admin/api/types';
 
@@ -27,13 +27,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }): React.React
 
     const esci = useCallback(async () => {
         await logout();
+
         /*
-         * Tutta la cache, non solo `me`: quel che resta sono elenchi che
-         * appartenevano alla sessione appena chiusa, e lasciarli farebbe
-         * vedere al prossimo che entra i dati caricati dal precedente per un
-         * fotogramma.
+         * Prima si riscrive `me` a `null`, poi si toglie tutto il resto.
+         *
+         * `client.clear()` da solo non bastava, ed e' il difetto piu' subdolo
+         * di questo file: toglie le query dalla cache ma non avvisa un
+         * observer sottoscritto - un `QueryObserver` si sottoscrive alla sua
+         * query, non alla cache - quindi lo `useQuery` qui sopra continuava a
+         * riportare i dati di prima, `stato` restava `dentro` e a schermo non
+         * cambiava niente. Il cookie era distrutto sul server e il pannello
+         * mostrava ancora il nome dell'amministratore in testa: su una
+         * macchina condivisa "sono uscito" era falso nell'unico senso che
+         * conta.
+         *
+         * Riscrivere il dato invece di rimuovere la query e' proprio cio' che
+         * l'observer sente. `me` percio' si SOVRASCRIVE e non si rimuove; il
+         * resto si rimuove com'era, perche' sono elenchi della sessione
+         * appena chiusa e lasciarli li' li farebbe vedere per un fotogramma
+         * al prossimo che entra.
          */
-        client.clear();
+        client.setQueryData(CHIAVE_ME, null);
+        client.removeQueries({ predicate: (query) => query.queryHash !== hashKey(CHIAVE_ME) });
     }, [client]);
 
     const valore = useMemo<Sessione>(() => {

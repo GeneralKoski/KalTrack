@@ -2,21 +2,31 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App as AntApp } from 'antd';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { RouterProvider, createMemoryRouter } from 'react-router-dom';
+import { creaQueryClient } from '@admin/app';
 import { LoginPage } from '@admin/auth/LoginPage';
 import { AuthProvider } from '@admin/auth/AuthProvider';
 
 const risposta = (status: number, corpo: unknown): Response =>
     new Response(JSON.stringify(corpo), { status });
 
+/*
+ * Un router c'e' anche qui, e non e' una cerimonia: da quando la pagina
+ * rimanda dentro chi e' gia' entrato, legge il percorso di ritorno da
+ * `useLocation()` e senza un Router intorno non si monta affatto. Il router
+ * di memoria e' lo stesso schema di `router.test.tsx`.
+ */
 const monta = (): void => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-
     render(
         <AntApp>
-            <QueryClientProvider client={client}>
+            <QueryClientProvider client={creaQueryClient()}>
                 <AuthProvider>
-                    <LoginPage />
+                    <RouterProvider
+                        router={createMemoryRouter([{ path: '/login', element: <LoginPage /> }], {
+                            initialEntries: ['/login'],
+                        })}
+                    />
                 </AuthProvider>
             </QueryClientProvider>
         </AntApp>,
