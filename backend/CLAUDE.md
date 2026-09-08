@@ -109,10 +109,25 @@ Router, TypeScript strict, test con Vitest. Tre cose da non rompere:
   CSRF e torna 419 - e' quel che faceva l'upload di serie di AntD, che fa un
   `fetch` suo per conto proprio, ed e' il motivo per cui `PhotoUpload` usa
   `customRequest`.
-- **Una PATCH manda solo cio' che e' cambiato.** I controller ammin fanno
-  `array_key_exists` campo per campo apposta: mandare tutto vorrebbe dire
-  azzerare le proteine mentre si corregge il sale, e far ripassare il nome dal
-  controllo di unicita' di `name_norm` per una voce che nessuno ha rinominato.
+- **I moduli di scheda rimandano l'intero elenco modificabile, ed e' voluto.**
+  `ExerciseForm` e `FoodForm` mandano tutto cio' che il modulo mostra - nome
+  compreso - a ogni salvataggio, perche' ogni campo e' gia' a schermo e
+  precompilato dalla riga: un'istantanea intera non puo' perdere un valore che
+  nessuno ha guardato. `TaxonomyForm` fa lo stesso sui suoi tre campi
+  modificabili, e trattiene solo lo slug - che non si modifica da li' e che il
+  server ignorerebbe comunque. E' per questo che `array_key_exists` campo per
+  campo, nei controller ammin, e' una **rete di sicurezza** e non un contratto
+  su cui il client fa affidamento: chi manda tutto non ne ha bisogno, chi manda
+  meno lo trova gia' li'.
+- **La coda di revisione (`ReviewDrawer`) e' l'unico punto che confronta
+  davvero**, con `changedFields` contro i valori con cui la proposta e'
+  arrivata - `approve` scrive quel che riceve, e li' un campo intonso deve
+  restare invisibile. Il motivo per cui il confronto serve e' concreto e non
+  ipotetico: `Input`/`Input.TextArea` svuotati mandano `''`, mentre una
+  proposta senza quel campo porta `null` - senza normalizzare `''` in `null`
+  **prima** del confronto (`normalizzaTesto`), un campo di testo che nessuno ha
+  toccato differirebbe comunque e verrebbe scritto come una correzione che
+  nessuno ha fatto.
 - **Gli errori 422 si vedono in due posti**: il `message` in un toast, gli
   `errors` sotto il campo. E' il contrario della regola dell'app (`CLAUDE.md`
   alla radice, § Convenzioni non negoziabili), e qui e' voluto: li' il toast
