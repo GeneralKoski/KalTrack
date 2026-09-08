@@ -14,11 +14,18 @@ import { createFood, searchMyFoods, toggleFoodFavorite } from "@/src/db/queries/
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { syncCatalog } from "@/src/services/catalogSync";
 import { theme } from "@/src/styles";
 import type { FoodInput, FoodRow } from "@/src/types/nutrition";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
-import { ChevronLeft, Plus, Salad, ScanBarcode } from "lucide-react-native";
+import {
+  ChevronLeft,
+  CloudDownload,
+  Plus,
+  Salad,
+  ScanBarcode,
+} from "lucide-react-native";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -38,6 +45,7 @@ export function FoodsScreen() {
   const insets = useSafeAreaInsets();
   const fabBottom = insets.bottom + theme.spacing.lg;
   const [term, setTerm] = useState("");
+  const [importing, setImporting] = useState(false);
   const [debounced, setDebounced] = useState("");
 
   useEffect(() => {
@@ -88,6 +96,25 @@ export function FoodsScreen() {
     reload();
   };
 
+  const aggiornaCatalogo = async () => {
+    setImporting(true);
+    try {
+      // `true`: chi tocca il bottone ha chiesto il catalogo adesso, e la
+      // finestra di un'ora renderebbe questo comando un comando che non fa
+      // niente.
+      const toccate = await syncCatalog(true);
+      showToast.success({
+        title:
+          toccate === 0
+            ? t("foods.imported_none")
+            : t("foods.imported_some", { count: toccate }),
+      });
+      if (toccate > 0) reload();
+    } finally {
+      setImporting(false);
+    }
+  };
+
   /*
    * Il prodotto si salva e si apre subito nel modulo.
    *
@@ -127,6 +154,19 @@ export function FoodsScreen() {
           >
             {t("foods.title")}
           </Text>
+          {/* Come in Esercizi: il catalogo si aggiorna a mano, non da solo. */}
+          <TouchableOpacity
+            onPress={() => void aggiornaCatalogo()}
+            activeOpacity={0.6}
+            hitSlop={10}
+            disabled={importing}
+          >
+            <CloudDownload
+              size={22}
+              color={importing ? colors.textFaint : colors.textSecondary}
+            />
+          </TouchableOpacity>
+
           {/* Il codice a barre e' l'inserimento piu' veloce che ci sia:
               sta nella barra e non dietro il "+", che apre un modulo vuoto. */}
           <TouchableOpacity

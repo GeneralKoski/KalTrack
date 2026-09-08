@@ -1,3 +1,4 @@
+import { syncCatalog } from "@/src/services/catalogSync";
 import { runSync } from "@/src/services/sync";
 import { logger } from "@/src/utils/logger";
 import { AppState, type AppStateStatus } from "react-native";
@@ -45,6 +46,16 @@ async function runIfDue(reason: string, force = false): Promise<void> {
   running = true;
   try {
     const result = await runSync();
+
+    /*
+     * Il catalogo va agganciato qui e non a un timer suo: gli inneschi utili
+     * sono gli stessi - l'avvio e il ritorno in primo piano - e la finestra
+     * di un'ora sta dentro `syncCatalog`, che decide da se' se c'e' da fare.
+     * Non e' atteso: il catalogo e' anagrafica, e la sincronizzazione dei
+     * dati dell'utente non deve aspettarlo.
+     */
+    void syncCatalog();
+
     lastRun = Date.now();
     if (result && (result.pushed > 0 || result.pulled > 0)) {
       logger.info(

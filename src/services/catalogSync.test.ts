@@ -14,7 +14,7 @@ import {
   searchFoods,
   toggleFoodFavorite,
 } from "@/src/db/queries/foods";
-import { getSetting } from "@/src/db/queries/settings";
+import { getSetting, setSetting } from "@/src/db/queries/settings";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
 import { pullExercises, pullFoods, syncCatalog } from "@/src/services/catalogSync";
@@ -22,6 +22,7 @@ import { catalogPhotoPath } from "@/src/services/photoSync";
 import {
   CATALOG_EXERCISES_CURSOR,
   CATALOG_FOODS_CURSOR,
+  CATALOG_PULLED_AT,
 } from "@/src/services/syncMarkers";
 import { useAccountStore } from "@/src/stores/accountStore";
 
@@ -846,5 +847,55 @@ describe("syncCatalog", () => {
       .mockResolvedValueOnce(pagina([alimento()]));
 
     expect(await syncCatalog()).toBe(1);
+  });
+
+  /**
+   * Il pull parte all'avvio e a ogni ritorno in primo piano: senza una
+   * finestra, alternare due app avanti e indietro chiederebbe il catalogo a
+   * ogni passaggio.
+   */
+  it("due chiamate ravvicinate fanno un giro solo", async () => {
+    mockApiRequest.mockResolvedValue(pagina([]));
+
+    await syncCatalog();
+    const dopoIlPrimo = mockApiRequest.mock.calls.length;
+    await syncCatalog();
+
+    expect(mockApiRequest.mock.calls.length).toBe(dopoIlPrimo);
+  });
+
+  it("`force` scavalca la finestra: e' il bottone dell'utente", async () => {
+    mockApiRequest.mockResolvedValue(pagina([]));
+
+    await syncCatalog();
+    const dopoIlPrimo = mockApiRequest.mock.calls.length;
+    await syncCatalog(true);
+
+    expect(mockApiRequest.mock.calls.length).toBeGreaterThan(dopoIlPrimo);
+  });
+
+  it("passata l'ora si rifa'", async () => {
+    mockApiRequest.mockResolvedValue(pagina([]));
+    await syncCatalog();
+
+    // Un'ora e un minuto fa. Si scrive il segnaposto invece di spostare
+    // l'orologio: e' un confronto fra due istanti, e falsificare il dato e'
+    // piu' diretto che falsificare il tempo.
+    await setSetting(
+      CATALOG_PULLED_AT,
+      new Date(Date.now() - 61 * 60 * 1000).toISOString(),
+    );
+    const dopoIlPrimo = mockApiRequest.mock.calls.length;
+
+    await syncCatalog();
+
+    expect(mockApiRequest.mock.calls.length).toBeGreaterThan(dopoIlPrimo);
+  });
+
+  it("senza account non scrive il segnaposto, o il primo pull vero aspetterebbe un'ora", async () => {
+    useAccountStore.setState({ token: null, profile: null });
+
+    expect(await syncCatalog()).toBe(0);
+    expect(await getSetting(CATALOG_PULLED_AT)).toBeNull();
   });
 });

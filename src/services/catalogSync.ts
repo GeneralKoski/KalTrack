@@ -25,6 +25,7 @@ import { catalogPhotoPath } from "@/src/services/photoSync";
 import {
   CATALOG_EXERCISES_CURSOR,
   CATALOG_FOODS_CURSOR,
+  CATALOG_PULLED_AT,
 } from "@/src/services/syncMarkers";
 import { useAccountStore } from "@/src/stores/accountStore";
 import {
@@ -402,18 +403,68 @@ export async function pullFoods(): Promise<number> {
 }
 
 /**
+ * Sotto quest'ora dall'ultimo giro non se ne fa un altro.
+ *
+ * Il catalogo non e' il diario: e' anagrafica comune che cambia quando un
+ * amministratore decide, non quando l'utente registra una serie. Un'ora e'
+ * abbastanza spesso da far arrivare una correzione in giornata e abbastanza
+ * raro da non pesare - e serve soprattutto al ritorno in primo piano, dove
+ * senza finestra alternare due app avanti e indietro chiederebbe il catalogo
+ * a ogni passaggio.
+ */
+export const CATALOG_WINDOW_MS = 60 * 60 * 1000;
+
+/**
+ * Vero se e' passata l'ora, o se non abbiamo mai fatto un giro.
+ *
+ * `Date.parse` e non un confronto fra stringhe: e' la regola 2 della
+ * sincronizzazione, e vale anche qui. Un segnaposto illeggibile conta come
+ * "mai fatto", che al massimo costa un giro in piu'.
+ */
+async function finestraScaduta(): Promise<boolean> {
+  const stored = await getSetting(CATALOG_PULLED_AT);
+  if (stored === null) return true;
+  const ultimo = Date.parse(stored);
+  if (Number.isNaN(ultimo)) return true;
+  return Date.now() - ultimo >= CATALOG_WINDOW_MS;
+}
+
+/**
  * Un giro di catalogo. Torna quante righe ha toccato in tutto.
+ *
+ * `force` lo passa solo il bottone delle due schermate: chi lo tocca ha
+ * appena chiesto il catalogo adesso, e fargli aspettare la finestra sarebbe un
+ * comando che non fa niente.
  *
  * I due pull sono in fila e non in `Promise.all`: `sqliteAdapter` serializza
  * comunque le query su un'unica connessione, quindi il parallelo non
- * guadagnerebbe niente e renderebbe illeggibile l'ordine dei log.
- *
- * Ognuno incassa i propri errori, quindi il secondo parte anche se il primo
- * e' andato male: gli alimenti non devono restare indietro perche' il
- * catalogo degli esercizi non ha risposto.
+ * guadagnerebbe niente e renderebbe illeggibile l'ordine dei log. Ognuno
+ * incassa i propri errori, quindi il secondo parte anche se il primo e'
+ * andato male.
  */
-export async function syncCatalog(): Promise<number> {
+export async function syncCatalog(force = false): Promise<number> {
+  /*
+   * La guardia sta QUI e non nei chiamanti, ed e' la lezione della regola 6
+   * della sincronizzazione: `runSync` ha pagato l'aver tenuto la sua nello
+   * scheduler mentre altri due chiamanti la scavalcavano.
+   */
+  if (!attivo()) return 0;
+  if (!force && !(await finestraScaduta())) return 0;
+
   const esercizi = await pullExercises();
   const alimenti = await pullFoods();
+
+  /*
+   * Il segnaposto si scrive anche quando il giro non ha portato niente, e
+   * anche quando e' fallito.
+   *
+   * Un giro che fallisce per mancanza di rete fallirebbe per lo stesso motivo
+   * in ogni giro della stessa ora, e riprovare ogni quarto d'ora non
+   * cambierebbe l'esito. Chi ha fretta ha il bottone, che passa `force` e non
+   * guarda la finestra: e' li' che sta la via d'uscita, non in un
+   * riprovare automatico piu' insistente.
+   */
+  await setSetting(CATALOG_PULLED_AT, new Date().toISOString());
+
   return esercizi + alimenti;
 }

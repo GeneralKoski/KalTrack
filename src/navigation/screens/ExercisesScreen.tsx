@@ -11,7 +11,7 @@ import { searchExercises } from "@/src/db/queries/exercises";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
-import { importCatalog } from "@/src/services/exerciseCatalog";
+import { syncCatalog } from "@/src/services/catalogSync";
 import { theme } from "@/src/styles";
 import type { ExerciseRow } from "@/src/types/gym";
 import { showToast } from "@/src/utils/toast";
@@ -56,14 +56,17 @@ export function ExercisesScreen() {
   const aggiornaCatalogo = async () => {
     setImporting(true);
     try {
-      const aggiunti = await importCatalog();
+      // `true`: chi tocca il bottone ha chiesto il catalogo adesso, e la
+      // finestra di un'ora renderebbe questo comando un comando che non fa
+      // niente.
+      const toccate = await syncCatalog(true);
       showToast.success({
         title:
-          aggiunti === 0
+          toccate === 0
             ? t("gym.imported_none")
-            : t("gym.imported_some", { count: aggiunti }),
+            : t("gym.imported_some", { count: toccate }),
       });
-      if (aggiunti > 0) reload();
+      if (toccate > 0) reload();
     } finally {
       setImporting(false);
     }
