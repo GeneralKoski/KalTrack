@@ -18,5 +18,8 @@
     "**/*.tsx",
     ".expo/types/**/*.d.ts",
     "nativewind-env.d.ts"
+  ],
+  "exclude": [
+    "backend"
   ]
 }
