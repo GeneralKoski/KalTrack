@@ -59,16 +59,21 @@ async function invia(
 async function leggi<T>(risposta: Response): Promise<T> {
     const testo = await risposta.text();
     let dati: unknown = null;
+    let leggibile = true;
 
     if (testo !== '') {
         try {
             dati = JSON.parse(testo);
         } catch {
-            // Non e' un catch silenzioso: il corpo illeggibile diventa un
-            // ApiError con lo status vero, che e' l'informazione utile. Un
-            // 500 rende una pagina HTML, e pretendere JSON da li' farebbe
-            // vedere "Unexpected token <" al posto di "errore del server".
-            dati = null;
+            // Non e' un catch silenzioso: `leggibile` resta falso e i due
+            // rami sotto decidono cosa farne. Su una risposta non riuscita lo
+            // status e' gia' l'informazione utile - un 500 rende spesso una
+            // pagina HTML, e pretendere JSON da li' farebbe vedere "Unexpected
+            // token <" al posto di "errore del server" - ma su una riuscita
+            // (200 con un corpo che non si legge) non c'e' niente da leggere
+            // al posto dell'errore, e tornare `null` come se fosse un
+            // risultato vuoto nasconderebbe il problema al chiamante.
+            leggibile = false;
         }
     }
 
@@ -80,6 +85,10 @@ async function leggi<T>(risposta: Response): Promise<T> {
             corpo?.message ?? ripiego(risposta.status),
             corpo?.errors ?? {},
         );
+    }
+
+    if (!leggibile) {
+        throw new ApiError(risposta.status, 'Il server ha risposto con qualcosa di illeggibile.');
     }
 
     return dati as T;

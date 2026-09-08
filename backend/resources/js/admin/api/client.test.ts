@@ -85,4 +85,22 @@ describe('apiFetch', () => {
         expect(errore).toBeInstanceOf(ApiError);
         expect((errore as ApiError).status).toBe(500);
     });
+
+    it('un 200 illeggibile e\' un errore, non un risultato vuoto', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue(new Response('<html>non e\' JSON</html>', { status: 200 })),
+        );
+
+        const errore = await apiFetch('/api/admin/stats').catch((e: unknown) => e);
+
+        expect(errore).toBeInstanceOf(ApiError);
+        expect((errore as ApiError).status).toBe(200);
+    });
+
+    it('un 200 senza corpo continua a funzionare', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 200 })));
+
+        await expect(apiFetch('/api/admin/foods/1', { method: 'DELETE' })).resolves.toBeNull();
+    });
 });
