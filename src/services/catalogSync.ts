@@ -32,8 +32,10 @@ import {
   EQUIPMENT,
   MUSCLE_GROUPS,
   type Equipment,
+  type ExerciseRow,
   type MuscleGroup,
 } from "@/src/types/gym";
+import type { FoodInput, FoodRow } from "@/src/types/nutrition";
 import { logger } from "@/src/utils/logger";
 
 /**
@@ -547,4 +549,163 @@ async function eseguiGiroCatalogo(force: boolean): Promise<EsitoGiro> {
   }
 
   return { toccate: esercizi.toccate + alimenti.toccate, riuscito };
+}
+
+/**
+ * Quel che di una voce si propone al catalogo.
+ *
+ * E' il minimo che serve a riconoscerla: nome, gruppo, muscoli, attrezzi. Le
+ * note, il livello di antipatia e le istruzioni restano sul telefono - sono
+ * giudizi personali su un esercizio, non la sua descrizione. Le istruzioni
+ * arrivano al catalogo dal gestionale, che e' il posto dove si scrivono per
+ * una voce che serve a tutti.
+ */
+export interface ExerciseProposal {
+  name: string;
+  muscleGroup: string;
+  secondaryMuscles: string[];
+  equipment: string[];
+}
+
+const toSubmission = (input: ExerciseProposal): catalog.ExerciseSubmission => ({
+  name: input.name,
+  muscleGroup: input.muscleGroup,
+  secondaryMuscles: input.secondaryMuscles.join(","),
+  equipment: input.equipment.join(","),
+});
+
+/**
+ * Propone un esercizio al catalogo, e si tiene l'uid che il server risponde.
+ *
+ * L'uid e' il pezzo che mancava: senza, la correzione successiva doveva
+ * ritrovare la voce cercandone il nome fra quelle **pubblicate** - e una
+ * proposta in attesa non e' fra quelle, quindi depositava una seconda
+ * proposta ogni volta.
+ *
+ * Non solleva e non blocca: l'esercizio e' gia' salvato sul telefono quando
+ * questa parte, e senza rete o senza account resta comunque utilizzabile.
+ */
+export async function submitExerciseToCatalog(
+  localId: string,
+  input: ExerciseProposal,
+): Promise<void> {
+  try {
+    if (!attivo()) return;
+    const esito = await catalog.submitExercise(toSubmission(input));
+    // `null` quando il server non ha creato niente: il nome combacia con una
+    // voce tolta dal catalogo. Non e' un errore, e non c'e' uid da salvare.
+    if (esito) await setExerciseCatalogUid(localId, esito.uid);
+  } catch (error) {
+    if (!alreadyLogged(error)) {
+      logger.warn("[catalogo] esercizio non proposto", error);
+    }
+  }
+}
+
+/**
+ * Corregge la propria proposta.
+ *
+ * Senza uid non c'e' niente da correggere e si propone come nuova: e' la
+ * riga di chi ha creato l'esercizio senza rete, o prima di questa versione.
+ *
+ * Il server rifiuta con 403 una voce che non e' propria o che e' gia'
+ * pubblicata, ed e' previsto: da pubblicata in poi la voce e' nell'app di
+ * tutti e correggerla la cambierebbe a chiunque. La copia dell'autore resta
+ * sul telefono, dove nessuno gliela tocca.
+ */
+export async function amendExerciseSubmission(
+  row: ExerciseRow,
+  input: ExerciseProposal,
+): Promise<void> {
+  try {
+    if (!attivo()) return;
+    if (row.catalog_uid === null) {
+      await submitExerciseToCatalog(row.id, input);
+      return;
+    }
+    await catalog.amendExercise(row.catalog_uid, toSubmission(input));
+  } catch (error) {
+    if (!alreadyLogged(error)) {
+      logger.warn("[catalogo] esercizio non corretto in catalogo", error);
+    }
+  }
+}
+
+/** Ritira la propria proposta, se ne ha una. */
+export async function withdrawExerciseSubmission(
+  row: ExerciseRow,
+): Promise<void> {
+  try {
+    if (!attivo()) return;
+    if (row.catalog_uid === null) return;
+    await catalog.withdrawExercise(row.catalog_uid);
+  } catch (error) {
+    if (!alreadyLogged(error)) {
+      logger.warn("[catalogo] esercizio non ritirato", error);
+    }
+  }
+}
+
+const toFoodSubmission = (input: FoodInput): catalog.FoodSubmission => ({
+  name: input.name,
+  brand: input.brand ?? null,
+  kcal: input.nutrients.kcal,
+  protein: input.nutrients.protein,
+  carbs: input.nutrients.carbs,
+  sugars: input.nutrients.sugars,
+  fat: input.nutrients.fat,
+  saturatedFat: input.nutrients.saturatedFat,
+  fiber: input.nutrients.fiber,
+  salt: input.nutrients.salt,
+  isLiquid: input.isLiquid ?? false,
+  defaultServingG: input.defaultServingG ?? null,
+  servingLabel: input.servingLabel ?? null,
+});
+
+/** Come `submitExerciseToCatalog`. `barcode` e `off_id` non escono: sono di qui. */
+export async function submitFoodToCatalog(
+  localId: string,
+  input: FoodInput,
+): Promise<void> {
+  try {
+    if (!attivo()) return;
+    const esito = await catalog.submitFood(toFoodSubmission(input));
+    if (esito) await setFoodCatalogUid(localId, esito.uid);
+  } catch (error) {
+    if (!alreadyLogged(error)) {
+      logger.warn("[catalogo] alimento non proposto", error);
+    }
+  }
+}
+
+/** Come `amendExerciseSubmission`. */
+export async function amendFoodSubmission(
+  row: FoodRow,
+  input: FoodInput,
+): Promise<void> {
+  try {
+    if (!attivo()) return;
+    if (row.catalog_uid === null) {
+      await submitFoodToCatalog(row.id, input);
+      return;
+    }
+    await catalog.amendFood(row.catalog_uid, toFoodSubmission(input));
+  } catch (error) {
+    if (!alreadyLogged(error)) {
+      logger.warn("[catalogo] alimento non corretto in catalogo", error);
+    }
+  }
+}
+
+/** Come `withdrawExerciseSubmission`. */
+export async function withdrawFoodSubmission(row: FoodRow): Promise<void> {
+  try {
+    if (!attivo()) return;
+    if (row.catalog_uid === null) return;
+    await catalog.withdrawFood(row.catalog_uid);
+  } catch (error) {
+    if (!alreadyLogged(error)) {
+      logger.warn("[catalogo] alimento non ritirato", error);
+    }
+  }
 }

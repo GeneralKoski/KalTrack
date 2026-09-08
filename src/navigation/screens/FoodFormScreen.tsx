@@ -16,10 +16,10 @@ import { LabelScanner } from "@/src/containers/foods/LabelScanner";
 import { NutrientFields } from "@/src/containers/foods/NutrientFields";
 import { createFood, deleteFood, getFood, updateFood } from "@/src/db/queries/foods";
 import {
-  publishFood,
-  unpublishFood,
-  updatePublishedFood,
-} from "@/src/services/foodCatalog";
+  amendFoodSubmission,
+  submitFoodToCatalog,
+  withdrawFoodSubmission,
+} from "@/src/services/catalogSync";
 import { hasBackend } from "@/src/api/config";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
@@ -120,6 +120,10 @@ export function FoodFormScreen() {
   const [initial, setInitial] = useState<FoodFormValues | null>(
     id ? null : EMPTY_VALUES,
   );
+  // La riga vera e propria, tenuta a parte dai valori del modulo: porta
+  // `catalog_uid`, che serve a correggere o ritirare la propria proposta per
+  // uid invece di doverla ritrovare per nome.
+  const [initialRow, setInitialRow] = useState<FoodRow | null>(null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const token = useAccountStore((state) => state.token);
@@ -131,6 +135,7 @@ export function FoodFormScreen() {
       const row = await getFood(id);
       if (!active) return;
       setInitial(row ? toValues(row) : EMPTY_VALUES);
+      setInitialRow(row);
       setPhotoUri(row?.image_uri ?? null);
     })();
     return () => {
@@ -162,20 +167,22 @@ export function FoodFormScreen() {
     };
 
     if (id) {
-      // Il nome di PRIMA serve a ritrovare la voce in catalogo: e' quello con
-      // cui era stata pubblicata, e cercarla col nome nuovo lascerebbe in giro
-      // la vecchia col nome sbagliato.
-      const nomePrecedente = initial?.name ?? input.name;
       await updateFood(id, input);
-      void updatePublishedFood(nomePrecedente, input);
+      /*
+       * Per uid, non col nome di prima. Il commento che c'era diceva che il
+       * nome precedente serviva a ritrovare la voce: era vero finche' la voce
+       * si cercava per nome, ed era anche il motivo per cui non la ritrovava
+       * mai - una proposta in attesa non compare fra le voci pubblicate.
+       */
+      if (initialRow) void amendFoodSubmission(initialRow, input);
     } else {
       // Il codice a barre solo in creazione: e' l'identita' della riga e il
       // modulo non ha un campo per cambiarlo. Senza questa riga il terzo esito
       // della scansione non servirebbe a niente - il prodotto entrerebbe in
       // libreria senza codice, e la scansione successiva lo cercherebbe di
       // nuovo in archivio invece di trovarlo qui.
-      await createFood({ ...input, barcode });
-      void publishFood(input);
+      const nuovoId = await createFood({ ...input, barcode });
+      void submitFoodToCatalog(nuovoId, input);
     }
     showToast.success({ title: t("foods.saved") });
     goBack();
@@ -183,11 +190,9 @@ export function FoodFormScreen() {
 
   const onDelete = async () => {
     if (!id) return;
-    const nome = initial?.name;
     await deleteFood(id);
-    // Toglie anche dal catalogo comune, ma solo se la voce e' propria: il
-    // servizio non prova nemmeno a toccare quella di un altro.
-    if (nome) void unpublishFood(nome);
+    // Ritira anche la propria proposta, se ce n'era una.
+    if (initialRow) void withdrawFoodSubmission(initialRow);
     setConfirmDelete(false);
     showToast.success({ title: t("foods.deleted") });
     goBack();

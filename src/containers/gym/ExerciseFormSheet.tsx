@@ -11,9 +11,9 @@ import {
 } from "@/src/db/queries/exercises";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import {
-  publishToCatalog,
-  updatePublishedExercise,
-} from "@/src/services/exerciseCatalog";
+  amendExerciseSubmission,
+  submitExerciseToCatalog,
+} from "@/src/services/catalogSync";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { theme } from "@/src/styles";
 import {
@@ -145,14 +145,17 @@ export const ExerciseFormSheet = forwardRef<
           instructions: instructions.trim() || null,
           photoUri,
         });
-        void updatePublishedExercise(editing.name, {
+        // Per uid, e non piu' col nome di prima: una proposta in attesa non
+        // e' fra le voci pubblicate, quindi cercarla per nome ne depositava
+        // una seconda a ogni correzione.
+        void amendExerciseSubmission(editing, {
           name: nome,
           muscleGroup,
           secondaryMuscles: secondary,
           equipment,
         });
       } else {
-        await createExercise({
+        const nuovoId = await createExercise({
           name: nome,
           muscleGroup,
           secondaryMuscles: secondary,
@@ -163,7 +166,7 @@ export const ExerciseFormSheet = forwardRef<
 
         // Il catalogo e' un di piu' e non blocca: l'esercizio e' gia' salvato
         // qui, e senza rete resta comunque utilizzabile.
-        void publishToCatalog({
+        void submitExerciseToCatalog(nuovoId, {
           name: nome,
           muscleGroup,
           secondaryMuscles: secondary,

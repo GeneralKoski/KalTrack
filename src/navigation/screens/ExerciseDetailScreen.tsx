@@ -14,7 +14,7 @@ import {
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
-import { unpublishExercise } from "@/src/services/exerciseCatalog";
+import { withdrawExerciseSubmission } from "@/src/services/catalogSync";
 import { theme } from "@/src/styles";
 import { exerciseEquipment, exerciseSecondary } from "@/src/types/gym";
 import { showToast } from "@/src/utils/toast";
@@ -72,9 +72,9 @@ export function ExerciseDetailScreen() {
   const onDelete = async () => {
     if (!exercise) return;
     await deleteExercise(exercise.id);
-    // Toglie anche dal catalogo comune, ma solo se la voce e' propria: il
-    // servizio non prova nemmeno a toccare quella di un altro.
-    void unpublishExercise(exercise.name);
+    // Ritira anche la propria proposta, se ce n'era una: la riga porta l'uid,
+    // quindi non c'e' niente da cercare per nome.
+    void withdrawExerciseSubmission(exercise);
     setConfirmDelete(false);
     showToast.success({ title: t("gym.exercise_deleted") });
     goBack();

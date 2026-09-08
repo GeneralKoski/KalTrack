@@ -17,7 +17,16 @@ import {
 import { getSetting, setSetting } from "@/src/db/queries/settings";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
-import { pullExercises, pullFoods, syncCatalog } from "@/src/services/catalogSync";
+import {
+  amendExerciseSubmission,
+  pullExercises,
+  pullFoods,
+  submitExerciseToCatalog,
+  submitFoodToCatalog,
+  syncCatalog,
+  withdrawExerciseSubmission,
+  withdrawFoodSubmission,
+} from "@/src/services/catalogSync";
 import { catalogPhotoPath } from "@/src/services/photoSync";
 import {
   CATALOG_EXERCISES_CURSOR,
@@ -25,6 +34,7 @@ import {
   CATALOG_PULLED_AT,
 } from "@/src/services/syncMarkers";
 import { useAccountStore } from "@/src/stores/accountStore";
+import type { Equipment, MuscleGroup } from "@/src/types/gym";
 
 jest.mock("@/src/api/config", () => ({
   API_URL: "https://esempio.tld/api",
@@ -984,5 +994,170 @@ describe("syncCatalog", () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+});
+
+describe("proporre e correggere una propria voce", () => {
+  // Tipizzata esplicitamente: senza, `muscleGroup`/`secondaryMuscles`/
+  // `equipment` si allargano a `string`/`string[]` e non bastano piu' a
+  // `createExercise`, che vuole `MuscleGroup`/`Equipment[]`.
+  const proposta: {
+    name: string;
+    muscleGroup: MuscleGroup;
+    secondaryMuscles: MuscleGroup[];
+    equipment: Equipment[];
+  } = {
+    name: "Spinte sopra la testa",
+    muscleGroup: "spalle",
+    secondaryMuscles: ["tricipiti"],
+    equipment: ["manubri"],
+  };
+
+  it("propone e salva l'uid che il server risponde", async () => {
+    const id = await createExercise({ ...proposta });
+    mockApiRequest.mockResolvedValue({ data: { uid: "uuid-della-proposta" } });
+
+    await submitExerciseToCatalog(id, proposta);
+
+    expect(mockApiRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: "post",
+        path: "/catalog/exercises",
+        body: {
+          name: "Spinte sopra la testa",
+          muscleGroup: "spalle",
+          secondaryMuscles: "tricipiti",
+          equipment: "manubri",
+        },
+      }),
+    );
+    expect((await getExercise(id))?.catalog_uid).toBe("uuid-della-proposta");
+  });
+
+  /**
+   * Il server risponde `{ ok: true }` senza `data` quando il nome combacia
+   * con una voce che qualcuno ha tolto dal catalogo: non ha creato niente, e
+   * non c'e' nessun uid da salvare. Non e' un errore.
+   */
+  it("una risposta senza uid non scrive niente e non solleva", async () => {
+    const id = await createExercise({ ...proposta });
+    mockApiRequest.mockResolvedValue({ ok: true });
+
+    await submitExerciseToCatalog(id, proposta);
+
+    expect((await getExercise(id))?.catalog_uid).toBeNull();
+  });
+
+  /**
+   * Il difetto chiuso qui: prima si ritrovava la voce cercando il nome
+   * PRECEDENTE fra le voci pubblicate, e una proposta in attesa non e' fra
+   * quelle - quindi ogni correzione depositava una seconda proposta.
+   */
+  it("corregge la propria proposta per uid, senza cercarla per nome", async () => {
+    const id = await createExercise({
+      ...proposta,
+      catalogUid: "uuid-della-proposta",
+    });
+    const riga = await getExercise(id);
+    mockApiRequest.mockResolvedValue({ data: { uid: "uuid-della-proposta" } });
+
+    await amendExerciseSubmission(riga!, { ...proposta, name: "Military press" });
+
+    expect(mockApiRequest).toHaveBeenCalledTimes(1);
+    expect(mockApiRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: "patch",
+        path: "/catalog/exercises/uuid-della-proposta",
+      }),
+    );
+  });
+
+  /** Senza uid non c'e' niente da correggere: si propone come nuova. */
+  it("una riga senza uid diventa una proposta nuova", async () => {
+    const id = await createExercise({ ...proposta });
+    const riga = await getExercise(id);
+    mockApiRequest.mockResolvedValue({ data: { uid: "uuid-nuovo" } });
+
+    await amendExerciseSubmission(riga!, proposta);
+
+    expect(mockApiRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ method: "post" }),
+    );
+    expect((await getExercise(id))?.catalog_uid).toBe("uuid-nuovo");
+  });
+
+  it("ritira la propria proposta per uid", async () => {
+    const id = await createExercise({
+      ...proposta,
+      catalogUid: "uuid-della-proposta",
+    });
+    const riga = await getExercise(id);
+    mockApiRequest.mockResolvedValue({ ok: true });
+
+    await withdrawExerciseSubmission(riga!);
+
+    expect(mockApiRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: "delete",
+        path: "/catalog/exercises/uuid-della-proposta",
+      }),
+    );
+  });
+
+  it("senza uid non chiede niente al server", async () => {
+    const id = await createExercise({ ...proposta });
+    const riga = await getExercise(id);
+
+    await withdrawExerciseSubmission(riga!);
+
+    expect(mockApiRequest).not.toHaveBeenCalled();
+  });
+
+  it("senza account non propone niente", async () => {
+    useAccountStore.setState({ token: null, profile: null });
+    const id = await createExercise({ ...proposta });
+
+    await submitExerciseToCatalog(id, proposta);
+
+    expect(mockApiRequest).not.toHaveBeenCalled();
+  });
+
+  /**
+   * La voce e' gia' salvata sul telefono quando questa parte: se il catalogo
+   * non risponde, l'utente non deve vedere niente di rotto.
+   */
+  it("un 403 su una voce gia' pubblicata non solleva", async () => {
+    const id = await createExercise({
+      ...proposta,
+      catalogUid: "uuid-della-proposta",
+    });
+    const riga = await getExercise(id);
+    mockApiRequest.mockRejectedValue(new Error("403"));
+
+    await expect(
+      amendExerciseSubmission(riga!, proposta),
+    ).resolves.toBeUndefined();
+  });
+
+  it("gli alimenti seguono le stesse tre regole", async () => {
+    const id = await createFood({
+      name: "Riso",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 358 },
+    });
+    mockApiRequest.mockResolvedValue({ data: { uid: "uuid-riso" } });
+
+    await submitFoodToCatalog(id, { name: "Riso", nutrients: { ...EMPTY_NUTRIENTS, kcal: 358 } });
+    expect((await getFood(id))?.catalog_uid).toBe("uuid-riso");
+
+    const riga = await getFood(id);
+    mockApiRequest.mockClear();
+    mockApiRequest.mockResolvedValue({ ok: true });
+    await withdrawFoodSubmission(riga!);
+    expect(mockApiRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: "delete",
+        path: "/catalog/foods/uuid-riso",
+      }),
+    );
   });
 });
