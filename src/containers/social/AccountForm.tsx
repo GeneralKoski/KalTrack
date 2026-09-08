@@ -4,6 +4,7 @@ import { DfButton } from "@/src/components/form/DfButton";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text, TextInput } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { syncCatalog } from "@/src/services/catalogSync";
 import { runSync } from "@/src/services/sync";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { theme } from "@/src/styles";
@@ -63,6 +64,12 @@ export const AccountForm: React.FC = () => {
       // Subito, non al prossimo giro: chi entra su un telefono nuovo si
       // aspetta di ritrovare i suoi dati adesso, non fra un quarto d'ora.
       void runSync();
+      // Il catalogo va dopo e non atteso, come in App.tsx: e' anagrafica
+      // comune, indipendente dai dati dell'utente, e non deve ritardarli. Fino
+      // ad ora l'accesso non gli dava nessun innesco: aspettava il primo
+      // ritorno in primo piano o il giro periodico dei quindici minuti anche
+      // per un telefono che si iscrive proprio ora.
+      void syncCatalog();
     } catch (error) {
       logger.warn("[account] accesso non riuscito", error);
       if (error instanceof ApiError) {
