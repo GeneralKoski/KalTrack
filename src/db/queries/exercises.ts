@@ -21,6 +21,17 @@ export interface ExerciseInput {
   notes?: string | null;
   photoUri?: string | null;
   isCustom?: boolean;
+  catalogUid?: string | null;
+}
+
+/** I campi che il catalogo possiede, e nessun altro. */
+export interface CatalogExerciseFields {
+  name: string;
+  muscleGroup: string;
+  secondaryMuscles: string[];
+  equipment: string[];
+  instructions: string | null;
+  photoUri: string | null;
 }
 
 export async function createExercise(input: ExerciseInput): Promise<string> {
@@ -31,8 +42,8 @@ export async function createExercise(input: ExerciseInput): Promise<string> {
   await db.runAsync(
     `INSERT INTO exercises (id, name, name_norm, muscle_group, secondary_muscles,
        equipment, is_custom, is_banned, dislike_level, notes, instructions,
-       photo_uri, usage_count, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, 0, ?, ?)`,
+       photo_uri, catalog_uid, usage_count, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, 0, ?, ?)`,
     [
       id,
       input.name,
@@ -44,6 +55,7 @@ export async function createExercise(input: ExerciseInput): Promise<string> {
       input.notes ?? null,
       input.instructions ?? null,
       input.photoUri ?? null,
+      input.catalogUid ?? null,
       now,
       now,
     ],
@@ -284,5 +296,96 @@ export async function deleteExercise(id: string): Promise<void> {
   await db.runAsync(
     "UPDATE exercises SET deleted_at = ?, updated_at = ? WHERE id = ?",
     [now, now, id],
+  );
+}
+
+/** La riga che porta questo uid di catalogo, cancellate escluse. */
+export async function findExerciseByCatalogUid(
+  uid: string,
+): Promise<ExerciseRow | null> {
+  const db = await getDb();
+  return db.getFirstAsync<ExerciseRow>(`${SELECT} AND catalog_uid = ?`, [uid]);
+}
+
+/**
+ * Appiccica l'uid a una riga che non ce l'ha.
+ *
+ * E' il primo pull dopo l'aggiornamento, quando le righe gia' installate si
+ * riconoscono solo dal nome normalizzato: da qui in poi quella riga si
+ * aggancia per uid e una rinomina fatta dal pannello la aggiorna invece di
+ * duplicarla.
+ *
+ * `updated_at` NON si tocca: l'uid non e' una modifica dei dati dell'utente,
+ * e muoverlo rimanderebbe la riga al server a ogni primo pull di ogni
+ * telefono.
+ */
+export async function setExerciseCatalogUid(
+  id: string,
+  uid: string,
+): Promise<void> {
+  const db = await getDb();
+  await db.runAsync("UPDATE exercises SET catalog_uid = ? WHERE id = ?", [
+    uid,
+    id,
+  ]);
+}
+
+/**
+ * Riallinea una riga di catalogo ai valori del server.
+ *
+ * L'elenco delle colonne e' il confine, e va letto come tale: `notes`,
+ * `dislike_level`, `is_banned` e `usage_count` NON ci sono e non devono
+ * comparirci. Sono giudizi su un esercizio e storia di come lo si usa, non la
+ * sua descrizione, e il catalogo non ne sa niente - riscriverli vorrebbe dire
+ * che un aggiornamento del catalogo cancella "questo mi fa male alla spalla".
+ *
+ * `is_custom` non c'e' per il motivo opposto: chi chiama ha gia' verificato
+ * che valga 0, e riscriverlo qui sarebbe l'unico modo di riportare sotto il
+ * catalogo una riga che l'utente si e' preso.
+ */
+export async function applyCatalogExercise(
+  id: string,
+  uid: string,
+  fields: CatalogExerciseFields,
+): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    `UPDATE exercises
+        SET name = ?, name_norm = ?, muscle_group = ?, secondary_muscles = ?,
+            equipment = ?, instructions = ?, photo_uri = ?, catalog_uid = ?,
+            updated_at = ?
+      WHERE id = ?`,
+    [
+      fields.name,
+      normalizeText(fields.name),
+      fields.muscleGroup,
+      JSON.stringify(fields.secondaryMuscles),
+      JSON.stringify(fields.equipment),
+      fields.instructions,
+      fields.photoUri,
+      uid,
+      nowIso(),
+      id,
+    ],
+  );
+}
+
+/**
+ * La voce non e' piu' in catalogo: la riga resta, e diventa dell'utente.
+ *
+ * Non si cancella, e non e' una cautela: cancellandola, ogni allenamento
+ * passato che la nominava perderebbe il nome di quel che si e' fatto. E'
+ * la stessa ragione per cui `deleteRoutine` non cancella i giorni.
+ *
+ * L'uid resta in colonna. Cancellarlo sembrerebbe piu' pulito e sarebbe un
+ * difetto: una voce ripristinata dal pannello non si riconoscerebbe piu' per
+ * uid, il nome combacerebbe con una riga che ora e' `is_custom = 1` e quindi
+ * intoccabile, e il pull finirebbe per inserirne un doppione.
+ */
+export async function detachExerciseFromCatalog(id: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    "UPDATE exercises SET is_custom = 1, updated_at = ? WHERE id = ?",
+    [nowIso(), id],
   );
 }

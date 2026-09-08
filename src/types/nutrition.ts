@@ -23,6 +23,8 @@ export interface FoodRow {
   default_serving_g: number | null;
   serving_label: string | null;
   image_uri: string | null;
+  /** Come `exercises.catalog_uid`: l'identita' nel catalogo comune. */
+  catalog_uid: string | null;
   is_favorite: number;
   usage_count: number;
   is_estimated: number;
@@ -55,6 +57,7 @@ export interface FoodInput {
   defaultServingG?: number | null;
   servingLabel?: string | null;
   imageUri?: string | null;
+  catalogUid?: string | null;
   isEstimated?: boolean;
 }
 

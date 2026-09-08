@@ -1,5 +1,6 @@
 import { getDb } from "@/src/db/index";
 import { newId, nowIso } from "@/src/db/ids";
+import type { Nutrients } from "@/src/domain/nutrition";
 import { normalizeText } from "@/src/domain/text";
 import type { FoodInput, FoodRow } from "@/src/types/nutrition";
 
@@ -79,9 +80,9 @@ export async function createFood(input: FoodInput): Promise<string> {
     `INSERT INTO foods (
        id, name, name_norm, brand, source, barcode, off_id,
        kcal, protein, carbs, sugars, fat, saturated_fat, fiber, salt,
-       is_liquid, default_serving_g, serving_label, image_uri,
+       is_liquid, default_serving_g, serving_label, image_uri, catalog_uid,
        is_favorite, usage_count, is_estimated, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?)`,
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?)`,
     [
       id,
       input.name,
@@ -102,6 +103,7 @@ export async function createFood(input: FoodInput): Promise<string> {
       input.defaultServingG ?? null,
       input.servingLabel ?? null,
       input.imageUri ?? null,
+      input.catalogUid ?? null,
       input.isEstimated ? 1 : 0,
       now,
       now,
@@ -197,4 +199,89 @@ export async function findFoodByName(name: string): Promise<FoodRow | null> {
   return db.getFirstAsync<FoodRow>(`${SELECT_FOOD} AND name_norm = ?`, [
     normalizeText(name),
   ]);
+}
+
+/** I campi che il catalogo possiede. Nota chi NON c'e': `barcode` e `off_id`. */
+export interface CatalogFoodFields {
+  name: string;
+  brand: string | null;
+  nutrients: Nutrients;
+  isLiquid: boolean;
+  defaultServingG: number | null;
+  servingLabel: string | null;
+  imageUri: string | null;
+}
+
+/** La riga che porta questo uid di catalogo, cancellate escluse. */
+export async function findFoodByCatalogUid(
+  uid: string,
+): Promise<FoodRow | null> {
+  const db = await getDb();
+  return db.getFirstAsync<FoodRow>(`${SELECT_FOOD} AND catalog_uid = ?`, [uid]);
+}
+
+/** Come `setExerciseCatalogUid`, e per la stessa ragione: `updated_at` fermo. */
+export async function setFoodCatalogUid(
+  id: string,
+  uid: string,
+): Promise<void> {
+  const db = await getDb();
+  await db.runAsync("UPDATE foods SET catalog_uid = ? WHERE id = ?", [uid, id]);
+}
+
+/**
+ * Riallinea un alimento di catalogo ai valori del server.
+ *
+ * `barcode`, `off_id`, `is_favorite`, `usage_count` e `source` NON ci sono.
+ * I primi due sono identita' e non contenuto - e' la stessa regola per cui
+ * `updateFood` non li tocca; gli altri due sono stato d'uso di questo
+ * telefono; `source` e' il marcatore che dice di chi e' la riga, e
+ * riscriverlo qui sarebbe l'unico modo di riportare sotto il catalogo un
+ * alimento che l'utente si e' preso.
+ */
+export async function applyCatalogFood(
+  id: string,
+  uid: string,
+  fields: CatalogFoodFields,
+): Promise<void> {
+  const db = await getDb();
+  const n = fields.nutrients;
+  await db.runAsync(
+    `UPDATE foods SET
+       name = ?, name_norm = ?, brand = ?,
+       kcal = ?, protein = ?, carbs = ?, sugars = ?, fat = ?,
+       saturated_fat = ?, fiber = ?, salt = ?,
+       is_liquid = ?, default_serving_g = ?, serving_label = ?, image_uri = ?,
+       catalog_uid = ?, updated_at = ?
+     WHERE id = ?`,
+    [
+      fields.name,
+      normalizeText(fields.name),
+      fields.brand,
+      n.kcal,
+      n.protein,
+      n.carbs,
+      n.sugars,
+      n.fat,
+      n.saturatedFat,
+      n.fiber,
+      n.salt,
+      fields.isLiquid ? 1 : 0,
+      fields.defaultServingG,
+      fields.servingLabel,
+      fields.imageUri,
+      uid,
+      nowIso(),
+      id,
+    ],
+  );
+}
+
+/** Come `detachExerciseFromCatalog`: la riga resta, e l'uid con lei. */
+export async function detachFoodFromCatalog(id: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    "UPDATE foods SET source = 'user', updated_at = ? WHERE id = ?",
+    [nowIso(), id],
+  );
 }

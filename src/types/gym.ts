@@ -59,6 +59,13 @@ export interface ExerciseRow {
   notes: string | null;
   instructions: string | null;
   photo_uri: string | null;
+  /**
+   * L'identita' della voce nel catalogo comune, quando ne ha una.
+   *
+   * Null per un esercizio che nessuno ha mai proposto e per le righe scritte
+   * prima della migrazione 019.
+   */
+  catalog_uid: string | null;
   usage_count: number;
   created_at: string;
   updated_at: string;

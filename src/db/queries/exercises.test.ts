@@ -2,10 +2,15 @@ import { createTestDb } from "@/src/db/__testing__/betterSqliteAdapter";
 import { __setDbForTesting } from "@/src/db/index";
 import { runMigrations } from "@/src/db/migrations";
 import {
+  applyCatalogExercise,
   createExercise,
+  detachExerciseFromCatalog,
+  findExerciseByCatalogUid,
   getExercise,
   listAvailableEquipment,
   searchExercises,
+  setExerciseBanned,
+  setExerciseCatalogUid,
   setExerciseDislike,
   setEquipmentAvailability,
   suggestAlternatives,
@@ -232,5 +237,102 @@ describe("attrezzatura e corpo libero", () => {
       await suggestAlternatives(bench, { onlyAvailableEquipment: true })
     ).map((row) => row.id);
     expect(ids).toContain(machine);
+  });
+});
+
+describe("l'aggancio al catalogo", () => {
+  it("ritrova una riga dal suo uid", async () => {
+    const id = await createExercise({
+      name: "Panca piana",
+      muscleGroup: "petto",
+      secondaryMuscles: [],
+      equipment: ["bilanciere"],
+      catalogUid: "ex-panca-piana-bilanciere",
+      isCustom: false,
+    });
+
+    const trovato = await findExerciseByCatalogUid("ex-panca-piana-bilanciere");
+    expect(trovato?.id).toBe(id);
+  });
+
+  /**
+   * E' il primo pull dopo l'aggiornamento: la riga c'e', l'uid no, e si
+   * aggancia per nome una volta sola.
+   */
+  it("appiccica l'uid a una riga che non ce l'ha", async () => {
+    const id = await createExercise({
+      name: "Squat",
+      muscleGroup: "quadricipiti",
+      secondaryMuscles: [],
+      equipment: ["bilanciere"],
+      isCustom: false,
+    });
+    expect((await getExercise(id))?.catalog_uid).toBeNull();
+
+    await setExerciseCatalogUid(id, "ex-squat-bilanciere");
+
+    expect((await getExercise(id))?.catalog_uid).toBe("ex-squat-bilanciere");
+  });
+
+  /**
+   * La regola 2 di questa fase, ed e' quella che il catalogo non deve poter
+   * violare: quel che si pensa di un esercizio non e' la sua descrizione.
+   */
+  it("riscrive la descrizione e non i giudizi personali", async () => {
+    const id = await createExercise({
+      name: "Panca piana",
+      muscleGroup: "petto",
+      secondaryMuscles: [],
+      equipment: ["bilanciere"],
+      notes: "spalla destra, attenzione",
+      isCustom: false,
+    });
+    await setExerciseDislike(id, 2);
+    await setExerciseBanned(id, true);
+
+    await applyCatalogExercise(id, "ex-panca-piana-bilanciere", {
+      name: "Panca piana con bilanciere",
+      muscleGroup: "petto",
+      secondaryMuscles: ["tricipiti"],
+      equipment: ["bilanciere", "panca"],
+      instructions: "Scapole addotte, bilanciere a mezzo petto.",
+      photoUri: null,
+    });
+
+    const riga = await getExercise(id);
+    expect(riga?.name).toBe("Panca piana con bilanciere");
+    expect(riga?.name_norm).toBe("panca piana con bilanciere");
+    expect(riga?.instructions).toBe("Scapole addotte, bilanciere a mezzo petto.");
+    expect(riga?.catalog_uid).toBe("ex-panca-piana-bilanciere");
+    // Quel che il catalogo non deve aver toccato.
+    expect(riga?.notes).toBe("spalla destra, attenzione");
+    expect(riga?.dislike_level).toBe(2);
+    expect(riga?.is_banned).toBe(1);
+  });
+
+  /**
+   * La regola 3: tolta dal catalogo, la riga resta e diventa dell'utente.
+   * Cancellarla porterebbe via il nome a ogni allenamento passato che la
+   * nominava, che e' esattamente quel che `deleteRoutine` evita non
+   * cancellando i giorni.
+   */
+  it("staccata dal catalogo resta, e diventa dell'utente", async () => {
+    const id = await createExercise({
+      name: "Panca piana",
+      muscleGroup: "petto",
+      secondaryMuscles: [],
+      equipment: ["bilanciere"],
+      catalogUid: "ex-panca-piana-bilanciere",
+      isCustom: false,
+    });
+
+    await detachExerciseFromCatalog(id);
+
+    const riga = await getExercise(id);
+    expect(riga).not.toBeNull();
+    expect(riga?.is_custom).toBe(1);
+    // L'uid RESTA: senza, una voce ripristinata dal pannello non si
+    // riconoscerebbe piu' e il pull ne creerebbe un doppione.
+    expect(riga?.catalog_uid).toBe("ex-panca-piana-bilanciere");
   });
 });

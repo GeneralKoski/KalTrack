@@ -2,8 +2,11 @@ import { createTestDb } from "@/src/db/__testing__/betterSqliteAdapter";
 import { __setDbForTesting } from "@/src/db/index";
 import { runMigrations } from "@/src/db/migrations";
 import {
+  applyCatalogFood,
   createFood,
   deleteFood,
+  detachFoodFromCatalog,
+  findFoodByCatalogUid,
   getFood,
   getFoodByBarcode,
   incrementFoodUsage,
@@ -256,5 +259,73 @@ describe("l'identita' di un alimento", () => {
 
     const trovato = await getFoodByBarcode("8001234567890");
     expect(trovato?.id).toBe(id);
+  });
+});
+
+describe("l'aggancio al catalogo", () => {
+  it("ritrova una riga dal suo uid", async () => {
+    const id = await createFood({
+      name: "Riso",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 358 },
+      source: "seed",
+      catalogUid: "food-riso",
+    });
+
+    expect((await findFoodByCatalogUid("food-riso"))?.id).toBe(id);
+  });
+
+  /**
+   * `barcode` e `off_id` sono identita' e non contenuto: nessuna schermata ha
+   * un campo per modificarli, e il catalogo non ne sa piu' di questo telefono
+   * - il codice ce l'ha messo una scansione fatta qui.
+   */
+  it("riscrive i valori e non il codice a barre", async () => {
+    const id = await createFood({
+      name: "Yogurt",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 60 },
+      source: "seed",
+      barcode: "8001234567890",
+      offId: "off-yogurt",
+    });
+    await toggleFoodFavorite(id);
+
+    await applyCatalogFood(id, "food-yogurt", {
+      name: "Yogurt bianco",
+      brand: "Marca",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 62, protein: 3.5 },
+      isLiquid: false,
+      defaultServingG: 125,
+      servingLabel: "1 vasetto = 125 g",
+      imageUri: null,
+    });
+
+    const riga = await getFood(id);
+    expect(riga?.name).toBe("Yogurt bianco");
+    expect(riga?.kcal).toBe(62);
+    expect(riga?.catalog_uid).toBe("food-yogurt");
+    // Identita' e stato d'uso: non li tocca.
+    expect(riga?.barcode).toBe("8001234567890");
+    expect(riga?.off_id).toBe("off-yogurt");
+    expect(riga?.is_favorite).toBe(1);
+  });
+
+  /**
+   * Gli alimenti non hanno `is_custom`: il marcatore e' `source`, e staccarsi
+   * dal catalogo vuol dire passare da 'seed' a 'user'.
+   */
+  it("staccata dal catalogo resta, e diventa dell'utente", async () => {
+    const id = await createFood({
+      name: "Riso",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 358 },
+      source: "seed",
+      catalogUid: "food-riso",
+    });
+
+    await detachFoodFromCatalog(id);
+
+    const riga = await getFood(id);
+    expect(riga).not.toBeNull();
+    expect(riga?.source).toBe("user");
+    expect(riga?.catalog_uid).toBe("food-riso");
   });
 });
