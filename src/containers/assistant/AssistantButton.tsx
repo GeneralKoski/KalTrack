@@ -81,14 +81,27 @@ export const AssistantButton: React.FC<AssistantButtonProps> = ({
   const startListeningRef = useRef(session.startListening);
   startListeningRef.current = session.startListening;
   const servedLaunch = useRef(0);
+  // Stesso motivo del ref sopra: `gate` cambia identita' a ogni render (legge
+  // lo store), e metterlo fra le dipendenze farebbe rigirare l'effetto a ogni
+  // render invece che alla sola comparsa di una richiesta nuova.
+  const gateRef = useRef(gate);
+  gateRef.current = gate;
 
-  // Aperto da fuori (la scorciatoia sull'icona dell'app): chi arriva da lì ha
-  // già in testa la frase da dire, quindi si parte ad ascoltare subito.
+  /*
+   * Aperto da fuori (la scorciatoia sull'icona dell'app, `kaltrack://assistente`):
+   * chi arriva da lì ha già in testa la frase da dire, quindi si parte ad
+   * ascoltare subito - MA e' la stessa porta del tocco sul microfono, e deve
+   * chiedere lo stesso diritto. Senza questo gate un utente senza diritto AI
+   * vedeva il microfono mandarlo ai piani e la scorciatoia dell'icona aprire
+   * comunque l'ascolto: due porte sulla stessa stanza, una delle due aperta.
+   */
   useEffect(() => {
     if (launchRequests === 0 || launchRequests === servedLaunch.current) return;
     servedLaunch.current = launchRequests;
-    setOpen(true);
-    void startListeningRef.current();
+    gateRef.current(() => {
+      setOpen(true);
+      void startListeningRef.current();
+    });
   }, [launchRequests]);
 
   // Il contesto si prepara PRIMA di parlare o scrivere, non dopo: raccoglierlo mentre il

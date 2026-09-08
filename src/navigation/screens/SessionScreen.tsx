@@ -30,7 +30,7 @@ import {
 import { todayIso } from "@/src/domain/date";
 import { matchLoggedSets } from "@/src/domain/session";
 import { suggestNextWeight } from "@/src/domain/strength";
-import { useAiGate } from "@/src/hooks/useAiGate";
+import { useAiAvailable } from "@/src/hooks/useAiGate";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { decimalSeparator } from "@/src/utils/number";
@@ -187,7 +187,16 @@ export function SessionScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const { goBack, navigate } = useAppNav();
-  const gate = useAiGate();
+  /*
+   * "Proponi alternativa" NON e' una funzione AI: il filtro locale
+   * (`suggestAlternatives`) decide gia' da solo cosa e' possibile - muscolo,
+   * esercizi vietati, attrezzatura disponibile - e resta usabile senza rete
+   * e senza diritto. Il riordino AI e' un garnish sopra quel filtro: senza
+   * diritto lo sheet resta aperto e mostra l'elenco locale, non ordinato ne'
+   * spiegato. Per questo qui serve solo il booleano, non il cancello che
+   * naviga: non c'e' niente da vendere in un pulsante che funziona gia'.
+   */
+  const canRankWithAi = useAiAvailable();
   const insets = useSafeAreaInsets();
   const route = useRoute<SessionRoute>();
   const { routineId, dayIndex } = route.params;
@@ -737,7 +746,7 @@ export function SessionScreen() {
 
                         <TouchableOpacity
                           onPress={() =>
-                            gate(() => openAlternatives(item.row.id, exercise))
+                            openAlternatives(item.row.id, exercise)
                           }
                           activeOpacity={0.6}
                           accessibilityRole="button"
@@ -837,7 +846,7 @@ export function SessionScreen() {
         ref={sheetRef}
         exercise={replacing?.exercise ?? null}
         onPick={pickAlternative}
-        rank={rankWithAi}
+        rank={canRankWithAi ? rankWithAi : undefined}
       />
 
       <DfAlert
