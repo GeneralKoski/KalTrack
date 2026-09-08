@@ -4,9 +4,17 @@ import { createTestDb } from "@/src/db/__testing__/betterSqliteAdapter";
 import { __setDbForTesting, getDb } from "@/src/db/index";
 import { MEAL_TYPE_IDS, runMigrations } from "@/src/db/migrations";
 import { addFoodEntry, getDayDiary } from "@/src/db/queries/diary";
-import { createExercise } from "@/src/db/queries/exercises";
+import {
+  createExercise,
+  listAvailableEquipment,
+} from "@/src/db/queries/exercises";
 import { createFood, deleteFood, searchFoods } from "@/src/db/queries/foods";
 import { addPlanEntry, listPlanEntries } from "@/src/db/queries/mealPlan";
+import {
+  listAllTaxonomy,
+  replaceTaxonomy,
+} from "@/src/db/queries/taxonomies";
+import { SEED_EQUIPMENT_TYPES } from "@/src/db/seed/taxonomies";
 import {
   createRoutine,
   listRoutineDays,
@@ -18,6 +26,7 @@ import {
 import { getSetting, setSetting } from "@/src/db/queries/settings";
 import { getSteps, setSteps } from "@/src/db/queries/tracking";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
+import { useTaxonomyStore } from "@/src/stores/taxonomyStore";
 import {
   BACKUP_FORMAT_VERSION,
   BackupFormatError,
@@ -25,6 +34,7 @@ import {
   parseBackup,
   restoreBackup,
   BACKUP_TABLES,
+  type BackupPayload,
 } from "@/src/services/backup";
 
 const seedData = async () => {
@@ -320,6 +330,58 @@ describe("ripristino e sincronizzazione", () => {
 
     const changes = await collectChanges(await getSetting(PUSHED_KEY));
     expect(changes.some((c) => c.table === "foods")).toBe(true);
+  });
+});
+
+describe("ripristino e tassonomia", () => {
+  /**
+   * Il difetto: un backup preso prima della migrazione 020 non contiene ne'
+   * `muscle_groups` ne' `equipment_types`. Il ripristino le svuota comunque
+   * (sono in `BACKUP_TABLES`) e reinserisce `payload.tables[table] ?? []`,
+   * cioe' niente - `runMigrations` non le riscrive perche' lo schema e' gia'
+   * all'ultima versione. Senza un seme che ripara dopo il ripristino le due
+   * tabelle restano vuote per sempre, e da quando i selettori e
+   * `listAvailableEquipment` leggono la tabella invece delle costanti, questo
+   * spegne la palestra su un telefono senza account - senza un pull che la
+   * ripari.
+   */
+  it("un backup senza tassonomia lascia le tabelle riseminate e lo store idratato", async () => {
+    const payload: BackupPayload = {
+      formatVersion: BACKUP_FORMAT_VERSION,
+      exportedAt: "2026-08-01T00:00:00.000Z",
+      schemaVersion: 19,
+      tables: {},
+    };
+
+    await restoreBackup(payload);
+
+    expect(await listAvailableEquipment()).toHaveLength(
+      SEED_EQUIPMENT_TYPES.length,
+    );
+    // Non solo la tabella: lo store in memoria deve riflettere il ripristino
+    // subito, senza aspettare un riavvio - altrimenti etichette e selettori
+    // restano sulle righe di prima del ripristino.
+    expect(useTaxonomyStore.getState().liveEquipment.length).toBe(
+      SEED_EQUIPMENT_TYPES.length,
+    );
+  });
+
+  /**
+   * Un backup che PORTA la tassonomia (preso dopo la 020) non deve perdere
+   * quello che contiene: il seme si applica solo a quel che manca.
+   */
+  it("un backup con la propria tassonomia non viene sovrascritto dal seme", async () => {
+    await replaceTaxonomy("equipment_types", [
+      { slug: "anelli", label_it: "Anelli", label_en: "Rings", sort: 120, deleted_at: null },
+    ]);
+    const payload = await buildBackup();
+
+    await freshDb();
+    await restoreBackup(payload);
+
+    expect(await listAllTaxonomy("equipment_types")).toEqual(
+      expect.arrayContaining([expect.objectContaining({ slug: "anelli" })]),
+    );
   });
 });
 

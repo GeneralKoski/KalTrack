@@ -1,6 +1,6 @@
 import { DB_NAME } from "@/src/consts";
 import { runMigrations } from "@/src/db/migrations";
-import { applyExerciseSeeds, applySeeds } from "@/src/db/seed";
+import { applyExerciseSeeds, applySeeds, applyTaxonomySeeds } from "@/src/db/seed";
 import { wrapDatabase, type LocalDatabase } from "@/src/db/sqliteAdapter";
 import { recordLog } from "@/src/db/queries/logs";
 import { logger, setLogSink } from "@/src/utils/logger";
@@ -43,4 +43,5 @@ export async function initDatabase(): Promise<void> {
   logger.info(`[db] schema alla versione ${version}`);
   await applySeeds(db);
   await applyExerciseSeeds(db);
+  await applyTaxonomySeeds(db);
 }

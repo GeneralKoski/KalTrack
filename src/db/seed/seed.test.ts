@@ -5,10 +5,15 @@ import { __setDbForTesting } from "@/src/db/index";
 import { runMigrations } from "@/src/db/migrations";
 import { toggleExerciseBan } from "@/src/db/queries/exercises";
 import { deleteFood, searchFoods, updateFood } from "@/src/db/queries/foods";
-import { applyExerciseSeeds, applySeeds } from "@/src/db/seed";
+import { replaceTaxonomy } from "@/src/db/queries/taxonomies";
+import { applyExerciseSeeds, applySeeds, applyTaxonomySeeds } from "@/src/db/seed";
 import { toCatalogExercises, toCatalogFoods } from "@/src/db/seed/catalogExport";
 import { SEED_EXERCISES } from "@/src/db/seed/exercises";
 import { SEED_FOODS } from "@/src/db/seed/foods";
+import {
+  SEED_EQUIPMENT_TYPES,
+  SEED_MUSCLE_GROUPS,
+} from "@/src/db/seed/taxonomies";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 import { EQUIPMENT, MUSCLE_GROUPS } from "@/src/types/gym";
@@ -203,6 +208,69 @@ describe("applyExerciseSeeds", () => {
       [SEED_EXERCISES[0].id],
     );
     expect(row?.is_custom).toBe(0);
+  });
+});
+
+describe("applyTaxonomySeeds", () => {
+  const countRows = async (table: string): Promise<number> => {
+    const row = await db.getFirstAsync<{ n: number }>(
+      `SELECT COUNT(*) AS n FROM ${table}`,
+    );
+    return row?.n ?? 0;
+  };
+
+  /**
+   * Il caso normale: la migrazione 020 ha gia' seminato le due tabelle, quindi
+   * qui non c'e' niente da inserire. Verificato con lo stesso schema di
+   * `applySeeds`/`applyExerciseSeeds`: idempotente, non aggiunge doppioni.
+   */
+  it("è idempotente quando le tabelle sono gia' seminate", async () => {
+    await applyTaxonomySeeds(db);
+    await applyTaxonomySeeds(db);
+    expect(await countRows("muscle_groups")).toBe(SEED_MUSCLE_GROUPS.length);
+    expect(await countRows("equipment_types")).toBe(
+      SEED_EQUIPMENT_TYPES.length,
+    );
+  });
+
+  /**
+   * Il difetto che questa funzione esiste per chiudere: una tabella svuotata
+   * da un ripristino (o da qualunque altra causa) non ha piu' un `up` di
+   * migrazione che la ripopoli - `PRAGMA user_version` e' gia' all'ultima
+   * versione. Senza un seme idempotente resterebbe vuota per sempre.
+   */
+  it("rimette gli slug mancanti su una tabella svuotata", async () => {
+    await applyTaxonomySeeds(db);
+    await db.execAsync("DELETE FROM muscle_groups; DELETE FROM equipment_types;");
+    expect(await countRows("muscle_groups")).toBe(0);
+
+    await applyTaxonomySeeds(db);
+
+    expect(await countRows("muscle_groups")).toBe(SEED_MUSCLE_GROUPS.length);
+    expect(await countRows("equipment_types")).toBe(
+      SEED_EQUIPMENT_TYPES.length,
+    );
+  });
+
+  /**
+   * La scelta di un amministratore vince sul seme, come per alimenti ed
+   * esercizi: uno slug gia' presente non si riscrive, nemmeno se e' stato
+   * rinominato.
+   */
+  it("non tocca uno slug gia' presente, anche se rinominato", async () => {
+    await applyTaxonomySeeds(db);
+    await replaceTaxonomy("muscle_groups", [
+      { slug: "petto", label_it: "Torace", label_en: "Chest", sort: 10, deleted_at: null },
+    ]);
+
+    await applyTaxonomySeeds(db);
+
+    const row = await db.getFirstAsync<{ label_it: string }>(
+      "SELECT label_it FROM muscle_groups WHERE slug = ?",
+      ["petto"],
+    );
+    expect(row?.label_it).toBe("Torace");
+    expect(await countRows("muscle_groups")).toBe(SEED_MUSCLE_GROUPS.length);
   });
 });
 

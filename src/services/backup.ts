@@ -1,6 +1,8 @@
 import { getDb } from "@/src/db/index";
 import { MIGRATIONS, runMigrations } from "@/src/db/migrations";
+import { applyTaxonomySeeds } from "@/src/db/seed";
 import { resetSyncMarkers } from "@/src/services/syncMarkers";
+import { useTaxonomyStore } from "@/src/stores/taxonomyStore";
 import { logger } from "@/src/utils/logger";
 
 export const BACKUP_FORMAT_VERSION = 1;
@@ -141,6 +143,18 @@ export async function restoreBackup(payload: BackupPayload): Promise<void> {
   }
 
   /*
+   * Un backup preso prima della migrazione 020 non porta ne' `muscle_groups`
+   * ne' `equipment_types`: il DELETE FROM qui sopra le ha appena svuotate, e
+   * `payload.tables[table] ?? []` non ci ha rimesso niente. `runMigrations`
+   * non le riscrive perche' lo schema e' gia' all'ultima versione. Senza
+   * questa riga le due tabelle restano vuote per sempre, ed e' una funzione
+   * morta: i cinque selettori, `listAvailableEquipment` e `create_exercise`
+   * leggono la tabella, non le costanti. E' un inserimento per eccezione -
+   * non tocca uno slug gia' presente, rinominato dal pannello compreso.
+   */
+  await applyTaxonomySeeds(db);
+
+  /*
    * I segnaposto della sincronizzazione NON si ripristinano.
    *
    * Stanno in `settings`, che è nel backup, quindi il ripristino rimetterebbe
@@ -154,6 +168,12 @@ export async function restoreBackup(payload: BackupPayload): Promise<void> {
    * Azzerandoli, il database ripristinato si riconcilia da capo con il server.
    */
   await resetSyncMarkers();
+
+  // `pullTaxonomies` ridrata subito dopo aver scritto: un ripristino cambia
+  // la tabella allo stesso modo e deve fare lo stesso, o le etichette e i
+  // selettori restano sulle righe di prima del ripristino finche' non si
+  // riavvia l'app.
+  await useTaxonomyStore.getState().hydrate();
 
   logger.info(`[backup] ripristinato (formato ${payload.formatVersion})`);
 }
