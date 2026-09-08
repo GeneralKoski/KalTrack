@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>KalTrack - Gestionale</title>
     {{--
-        Niente @viteReactRefresh: serve @vitejs/plugin-react, che non e'
-        installato ne' configurato in vite.config.js. Senza il plugin e' un
-        no-op in build di produzione, ma in `npm run dev` inietta uno script
-        che chiede /@react-refresh e prende un 404 - rompe il dev server per
-        una feature che qui non esiste. La Fase 2 lo riaggiunge insieme al
-        plugin, quando arriva il pannello React vero.
+        `@viteReactRefresh` PRIMA di `@vite`: inietta il runtime di Fast
+        Refresh, che in `npm run dev` deve esistere prima che il modulo React
+        venga valutato. In build di produzione e' un no-op. Fino alla Fase 2
+        era assente di proposito, perche' `@vitejs/plugin-react` non era
+        installato e lo script chiedeva un /@react-refresh che rispondeva 404.
     --}}
+    @viteReactRefresh
     @vite(['resources/js/admin/main.tsx'])
 </head>
 <body>

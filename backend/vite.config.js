@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
+import { fileURLToPath } from 'node:url';
 import laravel from 'laravel-vite-plugin';
 import { bunny } from 'laravel-vite-plugin/fonts';
+import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
@@ -14,8 +16,17 @@ export default defineConfig({
                 }),
             ],
         }),
+        react(),
         tailwindcss(),
     ],
+    resolve: {
+        // Lo stesso alias sta in `tsconfig.json` e in `vitest.config.ts`.
+        // Sono tre file e un percorso solo: cambiarne uno e non gli altri
+        // fa passare il typecheck e fallire il build, o viceversa.
+        alias: {
+            '@admin': fileURLToPath(new URL('./resources/js/admin', import.meta.url)),
+        },
+    },
     server: {
         watch: {
             ignored: ['**/storage/framework/views/**'],

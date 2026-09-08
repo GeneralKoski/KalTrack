@@ -1,9 +1,16 @@
-// Placeholder in attesa della Fase 2, che sostituisce QUESTO file per intero
-// col pannello React vero. Serve solo perche' `npm run build` funzioni e
-// `GET /admin` non risponda 500: senza, la Fase 1 finirebbe con una rotta
-// che non si puo' distribuire.
+// Per primo, prima di qualunque import di AntD: la patch rimette in piedi i
+// metodi statici di AntD 5 su React 19, che senza non montano niente.
+import '@ant-design/v5-patch-for-react-19';
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { AdminApp } from '@admin/app';
+
 const root = document.getElementById('admin-root');
 
-if (root) {
-    root.textContent = 'Pannello non ancora disponibile.';
+if (root !== null) {
+    createRoot(root).render(
+        <StrictMode>
+            <AdminApp />
+        </StrictMode>,
+    );
 }
