@@ -145,13 +145,29 @@ export const FoodForm = ({ riga, aperto, onChiudi }: Props): React.ReactElement 
     }, [aperto, riga, form]);
 
     const salva = async (valori: Valori): Promise<void> => {
+        /*
+         * `InputNumber` svuotato manda gia' `null` (i sette nutrienti e la
+         * porzione non hanno bisogno di niente): e' `Input` a mandare `''`,
+         * ed e' un'asimmetria di antd, non nostra. Senza normalizzare questi
+         * tre la colonna finisce con una stringa vuota che non e' ne'
+         * assente ne' un valore vero - e per il barcode, che e' identita' e
+         * non contenuto, e' peggio: un filtro esatto su `''` farebbe
+         * rispondere alla stessa ricerca ogni alimento rimasto senza codice.
+         */
+        const corpo = {
+            ...valori,
+            brand: valori.brand === '' ? null : valori.brand,
+            barcode: valori.barcode === '' ? null : valori.barcode,
+            servingLabel: valori.servingLabel === '' ? null : valori.servingLabel,
+        };
+
         setInCorso(true);
 
         try {
             if (riga === null) {
-                await apiFetch('/api/admin/foods', { method: 'POST', body: { ...valori } });
+                await apiFetch('/api/admin/foods', { method: 'POST', body: corpo });
             } else {
-                await apiFetch(`/api/admin/foods/${riga.id}`, { method: 'PATCH', body: { ...valori } });
+                await apiFetch(`/api/admin/foods/${riga.id}`, { method: 'PATCH', body: corpo });
             }
 
             await client.invalidateQueries({ queryKey: ['foods'] });
