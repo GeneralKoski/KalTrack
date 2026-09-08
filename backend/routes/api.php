@@ -148,16 +148,24 @@ Route::middleware('auth:sanctum')->group(function () {
      * aggiornata parla di `catalog/` per tutto invece di leggere da una parte
      * e scrivere dall'altra. Le vecchie restano vive per i telefoni che non
      * si sono ancora aggiornati.
+     *
+     * Le scritture si indirizzano per `uid`, le rotte vecchie per id.
+     *
+     * Non e' simmetria mancata: il telefono tiene `catalog_uid` in una colonna
+     * che si sincronizza, e un autoincrement di questo server in una colonna
+     * che viaggia punterebbe alla riga sbagliata sul secondo dispositivo.
+     * `uid` invece e' una stringa stabile, uguale per chiunque, e un uid che
+     * dall'altra parte non esiste non risolve e basta.
      */
     Route::post('catalog/exercises', [ExerciseController::class, 'store'])
         ->middleware('throttle:30,1');
-    Route::patch('catalog/exercises/{exercise}', [ExerciseController::class, 'update']);
-    Route::delete('catalog/exercises/{exercise}', [ExerciseController::class, 'destroy']);
+    Route::patch('catalog/exercises/{exercise:uid}', [ExerciseController::class, 'update']);
+    Route::delete('catalog/exercises/{exercise:uid}', [ExerciseController::class, 'destroy']);
 
     Route::post('catalog/foods', [FoodController::class, 'store'])
         ->middleware('throttle:60,1');
-    Route::patch('catalog/foods/{food}', [FoodController::class, 'update']);
-    Route::delete('catalog/foods/{food}', [FoodController::class, 'destroy']);
+    Route::patch('catalog/foods/{food:uid}', [FoodController::class, 'update']);
+    Route::delete('catalog/foods/{food:uid}', [FoodController::class, 'destroy']);
 
     /*
      * Il catalogo degli esercizi: l'unica cosa di questo server che e' comune

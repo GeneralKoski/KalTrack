@@ -271,8 +271,14 @@ class ExerciseController extends Controller
     private function publicShape(Exercise $exercise, int $chiGuarda): array
     {
         return [
-            // L'id serve al telefono per chiedere una modifica o una
-            // cancellazione: senza, "questa e' mia" non sarebbe azionabile.
+            /*
+             * L'identita' stabile, ed e' quella che il telefono salva in
+             * colonna: `id` e' un autoincrement di QUESTO server, mentre
+             * `uid` e' una stringa assegnata alla voce e uguale per chiunque.
+             * Entrambi escono perche' entrambi indirizzano una scrittura: le
+             * rotte `catalog/*` per uid, quelle vecchie per id.
+             */
+            'uid' => $exercise->uid,
             'id' => $exercise->id,
             'name' => $exercise->name,
             'nameNorm' => $exercise->name_norm,

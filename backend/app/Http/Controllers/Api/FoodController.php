@@ -274,6 +274,8 @@ class FoodController extends Controller
     private function publicShape(Food $food, int $chiGuarda): array
     {
         return [
+            // Vedi ExerciseController::publicShape.
+            'uid' => $food->uid,
             'id' => $food->id,
             'name' => $food->name,
             'nameNorm' => $food->name_norm,

@@ -120,6 +120,7 @@ class ExerciseCatalogTest extends TestCase
         $corpo = $risposta->json('data.0');
         $this->assertSame(
             [
+                'uid',
                 'id',
                 'name',
                 'nameNorm',
