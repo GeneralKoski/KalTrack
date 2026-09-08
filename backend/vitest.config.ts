@@ -26,6 +26,11 @@ export default defineConfig({
         },
         setupFiles: ['./vitest.setup.ts'],
         include: ['resources/js/admin/**/*.test.{ts,tsx}'],
+        // Il default (5s) basta ovunque tranne dove AntD anima un Modal: le
+        // sue transizioni (`rc-motion`) sotto jsdom impiegano piu' del
+        // fisiologico e un test che aspetta che la finestra compaia sfora,
+        // non per un difetto del test ma per l'orologio di jsdom.
+        testTimeout: 15000,
         restoreMocks: true,
         // `vi.stubGlobal('fetch', ...)` sopravvive al test che lo ha scritto
         // senza questa riga: il test dopo eredita le risposte finte del test
