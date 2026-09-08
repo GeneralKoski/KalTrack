@@ -17,10 +17,27 @@ interface Valori {
     slug: string;
     labelIt: string;
     labelEn: string;
-    sort: number;
+    /*
+     * `null` e non solo `number`: un `InputNumber` svuotato tiene `null`, ed
+     * e' il tipo a dirlo invece di scoprirlo dal 422 del server (vedi
+     * `ordine` sotto).
+     */
+    sort: number | null;
 }
 
 const CAMPI: (keyof Valori)[] = ['slug', 'labelIt', 'labelEn', 'sort'];
+
+/**
+ * L'ordine svuotato vale zero.
+ *
+ * Una tassonomia non ha un "ordine sconosciuto" - le voci si mostrano
+ * comunque in un ordine - quindi `null` non e' un valore che significhi
+ * qualcosa per lei, e `TaxonomyRequest` lo rifiuta con un 422: svuotare il
+ * campo faceva fallire il salvataggio. Si normalizza qui e non aggiungendo
+ * `nullable` di la', proprio perche' quel `null` non avrebbe un senso da
+ * scrivere in colonna.
+ */
+const ordine = (valore: number | null): number => valore ?? 0;
 
 export const TaxonomyForm = ({ kind, riga, aperto, onChiudi }: Props): React.ReactElement => {
     const [form] = Form.useForm<Valori>();
@@ -55,7 +72,10 @@ export const TaxonomyForm = ({ kind, riga, aperto, onChiudi }: Props): React.Rea
 
         try {
             if (riga === null) {
-                await apiFetch(`/api/admin/taxonomies/${kind}`, { method: 'POST', body: { ...valori } });
+                await apiFetch(`/api/admin/taxonomies/${kind}`, {
+                    method: 'POST',
+                    body: { ...valori, sort: ordine(valori.sort) },
+                });
             } else {
                 /*
                  * Lo slug non entra nella PATCH, e il server lo ignorerebbe
@@ -66,7 +86,11 @@ export const TaxonomyForm = ({ kind, riga, aperto, onChiudi }: Props): React.Rea
                  */
                 await apiFetch(`/api/admin/taxonomies/${kind}/${riga.id}`, {
                     method: 'PATCH',
-                    body: { labelIt: valori.labelIt, labelEn: valori.labelEn, sort: valori.sort },
+                    body: {
+                        labelIt: valori.labelIt,
+                        labelEn: valori.labelEn,
+                        sort: ordine(valori.sort),
+                    },
                 });
             }
 

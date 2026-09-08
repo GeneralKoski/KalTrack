@@ -1,16 +1,14 @@
 import { Alert, Card, Col, Row, Skeleton, Statistic, Typography } from 'antd';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { apiFetch } from '@admin/api/client';
 import { messageOf } from '@admin/api/errors';
-import type { Stats } from '@admin/api/types';
+import { useStats } from '@admin/api/stats';
 import { PageHeader } from '@admin/layout/PageHeader';
 
 export const DashboardPage = (): React.ReactElement => {
-    const { data, isPending, error } = useQuery({
-        queryKey: ['stats'],
-        queryFn: () => apiFetch<Stats>('/api/admin/stats'),
-    });
+    // La lettura sta in `useStats` e non qui perche' non e' piu' solo di
+    // questa pagina: i segmenti della coda di revisione mostrano gli stessi
+    // due numeri, e da due letture diverse potrebbero divergere.
+    const { data, isPending, error } = useStats();
 
     if (error !== null) {
         return (

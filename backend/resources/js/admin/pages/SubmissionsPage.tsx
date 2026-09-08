@@ -1,12 +1,44 @@
 import { useMemo, useState } from 'react';
-import { Button, DatePicker, Empty, Input, Segmented, Select, Space, Table, Tag } from 'antd';
+import {
+    Alert,
+    Button,
+    DatePicker,
+    Empty,
+    Input,
+    Segmented,
+    Select,
+    Space,
+    Table,
+    Typography,
+} from 'antd';
 import type { Dayjs } from 'dayjs';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@admin/api/client';
+import { messageOf } from '@admin/api/errors';
+import { useStats } from '@admin/api/stats';
 import type { Elenco, SubmissionRow, SubmissionType } from '@admin/api/types';
+import { TagStato } from '@admin/components/TagStato';
 import { PageHeader } from '@admin/layout/PageHeader';
 import { ReviewDrawer } from '@admin/pages/ReviewDrawer';
+
+/**
+ * Quante proposte sono arrivate, e quante ne resta a schermo dopo i due
+ * filtri locali.
+ *
+ * E' il numero che rende vero il commento su `PER_PAGE`: un cento tondo dice
+ * che la coda ha toccato il tetto della risposta e che il filtro va portato
+ * sul server.
+ */
+function conteggio(mostrate: number, arrivate: number): string {
+    const proposte = arrivate === 1 ? '1 proposta' : `${arrivate} proposte`;
+
+    return mostrate === arrivate ? proposte : `${mostrate} di ${proposte}`;
+}
+
+/** Il tipo con quante ne aspettano, quando le statistiche sono arrivate. */
+const etichettaSegmento = (nome: string, quante: number | undefined): string =>
+    quante === undefined ? nome : `${nome} (${quante})`;
 
 export const SubmissionsPage = (): React.ReactElement => {
     const [parametri, setParametri] = useSearchParams();
@@ -14,6 +46,7 @@ export const SubmissionsPage = (): React.ReactElement => {
     const [periodo, setPeriodo] = useState<[Dayjs, Dayjs] | null>(null);
     const [inRevisione, setInRevisione] = useState<SubmissionRow | null>(null);
     const [aperto, setAperto] = useState(false);
+    const stats = useStats();
 
     const type = (parametri.get('type') ?? 'exercise') as SubmissionType;
     const status = parametri.get('status') ?? 'pending';
@@ -25,10 +58,26 @@ export const SubmissionsPage = (): React.ReactElement => {
         setParametri(prossimi);
     };
 
+    /*
+     * Cambiando tipo, autore e periodo si azzerano.
+     *
+     * Sono i due filtri che stanno in uno stato locale invece che nella URL, e
+     * sopravvivevano al passaggio fra Esercizi e Alimenti: un handle che
+     * esisteva solo fra i proponenti di esercizi restava selezionato, il
+     * `Select` mostrava l'handle grezzo senza etichetta - perche' non e' piu'
+     * fra le opzioni - e la tabella filtrava a zero. Che si legge come "non ci
+     * sono proposte di alimenti".
+     */
+    const cambiaTipo = (valore: SubmissionType): void => {
+        setAutore(undefined);
+        setPeriodo(null);
+        scrivi('type', valore);
+    };
+
     const query = new URLSearchParams({ type, status });
     if (q !== '') query.set('q', q);
 
-    const { data, isPending } = useQuery({
+    const { data, isPending, error } = useQuery({
         queryKey: ['submissions', query.toString()],
         queryFn: () =>
             apiFetch<Elenco<SubmissionRow>>(`/api/admin/submissions?${query.toString()}`).then(
@@ -39,10 +88,15 @@ export const SubmissionsPage = (): React.ReactElement => {
     /*
      * Autore e data si filtrano QUI e non sul server, che non li accetta:
      * `SubmissionController::index` conosce `type`, `status` e `q`, e manda al
-     * massimo cento righe ordinate per data. Su cento righe gia' in mano un
-     * filtro lato client e' esatto quanto uno lato server; se un giorno la
-     * coda superasse le cento, il filtro va portato di la' - e allora si
-     * vedrebbe, perche' la tabella direbbe cento.
+     * massimo cento righe ordinate per data (`PER_PAGE`). Su cento righe gia'
+     * in mano un filtro lato client e' esatto quanto uno lato server; se un
+     * giorno la coda superasse le cento, il filtro va portato di la'.
+     *
+     * Ed e' visibile che sia il momento, perche' il conteggio e' stampato
+     * sopra la tabella e un cento tondo e' il tetto: il commento prometteva
+     * quel controllo quando non c'era nulla che stampasse un numero -
+     * `pagination={false}` e nessun totale nella risposta - cioe' descriveva
+     * una rete che non esisteva.
      */
     const autori = useMemo(() => {
         const visti = new Map<string, string>();
@@ -77,6 +131,21 @@ export const SubmissionsPage = (): React.ReactElement => {
         [data, autore, periodo],
     );
 
+    /*
+     * Come sulle pagine di catalogo: un guasto si dice invece di somigliare a
+     * una coda vuota - che qui sarebbe peggio, perche' "il catalogo e' in
+     * pari" e' un'affermazione, non l'assenza di righe. Il 401 non arriva fin
+     * qui, lo prende `app.tsx`.
+     */
+    if (error !== null) {
+        return (
+            <>
+                <PageHeader titolo="Proposte" />
+                <Alert type="error" showIcon title={messageOf(error)} />
+            </>
+        );
+    }
+
     return (
         <>
             <PageHeader
@@ -85,13 +154,30 @@ export const SubmissionsPage = (): React.ReactElement => {
             />
 
             <Space wrap style={{ marginBottom: 16 }}>
+                {/*
+                    I due numeri stanno sui due segmenti, e non e' un ornamento:
+                    la dashboard somma i due tipi in un riquadro solo ("3
+                    proposte in attesa") e il suo link non porta un `type`,
+                    quindi si atterra su Esercizi. Con zero esercizi e tre
+                    alimenti in coda, la dashboard diceva tre e qui non si
+                    vedeva niente. Ora la coda dice dove sta il lavoro, con lo
+                    stesso `['stats']` che la dashboard ha gia' letto: un
+                    contatore che non venisse da la' potrebbe divergere da
+                    quello, che e' il difetto che si sta chiudendo.
+                */}
                 <Segmented
                     value={type}
                     options={[
-                        { value: 'exercise', label: 'Esercizi' },
-                        { value: 'food', label: 'Alimenti' },
+                        {
+                            value: 'exercise',
+                            label: etichettaSegmento('Esercizi', stats.data?.pending.exercises),
+                        },
+                        {
+                            value: 'food',
+                            label: etichettaSegmento('Alimenti', stats.data?.pending.foods),
+                        },
                     ]}
-                    onChange={(valore) => scrivi('type', String(valore))}
+                    onChange={(valore) => cambiaTipo(valore === 'food' ? 'food' : 'exercise')}
                 />
                 <Select
                     value={status}
@@ -130,6 +216,12 @@ export const SubmissionsPage = (): React.ReactElement => {
                 />
             </Space>
 
+            {data !== undefined && (
+                <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+                    {conteggio(righe.length, data.length)}
+                </Typography.Text>
+            )}
+
             <Table<SubmissionRow>
                 rowKey={(riga) => `${riga.type}-${riga.id}`}
                 loading={isPending}
@@ -137,10 +229,18 @@ export const SubmissionsPage = (): React.ReactElement => {
                 pagination={false}
                 locale={{
                     emptyText: (
+                        /*
+                            Il vuoto parla del TIPO che si sta guardando, non
+                            della coda intera: questa query e' filtrata su
+                            `type`, e "il catalogo e' in pari" era
+                            un'affermazione su tutto ricavata da una risposta
+                            su meta'. Con tre alimenti in attesa, la coda
+                            dichiarava di non avere niente da fare.
+                        */
                         <Empty
                             description={
                                 status === 'pending'
-                                    ? 'Niente in attesa. Il catalogo e\' in pari.'
+                                    ? `Niente in attesa fra ${type === 'exercise' ? 'gli esercizi' : 'gli alimenti'}.`
                                     : 'Nessuna proposta con questi filtri.'
                             }
                         />
@@ -165,19 +265,7 @@ export const SubmissionsPage = (): React.ReactElement => {
                         title: 'Stato',
                         dataIndex: 'status',
                         width: 130,
-                        render: (stato: string) => (
-                            <Tag
-                                color={
-                                    stato === 'pending'
-                                        ? 'gold'
-                                        : stato === 'published'
-                                          ? 'green'
-                                          : 'red'
-                                }
-                            >
-                                {stato}
-                            </Tag>
-                        ),
+                        render: (stato: string) => <TagStato stato={stato} />,
                     },
                     {
                         title: '',

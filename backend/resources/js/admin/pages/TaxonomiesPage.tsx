@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { App, Button, Space, Table, Tabs, Typography } from 'antd';
+import { Alert, App, Button, Space, Table, Tabs, Typography } from 'antd';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@admin/api/client';
 import { messageOf } from '@admin/api/errors';
@@ -9,7 +9,7 @@ import { PageHeader } from '@admin/layout/PageHeader';
 import { TaxonomyForm } from '@admin/pages/TaxonomyForm';
 
 const Elenco = ({ kind }: { kind: TaxonomyKind }): React.ReactElement => {
-    const { data, isPending } = useTaxonomy(kind);
+    const { data, isPending, error } = useTaxonomy(kind);
     const [inModifica, setInModifica] = useState<TaxonomyRow | null>(null);
     const [aperto, setAperto] = useState(false);
     const client = useQueryClient();
@@ -37,6 +37,14 @@ const Elenco = ({ kind }: { kind: TaxonomyKind }): React.ReactElement => {
             },
         });
     };
+
+    // Come sulle altre pagine di elenco: un guasto si dice invece di
+    // somigliare a una tassonomia vuota - che qui sarebbe peggio, perche' un
+    // elenco vuoto e' uno stato che non esiste (il corpo libero non si puo'
+    // togliere). Il 401 non arriva fin qui, lo prende `app.tsx`.
+    if (error !== null) {
+        return <Alert type="error" showIcon title={messageOf(error)} />;
+    }
 
     return (
         <>

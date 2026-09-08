@@ -19,11 +19,12 @@ const CAMPI: (keyof Valori)[] = ['password'];
 
 export const UsersPage = (): React.ReactElement => {
     const [inReset, setInReset] = useState<UserRow | null>(null);
+    const [inCorso, setInCorso] = useState(false);
     const [form] = Form.useForm<Valori>();
     const client = useQueryClient();
     const { message } = App.useApp();
 
-    const { data, isPending } = useQuery({
+    const { data, isPending, error } = useQuery({
         queryKey: ['users'],
         queryFn: () => apiFetch<Risposta>('/api/admin/users').then((r) => r.users),
     });
@@ -44,6 +45,8 @@ export const UsersPage = (): React.ReactElement => {
             return;
         }
 
+        setInCorso(true);
+
         try {
             await apiFetch(`/api/admin/users/${inReset.id}/password`, {
                 method: 'POST',
@@ -54,8 +57,22 @@ export const UsersPage = (): React.ReactElement => {
             form.resetFields();
         } catch (error) {
             applicaErroriServer(form, CAMPI, error, message.error);
+        } finally {
+            setInCorso(false);
         }
     };
+
+    // Come sulle altre pagine di elenco: un guasto si dice invece di
+    // somigliare a un elenco vuoto. Il 401 non arriva fin qui, lo prende
+    // `app.tsx`.
+    if (error !== null) {
+        return (
+            <>
+                <PageHeader titolo="Utenti" />
+                <Alert type="error" showIcon title={messageOf(error)} />
+            </>
+        );
+    }
 
     return (
         <>
@@ -138,6 +155,15 @@ export const UsersPage = (): React.ReactElement => {
                 title={inReset === null ? '' : `Password di ${inReset.handle}`}
                 okText="Reimposta"
                 cancelText="Annulla"
+                /*
+                 * L'unica azione del pannello che assegna una credenziale era
+                 * anche la sola senza uno stato di attesa - `TaxonomyForm` e i
+                 * tre drawer ce l'hanno da sempre. Senza, non si vedeva che
+                 * stava lavorando e un secondo clic partiva: due POST contro
+                 * un `throttle:10,1` speso per niente, e la seconda password
+                 * che vince e' quella che nessuno ha comunicato.
+                 */
+                confirmLoading={inCorso}
                 onOk={() => void form.submit()}
                 onCancel={() => {
                     setInReset(null);

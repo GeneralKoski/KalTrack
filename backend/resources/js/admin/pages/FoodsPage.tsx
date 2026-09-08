@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { App, Button, Input, Space, Table, Tag, Typography } from 'antd';
+import { Alert, App, Button, Input, Space, Table, Tag, Typography } from 'antd';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@admin/api/client';
 import { messageOf } from '@admin/api/errors';
 import type { FoodRow, Paginato } from '@admin/api/types';
 import { CatalogImage } from '@admin/components/CatalogImage';
+import { TagStato } from '@admin/components/TagStato';
+import { numeroPagina } from '@admin/domain/pagina';
 import { PageHeader } from '@admin/layout/PageHeader';
 import { FoodForm } from '@admin/pages/FoodForm';
 
@@ -43,14 +45,14 @@ export const FoodsPage = (): React.ReactElement => {
 
     const q = parametri.get('q') ?? '';
     const barcode = parametri.get('barcode') ?? '';
-    const page = Number(parametri.get('page') ?? '1');
+    const page = numeroPagina(parametri.get('page'));
 
     const query = new URLSearchParams();
     if (q !== '') query.set('q', q);
     if (barcode !== '') query.set('barcode', barcode);
     query.set('page', String(page));
 
-    const { data, isPending } = useQuery({
+    const { data, isPending, error } = useQuery({
         queryKey: ['foods', query.toString()],
         queryFn: () => apiFetch<Paginato<FoodRow>>(`/api/admin/foods?${query.toString()}`),
     });
@@ -76,6 +78,17 @@ export const FoodsPage = (): React.ReactElement => {
             },
         });
     };
+
+    // Come su Esercizi: un guasto si dice invece di somigliare a un catalogo
+    // vuoto. Il 401 non arriva fin qui, lo prende `app.tsx`.
+    if (error !== null) {
+        return (
+            <>
+                <PageHeader titolo="Alimenti" />
+                <Alert type="error" showIcon title={messageOf(error)} />
+            </>
+        );
+    }
 
     return (
         <>
@@ -158,9 +171,7 @@ export const FoodsPage = (): React.ReactElement => {
                         title: 'Stato',
                         dataIndex: 'status',
                         width: 120,
-                        render: (stato: string) => (
-                            <Tag color={stato === 'published' ? 'green' : 'default'}>{stato}</Tag>
-                        ),
+                        render: (stato: string) => <TagStato stato={stato} />,
                     },
                     {
                         title: '',

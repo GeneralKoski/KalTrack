@@ -164,6 +164,17 @@ export const ReviewDrawer = ({ proposta, aperto, onChiudi }: Props): React.React
     const dopoLaDecisione = async (): Promise<void> => {
         await client.invalidateQueries({ queryKey: ['submissions'] });
         await client.invalidateQueries({ queryKey: ['stats'] });
+        /*
+         * Anche il catalogo del tipo deciso: approvare ci mette una riga
+         * dentro. Oggi non si vedeva perche' quelle query hanno `staleTime`
+         * zero e si rileggono al montaggio, cioe' il difetto era latente -
+         * il giorno che una delle due prendesse uno `staleTime`, chi passa da
+         * Proposte a Esercizi vedrebbe un catalogo senza la voce appena
+         * approvata.
+         */
+        await client.invalidateQueries({
+            queryKey: [proposta.type === 'exercise' ? 'exercises' : 'foods'],
+        });
         onChiudi();
     };
 

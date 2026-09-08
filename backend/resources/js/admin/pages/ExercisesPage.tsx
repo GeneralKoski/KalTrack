@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { App, Button, Input, Select, Space, Table, Tag, Typography } from 'antd';
+import { Alert, App, Button, Input, Select, Space, Table, Tag, Typography } from 'antd';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@admin/api/client';
@@ -7,7 +7,9 @@ import { messageOf } from '@admin/api/errors';
 import { opzioniTassonomia, useTaxonomy } from '@admin/api/taxonomies';
 import type { ExerciseRow, Paginato, TaxonomyRow } from '@admin/api/types';
 import { CatalogImage } from '@admin/components/CatalogImage';
+import { TagStato } from '@admin/components/TagStato';
 import { splitCsv } from '@admin/domain/csv';
+import { numeroPagina } from '@admin/domain/pagina';
 import { PageHeader } from '@admin/layout/PageHeader';
 import { ExerciseForm } from '@admin/pages/ExerciseForm';
 
@@ -58,7 +60,7 @@ export const ExercisesPage = (): React.ReactElement => {
     const muscleGroup = parametri.get('muscleGroup') ?? '';
     const equipment = parametri.get('equipment') ?? '';
     const missing = parametri.get('missing') ?? '';
-    const page = Number(parametri.get('page') ?? '1');
+    const page = numeroPagina(parametri.get('page'));
 
     const query = new URLSearchParams();
     if (q !== '') query.set('q', q);
@@ -67,7 +69,7 @@ export const ExercisesPage = (): React.ReactElement => {
     if (missing !== '') query.set('missing', missing);
     query.set('page', String(page));
 
-    const { data, isPending } = useQuery({
+    const { data, isPending, error } = useQuery({
         queryKey: ['exercises', query.toString()],
         queryFn: () => apiFetch<Paginato<ExerciseRow>>(`/api/admin/exercises?${query.toString()}`),
     });
@@ -93,6 +95,22 @@ export const ExercisesPage = (): React.ReactElement => {
             },
         });
     };
+
+    /*
+     * Un guasto si dice, non si disegna come un catalogo vuoto: senza questo
+     * ramo un 500 o una rete caduta finivano in `data?.data ?? []`, cioe' in
+     * "Nessun dato" - la stessa schermata che si vede quando il catalogo e'
+     * davvero vuoto. Il 401 non arriva fin qui: lo intercetta il gestore
+     * della cache in `app.tsx` e rimanda al login.
+     */
+    if (error !== null) {
+        return (
+            <>
+                <PageHeader titolo="Esercizi" />
+                <Alert type="error" showIcon title={messageOf(error)} />
+            </>
+        );
+    }
 
     return (
         <>
@@ -199,9 +217,7 @@ export const ExercisesPage = (): React.ReactElement => {
                         title: 'Stato',
                         dataIndex: 'status',
                         width: 120,
-                        render: (stato: string) => (
-                            <Tag color={stato === 'published' ? 'green' : 'default'}>{stato}</Tag>
-                        ),
+                        render: (stato: string) => <TagStato stato={stato} />,
                     },
                     {
                         title: '',
