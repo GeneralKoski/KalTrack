@@ -1,3 +1,95 @@
+import { Alert, Card, Col, Row, Skeleton, Statistic, Typography } from 'antd';
+import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { apiFetch } from '@admin/api/client';
+import { messageOf } from '@admin/api/errors';
+import type { Stats } from '@admin/api/types';
 import { PageHeader } from '@admin/layout/PageHeader';
 
-export const DashboardPage = (): React.ReactElement => <PageHeader titolo="Dashboard" />;
+export const DashboardPage = (): React.ReactElement => {
+    const { data, isPending, error } = useQuery({
+        queryKey: ['stats'],
+        queryFn: () => apiFetch<Stats>('/api/admin/stats'),
+    });
+
+    if (error !== null) {
+        return (
+            <>
+                <PageHeader titolo="Dashboard" />
+                <Alert type="error" showIcon message={messageOf(error)} />
+            </>
+        );
+    }
+
+    if (isPending) {
+        return (
+            <>
+                <PageHeader titolo="Dashboard" />
+                <Skeleton active />
+            </>
+        );
+    }
+
+    return (
+        <>
+            <PageHeader titolo="Dashboard" />
+            <Row gutter={[16, 16]}>
+                <Col xs={24} sm={12} lg={6}>
+                    <Card>
+                        <Statistic
+                            title="Proposte in attesa"
+                            value={data.pending.exercises + data.pending.foods}
+                        />
+                        <Link to="/proposte">Vai alla coda</Link>
+                    </Card>
+                </Col>
+                <Col xs={24} sm={12} lg={6}>
+                    <Card>
+                        <Statistic title="Iscritti" value={data.users} />
+                        <Link to="/utenti">Vedi gli utenti</Link>
+                    </Card>
+                </Col>
+                <Col xs={24} sm={12} lg={6}>
+                    <Card>
+                        <Statistic title="Esercizi pubblicati" value={data.published.exercises} />
+                        <Link to="/esercizi">Apri il catalogo</Link>
+                    </Card>
+                </Col>
+                <Col xs={24} sm={12} lg={6}>
+                    <Card>
+                        <Statistic title="Alimenti pubblicati" value={data.published.foods} />
+                        <Link to="/alimenti">Apri il catalogo</Link>
+                    </Card>
+                </Col>
+            </Row>
+
+            <Typography.Title level={5} style={{ marginTop: 24 }}>
+                Cosa manca
+            </Typography.Title>
+            <Typography.Paragraph type="secondary">
+                Conta solo gli esercizi <strong>pubblicati</strong>: una proposta ancora in coda non
+                e&apos; un buco nel catalogo, e&apos; una riga da revisionare.
+            </Typography.Paragraph>
+            <Row gutter={[16, 16]}>
+                <Col xs={24} sm={12}>
+                    <Card>
+                        <Statistic title="Esercizi senza descrizione" value={data.missing.instructions} />
+                        {/*
+                            Il numero e il filtro che ci porta dentro sono le
+                            due meta' dello stesso rimedio: sapere che 128
+                            esercizi sono muti non serve a niente se poi non
+                            si sa quali.
+                        */}
+                        <Link to="/esercizi?missing=instructions">Vedi quali</Link>
+                    </Card>
+                </Col>
+                <Col xs={24} sm={12}>
+                    <Card>
+                        <Statistic title="Esercizi senza foto" value={data.missing.photos} />
+                        <Link to="/esercizi?missing=photo">Vedi quali</Link>
+                    </Card>
+                </Col>
+            </Row>
+        </>
+    );
+};
