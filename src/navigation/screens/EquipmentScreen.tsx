@@ -9,8 +9,9 @@ import {
 } from "@/src/db/queries/exercises";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { useTaxonomyStore } from "@/src/stores/taxonomyStore";
 import { theme } from "@/src/styles";
-import { EQUIPMENT, type Equipment } from "@/src/types/gym";
+import type { Equipment } from "@/src/types/gym";
 import { logger } from "@/src/utils/logger";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, Switch } from "react-native";
@@ -32,6 +33,8 @@ export function EquipmentScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const { replace } = useAppNav();
+  const equipmentLabel = useTaxonomyStore((s) => s.equipmentLabel);
+  const liveEquipment = useTaxonomyStore((s) => s.liveEquipment);
   const route =
     useRoute<RouteProp<{ params?: { setupForRoutine?: boolean } }, "params">>();
   const setupForRoutine = route.params?.setupForRoutine ?? false;
@@ -62,7 +65,7 @@ export function EquipmentScreen() {
     }
   };
 
-  const items = EQUIPMENT.filter((item) => item !== "corpo_libero");
+  const items = liveEquipment.filter((riga) => riga.slug !== "corpo_libero");
 
   return (
     <SettingsPage title={t("gym.equipment_title")}>
@@ -74,14 +77,14 @@ export function EquipmentScreen() {
          l'elenco ha lo stesso ritmo e la stessa linea di tutti gli altri
          elenchi dell'app. */}
       <ListGroup indent={theme.spacing.md}>
-        {items.map((item) => (
+        {items.map((riga) => (
           <ListRow
-            key={item}
-            label={t(`gym.equipment.${item}`)}
+            key={riga.slug}
+            label={equipmentLabel(riga.slug)}
             right={
               <Switch
-                value={state[item] !== false}
-                onValueChange={(next) => void toggle(item, next)}
+                value={state[riga.slug] !== false}
+                onValueChange={(next) => void toggle(riga.slug, next)}
               />
             }
           />

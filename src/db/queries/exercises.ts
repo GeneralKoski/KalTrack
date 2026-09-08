@@ -3,7 +3,6 @@ import { newId, nowIso } from "@/src/db/ids";
 import { normalizeText } from "@/src/domain/text";
 import {
   canDoWith,
-  EQUIPMENT,
   exerciseEquipment,
   type Equipment,
   type ExerciseRow,
@@ -180,20 +179,32 @@ export async function listEquipmentAvailability(): Promise<
 }
 
 /**
- * L'attrezzatura che si puo' usare: tutta, tranne quella tolta a mano.
+ * L'attrezzatura che si puo' usare: tutta quella che la tassonomia conosce,
+ * tranne quella tolta a mano.
  *
- * E' un elenco per eccezione e non per dichiarazione: un attrezzo mai
- * toccato conta come disponibile. Il contrario - partire da zero e chiedere
- * di spuntare quel che si ha - lasciava i chip tutti spenti al primo avvio, e
+ * E' un elenco per eccezione e non per dichiarazione: un attrezzo mai toccato
+ * conta come disponibile. Il contrario - partire da zero e chiedere di
+ * spuntare quel che si ha - lasciava i chip tutti spenti al primo avvio, e
  * senza uno stato attivo visibile sembravano non rispondere al tocco.
+ *
+ * L'elenco di partenza era la costante `EQUIPMENT`, e adesso e' la tabella:
+ * un attrezzo aggiunto dal pannello diventa disponibile senza un rilascio
+ * dell'app, e uno cancellato smette di essere offerto. I cancellati si
+ * escludono perche' qui si OFFRE UNA SCELTA - le etichette, che disegnano
+ * quel che c'e' gia', li comprendono.
  */
 export async function listAvailableEquipment(): Promise<string[]> {
   const db = await getDb();
-  const rows = await db.getAllAsync<{ name: string }>(
-    "SELECT name FROM user_equipment WHERE available = 0 AND deleted_at IS NULL",
+  const rows = await db.getAllAsync<{ slug: string }>(
+    `SELECT slug FROM equipment_types
+      WHERE deleted_at IS NULL
+        AND slug NOT IN (
+          SELECT name FROM user_equipment
+           WHERE available = 0 AND deleted_at IS NULL
+        )
+      ORDER BY sort, slug`,
   );
-  const unavailable = new Set(rows.map((r) => r.name));
-  return EQUIPMENT.filter((item) => !unavailable.has(item));
+  return rows.map((r) => r.slug);
 }
 
 /**

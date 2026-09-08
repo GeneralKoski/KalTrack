@@ -25,6 +25,7 @@ import {
   type TaxonomyRow,
 } from "@/src/db/queries/taxonomies";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
+import { knownSlugs } from "@/src/domain/taxonomy";
 import { catalogPhotoPath } from "@/src/services/photoSync";
 import {
   CATALOG_EXERCISES_CURSOR,
@@ -33,13 +34,7 @@ import {
 } from "@/src/services/syncMarkers";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { useTaxonomyStore } from "@/src/stores/taxonomyStore";
-import {
-  EQUIPMENT,
-  MUSCLE_GROUPS,
-  type Equipment,
-  type ExerciseRow,
-  type MuscleGroup,
-} from "@/src/types/gym";
+import type { ExerciseRow } from "@/src/types/gym";
 import type { FoodInput, FoodRow } from "@/src/types/nutrition";
 import { logger } from "@/src/utils/logger";
 
@@ -114,27 +109,29 @@ const writeCursor = (key: string, cursore: catalog.CatalogCursor) =>
   setSetting(key, JSON.stringify(cursore));
 
 /**
- * Gli slug che questa versione dell'app conosce.
+ * Gli slug che la tassonomia conosce, cancellati compresi.
  *
- * Il metro sono ancora le costanti di `src/types/gym.ts`; dal task 12 sara' la
- * tassonomia locale, cioe' quel che il server dichiara. Il controllo non
- * sparisce, cambia fonte: quel che non si conosce si butta invece di entrare
- * in colonna e girare per l'app come se fosse buono.
+ * Il metro era `MUSCLE_GROUPS` / `EQUIPMENT`, cioe' quel che questa versione
+ * dell'app aveva compilato dentro: un gruppo aggiunto dal pannello veniva
+ * buttato per sempre. Ora e' quel che il server dichiara, e il controllo non
+ * sparisce - cambia fonte. Quel che nemmeno la tassonomia conosce si butta
+ * come prima: il catalogo lo scrivono anche altri telefoni, e una stringa
+ * sconosciuta in colonna girerebbe per l'app come se fosse un valore vero.
+ *
+ * I cancellati contano come noti: un esercizio che nomina un gruppo tolto dal
+ * pannello non diventa sbagliato, e la sua etichetta c'e' ancora.
  */
-const isMuscleGroup = (value: string): value is MuscleGroup =>
-  (MUSCLE_GROUPS as readonly string[]).includes(value);
+const muscoliNoti = (): Set<string> =>
+  knownSlugs(useTaxonomyStore.getState().muscleGroups);
 
-const parseMuscles = (value: string | null | undefined): MuscleGroup[] =>
+const attrezziNoti = (): Set<string> =>
+  knownSlugs(useTaxonomyStore.getState().equipment);
+
+const parseSlugs = (value: string | null | undefined, noti: Set<string>): string[] =>
   (value ?? "")
     .split(",")
     .map((v) => v.trim())
-    .filter(isMuscleGroup);
-
-const parseEquipment = (value: string | null | undefined): Equipment[] =>
-  (value ?? "")
-    .split(",")
-    .map((v) => v.trim())
-    .filter((v): v is Equipment => (EQUIPMENT as readonly string[]).includes(v));
+    .filter((v) => noti.has(v));
 
 /**
  * Una voce di catalogo applicata alla riga locale. Torna true se ha toccato
@@ -164,7 +161,7 @@ async function applyExercise(voce: catalog.CatalogExercise): Promise<boolean> {
     return true;
   }
 
-  if (!voce.name || !voce.muscleGroup || !isMuscleGroup(voce.muscleGroup)) {
+  if (!voce.name || !voce.muscleGroup || !muscoliNoti().has(voce.muscleGroup)) {
     return false;
   }
 
@@ -187,8 +184,8 @@ async function applyExercise(voce: catalog.CatalogExercise): Promise<boolean> {
   const campi = {
     name: voce.name,
     muscleGroup: voce.muscleGroup,
-    secondaryMuscles: parseMuscles(voce.secondaryMuscles),
-    equipment: parseEquipment(voce.equipment),
+    secondaryMuscles: parseSlugs(voce.secondaryMuscles, muscoliNoti()),
+    equipment: parseSlugs(voce.equipment, attrezziNoti()),
     instructions: voce.instructions ?? null,
     /*
      * Il PERCORSO si scrive subito, i byte arrivano dopo.

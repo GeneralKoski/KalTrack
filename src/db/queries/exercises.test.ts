@@ -16,6 +16,7 @@ import {
   suggestAlternatives,
   toggleExerciseBan,
 } from "@/src/db/queries/exercises";
+import { replaceTaxonomy } from "@/src/db/queries/taxonomies";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 
 let db: LocalDatabase;
@@ -110,6 +111,45 @@ describe("attrezzatura", () => {
     await setEquipmentAvailability("cavi", true);
     await setEquipmentAvailability("cavi", false);
     expect(await listAvailableEquipment()).not.toContain("cavi");
+  });
+});
+
+describe("listAvailableEquipment con la tassonomia", () => {
+  /**
+   * L'elenco e' per ECCEZIONE e non per dichiarazione: un attrezzo mai
+   * toccato conta come disponibile. Su un telefono appena installato il
+   * risultato e' quindi l'attrezzatura completa.
+   */
+  it("torna tutti gli attrezzi vivi, meno quelli tolti a mano", async () => {
+    await setEquipmentAvailability("cavi", false);
+
+    const disponibili = await listAvailableEquipment();
+
+    expect(disponibili).not.toContain("cavi");
+    expect(disponibili).toContain("bilanciere");
+    expect(disponibili).toHaveLength(10);
+  });
+
+  /**
+   * Un attrezzo cancellato dal pannello non si offre piu': non e' una scelta
+   * che si possa fare, e proporlo genererebbe schede con un attrezzo che il
+   * catalogo non conosce piu'.
+   */
+  it("non offre un attrezzo cancellato dalla tassonomia", async () => {
+    await replaceTaxonomy("equipment_types", [
+      { slug: "trx", label_it: "TRX", label_en: "TRX", sort: 100, deleted_at: "2026-09-08T09:00:00+00:00" },
+    ]);
+
+    expect(await listAvailableEquipment()).not.toContain("trx");
+  });
+
+  /** Uno slug nuovo arriva senza un rilascio dell'app. */
+  it("offre uno slug che il pannello ha aggiunto", async () => {
+    await replaceTaxonomy("equipment_types", [
+      { slug: "anelli", label_it: "Anelli", label_en: "Rings", sort: 120, deleted_at: null },
+    ]);
+
+    expect(await listAvailableEquipment()).toContain("anelli");
   });
 });
 

@@ -64,6 +64,10 @@ beforeEach(async () => {
   await runMigrations(db);
   __setDbForTesting(db);
   useAccountStore.setState({ token: "token-valido", profile: null });
+  // Come fa `App.tsx` all'avvio: senza, `muscoliNoti()`/`attrezziNoti()`
+  // partono vuoti e il filtro del pull butterebbe anche gli slug seminati
+  // dalla migrazione 020.
+  await useTaxonomyStore.getState().hydrate();
 });
 
 afterEach(() => __setDbForTesting(null));

@@ -15,6 +15,7 @@ import { Text } from "@/src/components/ui";
 import { listAvailableEquipment } from "@/src/db/queries/exercises";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { useTaxonomyStore } from "@/src/stores/taxonomyStore";
 import { theme } from "@/src/styles";
 import { EQUIPMENT, type Equipment } from "@/src/types/gym";
 import { logger } from "@/src/utils/logger";
@@ -59,6 +60,7 @@ export function GenerateRoutineScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const { navigate, popTo, goBack } = useAppNav();
+  const equipmentLabel = useTaxonomyStore((s) => s.equipmentLabel);
   const formRef = useRef<DfFormRef>(null);
   const [loading, setLoading] = useState(false);
 
@@ -235,9 +237,7 @@ export function GenerateRoutineScreen() {
               >
                 {equipment.length === 0
                   ? t("gym.no_equipment_selected")
-                  : equipment
-                      .map((item) => t(`gym.equipment.${item}`))
-                      .join(" · ")}
+                  : equipment.map(equipmentLabel).join(" · ")}
               </Text>
             </Card>
 

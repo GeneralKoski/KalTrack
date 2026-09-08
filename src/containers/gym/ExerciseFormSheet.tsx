@@ -15,11 +15,10 @@ import {
   submitExerciseToCatalog,
 } from "@/src/services/catalogSync";
 import { useAccountStore } from "@/src/stores/accountStore";
+import { useTaxonomyStore } from "@/src/stores/taxonomyStore";
 import { theme } from "@/src/styles";
 import {
   DEFAULT_MUSCLE_GROUP,
-  EQUIPMENT,
-  MUSCLE_GROUPS,
   exerciseEquipment,
   exerciseSecondary,
   type Equipment,
@@ -71,6 +70,10 @@ export const ExerciseFormSheet = forwardRef<
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const token = useAccountStore((s) => s.token);
+  const muscleLabel = useTaxonomyStore((s) => s.muscleLabel);
+  const equipmentLabel = useTaxonomyStore((s) => s.equipmentLabel);
+  const gruppi = useTaxonomyStore((s) => s.liveMuscleGroups);
+  const attrezzi = useTaxonomyStore((s) => s.liveEquipment);
 
   const [view, setView] = useState<FormView>("form");
   const [name, setName] = useState("");
@@ -214,17 +217,17 @@ export const ExerciseFormSheet = forwardRef<
     >
       {view === "muscle" ? (
         <View>
-          {MUSCLE_GROUPS.map((gruppo, index) => (
+          {gruppi.map((riga, index) => (
             <PickRow
-              key={gruppo}
-              label={t(`gym.muscle.${gruppo}`)}
-              selected={muscleGroup === gruppo}
-              isLast={index === MUSCLE_GROUPS.length - 1}
+              key={riga.slug}
+              label={muscleLabel(riga.slug)}
+              selected={muscleGroup === riga.slug}
+              isLast={index === gruppi.length - 1}
               onPress={() => {
-                setMuscleGroup(gruppo);
+                setMuscleGroup(riga.slug);
                 // Il principale non e' anche secondario: comparirebbe due
                 // volte nella stessa scheda e falserebbe le alternative.
-                setSecondary((prima) => prima.filter((m) => m !== gruppo));
+                setSecondary((prima) => prima.filter((m) => m !== riga.slug));
                 setView("form");
               }}
             />
@@ -233,27 +236,27 @@ export const ExerciseFormSheet = forwardRef<
       ) : view === "secondary" ? (
         <View>
           {(() => {
-            const opzioni = MUSCLE_GROUPS.filter((g) => g !== muscleGroup);
-            return opzioni.map((gruppo, index) => (
+            const opzioni = gruppi.filter((riga) => riga.slug !== muscleGroup);
+            return opzioni.map((riga, index) => (
               <PickRow
-                key={gruppo}
-                label={t(`gym.muscle.${gruppo}`)}
-                selected={secondary.includes(gruppo)}
+                key={riga.slug}
+                label={muscleLabel(riga.slug)}
+                selected={secondary.includes(riga.slug)}
                 isLast={index === opzioni.length - 1}
-                onPress={() => toggleSecondary(gruppo)}
+                onPress={() => toggleSecondary(riga.slug)}
               />
             ));
           })()}
         </View>
       ) : view === "equipment" ? (
         <View>
-          {EQUIPMENT.map((attrezzo, index) => (
+          {attrezzi.map((riga, index) => (
             <PickRow
-              key={attrezzo}
-              label={t(`gym.equipment.${attrezzo}`)}
-              selected={equipment.includes(attrezzo)}
-              isLast={index === EQUIPMENT.length - 1}
-              onPress={() => toggleEquipment(attrezzo)}
+              key={riga.slug}
+              label={equipmentLabel(riga.slug)}
+              selected={equipment.includes(riga.slug)}
+              isLast={index === attrezzi.length - 1}
+              onPress={() => toggleEquipment(riga.slug)}
             />
           ))}
         </View>
@@ -294,7 +297,7 @@ export const ExerciseFormSheet = forwardRef<
             {t("gym.muscle_group_label")}
           </Text>
           <FieldButton
-            value={t(`gym.muscle.${muscleGroup}`)}
+            value={muscleLabel(muscleGroup)}
             onPress={() => setView("muscle")}
           />
 
@@ -304,7 +307,7 @@ export const ExerciseFormSheet = forwardRef<
           <FieldButton
             value={
               secondary.length > 0
-                ? secondary.map((m) => t(`gym.muscle.${m}`)).join(", ")
+                ? secondary.map(muscleLabel).join(", ")
                 : t("gym.no_secondary_selected")
             }
             onPress={() => setView("secondary")}
@@ -316,7 +319,7 @@ export const ExerciseFormSheet = forwardRef<
           <FieldButton
             value={
               equipment.length > 0
-                ? equipment.map((e) => t(`gym.equipment.${e}`)).join(", ")
+                ? equipment.map(equipmentLabel).join(", ")
                 : t("gym.no_equipment_selected")
             }
             onPress={() => setView("equipment")}

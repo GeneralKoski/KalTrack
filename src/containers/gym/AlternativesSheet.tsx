@@ -4,6 +4,7 @@ import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { suggestAlternatives } from "@/src/db/queries/exercises";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { useTaxonomyStore } from "@/src/stores/taxonomyStore";
 import { theme } from "@/src/styles";
 import { exerciseEquipment, type ExerciseRow } from "@/src/types/gym";
 import { logger } from "@/src/utils/logger";
@@ -47,6 +48,8 @@ export const AlternativesSheet = forwardRef<
 >(({ exercise, onPick, rank }, ref) => {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
+  const muscleLabel = useTaxonomyStore((s) => s.muscleLabel);
+  const equipmentLabel = useTaxonomyStore((s) => s.equipmentLabel);
   const [onlyAvailable, setOnlyAvailable] = useState(false);
   const [options, setOptions] = useState<AlternativeOption[]>([]);
   const [loading, setLoading] = useState(false);
@@ -146,9 +149,9 @@ export const AlternativesSheet = forwardRef<
                     style={[styles.meta, { color: colors.textMuted }]}
                     numberOfLines={1}
                   >
-                    {t(`gym.muscle.${option.exercise.muscle_group}`)}
+                    {muscleLabel(option.exercise.muscle_group)}
                     {equipment.length > 0
-                      ? ` · ${equipment.map((item) => t(`gym.equipment.${item}`)).join(", ")}`
+                      ? ` · ${equipment.map(equipmentLabel).join(", ")}`
                       : ""}
                   </Text>
                   {option.reason ? (

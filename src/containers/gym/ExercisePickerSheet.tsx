@@ -4,6 +4,7 @@ import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { searchExercises } from "@/src/db/queries/exercises";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { useTaxonomyStore } from "@/src/stores/taxonomyStore";
 import { theme } from "@/src/styles";
 import {
   exerciseEquipment,
@@ -18,21 +19,6 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 // la riga dei muscoli restava ferma sembrando un filtro che non scorre.
 import { ScrollView } from "react-native-gesture-handler";
 
-const MUSCLE_GROUPS: MuscleGroup[] = [
-  "petto",
-  "schiena",
-  "spalle",
-  "bicipiti",
-  "tricipiti",
-  "quadricipiti",
-  "femorali",
-  "glutei",
-  "polpacci",
-  "addome",
-  "avambracci",
-  "full_body",
-];
-
 /** Risultati mostrati: oltre non si scorre, si cerca. */
 const PICKER_LIMIT = 30;
 const SEARCH_DEBOUNCE_MS = 250;
@@ -46,6 +32,8 @@ export const ExercisePickerSheet = forwardRef<
   ExercisePickerSheetProps
 >(({ onPick }, ref) => {
   const { t } = useTranslation();
+  const gruppi = useTaxonomyStore((s) => s.liveMuscleGroups);
+  const muscleLabel = useTaxonomyStore((s) => s.muscleLabel);
   const [term, setTerm] = useState("");
   const [debounced, setDebounced] = useState("");
   const [group, setGroup] = useState<MuscleGroup | null>(null);
@@ -108,12 +96,12 @@ export const ExercisePickerSheet = forwardRef<
           active={group === null}
           onPress={() => setGroup(null)}
         />
-        {MUSCLE_GROUPS.map((item) => (
+        {gruppi.map((riga) => (
           <Chip
-            key={item}
-            label={t(`gym.muscle.${item}`)}
-            active={group === item}
-            onPress={() => setGroup(item)}
+            key={riga.slug}
+            label={muscleLabel(riga.slug)}
+            active={group === riga.slug}
+            onPress={() => setGroup(riga.slug)}
           />
         ))}
       </ScrollView>
@@ -147,8 +135,9 @@ const PickerRow: React.FC<{
   isLast: boolean;
   onPress: () => void;
 }> = ({ exercise, isLast, onPress }) => {
-  const { t } = useTranslation();
   const { colors } = useAppTheme();
+  const muscleLabel = useTaxonomyStore((s) => s.muscleLabel);
+  const equipmentLabel = useTaxonomyStore((s) => s.equipmentLabel);
   const equipment = exerciseEquipment(exercise);
 
   return (
@@ -167,9 +156,9 @@ const PickerRow: React.FC<{
         style={[styles.rowSubtitle, { color: colors.textMuted }]}
         numberOfLines={1}
       >
-        {t(`gym.muscle.${exercise.muscle_group}`)}
+        {muscleLabel(exercise.muscle_group)}
         {equipment.length > 0
-          ? ` · ${equipment.map((item) => t(`gym.equipment.${item}`)).join(", ")}`
+          ? ` · ${equipment.map(equipmentLabel).join(", ")}`
           : ""}
       </Text>
     </TouchableOpacity>

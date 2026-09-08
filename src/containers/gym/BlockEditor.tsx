@@ -2,6 +2,7 @@ import { MetalPanel, Segmented } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { DraftTextInput, Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
+import { useTaxonomyStore } from "@/src/stores/taxonomyStore";
 import { theme } from "@/src/styles";
 import type { BlockKind, MuscleGroup } from "@/src/types/gym";
 import { ArrowDown, Plus, Trash2, X } from "lucide-react-native";
@@ -73,6 +74,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
 }) => {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
+  const muscleLabel = useTaxonomyStore((s) => s.muscleLabel);
   const grouped = isGrouped(block.kind);
   const letter = blockLetter(index);
   const hintKey = HINT_KEYS[block.kind];
@@ -176,7 +178,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
                       style={[styles.muscle, { color: colors.textMuted }]}
                       numberOfLines={1}
                     >
-                      {t(`gym.muscle.${exercise.muscleGroup}`)}
+                      {muscleLabel(exercise.muscleGroup)}
                     </Text>
                   </View>
                   <TouchableOpacity

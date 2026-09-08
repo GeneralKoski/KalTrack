@@ -15,6 +15,7 @@ import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { withdrawExerciseSubmission } from "@/src/services/catalogSync";
+import { useTaxonomyStore } from "@/src/stores/taxonomyStore";
 import { theme } from "@/src/styles";
 import { exerciseEquipment, exerciseSecondary } from "@/src/types/gym";
 import { showToast } from "@/src/utils/toast";
@@ -41,6 +42,8 @@ export function ExerciseDetailScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const { goBack } = useAppNav();
+  const muscleLabel = useTaxonomyStore((s) => s.muscleLabel);
+  const equipmentLabel = useTaxonomyStore((s) => s.equipmentLabel);
   const insets = useSafeAreaInsets();
   const route =
     useRoute<RouteProp<{ params: { id: string } }, "params">>();
@@ -131,16 +134,16 @@ export function ExerciseDetailScreen() {
             )}
 
             <Text style={[styles.meta, { color: colors.textMuted }]}>
-              {t(`gym.muscle.${exercise.muscle_group}`)}
+              {muscleLabel(exercise.muscle_group)}
               {secondary.length > 0
-                ? ` · ${secondary.map((m) => t(`gym.muscle.${m}`)).join(", ")}`
+                ? ` · ${secondary.map(muscleLabel).join(", ")}`
                 : ""}
             </Text>
             {equipment.length > 0 ? (
               <Text
                 style={[styles.meta, styles.equipment, { color: colors.textMuted }]}
               >
-                {equipment.map((e) => t(`gym.equipment.${e}`)).join(", ")}
+                {equipment.map(equipmentLabel).join(", ")}
               </Text>
             ) : null}
 

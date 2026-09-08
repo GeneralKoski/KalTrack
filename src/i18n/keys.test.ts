@@ -85,10 +85,14 @@ describe("chiavi di traduzione", () => {
   });
 
   /**
-   * Le chiavi costruite a runtime da un elenco chiuso: `t(\`gym.muscle.${x}\`)`
-   * non e' verificabile leggendo il sorgente, ma l'elenco dei valori possibili
-   * si': aggiungere un gruppo muscolare o un attrezzo senza la sua stringa
-   * mostrerebbe la chiave grezza sotto ogni esercizio che lo usa.
+   * Le chiavi costruite a runtime da un elenco chiuso: `t(\`gym.muscle.${x}\`)`.
+   *
+   * `MUSCLE_GROUPS` ed `EQUIPMENT` non sono piu' l'elenco autorevole - lo e'
+   * la tassonomia sul server, e un gruppo aggiunto dal pannello non ha una
+   * chiave i18n per definizione. Restano il MINIMO GARANTITO: i ventitre'
+   * slug che l'app semina devono avere la loro etichetta di ricaduta in tutte
+   * e due le lingue, perche' sono quelli che si vedono prima che il primo
+   * pull abbia risposto. Del resto se ne occupa `label_it`/`label_en`.
    */
   it.each([
     ["gym.equipment", EQUIPMENT],

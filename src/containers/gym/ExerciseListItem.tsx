@@ -1,7 +1,7 @@
 import { SyncedPhoto } from "@/src/components/kal/SyncedPhoto";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
-import { useTranslation } from "@/src/hooks/useTranslation";
+import { useTaxonomyStore } from "@/src/stores/taxonomyStore";
 import { theme } from "@/src/styles";
 import { exerciseEquipment, type ExerciseRow } from "@/src/types/gym";
 import { Ban, Dumbbell, ThumbsDown } from "lucide-react-native";
@@ -17,8 +17,9 @@ export const ExerciseListItem: React.FC<ExerciseListItemProps> = ({
   exercise,
   onPress,
 }) => {
-  const { t } = useTranslation();
   const { colors } = useAppTheme();
+  const muscleLabel = useTaxonomyStore((s) => s.muscleLabel);
+  const equipmentLabel = useTaxonomyStore((s) => s.equipmentLabel);
   const equipment = exerciseEquipment(exercise);
 
   return (
@@ -54,9 +55,9 @@ export const ExerciseListItem: React.FC<ExerciseListItemProps> = ({
           {exercise.name}
         </Text>
         <Text style={[styles.meta, { color: colors.textMuted }]} numberOfLines={1}>
-          {t(`gym.muscle.${exercise.muscle_group}`)}
+          {muscleLabel(exercise.muscle_group)}
           {equipment.length > 0
-            ? ` · ${equipment.map((e) => t(`gym.equipment.${e}`)).join(", ")}`
+            ? ` · ${equipment.map(equipmentLabel).join(", ")}`
             : ""}
         </Text>
       </View>
