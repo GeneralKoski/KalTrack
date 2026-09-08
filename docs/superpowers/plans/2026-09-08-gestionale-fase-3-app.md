@@ -5187,3 +5187,207 @@ richiesta con lo swipe in Esercizi e in Alimenti"; Esercizi ha gia' un bottone
 `CloudDownload` nell'intestazione, e Alimenti prende lo stesso (task 8).
 Coerenza con quel che c'e' invece di un secondo modo di chiedere la stessa
 cosa in due schermate gemelle.
+
+---
+
+### Task 15: l'interruttore AI arriva sul telefono
+
+**Aggiunto il 9 settembre 2026, su richiesta dell'utente.** Era dichiarato
+fuori perimetro quando il piano e' stato scritto ("voce separata, futura") e
+rientra a piano in corso. Il § Global Constraints vale anche qui.
+
+Il pannello comanda `users.ai_enabled` dalla Fase 1 e l'app non lo legge.
+Verificato prima di scrivere: `GET /api/me` restituisce **gia'** `aiEnabled`
+(`backend/app/Http/Controllers/Api/ProfileController.php:32`), la colonna
+esiste con `default(true)`, e `grep aiEnabled src/` non trova niente. **Nessuna
+modifica al backend.**
+
+**Le due decisioni sono dell'utente, non del piano:**
+
+1. **Senza account l'AI e' SPENTA.** Non "la domanda non si pone": spenta.
+2. **Tutto resta VISIBILE come adesso.** Al click, invece di aprire la
+   funzione, si **naviga alla pagina dei piani di abbonamento**. Non un
+   comando spento con una spiegazione: un percorso di conversione. L'AI
+   diventa una funzione premium in futuro, e questo task prepara la struttura.
+
+**E' UN CARTELLO, NON UNA SERRATURA.** La chiave Gemini sta nel bundle
+(§ AI di `CLAUDE.md`), l'app chiama Gemini diretta, e non c'e' nessun server
+nel percorso che possa imporre qualcosa: si aggira ripacchettizzando l'APK.
+Chi implementa questo task non sta scrivendo un controllo d'accesso, sta
+scrivendo UX e preparazione. La serratura arriva quando le chiamate AI
+passeranno dal backend (`TODO.md` § 3.1), che e' l'unico posto dove puo'
+vivere.
+
+#### Il difetto che questo task porterebbe dentro se scritto ingenuamente
+
+`accountStore.profile` **non e' persistito**: solo il token sta in SecureStore,
+e il profilo si rifa' da `social.fetchMyProfile()` dentro `restore()`. Quindi
+**offline `profile` e' `null`**.
+
+Un cancello scritto come "c'e' un account E `aiEnabled`" risulterebbe quindi
+**spento senza rete anche a chi ha diritto**: in palestra senza campo il
+microfono porterebbe alla pagina dei piani a un utente che paga. E' esattamente
+il difetto che la regola local-first esiste per impedire - "il telefono resta
+la fonte di verita', senza rete si mangia comunque".
+
+**Quindi l'ultimo valore noto si persiste.** Va in `LOCAL_ONLY_SETTINGS`
+(`src/services/syncMarkers.ts`) e **non** fra le impostazioni sincronizzate: di
+quel fatto l'autorita' e' il **server**, e sincronizzarlo lo farebbe rimbalzare
+fra due copie che non decidono. Stessa forma dei segnaposto del catalogo.
+Si riscrive a ogni `/api/me` riuscito; senza token non si legge affatto,
+perche' senza account la risposta e' "spenta" a prescindere.
+
+**Files:**
+- Modify: `src/api/social.ts` (`MyProfile` prende `aiEnabled`)
+- Modify: `src/services/syncMarkers.ts` (`AI_ENABLED`, in `LOCAL_ONLY_SETTINGS`)
+- Create: `src/domain/aiAccess.ts` + `src/domain/aiAccess.test.ts`
+- Modify: `src/stores/accountStore.ts`
+- Create: `src/navigation/screens/PlansScreen.tsx`
+- Modify: `src/navigation/index.tsx`
+- Modify: i cinque punti d'ingresso (sotto)
+- Modify: `src/i18n/locales/it.json`, `en.json`
+
+**Interfaces:**
+- Produces: `aiAvailable(): boolean` - la risposta unica. `readAiEnabled()` /
+  `writeAiEnabled(v)` sui segnaposto.
+- Consumes: `MyProfile.aiEnabled`, `useAccountStore`.
+
+#### I cinque punti d'ingresso, verificati col grep e non supposti
+
+`TodayScreen.tsx` (il microfono, `AssistantButton`) · `PhotoEstimateSheet.tsx`
+(la stima da foto) · `GenerateRoutineScreen.tsx` (la generazione scheda) ·
+`SessionScreen.tsx` e `AlternativesSheet.tsx` ("proponi alternativa").
+
+Da verificare in apertura: lo scanner dell'etichetta di `FoodFormScreen` passa
+da un nome che il grep non ha preso? Se si', e' il sesto. Dichiaralo nel
+report.
+
+**Una decisione che l'implementer deve prendere e dichiarare:** il cancello sta
+in un posto solo (un componente che avvolge, o un hook che ogni punto chiama)
+oppure e' ripetuto cinque volte? Cinque copie di una condizione sono cinque
+occasioni di divergere, ed e' la ragione per cui `aiAvailable()` esiste come
+funzione pura in `domain/`. La navigazione alla pagina dei piani invece **non**
+puo' stare in `domain/`: quello e' React.
+
+- [ ] **Step 1: Il test di `aiAvailable`, prima del codice**
+
+`src/domain/aiAccess.test.ts` - funzione pura, nessun React, nessun DB:
+
+```ts
+describe("aiAvailable", () => {
+  it("senza account e' spenta", () => {
+    expect(aiAvailable({ token: null, aiEnabled: null })).toBe(false);
+  });
+
+  it("senza account resta spenta anche con un ultimo valore noto acceso", () => {
+    // Il valore noto vale per l'account che l'ha scritto: uscito
+    // dall'account, non parla piu' di nessuno.
+    expect(aiAvailable({ token: null, aiEnabled: true })).toBe(false);
+  });
+
+  it("con account e diritto e' accesa", () => {
+    expect(aiAvailable({ token: "t", aiEnabled: true })).toBe(true);
+  });
+
+  it("con account e senza diritto e' spenta", () => {
+    expect(aiAvailable({ token: "t", aiEnabled: false })).toBe(false);
+  });
+
+  it("con account e valore ancora ignoto e' ACCESA", () => {
+    // Offline al primo avvio dopo l'accesso: `null` vuol dire "non lo so
+    // ancora", e negare il diritto per ignoranza lo negherebbe a chi paga.
+    // Il cartello non e' una serratura: sbagliare in favore dell'utente qui
+    // non apre niente che il server non conceda.
+    expect(aiAvailable({ token: "t", aiEnabled: null })).toBe(true);
+  });
+});
+```
+
+- [ ] **Step 2: Lancialo e guardalo fallire**
+
+Run: `npx jest src/domain/aiAccess.test.ts`
+Expected: FAIL, `aiAvailable is not a function`.
+
+- [ ] **Step 3: `aiAccess.ts`**
+
+```ts
+/**
+ * Se l'AI si puo' usare su questo telefono, adesso.
+ *
+ * Funzione pura e in un posto solo di proposito: la condizione la leggono
+ * cinque punti d'ingresso, e cinque copie sono cinque occasioni di divergere.
+ *
+ * `aiEnabled` e' l'ULTIMO VALORE NOTO, non la verita' del momento: il profilo
+ * non e' persistito e offline non c'e'. `null` vuol dire "non lo so ancora", e
+ * si decide in favore dell'utente - negare il diritto per ignoranza lo
+ * negherebbe a chi paga, e questo cancello non e' una serratura (§ AI): non
+ * apre niente che il server non conceda comunque.
+ */
+export function aiAvailable(stato: {
+  token: string | null;
+  aiEnabled: boolean | null;
+}): boolean {
+  if (!stato.token) return false;
+  return stato.aiEnabled !== false;
+}
+```
+
+- [ ] **Step 4: Verde**
+
+Run: `npx jest src/domain/aiAccess.test.ts`
+Expected: PASS, 5 test.
+
+- [ ] **Step 5: Il segnaposto**
+
+`AI_ENABLED = "ai.enabled"` in `syncMarkers.ts`, **dentro
+`LOCAL_ONLY_SETTINGS`** con il motivo scritto accanto (l'autorita' e' il
+server, sincronizzarlo lo farebbe rimbalzare). `sync.test.ts` confronta gli
+elenchi: senza la dichiarazione fallisce.
+
+Piu' `readAiEnabled(): Promise<boolean | null>` e `writeAiEnabled(v: boolean)`.
+`readAiEnabled` torna `null` quando la riga non c'e', e **non lancia**.
+
+- [ ] **Step 6: `MyProfile` e lo store**
+
+`aiEnabled: boolean` in `MyProfile`. In `accountStore`, ogni volta che un
+profilo arriva (`restore`, `signIn`, `refresh`) si chiama `writeAiEnabled`;
+all'idratazione si legge il segnaposto in stato. `signOut` **non cancella** il
+segnaposto: lo cancella il prossimo accesso scrivendoci sopra, e nel frattempo
+`aiAvailable` torna comunque `false` perche' il token non c'e'.
+
+Test da scrivere: dopo un `/api/me` con `aiEnabled: false` il segnaposto
+contiene `false`; un `restore` senza rete lascia in piedi l'ultimo valore noto
+invece di azzerarlo.
+
+- [ ] **Step 7: `PlansScreen`**
+
+La pagina dei piani. **Oggi e' un segnaposto onesto**, non un finto listino:
+dice che le funzioni AI diventeranno parte di un abbonamento, cosa comprendono
+(assistente vocale, stima da foto, lettura etichetta, generazione scheda) e che
+per ora non sono acquistabili. **Nessun prezzo inventato, nessun bottone che
+non fa niente**: un prezzo falso e' peggio di un prezzo assente, e questo
+schermo lo vedra' un utente vero.
+
+Chiavi in **entrambe** le lingue, `plans.*`. Un `HeroPanel` al massimo, righe
+in `ListGroup`, `TouchableOpacity` con `activeOpacity={0.6}`, token da
+`@/src/styles`. Registrata in `RootStack`.
+
+- [ ] **Step 8: I cinque punti d'ingresso**
+
+Ognuno: se `aiAvailable()` e' falso, **naviga a `Plans`** invece di fare quel
+che faceva. L'elemento resta visibile e non si disabilita - e' la decisione
+dell'utente, ed e' anche la ragione per cui non serve uno stato "spento" nella
+grafica.
+
+- [ ] **Step 9: I tre cancelli**
+
+Run: `npm run typecheck` && `npm test` && `npm run lint`
+Expected: typecheck 0, suite verde, lint 0 errori e **11 warning** (i noti).
+
+Da guardare a schermo, con e senza account: il microfono su Oggi, la stima da
+foto, la generazione scheda, "proponi alternativa".
+
+- [ ] **Step 10: Commit**
+
+Messaggio in **inglese**, corpo esaustivo, senza trailer di co-autore, con la
+riga `Claude-Session:` in fondo.
