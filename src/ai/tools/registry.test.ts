@@ -17,6 +17,7 @@ import { getTargetsFor, saveTargets } from "@/src/db/queries/settings";
 import { getSteps, getWeight, setSteps } from "@/src/db/queries/tracking";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
 import { searchByName } from "@/src/services/openFoodFacts";
+import { useTaxonomyStore } from "@/src/stores/taxonomyStore";
 
 import { navigationRef } from "@/src/navigation/navigationRef";
 
@@ -88,6 +89,10 @@ beforeEach(async () => {
   chatMock.mockReset();
   searchByNameMock.mockReset();
   searchByNameMock.mockResolvedValue([]);
+  // Come fa `App.tsx` all'avvio: `create_exercise` valida gruppo muscolare,
+  // muscoli secondari e attrezzatura contro la tassonomia, non piu' contro
+  // MUSCLE_GROUPS/EQUIPMENT - senza idratare lo store partirebbe vuoto.
+  await useTaxonomyStore.getState().hydrate();
 });
 
 afterEach(() => __setDbForTesting(null));
@@ -704,6 +709,33 @@ describe("create_exercise", () => {
       tool("create_exercise").execute({
         name: "Test",
         muscleGroup: "muscolo_inventato",
+      }),
+    ).rejects.toThrow(AiResponseError);
+  });
+
+  /**
+   * Prima dell'asimmetria corretta, un muscolo secondario sconosciuto
+   * spariva zitto dall'array invece di far fallire la chiamata: un
+   * esercizio nasceva con meno muscoli secondari di quanti il modello ne
+   * avesse detti, e nessuno lo segnalava.
+   */
+  it("rifiuta un muscolo secondario inesistente", async () => {
+    await expect(
+      tool("create_exercise").execute({
+        name: "Test",
+        muscleGroup: "petto",
+        secondaryMuscles: ["branchie"],
+      }),
+    ).rejects.toThrow(AiResponseError);
+  });
+
+  /** Stessa asimmetria corretta, sull'attrezzatura. */
+  it("rifiuta un attrezzo inesistente", async () => {
+    await expect(
+      tool("create_exercise").execute({
+        name: "Test",
+        muscleGroup: "petto",
+        equipment: ["astronave"],
       }),
     ).rejects.toThrow(AiResponseError);
   });

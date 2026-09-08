@@ -34,8 +34,10 @@ import {
   sumNutrients,
   type Nutrients,
 } from "@/src/domain/nutrition";
+import { knownSlugs } from "@/src/domain/taxonomy";
 import type { NavParams } from "@/src/hooks/useAppNav";
 import { navigationRef } from "@/src/navigation/navigationRef";
+import { useTaxonomyStore } from "@/src/stores/taxonomyStore";
 import {
   EQUIPMENT,
   MUSCLE_GROUPS,
@@ -1562,29 +1564,47 @@ const createExerciseTool: ToolFactory = () =>
       const root = asRecord(raw);
       const name = reqString(root, "name");
       const muscleGroup = reqString(root, "muscleGroup") as MuscleGroup;
-      if (!(MUSCLE_GROUPS as readonly string[]).includes(muscleGroup)) {
+
+      /*
+       * L'`enum` sopra e' un suggerimento per il modello (MUSCLE_GROUPS/
+       * EQUIPMENT, il seme compilato in questa versione dell'app): resta li'
+       * perche' e' quel che il modello legge, e un elenco che cambia ogni ora
+       * non gli servirebbe a niente. Il LUCCHETTO e' qui: la tassonomia
+       * locale, che il pull tiene aggiornata anche con quel che il pannello
+       * ha aggiunto un'ora fa. Un gruppo cosi' nuovo supererebbe l'enum-guida
+       * solo per caso; qui passa perche' la tassonomia lo conosce davvero.
+       */
+      const muscoliNoti = knownSlugs(useTaxonomyStore.getState().muscleGroups);
+      const attrezziNoti = knownSlugs(useTaxonomyStore.getState().equipment);
+
+      if (!muscoliNoti.has(muscleGroup)) {
         fail(`Gruppo muscolare "${muscleGroup}" non valido`);
       }
+
+      /*
+       * Le tre validazioni ora FALLISCONO tutte allo stesso modo: prima solo
+       * il gruppo principale bloccava, muscoli secondari e attrezzatura
+       * sbagliati sparivano zitti dall'array. Un attrezzo scartato in
+       * silenzio e' un esercizio creato senza attrezzatura, e nessuno lo dice
+       * a chi ha appena chiesto di crearlo - lo stesso difetto che un errore
+       * chiaro qui esiste per evitare.
+       */
       const secondaryMuscles: MuscleGroup[] = [];
       if (Array.isArray(root.secondaryMuscles)) {
         for (const m of root.secondaryMuscles) {
-          if (
-            typeof m === "string" &&
-            (MUSCLE_GROUPS as readonly string[]).includes(m)
-          ) {
-            secondaryMuscles.push(m as MuscleGroup);
+          if (typeof m !== "string" || !muscoliNoti.has(m)) {
+            fail(`Muscolo secondario "${String(m)}" non valido`);
           }
+          secondaryMuscles.push(m);
         }
       }
       const equipment: Equipment[] = [];
       if (Array.isArray(root.equipment)) {
         for (const eq of root.equipment) {
-          if (
-            typeof eq === "string" &&
-            (EQUIPMENT as readonly string[]).includes(eq)
-          ) {
-            equipment.push(eq as Equipment);
+          if (typeof eq !== "string" || !attrezziNoti.has(eq)) {
+            fail(`Attrezzo "${String(eq)}" non valido`);
           }
+          equipment.push(eq);
         }
       }
       return {
