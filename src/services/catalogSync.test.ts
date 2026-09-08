@@ -8,10 +8,20 @@ import {
   setExerciseBanned,
   setExerciseDislike,
 } from "@/src/db/queries/exercises";
+import {
+  createFood,
+  getFood,
+  searchFoods,
+  toggleFoodFavorite,
+} from "@/src/db/queries/foods";
 import { getSetting } from "@/src/db/queries/settings";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
-import { pullExercises } from "@/src/services/catalogSync";
-import { CATALOG_EXERCISES_CURSOR } from "@/src/services/syncMarkers";
+import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
+import { pullExercises, pullFoods, syncCatalog } from "@/src/services/catalogSync";
+import {
+  CATALOG_EXERCISES_CURSOR,
+  CATALOG_FOODS_CURSOR,
+} from "@/src/services/syncMarkers";
 import { useAccountStore } from "@/src/stores/accountStore";
 
 jest.mock("@/src/api/config", () => ({
@@ -463,5 +473,247 @@ describe("pullExercises, quando non si puo' fare", () => {
 
     expect(await pullExercises()).toBe(0);
     expect(await getSetting(CATALOG_EXERCISES_CURSOR)).toBeNull();
+  });
+});
+
+const alimento = (over: Record<string, unknown> = {}) => ({
+  uid: "food-riso",
+  deletedAt: null,
+  name: "Riso",
+  nameNorm: "riso",
+  brand: null,
+  barcode: null,
+  offId: null,
+  kcal: 358,
+  protein: 7,
+  carbs: 79,
+  sugars: 0,
+  fat: 0.6,
+  saturatedFat: 0.2,
+  fiber: 1,
+  salt: 0,
+  isLiquid: false,
+  defaultServingG: 80,
+  servingLabel: "1 porzione = 80 g",
+  image: null,
+  mine: false,
+  ...over,
+});
+
+describe("pullFoods", () => {
+  it("inserisce un alimento che qui non c'e', come voce di catalogo", async () => {
+    mockApiRequest.mockResolvedValue(pagina([alimento()]));
+
+    expect(await pullFoods()).toBe(1);
+
+    const [riga] = await searchFoods("riso");
+    expect(riga.name).toBe("Riso");
+    expect(riga.kcal).toBe(358);
+    expect(riga.catalog_uid).toBe("food-riso");
+    // Marcatore di catalogo: `searchMyFoods` filtra `source != 'seed'`, quindi
+    // "In libreria" resta "quelli che ho aggiunto io".
+    expect(riga.source).toBe("seed");
+    expect(riga.serving_label).toBe("1 porzione = 80 g");
+  });
+
+  it("riconosce l'uid e rinomina invece di duplicare", async () => {
+    await createFood({
+      name: "Riso",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 358 },
+      source: "seed",
+      catalogUid: "food-riso",
+    });
+    mockApiRequest.mockResolvedValue(
+      pagina([alimento({ name: "Riso bianco", nameNorm: "riso bianco" })]),
+    );
+
+    await pullFoods();
+
+    const righe = await searchFoods("riso");
+    expect(righe).toHaveLength(1);
+    expect(righe[0].name).toBe("Riso bianco");
+  });
+
+  it("aggancia per nome un seed senza uid, e gli da' l'uid", async () => {
+    const id = await createFood({
+      name: "riso",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 350 },
+      source: "seed",
+    });
+    mockApiRequest.mockResolvedValue(pagina([alimento()]));
+
+    await pullFoods();
+
+    expect(await searchFoods("riso")).toHaveLength(1);
+    expect((await getFood(id))?.catalog_uid).toBe("food-riso");
+    expect((await getFood(id))?.kcal).toBe(358);
+  });
+
+  /**
+   * Un alimento dell'utente col nome uguale non si riscrive e non si
+   * affianca: i suoi valori li ha corretti lui, e una seconda riga con lo
+   * stesso nome in elenco sarebbe indistinguibile.
+   */
+  it("non tocca un alimento dell'utente che porta lo stesso nome", async () => {
+    const id = await createFood({
+      name: "Riso",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 111 },
+      source: "user",
+    });
+    mockApiRequest.mockResolvedValue(pagina([alimento()]));
+
+    await pullFoods();
+
+    expect(await searchFoods("riso")).toHaveLength(1);
+    expect((await getFood(id))?.kcal).toBe(111);
+  });
+
+  /**
+   * `barcode` e `off_id` sono identita' e non contenuto, e il preferito e' uno
+   * stato d'uso di questo telefono: e' la stessa regola per cui `updateFood`
+   * non li tocca.
+   */
+  it("non tocca codice a barre, provenienza e preferito", async () => {
+    const id = await createFood({
+      name: "Riso",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 350 },
+      source: "seed",
+      barcode: "8001234567890",
+      offId: "off-riso",
+      catalogUid: "food-riso",
+    });
+    await toggleFoodFavorite(id);
+    mockApiRequest.mockResolvedValue(pagina([alimento()]));
+
+    await pullFoods();
+
+    const riga = await getFood(id);
+    expect(riga?.kcal).toBe(358);
+    expect(riga?.barcode).toBe("8001234567890");
+    expect(riga?.off_id).toBe("off-riso");
+    expect(riga?.is_favorite).toBe(1);
+  });
+
+  it("una voce tolta dal catalogo resta e diventa dell'utente", async () => {
+    const id = await createFood({
+      name: "Riso",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 358 },
+      source: "seed",
+      catalogUid: "food-riso",
+    });
+    mockApiRequest.mockResolvedValue(
+      pagina([{ uid: "food-riso", deletedAt: "2026-09-08T09:00:00+00:00" }]),
+    );
+
+    expect(await pullFoods()).toBe(1);
+
+    const riga = await getFood(id);
+    expect(riga).not.toBeNull();
+    expect(riga?.source).toBe("user");
+  });
+
+  it("legge il proprio cursore, non quello degli esercizi", async () => {
+    mockApiRequest.mockResolvedValue(
+      pagina([alimento()], { since: "2026-09-08T12:00:00+00:00", afterId: 3 }),
+    );
+
+    await pullFoods();
+
+    expect(await getSetting(CATALOG_FOODS_CURSOR)).toContain('"afterId":3');
+    expect(await getSetting(CATALOG_EXERCISES_CURSOR)).toBeNull();
+    expect(mockApiRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ path: "/catalog/foods" }),
+    );
+  });
+
+  it("senza account non chiede niente", async () => {
+    useAccountStore.setState({ token: null, profile: null });
+
+    expect(await pullFoods()).toBe(0);
+    expect(mockApiRequest).not.toHaveBeenCalled();
+  });
+
+  it("un errore di rete non solleva", async () => {
+    mockApiRequest.mockRejectedValue(new Error("rete assente"));
+
+    expect(await pullFoods()).toBe(0);
+  });
+
+  /**
+   * Il difetto che la guardia sul fallback chiude, ed e' lo stesso trovato
+   * dalla review del task 6: una riga che porta gia' un uid diverso non e'
+   * questa voce. Senza la guardia, la riga di X si ritroverebbe con l'uid e i
+   * valori di Y, e le ricette che la nominano parlerebbero di un altro
+   * alimento.
+   */
+  it("non ruba una riga che porta gia' un altro uid", async () => {
+    const id = await createFood({
+      name: "Riso",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 350 },
+      source: "seed",
+      catalogUid: "food-altro",
+    });
+    mockApiRequest.mockResolvedValue(pagina([alimento()]));
+
+    await pullFoods();
+
+    // La riga di prima e' intatta...
+    const vecchia = await getFood(id);
+    expect(vecchia?.catalog_uid).toBe("food-altro");
+    expect(vecchia?.kcal).toBe(350);
+    // ...e la voce nuova e' entrata come riga sua.
+    expect(await searchFoods("riso")).toHaveLength(2);
+  });
+
+  /** Come per gli esercizi: il cursore si scrive a ogni pagina, non alla fine. */
+  it("tiene il cursore della pagina applicata se la successiva cade", async () => {
+    mockApiRequest
+      .mockResolvedValueOnce({
+        data: [alimento()],
+        cursor: { since: "2026-09-08T12:00:00+00:00", afterId: 1 },
+        next: { since: "2026-09-08T12:00:00+00:00", afterId: 1 },
+      })
+      .mockRejectedValueOnce(new Error("rete caduta"));
+
+    await pullFoods();
+
+    expect(await getSetting(CATALOG_FOODS_CURSOR)).toContain('"afterId":1');
+  });
+
+  /** Il tetto e' l'unica cosa fra un server che sbaglia e un giro infinito. */
+  it("non fa piu' di MAX_PAGES giri", async () => {
+    const cursore = { since: "2026-09-08T12:00:00+00:00", afterId: 1 };
+    mockApiRequest.mockResolvedValue({
+      data: [alimento()],
+      cursor: cursore,
+      next: cursore,
+    });
+
+    await pullFoods();
+
+    expect(mockApiRequest).toHaveBeenCalledTimes(50);
+  });
+});
+
+describe("syncCatalog", () => {
+  it("fa i due pull e somma quel che hanno toccato", async () => {
+    mockApiRequest
+      .mockResolvedValueOnce(pagina([voce()]))
+      .mockResolvedValueOnce(pagina([alimento()]));
+
+    expect(await syncCatalog()).toBe(2);
+    expect(mockApiRequest).toHaveBeenCalledTimes(2);
+  });
+
+  /**
+   * Il secondo pull deve partire comunque: gli alimenti non devono restare
+   * indietro perche' il catalogo degli esercizi non ha risposto.
+   */
+  it("il secondo pull parte anche se il primo e' andato male", async () => {
+    mockApiRequest
+      .mockRejectedValueOnce(new Error("rete assente"))
+      .mockResolvedValueOnce(pagina([alimento()]));
+
+    expect(await syncCatalog()).toBe(1);
   });
 });

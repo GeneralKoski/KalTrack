@@ -10,9 +10,22 @@ import {
   setExerciseCatalogUid,
   type CatalogExerciseFields,
 } from "@/src/db/queries/exercises";
+import {
+  applyCatalogFood,
+  createFood,
+  detachFoodFromCatalog,
+  findFoodByCatalogUid,
+  findFoodByName,
+  setFoodCatalogUid,
+  type CatalogFoodFields,
+} from "@/src/db/queries/foods";
 import { getSetting, setSetting } from "@/src/db/queries/settings";
+import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
 import { catalogPhotoPath } from "@/src/services/photoSync";
-import { CATALOG_EXERCISES_CURSOR } from "@/src/services/syncMarkers";
+import {
+  CATALOG_EXERCISES_CURSOR,
+  CATALOG_FOODS_CURSOR,
+} from "@/src/services/syncMarkers";
 import { useAccountStore } from "@/src/stores/accountStore";
 import {
   EQUIPMENT,
@@ -248,7 +261,149 @@ export async function pullExercises(): Promise<number> {
   }
 }
 
-/** Un giro di catalogo. Torna quante righe ha toccato in tutto. */
+/**
+ * Una voce di catalogo alimentare applicata alla riga locale.
+ *
+ * Il marcatore di proprieta' qui e' `source` e non `is_custom`, che gli
+ * alimenti non hanno: `source = 'seed'` e' una riga del catalogo, tutto il
+ * resto e' dell'utente. Non e' un ripiego - `source = 'seed'` sono esattamente
+ * le righe che `catalog:seed` ha pubblicato sul server sotto i loro id
+ * parlanti, e `searchMyFoods` filtra gia' `source != 'seed'`.
+ */
+async function applyFood(voce: catalog.CatalogFood): Promise<boolean> {
+  const perUid = await findFoodByCatalogUid(voce.uid);
+
+  // `!= null` e non `!== null`: un campo assente non deve passare per un
+  // tombstone, ed e' il perno della regola 3.
+  if (voce.deletedAt != null) {
+    if (!perUid || perUid.source !== "seed") return false;
+    await detachFoodFromCatalog(perUid.id);
+    return true;
+  }
+
+  if (!voce.name || voce.kcal === undefined) return false;
+
+  /*
+   * La ricaduta sul nome vale SOLO per una riga che non ha ancora un uid.
+   *
+   * Una riga che ne porta gia' uno diverso non e' questa voce, e' un'altra:
+   * il pannello rinomina la voce X liberandone il nome, una voce Y nuova lo
+   * prende, e la stessa pagina le porta entrambe. Accettando il match per
+   * nome, la riga di X si ritroverebbe riscritta con l'uid e il contenuto di
+   * Y - X orfana, e una riga che le ricette nominano diventata un altro
+   * alimento. Due righe che per un giro condividono il nome sono la
+   * soluzione, non il problema: l'altra voce si rinomina da se' al proprio
+   * aggiornamento.
+   */
+  const perNome = perUid ?? (await findFoodByName(voce.name));
+  const esistente =
+    perNome === null || perNome.catalog_uid === null || perNome === perUid
+      ? perNome
+      : null;
+
+  /*
+   * `satisfies` e non un'annotazione: annotare allargherebbe i campi al tipo
+   * dichiarato e il controllo delle proprieta' in eccesso sparirebbe, cioe'
+   * la regola 2 smetterebbe di essere un errore del compilatore sul ramo di
+   * inserimento. Con `satisfies` il tipo resta quello inferito E un campo di
+   * troppo non compila.
+   */
+  const campi = {
+    name: voce.name,
+    brand: voce.brand ?? null,
+    nutrients: {
+      ...EMPTY_NUTRIENTS,
+      kcal: voce.kcal,
+      protein: voce.protein ?? 0,
+      carbs: voce.carbs ?? 0,
+      sugars: voce.sugars ?? 0,
+      fat: voce.fat ?? 0,
+      saturatedFat: voce.saturatedFat ?? 0,
+      fiber: voce.fiber ?? 0,
+      salt: voce.salt ?? 0,
+    },
+    isLiquid: voce.isLiquid ?? false,
+    defaultServingG: voce.defaultServingG ?? null,
+    servingLabel: voce.servingLabel ?? null,
+    // Come per gli esercizi: il percorso subito, i byte quando si guarda.
+    imageUri: voce.image ? catalogPhotoPath(voce.image) : null,
+  } satisfies CatalogFoodFields;
+
+  if (!esistente) {
+    await createFood({
+      name: campi.name,
+      brand: campi.brand,
+      nutrients: campi.nutrients,
+      isLiquid: campi.isLiquid,
+      defaultServingG: campi.defaultServingG,
+      servingLabel: campi.servingLabel,
+      imageUri: campi.imageUri,
+      source: "seed",
+      catalogUid: voce.uid,
+    });
+    return true;
+  }
+
+  if (esistente.catalog_uid === null) {
+    await setFoodCatalogUid(esistente.id, voce.uid);
+  }
+
+  /*
+   * E' dell'utente: non si riscrive e non se ne affianca una copia.
+   *
+   * L'uid glielo si e' dato comunque, cosi' un tombstone futuro sa di quale
+   * riga parla; ma i valori li ha corretti lui, e una seconda riga con lo
+   * stesso nome in elenco sarebbe indistinguibile dalla prima.
+   */
+  if (esistente.source !== "seed") return false;
+
+  await applyCatalogFood(esistente.id, voce.uid, campi);
+  return true;
+}
+
+/** Il catalogo degli alimenti, dal cursore in poi. Non solleva. */
+export async function pullFoods(): Promise<number> {
+  try {
+    if (!attivo()) return 0;
+
+    let cursore = await readCursor(CATALOG_FOODS_CURSOR);
+    let toccate = 0;
+
+    for (let giro = 0; giro < MAX_PAGES; giro++) {
+      const pagina = await catalog.fetchCatalogFoods(cursore);
+
+      for (const voce of pagina.data) {
+        if (await applyFood(voce)) toccate++;
+      }
+
+      if (pagina.cursor) await writeCursor(CATALOG_FOODS_CURSOR, pagina.cursor);
+      if (!pagina.next) break;
+      cursore = pagina.next;
+    }
+
+    if (toccate > 0) logger.info(`[catalogo] alimenti aggiornati: ${toccate}`);
+    return toccate;
+  } catch (error) {
+    if (!alreadyLogged(error)) {
+      logger.warn("[catalogo] alimenti non aggiornati", error);
+    }
+    return 0;
+  }
+}
+
+/**
+ * Un giro di catalogo. Torna quante righe ha toccato in tutto.
+ *
+ * I due pull sono in fila e non in `Promise.all`: `sqliteAdapter` serializza
+ * comunque le query su un'unica connessione, quindi il parallelo non
+ * guadagnerebbe niente e renderebbe illeggibile l'ordine dei log.
+ *
+ * Ognuno incassa i propri errori, quindi il secondo parte anche se il primo
+ * e' andato male: gli alimenti non devono restare indietro perche' il
+ * catalogo degli esercizi non ha risposto.
+ */
 export async function syncCatalog(): Promise<number> {
-  return pullExercises();
+  const esercizi = await pullExercises();
+  const alimenti = await pullFoods();
+  return esercizi + alimenti;
 }
