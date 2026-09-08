@@ -16,7 +16,7 @@ export const DashboardPage = (): React.ReactElement => {
         return (
             <>
                 <PageHeader titolo="Dashboard" />
-                <Alert type="error" showIcon message={messageOf(error)} />
+                <Alert type="error" showIcon title={messageOf(error)} />
             </>
         );
     }
