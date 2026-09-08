@@ -8,6 +8,7 @@ import {
   findExerciseByCatalogUid,
   getExercise,
   listAvailableEquipment,
+  listUsableEquipment,
   searchExercises,
   setExerciseBanned,
   setExerciseCatalogUid,
@@ -151,6 +152,28 @@ describe("listAvailableEquipment con la tassonomia", () => {
 
     expect(await listAvailableEquipment()).toContain("anelli");
   });
+
+  /**
+   * L'ordine segue la colonna `sort`, non lo slug: e' quel che permette al
+   * pannello di riordinare l'elenco. La migrazione 020 assegna i `sort`
+   * nello stesso ordine di `EQUIPMENT`, e su un telefono appena installato
+   * l'elenco deve uscire in quell'ordine, non alfabetico.
+   */
+  it("segue l'ordine di sort, non quello alfabetico", async () => {
+    expect(await listAvailableEquipment()).toEqual([
+      "corpo_libero",
+      "bilanciere",
+      "manubri",
+      "kettlebell",
+      "cavi",
+      "macchina",
+      "panca",
+      "sbarra",
+      "elastici",
+      "trx",
+      "cardio",
+    ]);
+  });
 });
 
 describe("suggestAlternatives", () => {
@@ -277,6 +300,54 @@ describe("attrezzatura e corpo libero", () => {
       await suggestAlternatives(bench, { onlyAvailableEquipment: true })
     ).map((row) => row.id);
     expect(ids).toContain(machine);
+  });
+
+  /**
+   * Il difetto: `suggestAlternatives` non offre una scelta, filtra esercizi
+   * che esistono gia'. Un amministratore che cancella "panca" dal catalogo
+   * non deve far sparire dalle alternative gli esercizi con la panca -
+   * l'utente non l'ha mai tolta e la panca fisica resta li'.
+   */
+  it("un attrezzo cancellato dalla tassonomia non toglie gli esercizi che lo usano", async () => {
+    const withBench = await createExercise({
+      name: "Croci alla panca",
+      muscleGroup: "petto",
+      secondaryMuscles: [],
+      equipment: ["panca"],
+    });
+    const other = await createExercise({
+      name: "Panca piana con bilanciere",
+      muscleGroup: "petto",
+      secondaryMuscles: [],
+      equipment: ["bilanciere", "panca"],
+    });
+
+    await replaceTaxonomy("equipment_types", [
+      { slug: "panca", label_it: "Panca", label_en: "Bench", sort: 70, deleted_at: "2026-09-08T09:00:00+00:00" },
+    ]);
+
+    const ids = (
+      await suggestAlternatives(other, { onlyAvailableEquipment: true })
+    ).map((row) => row.id);
+    expect(ids).toContain(withBench);
+  });
+});
+
+describe("listUsableEquipment", () => {
+  /** La lettura di chi disegna quel che c'e' gia': i cancellati restano. */
+  it("comprende un attrezzo cancellato dalla tassonomia", async () => {
+    await replaceTaxonomy("equipment_types", [
+      { slug: "trx", label_it: "TRX", label_en: "TRX", sort: 100, deleted_at: "2026-09-08T09:00:00+00:00" },
+    ]);
+
+    expect(await listUsableEquipment()).toContain("trx");
+  });
+
+  /** L'esclusione dell'utente resta identica alle due letture. */
+  it("esclude comunque un attrezzo tolto a mano", async () => {
+    await setEquipmentAvailability("cavi", false);
+
+    expect(await listUsableEquipment()).not.toContain("cavi");
   });
 });
 

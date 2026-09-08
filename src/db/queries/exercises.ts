@@ -179,7 +179,7 @@ export async function listEquipmentAvailability(): Promise<
 }
 
 /**
- * L'attrezzatura che si puo' usare: tutta quella che la tassonomia conosce,
+ * L'attrezzatura da OFFRIRE IN UNA SCELTA: quella viva nella tassonomia,
  * tranne quella tolta a mano.
  *
  * E' un elenco per eccezione e non per dichiarazione: un attrezzo mai toccato
@@ -190,8 +190,12 @@ export async function listEquipmentAvailability(): Promise<
  * L'elenco di partenza era la costante `EQUIPMENT`, e adesso e' la tabella:
  * un attrezzo aggiunto dal pannello diventa disponibile senza un rilascio
  * dell'app, e uno cancellato smette di essere offerto. I cancellati si
- * escludono perche' qui si OFFRE UNA SCELTA - le etichette, che disegnano
- * quel che c'e' gia', li comprendono.
+ * escludono perche' qui si OFFRE UNA SCELTA - un attrezzo che un
+ * amministratore ha tolto dal catalogo non e' piu' un'opzione da proporre.
+ *
+ * Sto offrendo una scelta o sto disegnando quel che c'e' gia'? Qui la
+ * risposta e' la prima. Per la seconda vedi `listUsableEquipment`, e non
+ * scambiarle: `suggestAlternatives` ci e' cascato usando questa.
  */
 export async function listAvailableEquipment(): Promise<string[]> {
   const db = await getDb();
@@ -202,6 +206,37 @@ export async function listAvailableEquipment(): Promise<string[]> {
           SELECT name FROM user_equipment
            WHERE available = 0 AND deleted_at IS NULL
         )
+      ORDER BY sort, slug`,
+  );
+  return rows.map((r) => r.slug);
+}
+
+/**
+ * L'attrezzatura che l'utente PUO' USARE per i propri esercizi: ogni slug che
+ * la tassonomia ha mai conosciuto, cancellati compresi, tranne quello tolto a
+ * mano.
+ *
+ * Sto offrendo una scelta o sto disegnando quel che c'e' gia'? Qui la
+ * risposta e' la seconda, ed e' la ragione per cui questa NON e'
+ * `listAvailableEquipment`: quella esclude i cancellati perche' un pannello
+ * non offre piu' come opzione un attrezzo che ha tolto dal catalogo, ma un
+ * esercizio esistente che nomina quell'attrezzo in colonna non diventa
+ * inesistente solo perche' il pannello lo ha cancellato - la panca fisica
+ * resta in salotto. E' la stessa distinzione di `listMealTypes`/
+ * `listAllMealTypes`: chi disegna righe gia' scritte legge tutto.
+ *
+ * L'esclusione dell'utente resta identica alle due letture: "tolto a mano"
+ * vale qui come la' sopra, o un attrezzo mai dichiarato indisponibile
+ * sparirebbe dalle alternative pur non essendo mai stato tolto.
+ */
+export async function listUsableEquipment(): Promise<string[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<{ slug: string }>(
+    `SELECT slug FROM equipment_types
+      WHERE slug NOT IN (
+        SELECT name FROM user_equipment
+         WHERE available = 0 AND deleted_at IS NULL
+      )
       ORDER BY sort, slug`,
   );
   return rows.map((r) => r.slug);
@@ -232,12 +267,14 @@ export async function suggestAlternatives(
   let filtered = candidates.filter((row) => row.id !== exerciseId);
 
   if (options.onlyAvailableEquipment) {
-    // `listAvailableEquipment` e' gia' "tutto tranne quello tolto a mano":
-    // non serve un caso speciale per l'elenco vuoto, il filtro si applica
-    // sempre allo stesso modo.
-    const available = new Set(await listAvailableEquipment());
+    // `listUsableEquipment` e non `listAvailableEquipment`: qui non si
+    // offre una scelta, si filtrano esercizi che esistono gia'. Un
+    // amministratore che cancella "panca" dalla tassonomia non deve far
+    // sparire dalle alternative gli esercizi con la panca che l'utente non
+    // ha mai smesso di avere.
+    const usable = new Set(await listUsableEquipment());
     filtered = filtered.filter((row) =>
-      canDoWith(exerciseEquipment(row), available),
+      canDoWith(exerciseEquipment(row), usable),
     );
   }
 
