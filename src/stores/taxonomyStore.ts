@@ -48,9 +48,13 @@ export const useTaxonomyStore = create<TaxonomyState>()((set) => ({
   liveMuscleGroups: [],
   liveEquipment: [],
   /*
-   * Prima dell'idratazione i risolutori ricadono su i18n, che per i
-   * ventitre' slug del seme risponde giusto: una schermata aperta nella
-   * frazione di secondo prima di `hydrate` non mostra degli slug.
+   * Ricaduta su i18n per i ventitre' slug del seme, che risponde giusto.
+   * NON e' per una finestra temporale prima di `hydrate`: `App.tsx` la
+   * awaita dentro il gate d'avvio, prima di montare `<Navigation />`, quindi
+   * nessuna schermata si disegna prima che questo stato venga sostituito.
+   * Serve al percorso d'ERRORE - `hydrate` che incassa un guasto (vedi il
+   * catch qui sotto) - non a un istante che nel flusso normale non esiste
+   * piu'.
    */
   muscleLabel: risolutore([], "gym.muscle"),
   equipmentLabel: risolutore([], "gym.equipment"),

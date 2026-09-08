@@ -413,6 +413,7 @@
     "exercises": "Exercises",
     "search_exercise": "Search an exercise",
     "no_exercises": "No exercises found",
+    "taxonomy_unavailable": "Data unavailable. Try again later.",
     "preference_title": "Preference",
     "preference_ok": "Fine",
     "preference_dislike": "Only as a last resort",

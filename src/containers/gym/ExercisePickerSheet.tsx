@@ -106,6 +106,13 @@ export const ExercisePickerSheet = forwardRef<
         ))}
       </ScrollView>
 
+      {/* "Tutti" resta e la ricerca per nome funziona comunque: manca solo il
+          filtro per gruppo, e va detto invece di lasciare la riga muta - un
+          `hydrate()` fallito e' un errore, non un istante che passa da solo. */}
+      {gruppi.length === 0 ? (
+        <EmptyState message={t("gym.taxonomy_unavailable")} compact />
+      ) : null}
+
       {/*
         map() e non FlatList: DfBottomSheet avvolge già i figli in un
         BottomSheetScrollView, e annidarci una lista virtualizzata rompe lo

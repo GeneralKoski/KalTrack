@@ -1,5 +1,5 @@
 import { DfButton } from "@/src/components/form/DfButton";
-import { ListGroup, ListRow } from "@/src/components/kal";
+import { EmptyState, ListGroup, ListRow } from "@/src/components/kal";
 import { SettingsPage } from "@/src/containers/settings/SettingsPage";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
@@ -73,23 +73,30 @@ export function EquipmentScreen() {
         {t("gym.equipment_hint")}
       </Text>
 
-      {/* Un blocco, non una card con dentro righe distanziate: cosi'
-         l'elenco ha lo stesso ritmo e la stessa linea di tutti gli altri
-         elenchi dell'app. */}
-      <ListGroup indent={theme.spacing.md}>
-        {items.map((riga) => (
-          <ListRow
-            key={riga.slug}
-            label={equipmentLabel(riga.slug)}
-            right={
-              <Switch
-                value={state[riga.slug] !== false}
-                onValueChange={(next) => void toggle(riga.slug, next)}
-              />
-            }
-          />
-        ))}
-      </ListGroup>
+      {items.length === 0 ? (
+        // Un `hydrate()` fallito lascia la tassonomia vuota in memoria: un
+        // riquadro vuoto sembrerebbe un difetto dell'app, questo dice che i
+        // dati non sono arrivati.
+        <EmptyState message={t("gym.taxonomy_unavailable")} compact />
+      ) : (
+        // Un blocco, non una card con dentro righe distanziate: cosi'
+        // l'elenco ha lo stesso ritmo e la stessa linea di tutti gli altri
+        // elenchi dell'app.
+        <ListGroup indent={theme.spacing.md}>
+          {items.map((riga) => (
+            <ListRow
+              key={riga.slug}
+              label={equipmentLabel(riga.slug)}
+              right={
+                <Switch
+                  value={state[riga.slug] !== false}
+                  onValueChange={(next) => void toggle(riga.slug, next)}
+                />
+              }
+            />
+          ))}
+        </ListGroup>
+      )}
 
       {setupForRoutine && (
         <DfButton

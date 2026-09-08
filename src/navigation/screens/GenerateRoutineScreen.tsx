@@ -17,7 +17,7 @@ import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { useTaxonomyStore } from "@/src/stores/taxonomyStore";
 import { theme } from "@/src/styles";
-import { EQUIPMENT, type Equipment } from "@/src/types/gym";
+import type { Equipment } from "@/src/types/gym";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
 import { useFocusEffect } from "@react-navigation/native";
@@ -76,8 +76,17 @@ export function GenerateRoutineScreen() {
    * Si rilegge a ogni ritorno sulla schermata (`useFocusEffect`): il link
    * "Modifica" porta proprio li' a cambiarla, e tornando indietro il numero
    * deve essere quello nuovo.
+   *
+   * Il valore iniziale - e la ricaduta se la query sotto solleva - viene
+   * dalla tassonomia in memoria (`getState()`, non l'hook: e' una lettura
+   * una tantum, non un abbonamento) e non piu' dalla costante `EQUIPMENT`:
+   * altrimenti un attrezzo aggiunto dal pannello mancherebbe dalla card in
+   * sola lettura finche' la query non risponde, e uno cancellato ci
+   * resterebbe per sempre se la query fallisse.
    */
-  const [equipment, setEquipment] = useState<string[]>([...EQUIPMENT]);
+  const [equipment, setEquipment] = useState<string[]>(() =>
+    useTaxonomyStore.getState().liveEquipment.map((riga) => riga.slug),
+  );
   useFocusEffect(
     useCallback(() => {
       let active = true;

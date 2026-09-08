@@ -1,7 +1,7 @@
 import { hasBackend } from "@/src/api/config";
 import { DfBottomSheet } from "@/src/components/DfBottomSheet";
 import { DfButton } from "@/src/components/form/DfButton";
-import { PhotoField } from "@/src/components/kal";
+import { EmptyState, PhotoField } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { DraftTextInput, Text } from "@/src/components/ui";
 import {
@@ -217,26 +217,33 @@ export const ExerciseFormSheet = forwardRef<
     >
       {view === "muscle" ? (
         <View>
-          {gruppi.map((riga, index) => (
-            <PickRow
-              key={riga.slug}
-              label={muscleLabel(riga.slug)}
-              selected={muscleGroup === riga.slug}
-              isLast={index === gruppi.length - 1}
-              onPress={() => {
-                setMuscleGroup(riga.slug);
-                // Il principale non e' anche secondario: comparirebbe due
-                // volte nella stessa scheda e falserebbe le alternative.
-                setSecondary((prima) => prima.filter((m) => m !== riga.slug));
-                setView("form");
-              }}
-            />
-          ))}
+          {gruppi.length === 0 ? (
+            <EmptyState message={t("gym.taxonomy_unavailable")} compact />
+          ) : (
+            gruppi.map((riga, index) => (
+              <PickRow
+                key={riga.slug}
+                label={muscleLabel(riga.slug)}
+                selected={muscleGroup === riga.slug}
+                isLast={index === gruppi.length - 1}
+                onPress={() => {
+                  setMuscleGroup(riga.slug);
+                  // Il principale non e' anche secondario: comparirebbe due
+                  // volte nella stessa scheda e falserebbe le alternative.
+                  setSecondary((prima) => prima.filter((m) => m !== riga.slug));
+                  setView("form");
+                }}
+              />
+            ))
+          )}
         </View>
       ) : view === "secondary" ? (
         <View>
           {(() => {
             const opzioni = gruppi.filter((riga) => riga.slug !== muscleGroup);
+            if (opzioni.length === 0) {
+              return <EmptyState message={t("gym.taxonomy_unavailable")} compact />;
+            }
             return opzioni.map((riga, index) => (
               <PickRow
                 key={riga.slug}
@@ -250,15 +257,19 @@ export const ExerciseFormSheet = forwardRef<
         </View>
       ) : view === "equipment" ? (
         <View>
-          {attrezzi.map((riga, index) => (
-            <PickRow
-              key={riga.slug}
-              label={equipmentLabel(riga.slug)}
-              selected={equipment.includes(riga.slug)}
-              isLast={index === attrezzi.length - 1}
-              onPress={() => toggleEquipment(riga.slug)}
-            />
-          ))}
+          {attrezzi.length === 0 ? (
+            <EmptyState message={t("gym.taxonomy_unavailable")} compact />
+          ) : (
+            attrezzi.map((riga, index) => (
+              <PickRow
+                key={riga.slug}
+                label={equipmentLabel(riga.slug)}
+                selected={equipment.includes(riga.slug)}
+                isLast={index === attrezzi.length - 1}
+                onPress={() => toggleEquipment(riga.slug)}
+              />
+            ))
+          )}
         </View>
       ) : (
         <>
