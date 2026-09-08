@@ -324,6 +324,57 @@ describe("pullExercises, quel che non tocca", () => {
     expect(JSON.parse(riga.equipment ?? "[]")).toEqual(["bilanciere"]);
     expect(JSON.parse(riga.secondary_muscles ?? "[]")).toEqual(["tricipiti"]);
   });
+
+  /**
+   * Step 5: il metro e' la tassonomia locale, non piu' le costanti compilate
+   * in questa versione dell'app. Uno slug che il pannello ha aggiunto -
+   * assente da MUSCLE_GROUPS - deve sopravvivere al pull, non essere buttato
+   * come "branchie" qui sopra.
+   */
+  it("tiene un gruppo muscolare che le costanti non conoscono ma la tassonomia si'", async () => {
+    await taxonomyQueries.replaceTaxonomy("muscle_groups", [
+      { slug: "trapezi", label_it: "Trapezi", label_en: "Traps", sort: 130, deleted_at: null },
+    ]);
+    // Nel giro vero e' `pullTaxonomies` a ridratare lo store, PRIMA del pull
+    // degli esercizi (§ eseguiGiroCatalogo). Qui si chiama `pullExercises`
+    // direttamente, quindi la stessa idratazione va rifatta a mano.
+    await useTaxonomyStore.getState().hydrate();
+    mockApiRequest.mockResolvedValue(pagina([voce({ muscleGroup: "trapezi" })]));
+
+    expect(await pullExercises()).toBe(1);
+    expect(await searchExercises({ term: "panca" })).toHaveLength(1);
+  });
+
+  /** Stesso principio, sull'attrezzatura. */
+  it("tiene un attrezzo che le costanti non conoscono ma la tassonomia si'", async () => {
+    await taxonomyQueries.replaceTaxonomy("equipment_types", [
+      { slug: "anelli", label_it: "Anelli", label_en: "Rings", sort: 120, deleted_at: null },
+    ]);
+    await useTaxonomyStore.getState().hydrate();
+    mockApiRequest.mockResolvedValue(pagina([voce({ equipment: "anelli" })]));
+
+    await pullExercises();
+
+    const [riga] = await searchExercises({ term: "panca" });
+    expect(JSON.parse(riga.equipment ?? "[]")).toEqual(["anelli"]);
+  });
+
+  /**
+   * "I cancellati contano come noti": un gruppo tolto dal pannello non deve
+   * far scartare una voce di catalogo che lo nomina - le righe gia'
+   * installate devono continuare a ricevere aggiornamenti, e la loro
+   * etichetta c'e' ancora (§ taxonomyLabel).
+   */
+  it("tiene un gruppo muscolare cancellato dalla tassonomia", async () => {
+    await taxonomyQueries.replaceTaxonomy("muscle_groups", [
+      { slug: "femorali", label_it: "Femorali", label_en: "Hamstrings", sort: 90, deleted_at: "2026-09-08T09:00:00+00:00" },
+    ]);
+    await useTaxonomyStore.getState().hydrate();
+    mockApiRequest.mockResolvedValue(pagina([voce({ muscleGroup: "femorali" })]));
+
+    expect(await pullExercises()).toBe(1);
+    expect(await searchExercises({ term: "panca" })).toHaveLength(1);
+  });
 });
 
 describe("pullExercises, una voce tolta dal catalogo", () => {
