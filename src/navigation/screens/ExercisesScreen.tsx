@@ -59,14 +59,22 @@ export function ExercisesScreen() {
       // `true`: chi tocca il bottone ha chiesto il catalogo adesso, e la
       // finestra di un'ora renderebbe questo comando un comando che non fa
       // niente.
-      const toccate = await syncCatalog(true);
-      showToast.success({
-        title:
-          toccate === 0
-            ? t("gym.imported_none")
-            : t("gym.imported_some", { count: toccate }),
-      });
-      if (toccate > 0) reload();
+      const { toccate, riuscito } = await syncCatalog(true);
+      // Il bottone tira TUTTO il catalogo (esercizi e alimenti insieme), e il
+      // messaggio lo dice: nominare solo gli esercizi qui farebbe dire "4
+      // esercizi aggiornati" a un giro che ha corretto solo alimenti, mentre
+      // questa lista non e' cambiata di una riga.
+      if (!riuscito) {
+        showToast.error({ title: t("catalog.sync_failed") });
+      } else {
+        showToast.success({
+          title:
+            toccate === 0
+              ? t("catalog.up_to_date")
+              : t("catalog.updated", { count: toccate }),
+        });
+        if (toccate > 0) reload();
+      }
     } finally {
       setImporting(false);
     }
@@ -94,6 +102,8 @@ export function ExercisesScreen() {
             activeOpacity={0.6}
             hitSlop={10}
             disabled={importing}
+            accessibilityRole="button"
+            accessibilityLabel={t("gym.import_catalog")}
           >
             <CloudDownload
               size={22}

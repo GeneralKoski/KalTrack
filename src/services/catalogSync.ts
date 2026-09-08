@@ -223,10 +223,29 @@ async function applyExercise(voce: catalog.CatalogExercise): Promise<boolean> {
   return true;
 }
 
-/** Il catalogo degli esercizi, dal cursore in poi. Non solleva. */
-export async function pullExercises(): Promise<number> {
+/**
+ * L'esito di un giro: quante righe ha toccato, e se e' davvero arrivato al
+ * server.
+ *
+ * `pullExercises`/`pullFoods` (sotto) tornavano `0` sia a "niente da fare" sia
+ * a "e' andato tutto storto": `syncCatalog` non poteva distinguere un giro
+ * riuscito ma vuoto da un giro fallito, e quindi non poteva decidere quando
+ * scrivere il segnaposto della finestra. `riuscito` e' esattamente quella
+ * distinzione.
+ */
+type EsitoGiro = { toccate: number; riuscito: boolean };
+
+/**
+ * Il catalogo degli esercizi, dal cursore in poi. Non solleva.
+ *
+ * Interno: la funzione pubblica `pullExercises` (sotto) e' rimasta con la sua
+ * firma di sempre - i test dei task 6 e 7 la chiamano una quarantina di volte
+ * aspettandosi un numero - e questa e' quella che serve a `syncCatalog` per
+ * sapere se il giro e' davvero arrivato al server.
+ */
+async function giroEsercizi(): Promise<EsitoGiro> {
   try {
-    if (!attivo()) return 0;
+    if (!attivo()) return { toccate: 0, riuscito: false };
 
     let cursore = await readCursor(CATALOG_EXERCISES_CURSOR);
     let toccate = 0;
@@ -253,13 +272,18 @@ export async function pullExercises(): Promise<number> {
     }
 
     if (toccate > 0) logger.info(`[catalogo] esercizi aggiornati: ${toccate}`);
-    return toccate;
+    return { toccate, riuscito: true };
   } catch (error) {
     if (!alreadyLogged(error)) {
       logger.warn("[catalogo] esercizi non aggiornati", error);
     }
-    return 0;
+    return { toccate: 0, riuscito: false };
   }
+}
+
+/** Il catalogo degli esercizi, dal cursore in poi. Non solleva. */
+export async function pullExercises(): Promise<number> {
+  return (await giroEsercizi()).toccate;
 }
 
 /**
@@ -372,10 +396,15 @@ async function applyFood(voce: catalog.CatalogFood): Promise<boolean> {
   return true;
 }
 
-/** Il catalogo degli alimenti, dal cursore in poi. Non solleva. */
-export async function pullFoods(): Promise<number> {
+/**
+ * Il catalogo degli alimenti, dal cursore in poi. Non solleva.
+ *
+ * Interno, come `giroEsercizi`: `pullFoods` (sotto) resta la firma che i test
+ * dei task 6 e 7 gia' chiamano.
+ */
+async function giroAlimenti(): Promise<EsitoGiro> {
   try {
-    if (!attivo()) return 0;
+    if (!attivo()) return { toccate: 0, riuscito: false };
 
     let cursore = await readCursor(CATALOG_FOODS_CURSOR);
     let toccate = 0;
@@ -393,13 +422,18 @@ export async function pullFoods(): Promise<number> {
     }
 
     if (toccate > 0) logger.info(`[catalogo] alimenti aggiornati: ${toccate}`);
-    return toccate;
+    return { toccate, riuscito: true };
   } catch (error) {
     if (!alreadyLogged(error)) {
       logger.warn("[catalogo] alimenti non aggiornati", error);
     }
-    return 0;
+    return { toccate: 0, riuscito: false };
   }
+}
+
+/** Il catalogo degli alimenti, dal cursore in poi. Non solleva. */
+export async function pullFoods(): Promise<number> {
+  return (await giroAlimenti()).toccate;
 }
 
 /**
@@ -430,41 +464,87 @@ async function finestraScaduta(): Promise<boolean> {
 }
 
 /**
- * Un giro di catalogo. Torna quante righe ha toccato in tutto.
+ * Il giro in corso, se c'e'.
+ *
+ * Senza questa guardia due giri sovrapposti duplicano una riga: `applyExercise`
+ * legge e poi scrive attraverso un `await` (`findExerciseByCatalogUid` ->
+ * `createExercise`), e `sqliteAdapter` serializza le query singole ma non
+ * quella coppia. Il giro B puo' fare la sua lettura nel buco fra la lettura e
+ * la scrittura del giro A, trovare `null` anche lui, e inserire la stessa voce
+ * due volte - la rinomina-diventa-doppione che questa fase esiste per
+ * chiudere, riaperta senza bisogno di nessuna rinomina.
+ *
+ * La guardia sta QUI e non nello scheduler, per la stessa ragione della
+ * regola 6 della sincronizzazione (`sync.ts`): il catalogo ha tre inneschi -
+ * avvio, ritorno in primo piano, bottone su due schermate - e mettere la
+ * guardia in uno solo di loro lascia gli altri liberi di scavalcarla.
+ *
+ * Un secondo chiamante AGGANCIA lo stesso giro invece di ricevere uno zero
+ * finto: il bottone deve raccontare l'esito del giro che sta davvero girando,
+ * non "non c'era niente da fare" quando in realta' c'era, ed era gia' in
+ * corso. Un `force` arrivato mentre un giro automatico e' in volo si aggancia
+ * a quello: le richieste sono gia' partite.
+ */
+let giroInCorso: Promise<EsitoGiro> | null = null;
+
+/**
+ * Un giro di catalogo. Torna quante righe ha toccato in tutto, e se e'
+ * davvero arrivato al server.
  *
  * `force` lo passa solo il bottone delle due schermate: chi lo tocca ha
  * appena chiesto il catalogo adesso, e fargli aspettare la finestra sarebbe un
  * comando che non fa niente.
- *
+ */
+export async function syncCatalog(force = false): Promise<EsitoGiro> {
+  if (giroInCorso) return giroInCorso;
+
+  giroInCorso = eseguiGiroCatalogo(force);
+  try {
+    return await giroInCorso;
+  } finally {
+    giroInCorso = null;
+  }
+}
+
+/**
  * I due pull sono in fila e non in `Promise.all`: `sqliteAdapter` serializza
  * comunque le query su un'unica connessione, quindi il parallelo non
  * guadagnerebbe niente e renderebbe illeggibile l'ordine dei log. Ognuno
  * incassa i propri errori, quindi il secondo parte anche se il primo e'
  * andato male.
  */
-export async function syncCatalog(force = false): Promise<number> {
+async function eseguiGiroCatalogo(force: boolean): Promise<EsitoGiro> {
   /*
-   * La guardia sta QUI e non nei chiamanti, ed e' la lezione della regola 6
-   * della sincronizzazione: `runSync` ha pagato l'aver tenuto la sua nello
-   * scheduler mentre altri due chiamanti la scavalcavano.
-   */
-  if (!attivo()) return 0;
-  if (!force && !(await finestraScaduta())) return 0;
-
-  const esercizi = await pullExercises();
-  const alimenti = await pullFoods();
-
-  /*
-   * Il segnaposto si scrive anche quando il giro non ha portato niente, e
-   * anche quando e' fallito.
+   * La guardia sull'account sta QUI e non nei chiamanti, ed e' la lezione
+   * della regola 6 della sincronizzazione: `runSync` ha pagato l'aver tenuto
+   * la sua nello scheduler mentre altri due chiamanti la scavalcavano.
    *
-   * Un giro che fallisce per mancanza di rete fallirebbe per lo stesso motivo
-   * in ogni giro della stessa ora, e riprovare ogni quarto d'ora non
-   * cambierebbe l'esito. Chi ha fretta ha il bottone, che passa `force` e non
-   * guarda la finestra: e' li' che sta la via d'uscita, non in un
-   * riprovare automatico piu' insistente.
+   * Un giro senza account non e' arrivato da nessuna parte: `riuscito: false`
+   * e nessun segnaposto scritto, o il primo pull vero dopo l'accesso
+   * aspetterebbe un'ora invece di partire subito.
    */
-  await setSetting(CATALOG_PULLED_AT, new Date().toISOString());
+  if (!attivo()) return { toccate: 0, riuscito: false };
+  if (!force && !(await finestraScaduta())) return { toccate: 0, riuscito: true };
 
-  return esercizi + alimenti;
+  const esercizi = await giroEsercizi();
+  const alimenti = await giroAlimenti();
+  const riuscito = esercizi.riuscito && alimenti.riuscito;
+
+  /*
+   * Il segnaposto si scrive SOLO quando entrambi i pull sono arrivati al
+   * server, mai su un giro parziale o totalmente fallito.
+   *
+   * Scriverlo comunque - come faceva la prima versione - vuol dire che "ho
+   * chiesto" e "ho avuto risposta" diventano lo stesso evento: un telefono in
+   * galleria alle 10:00 fallisce, scrive comunque le 10:00, la rete torna alle
+   * 10:02 e la finestra tiene il catalogo muto fino alle 11:00 anche con
+   * connessione perfetta. Un giro fallito merita un altro tentativo al
+   * prossimo innesco utile, non un'ora di silenzio: il cursore rende quel
+   * tentativo una richiesta breve, non un pull da capo.
+   */
+  if (riuscito) {
+    await setSetting(CATALOG_PULLED_AT, new Date().toISOString());
+  }
+
+  return { toccate: esercizi.toccate + alimenti.toccate, riuscito };
 }

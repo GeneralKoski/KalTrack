@@ -828,25 +828,48 @@ describe("pullFoods", () => {
 });
 
 describe("syncCatalog", () => {
+  /**
+   * Finding 2 (Critical). `applyExercise` legge e poi scrive attraverso un
+   * `await`: senza guardia, un secondo giro puo' fare la sua lettura nel
+   * buco fra la lettura e la scrittura del primo, trovare anche lui `null` e
+   * inserire la stessa voce due volte - "una rinomina, un doppione per
+   * telefono", riaperto senza bisogno di nessuna rinomina. Il secondo
+   * chiamante si aggancia al giro gia' in volo: stesso oggetto di ritorno,
+   * una sola coppia di richieste HTTP, una riga sola.
+   */
+  it("due giri in volo insieme si agganciano allo stesso giro, non ne fanno due", async () => {
+    mockApiRequest.mockResolvedValue(pagina([voce()]));
+
+    const [a, b] = await Promise.all([syncCatalog(true), syncCatalog(true)]);
+
+    expect(a).toBe(b);
+    expect(mockApiRequest).toHaveBeenCalledTimes(2);
+    expect(await searchExercises({ term: "panca" })).toHaveLength(1);
+  });
+
   it("fa i due pull e somma quel che hanno toccato", async () => {
     mockApiRequest
       .mockResolvedValueOnce(pagina([voce()]))
       .mockResolvedValueOnce(pagina([alimento()]));
 
-    expect(await syncCatalog()).toBe(2);
+    expect(await syncCatalog()).toEqual({ toccate: 2, riuscito: true });
     expect(mockApiRequest).toHaveBeenCalledTimes(2);
   });
 
   /**
    * Il secondo pull deve partire comunque: gli alimenti non devono restare
-   * indietro perche' il catalogo degli esercizi non ha risposto.
+   * indietro perche' il catalogo degli esercizi non ha risposto. Ma il giro
+   * nel complesso NON e' riuscito, e non deve scrivere il segnaposto: un
+   * pezzo caduto merita un altro tentativo al prossimo innesco, non un'ora di
+   * silenzio (finding 1).
    */
-  it("il secondo pull parte anche se il primo e' andato male", async () => {
+  it("il secondo pull parte anche se il primo e' andato male, ma il giro resta fallito", async () => {
     mockApiRequest
       .mockRejectedValueOnce(new Error("rete assente"))
       .mockResolvedValueOnce(pagina([alimento()]));
 
-    expect(await syncCatalog()).toBe(1);
+    expect(await syncCatalog()).toEqual({ toccate: 1, riuscito: false });
+    expect(await getSetting(CATALOG_PULLED_AT)).toBeNull();
   });
 
   /**
@@ -895,7 +918,71 @@ describe("syncCatalog", () => {
   it("senza account non scrive il segnaposto, o il primo pull vero aspetterebbe un'ora", async () => {
     useAccountStore.setState({ token: null, profile: null });
 
-    expect(await syncCatalog()).toBe(0);
+    expect(await syncCatalog()).toEqual({ toccate: 0, riuscito: false });
     expect(await getSetting(CATALOG_PULLED_AT)).toBeNull();
+  });
+
+  /** Finding 7: `force` scavalca la finestra, non l'account. */
+  it("`force` non scavalca l'account: senza token il segnaposto resta vuoto", async () => {
+    useAccountStore.setState({ token: null, profile: null });
+    mockApiRequest.mockResolvedValue(pagina([]));
+
+    expect(await syncCatalog(true)).toEqual({ toccate: 0, riuscito: false });
+    expect(await getSetting(CATALOG_PULLED_AT)).toBeNull();
+  });
+
+  /**
+   * Finding 8: il bottone deve chiudere la finestra come un giro automatico,
+   * o ogni tocco lascerebbe la finestra aperta per il prossimo ritorno in
+   * primo piano - la finestra smetterebbe di applicarsi a chi usa il bottone.
+   */
+  it("`force` scrive comunque il segnaposto", async () => {
+    mockApiRequest.mockResolvedValue(pagina([]));
+
+    await syncCatalog(true);
+    const dopoIlPrimo = mockApiRequest.mock.calls.length;
+    await syncCatalog();
+
+    expect(mockApiRequest.mock.calls.length).toBe(dopoIlPrimo);
+  });
+
+  /**
+   * Finding 9: un segnaposto illeggibile conta come "mai fatto", non come
+   * "fatto per sempre". La differenza e' grave: con `false` al posto di
+   * `true` il pull non aspetterebbe un'ora, resterebbe bloccato per sempre,
+   * perche' nessun giro futuro puo' mai far scattare `Date.now() - NaN`.
+   */
+  it("un segnaposto illeggibile conta come 'mai fatto'", async () => {
+    await setSetting(CATALOG_PULLED_AT, "non-una-data");
+    mockApiRequest.mockResolvedValue(pagina([]));
+
+    await syncCatalog();
+
+    expect(mockApiRequest).toHaveBeenCalled();
+  });
+
+  /**
+   * Finding 12, regola 2 della sincronizzazione: si confrontano istanti, non
+   * cifre. Un segnaposto scritto con un fuso diverso da zero rappresenta lo
+   * stesso istante di uno in UTC, ma un confronto ingenuo fra stringhe legge
+   * solo le cifre dell'ora scritta e la giudicherebbe "piu' recente" solo
+   * perche' sono numericamente piu' alte - esattamente il caso che
+   * distingue "T13:00+02:00" (le 11:00 UTC) da un segnaposto in UTC.
+   */
+  it("un segnaposto in un altro fuso si confronta per istante, non per cifre", async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-09-08T15:00:00.000Z"));
+    try {
+      // Le 15:00+02:00 sono le 13:00 UTC: due ore prima delle 15:00 UTC di
+      // "adesso", oltre la finestra di un'ora.
+      await setSetting(CATALOG_PULLED_AT, "2026-09-08T15:00:00+02:00");
+      mockApiRequest.mockResolvedValue(pagina([]));
+
+      await syncCatalog();
+
+      expect(mockApiRequest).toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

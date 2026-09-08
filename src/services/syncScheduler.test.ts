@@ -1,3 +1,4 @@
+import { syncCatalog } from "@/src/services/catalogSync";
 import { runSync } from "@/src/services/sync";
 import {
   __resetSchedulerForTesting,
@@ -10,21 +11,34 @@ jest.mock("@/src/services/sync", () => ({
   runSync: jest.fn(async () => ({ pushed: 0, pulled: 0 })),
 }));
 
+// Senza questo mock la suite carica il servizio vero (e il db/api dietro di
+// lui) e resta innocua solo perche' `attivo()` risulta falso qui dentro: un
+// mock esplicito e' l'unico modo di verificare CHE il catalogo venga chiamato
+// (finding 10), non solo che il test non esploda.
+jest.mock("@/src/services/catalogSync", () => ({
+  syncCatalog: jest.fn(async () => ({ toccate: 0, riuscito: true })),
+}));
+
 const syncMock = jest.mocked(runSync);
+const catalogMock = jest.mocked(syncCatalog);
 
 /** Cattura l'ascoltatore di AppState per simulare i cambi di stato. */
 let appStateListener: ((state: string) => void) | null = null;
+/** Cattura la `remove` della sottoscrizione per verificarne la pulizia. */
+let removeSpy: jest.Mock;
 
 beforeEach(() => {
   jest.useFakeTimers();
   syncMock.mockClear();
+  catalogMock.mockClear();
   __resetSchedulerForTesting();
   appStateListener = null;
+  removeSpy = jest.fn();
   jest
     .spyOn(AppState, "addEventListener")
     .mockImplementation((_event, handler) => {
       appStateListener = handler as (state: string) => void;
-      return { remove: jest.fn() } as never;
+      return { remove: removeSpy } as never;
     });
 });
 
@@ -93,6 +107,24 @@ describe("quando parte la sincronizzazione", () => {
   });
 
   /**
+   * Finding 10. Due dei tre inneschi che questo task esiste per aggiungere -
+   * l'avvio e il ritorno in primo piano - non erano pinnati da nessuna parte:
+   * cancellare `void syncCatalog();` da `runIfDue` lasciava la suite verde.
+   */
+  it("chiama anche il catalogo, all'avvio e al ritorno in primo piano", async () => {
+    const stop = startSyncScheduler();
+    await flush();
+    expect(catalogMock).toHaveBeenCalledTimes(1);
+
+    jest.advanceTimersByTime(2 * 60 * 1000);
+    appStateListener?.("active");
+    await flush();
+
+    expect(catalogMock).toHaveBeenCalledTimes(2);
+    stop();
+  });
+
+  /**
    * Senza la fermata, un ricaricamento in sviluppo lascerebbe dietro un timer
    * per ogni ricarica, e le sincronizzazioni si moltiplicherebbero.
    */
@@ -105,6 +137,20 @@ describe("quando parte la sincronizzazione", () => {
     await flush();
 
     expect(syncMock).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * Finding 11. La pulizia e' completa e simmetrica (`clearInterval` +
+   * `subscription.remove()`), ma nessun test lo diceva: cancellare la seconda
+   * riga lasciava la suite verde perche' la `remove` mockata non era mai
+   * ispezionata.
+   */
+  it("rimuove anche l'ascoltatore di AppState alla fermata", async () => {
+    const stop = startSyncScheduler();
+    await flush();
+    stop();
+
+    expect(removeSpy).toHaveBeenCalled();
   });
 
   /** Due inneschi ravvicinati non devono mandare due richieste insieme. */

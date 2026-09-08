@@ -21,6 +21,11 @@
     "gym": "Palestra",
     "profile": "Profilo"
   },
+  "catalog": {
+    "up_to_date": "Catalogo già aggiornato",
+    "updated": "%{count} voci del catalogo aggiornate",
+    "sync_failed": "Aggiornamento del catalogo non riuscito"
+  },
   "foods": {
     "title": "I miei alimenti",
     "search_placeholder": "Cerca un alimento",
@@ -51,8 +56,6 @@
     "photo": "Foto",
     "catalog_notice": "Questo alimento entra nell'elenco di tutti gli iscritti, non solo dei tuoi amici, così lo trovano anche gli altri. Puoi correggerlo o toglierlo quando vuoi: le voci che aggiungi tu restano tue. Il catalogo non dice a nessuno chi le ha scritte.",
     "import_catalog": "Aggiorna dal catalogo",
-    "imported_none": "Catalogo già aggiornato",
-    "imported_some": "%{count} alimenti aggiornati",
     "per_hundred": "per 100 %{unit}",
     "sugars_short": "Zuccheri",
     "saturated_fat_short": "Grassi saturi",
@@ -501,8 +504,6 @@
     "exercise_exists": "C'è già un esercizio con questo nome",
     "catalog_notice": "Questo esercizio entra nell'elenco di tutti gli iscritti, non solo dei tuoi amici, così lo trovano anche gli altri. Puoi correggerlo o toglierlo quando vuoi: le voci che aggiungi tu restano tue. Il catalogo non dice a nessuno chi le ha scritte.",
     "import_catalog": "Aggiorna dal catalogo",
-    "imported_none": "Catalogo già aggiornato",
-    "imported_some": "%{count} esercizi aggiornati",
     "edit_exercise": "Modifica esercizio",
     "delete_exercise": "Elimina esercizio",
     "delete_exercise_message": "Sparisce da qui e dall'elenco di tutti. Gli allenamenti già registrati restano.",

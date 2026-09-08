@@ -14,6 +14,7 @@ import { initDatabase } from "@/src/db";
 import { relabelSeededRows } from "@/src/services/seedLabels";
 import { ExitConfirm } from "@/src/components/ExitConfirm";
 import { Navigation } from "@/src/navigation";
+import { syncCatalog } from "@/src/services/catalogSync";
 import { syncStepsOnStartup } from "@/src/services/healthConnect";
 import { syncSharedStats } from "@/src/services/shareSync";
 import { runSync } from "@/src/services/sync";
@@ -104,6 +105,23 @@ export function App() {
           // numeri di ieri.
           await runSync();
           await syncSharedStats();
+          /*
+           * Il catalogo va per ultimo e non atteso: e' anagrafica comune,
+           * indipendente da entrambi, e non deve ritardarli.
+           *
+           * `startSyncScheduler()` gia' lancia un giro forzato all'avvio, ma
+           * nella stessa tick del gate `dbReady` - prima che `restore()`
+           * abbia fatto il suo giro su `SecureStore`, quindi quasi sempre
+           * senza token: quel primo giro non trova niente e non scrive
+           * niente (la guardia di `syncCatalog` lo rende `riuscito: false`).
+           * Questo e' il secondo tentativo, quello che arriva DOPO il
+           * token: senza, il catalogo non avrebbe nessun innesco valido fino
+           * al prossimo ritorno in primo piano o al giro periodico dei
+           * quindici minuti. La guardia di un solo giro alla volta dentro
+           * `syncCatalog` fa si' che questo tentativo si agganci a quello
+           * dello scheduler se e' ancora in volo, invece di scontrarcisi.
+           */
+          void syncCatalog();
         });
     })();
     return () => {

@@ -102,14 +102,21 @@ export function FoodsScreen() {
       // `true`: chi tocca il bottone ha chiesto il catalogo adesso, e la
       // finestra di un'ora renderebbe questo comando un comando che non fa
       // niente.
-      const toccate = await syncCatalog(true);
-      showToast.success({
-        title:
-          toccate === 0
-            ? t("foods.imported_none")
-            : t("foods.imported_some", { count: toccate }),
-      });
-      if (toccate > 0) reload();
+      const { toccate, riuscito } = await syncCatalog(true);
+      // Come in Esercizi: il messaggio nomina il catalogo intero, non solo
+      // gli alimenti, o un giro che ha corretto solo esercizi direbbe qui "0
+      // alimenti aggiornati" mentendo su cosa e' successo davvero.
+      if (!riuscito) {
+        showToast.error({ title: t("catalog.sync_failed") });
+      } else {
+        showToast.success({
+          title:
+            toccate === 0
+              ? t("catalog.up_to_date")
+              : t("catalog.updated", { count: toccate }),
+        });
+        if (toccate > 0) reload();
+      }
     } finally {
       setImporting(false);
     }
@@ -160,6 +167,8 @@ export function FoodsScreen() {
             activeOpacity={0.6}
             hitSlop={10}
             disabled={importing}
+            accessibilityRole="button"
+            accessibilityLabel={t("foods.import_catalog")}
           >
             <CloudDownload
               size={22}

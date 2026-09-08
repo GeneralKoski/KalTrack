@@ -21,6 +21,11 @@
     "gym": "Gym",
     "profile": "Profile"
   },
+  "catalog": {
+    "up_to_date": "Catalog already up to date",
+    "updated": "%{count} catalog entries updated",
+    "sync_failed": "Catalog update failed"
+  },
   "foods": {
     "title": "My foods",
     "search_placeholder": "Search a food",
@@ -51,8 +56,6 @@
     "photo": "Photo",
     "catalog_notice": "This food is added to the catalog for all members, not just your friends, so others can find it too. You can edit or remove it whenever you want: entries you add stay yours. The catalog never tells anyone who wrote them.",
     "import_catalog": "Update from catalog",
-    "imported_none": "Catalog already up to date",
-    "imported_some": "%{count} foods updated",
     "per_hundred": "per 100 %{unit}",
     "sugars_short": "Sugars",
     "saturated_fat_short": "Saturated fat",
@@ -501,8 +504,6 @@
     "exercise_exists": "There's already an exercise with this name",
     "catalog_notice": "This exercise is added to the catalog for all members, not just your friends, so others can find it too. You can edit or remove it whenever you want: entries you add stay yours. The catalog never tells anyone who wrote them.",
     "import_catalog": "Update from catalog",
-    "imported_none": "Catalog already up to date",
-    "imported_some": "%{count} exercises updated",
     "edit_exercise": "Edit exercise",
     "delete_exercise": "Delete exercise",
     "delete_exercise_message": "It disappears from here and from everyone's list. Workouts already logged stay.",
