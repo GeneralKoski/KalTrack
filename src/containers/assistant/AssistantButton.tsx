@@ -16,6 +16,7 @@ import { getTargetsFor } from "@/src/db/queries/settings";
 import { getSteps } from "@/src/db/queries/tracking";
 import { listRoutines } from "@/src/db/queries/workouts";
 import { todayIso } from "@/src/domain/date";
+import { useAiGate } from "@/src/hooks/useAiGate";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { checkAchievements } from "@/src/services/achievements";
 import { useAssistantLaunch } from "@/src/services/assistantLaunch";
@@ -57,6 +58,7 @@ export const AssistantButton: React.FC<AssistantButtonProps> = ({
 }) => {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
+  const gate = useAiGate();
   const [open, setOpen] = useState(false);
   const launchRequests = useAssistantLaunch();
   const referenceDate = useDayContextStore((s) => s.referenceDate);
@@ -194,9 +196,7 @@ export const AssistantButton: React.FC<AssistantButtonProps> = ({
       <TouchableOpacity
         style={styles.button}
         activeOpacity={0.6}
-        onPress={() => {
-          setOpen(true);
-        }}
+        onPress={() => gate(() => setOpen(true))}
         accessibilityLabel={t("assistant.open")}
       >
         <MetalSurface radius={28} style={styles.surface}>

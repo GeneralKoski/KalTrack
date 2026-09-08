@@ -30,6 +30,7 @@ import {
 import { todayIso } from "@/src/domain/date";
 import { matchLoggedSets } from "@/src/domain/session";
 import { suggestNextWeight } from "@/src/domain/strength";
+import { useAiGate } from "@/src/hooks/useAiGate";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { decimalSeparator } from "@/src/utils/number";
@@ -186,6 +187,7 @@ export function SessionScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const { goBack, navigate } = useAppNav();
+  const gate = useAiGate();
   const insets = useSafeAreaInsets();
   const route = useRoute<SessionRoute>();
   const { routineId, dayIndex } = route.params;
@@ -735,7 +737,7 @@ export function SessionScreen() {
 
                         <TouchableOpacity
                           onPress={() =>
-                            openAlternatives(item.row.id, exercise)
+                            gate(() => openAlternatives(item.row.id, exercise))
                           }
                           activeOpacity={0.6}
                           accessibilityRole="button"

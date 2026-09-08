@@ -46,6 +46,7 @@ import { LanguageScreen } from "@/src/navigation/screens/LanguageScreen";
 import { MealTypesScreen } from "@/src/navigation/screens/MealTypesScreen";
 import { MeasurementsScreen } from "@/src/navigation/screens/MeasurementsScreen";
 import { PhotoCompareScreen } from "@/src/navigation/screens/PhotoCompareScreen";
+import { PlansScreen } from "@/src/navigation/screens/PlansScreen";
 import { ProgressPhotosScreen } from "@/src/navigation/screens/ProgressPhotosScreen";
 import { RemindersScreen } from "@/src/navigation/screens/RemindersScreen";
 import { RoutineFormScreen } from "@/src/navigation/screens/RoutineFormScreen";
@@ -296,6 +297,10 @@ const RootStack = createNativeStackNavigator({
     Achievements: {
       screen: AchievementsScreen,
       linking: { path: "traguardi" },
+    },
+    Plans: {
+      screen: PlansScreen,
+      linking: { path: "piani" },
     },
     Measurements: {
       screen: MeasurementsScreen,

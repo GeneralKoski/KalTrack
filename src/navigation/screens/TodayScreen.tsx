@@ -50,6 +50,7 @@ import { todayIso } from "@/src/domain/date";
 import { defaultMealTypeId } from "@/src/domain/mealTime";
 import { EMPTY_NUTRIENTS, type Nutrients } from "@/src/domain/nutrition";
 import { rowNutrients, type EstimateRow } from "@/src/domain/photoEstimate";
+import { useAiGate } from "@/src/hooks/useAiGate";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
@@ -92,6 +93,7 @@ export function TodayScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const { navigate } = useAppNav();
+  const gate = useAiGate();
   const today = todayIso();
 
   const [date, setDate] = useState(today);
@@ -169,7 +171,7 @@ export function TodayScreen() {
       return;
     }
     if (picked.kind === "photo") {
-      void startPhotoEstimate(picked.source);
+      gate(() => startPhotoEstimate(picked.source));
       return;
     }
     setPendingPick(picked);

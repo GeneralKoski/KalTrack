@@ -628,6 +628,31 @@
       "day_steps_50k": "50,000 steps in a day"
     }
   },
+  "plans": {
+    "title": "Plans",
+    "hero_title": "AI is becoming a paid feature",
+    "hero_body": "The features that use artificial intelligence will become part of a subscription. For now they stay visible, but they aren't purchasable yet.",
+    "section_included": "WHAT IT INCLUDES",
+    "feature": {
+      "assistant": {
+        "label": "Voice assistant",
+        "detail": "Logs meals, weight, steps and targets by voice"
+      },
+      "photo": {
+        "label": "Photo estimate",
+        "detail": "Recognises the foods on a plate from a photo"
+      },
+      "label": {
+        "label": "Label scan",
+        "detail": "Reads the nutrition facts off the package"
+      },
+      "routine": {
+        "label": "Routine generation",
+        "detail": "Suggests a tailored workout routine"
+      }
+    },
+    "not_available": "Not purchasable yet: this page will come to life once AI features become part of a subscription."
+  },
   "water": {
     "title": "Water",
     "unknown": "-",

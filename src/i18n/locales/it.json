@@ -628,6 +628,31 @@
       "day_steps_50k": "50.000 passi in un giorno"
     }
   },
+  "plans": {
+    "title": "Piani",
+    "hero_title": "L'IA diventerà una funzione a pagamento",
+    "hero_body": "Le funzioni che usano l'intelligenza artificiale entreranno in un abbonamento. Per ora restano visibili, ma non sono ancora acquistabili.",
+    "section_included": "COSA COMPRENDE",
+    "feature": {
+      "assistant": {
+        "label": "Assistente vocale",
+        "detail": "Registra pasti, peso, passi e obiettivi parlando"
+      },
+      "photo": {
+        "label": "Stima da foto",
+        "detail": "Riconosce gli alimenti di un piatto da una fotografia"
+      },
+      "label": {
+        "label": "Lettura etichetta",
+        "detail": "Legge i valori nutrizionali dalla confezione"
+      },
+      "routine": {
+        "label": "Generazione scheda",
+        "detail": "Propone una scheda di allenamento su misura"
+      }
+    },
+    "not_available": "Non ancora acquistabile: questa pagina arriverà quando le funzioni AI diventeranno parte di un abbonamento."
+  },
   "water": {
     "title": "Acqua",
     "unknown": "-",

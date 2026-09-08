@@ -8,6 +8,7 @@ import { DfButton } from "@/src/components/form/DfButton";
 import { AiKeyPrompt } from "@/src/containers/settings/AiKeyPrompt";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
+import { useAiGate } from "@/src/hooks/useAiGate";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import { logger } from "@/src/utils/logger";
@@ -58,6 +59,7 @@ const FIELD_OF: Record<keyof Nutrients, string> = {
 export const LabelScanner: React.FC = () => {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
+  const gate = useAiGate();
   const form = useFormContext();
   const [busy, setBusy] = useState(false);
   const [askKey, setAskKey] = useState(false);
@@ -136,13 +138,14 @@ export const LabelScanner: React.FC = () => {
    * tocco. Prima sparivano dietro una riga di testo spenta, che diceva cosa
    * mancava e non dove metterlo.
    */
-  const guard = (action: () => Promise<void>) => () => {
-    if (!hasAiKey()) {
-      setAskKey(true);
-      return;
-    }
-    void action();
-  };
+  const guard = (action: () => Promise<void>) => () =>
+    gate(() => {
+      if (!hasAiKey()) {
+        setAskKey(true);
+        return;
+      }
+      void action();
+    });
 
   return (
     <View style={styles.root}>

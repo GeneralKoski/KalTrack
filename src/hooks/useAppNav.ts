@@ -51,6 +51,8 @@ export interface NavParams {
   /** Un allenamento gia' fatto, in sola lettura. */
   SessionDetail: { id: string };
   Achievements: undefined;
+  /** Dove atterra chi tocca un comando AI senza diritto: § AI di CLAUDE.md. */
+  Plans: undefined;
   Friends: undefined;
   FriendProfile: { handle: string };
   Comparison: undefined;
