@@ -128,6 +128,44 @@ describe("pullExercises, l'aggancio di una riga", () => {
       "ex-panca-piana-bilanciere",
     );
   });
+
+  /**
+   * Il difetto del brief: una riga che ha gia' un uid DIVERSO non e' "senza
+   * uid", e' l'identita' di un'ALTRA voce di catalogo. La sequenza che morde:
+   * il pannello rinomina X (che libera il nome), Y prende quel nome, la
+   * stessa pagina porta entrambe. Agganciare Y per nome alla riga di X le
+   * scambierebbe contenuto e identita' sotto silenzio - X resterebbe
+   * orfana (il suo tombstone diventerebbe un no-op) e la riga che gli
+   * allenamenti passati nominano sarebbe diventata un altro esercizio.
+   */
+  it("non aggancia per nome una riga che ha gia' un uid diverso", async () => {
+    const id = await createExercise({
+      name: "Panca piana",
+      muscleGroup: "petto",
+      secondaryMuscles: [],
+      equipment: ["bilanciere"],
+      instructions: "vecchio testo",
+      catalogUid: "ex-altro",
+      isCustom: false,
+    });
+
+    mockApiRequest.mockResolvedValue(pagina([voce()]));
+
+    expect(await pullExercises()).toBe(1);
+
+    const righe = await searchExercises({ term: "panca" });
+    expect(righe).toHaveLength(2);
+
+    // La riga vecchia resta la sua: uid e contenuto intatti.
+    const vecchia = await getExercise(id);
+    expect(vecchia?.catalog_uid).toBe("ex-altro");
+    expect(vecchia?.instructions).toBe("vecchio testo");
+
+    // La voce in arrivo e' entrata come riga NUOVA, non come aggiornamento
+    // della vecchia.
+    const nuova = righe.find((r) => r.id !== id);
+    expect(nuova?.catalog_uid).toBe("ex-panca-piana-bilanciere");
+  });
 });
 
 describe("pullExercises, quel che non tocca", () => {
@@ -174,6 +212,34 @@ describe("pullExercises, quel che non tocca", () => {
     const riga = await getExercise(id);
     expect(riga?.name).toBe("La mia panca");
     expect(riga?.instructions).toBeNull();
+    expect(riga?.catalog_uid).toBe("ex-panca-piana-bilanciere");
+  });
+
+  /**
+   * L'altra meta' della regola: una riga dell'utente che l'uid non ce l'ha
+   * ANCORA (agganciata per nome) lo riceve comunque - serve a un tombstone
+   * futuro per sapere di quale riga parla - ma il contenuto resta il suo.
+   * Spostare il controllo `is_custom` PRIMA dell'assegnazione dell'uid e' lo
+   * sbaglio naturale, ed e' quello che lascerebbe la riga senza identita'.
+   */
+  it("da' l'uid a una riga dell'utente senza uid, ma non ne scrive il contenuto", async () => {
+    const id = await createExercise({
+      name: "Panca piana",
+      muscleGroup: "schiena",
+      secondaryMuscles: [],
+      equipment: ["manubri"],
+      instructions: "la faccio a modo mio",
+      // Nessun catalogUid: si aggancia per nome, come una riga pre-migrazione.
+      // Il default resta `is_custom = 1`.
+    });
+    mockApiRequest.mockResolvedValue(pagina([voce()]));
+
+    await pullExercises();
+
+    const riga = await getExercise(id);
+    expect(riga?.muscle_group).toBe("schiena");
+    expect(riga?.instructions).toBe("la faccio a modo mio");
+    expect(riga?.catalog_uid).toBe("ex-panca-piana-bilanciere");
   });
 
   /**
@@ -233,13 +299,20 @@ describe("pullExercises, una voce tolta dal catalogo", () => {
     expect(riga?.catalog_uid).toBe("ex-panca-piana-bilanciere");
   });
 
-  /** Un tombstone per una voce che qui non c'e' non e' un errore. */
+  /**
+   * Un tombstone per una voce che qui non c'e' non e' un errore. Il solo
+   * `toBe(0)` non lo distingue da un giro andato in eccezione - anche il
+   * `catch` esterno torna 0 - quindi si pretende anche che il cursore sia
+   * stato scritto: succede solo sul percorso normale, mai su quello che
+   * solleva.
+   */
   it("un tombstone sconosciuto non fa niente e non solleva", async () => {
     mockApiRequest.mockResolvedValue(
       pagina([{ uid: "ex-mai-vista", deletedAt: "2026-09-08T09:00:00+00:00" }]),
     );
 
     expect(await pullExercises()).toBe(0);
+    expect(await getSetting(CATALOG_EXERCISES_CURSOR)).not.toBeNull();
   });
 });
 
@@ -333,6 +406,46 @@ describe("pullExercises, il cursore", () => {
     expect(mockApiRequest).toHaveBeenCalledWith(
       expect.objectContaining({ params: {} }),
     );
+  });
+
+  /**
+   * La resistenza che il commento in `pullExercises` promette: il cursore si
+   * scrive a OGNI pagina, non alla fine del giro. Se la seconda pagina fallisce,
+   * quella della prima deve essere gia' sul disco - altrimenti un giro
+   * interrotto a meta' ripartirebbe da zero invece che da dove era arrivato.
+   */
+  it("il cursore della prima pagina resta anche se la seconda fallisce", async () => {
+    mockApiRequest
+      .mockResolvedValueOnce({
+        data: [voce()],
+        cursor: { since: "2026-09-08T10:00:00+00:00", afterId: 1 },
+        next: { since: "2026-09-08T10:00:00+00:00", afterId: 1 },
+      })
+      .mockRejectedValueOnce(new Error("rete assente"));
+
+    // Il giro nel complesso fallisce - il `catch` esterno torna 0 - ma il
+    // cursore della prima pagina, gia' scritto prima dell'eccezione, resta.
+    expect(await pullExercises()).toBe(0);
+    expect(await getSetting(CATALOG_EXERCISES_CURSOR)).toBe(
+      '{"since":"2026-09-08T10:00:00+00:00","afterId":1}',
+    );
+  });
+
+  /**
+   * `MAX_PAGES` e' l'unico argine fra un server che dice sempre "c'e' altro"
+   * e un ciclo che non finisce mai. Un server che tornasse una pagina piena
+   * col cursore fermo deve fermarsi comunque al tetto.
+   */
+  it("si ferma dopo un numero massimo di pagine anche se il server dice sempre che c'e' altro", async () => {
+    mockApiRequest.mockResolvedValue({
+      data: [voce()],
+      cursor: { since: "2026-09-08T10:00:00+00:00", afterId: 1 },
+      next: { since: "2026-09-08T10:00:00+00:00", afterId: 1 },
+    });
+
+    await pullExercises();
+
+    expect(mockApiRequest).toHaveBeenCalledTimes(50);
   });
 });
 

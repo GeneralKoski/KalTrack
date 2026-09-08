@@ -8,6 +8,7 @@ import {
   findExerciseByCatalogUid,
   findExerciseByName,
   setExerciseCatalogUid,
+  type CatalogExerciseFields,
 } from "@/src/db/queries/exercises";
 import { getSetting, setSetting } from "@/src/db/queries/settings";
 import { catalogPhotoPath } from "@/src/services/photoSync";
@@ -118,17 +119,25 @@ const parseEquipment = (value: string | null | undefined): Equipment[] =>
  * Una voce di catalogo applicata alla riga locale. Torna true se ha toccato
  * qualcosa.
  *
- * La riga si cerca per uid e, non trovata, per nome. Un TOMBSTONE si cerca
- * solo per uid, e non e' una dimenticanza: di una voce cancellata il server
- * manda solo `uid` e `deletedAt`, quindi un nome non c'e' da confrontare. Non
- * lascia scoperto niente, perche' i tombstone escono solo in un pull
- * incrementale - il primo pull, quello che distribuisce gli uid, non ne
- * contiene nessuno.
+ * La riga si cerca per uid e, non trovata, per nome - ma il nome vale solo su
+ * una riga che l'uid non ce l'ha ancora: una riga con un uid GIA' diverso e'
+ * l'identita' di un'altra voce, e agganciarla scambierebbe silenziosamente
+ * contenuto e identita' invece di lasciarla alla voce che gliel'ha data.
+ *
+ * Un TOMBSTONE si cerca solo per uid, e non e' una dimenticanza: di una voce
+ * cancellata il server manda solo `uid` e `deletedAt`, quindi un nome non c'e'
+ * da confrontare. Non lascia scoperto niente, perche' i tombstone escono solo
+ * in un pull incrementale - il primo pull, quello che distribuisce gli uid,
+ * non ne contiene nessuno.
  */
 async function applyExercise(voce: catalog.CatalogExercise): Promise<boolean> {
   const perUid = await findExerciseByCatalogUid(voce.uid);
 
-  if (voce.deletedAt !== null) {
+  // `!= null` e non `!== null`: il campo e' sempre presente su un tombstone
+  // vero, ma un `undefined` sfuggito da un payload malformato deve finire
+  // qui e non in fondo alla funzione, dove proverebbe a leggere un nome che
+  // un tombstone non manda mai.
+  if (voce.deletedAt != null) {
     if (!perUid || perUid.is_custom === 1) return false;
     await detachExerciseFromCatalog(perUid.id);
     return true;
@@ -138,7 +147,21 @@ async function applyExercise(voce: catalog.CatalogExercise): Promise<boolean> {
     return false;
   }
 
-  const esistente = perUid ?? (await findExerciseByName(voce.name));
+  /*
+   * Il fallback per nome vale SOLO per una riga che l'uid non ce l'ha ancora
+   * ("le righe gia' installate che l'uid non ce l'hanno ancora", vedi il
+   * commento in cima al file). Una riga che ha gia' un uid DIVERSO e' l'
+   * identita' di un'altra voce di catalogo: agganciarla per nome le
+   * scambierebbe silenziosamente contenuto e identita' - il caso e' una
+   * voce X rinominata (che libera il nome) e una voce Y che nel frattempo
+   * prende quel nome. Trattarla come "non trovata" lascia inserire Y come
+   * riga nuova, e X resta la sua riga con il suo uid: due righe che
+   * condividono per un giro un nome e' corretto, perche' il prossimo pull di
+   * X la rinomina di nuovo.
+   */
+  const perNome = perUid ? null : await findExerciseByName(voce.name);
+  const esistente =
+    perUid ?? (perNome?.catalog_uid === null ? perNome : null);
 
   const campi = {
     name: voce.name,
@@ -155,7 +178,17 @@ async function applyExercise(voce: catalog.CatalogExercise): Promise<boolean> {
      * quell'esercizio.
      */
     photoUri: voce.photo ? catalogPhotoPath(voce.photo) : null,
-  };
+    /*
+     * `satisfies` e non `:` - un'annotazione di tipo allargherebbe
+     * `muscleGroup` a `string` (il confine di `applyCatalogExercise`, che
+     * scrive anche righe di cui SQLite non sa nulla di enum) e quella
+     * stringa larga non basterebbe piu' a `createExercise`, che vuole
+     * `MuscleGroup`. `satisfies` tiene il tipo letterale stretto E riattiva
+     * il controllo delle proprieta' in eccesso: senza, un campo estraneo come
+     * `notes` si infilerebbe qui dentro zitto, e sarebbe scritto sull'insert
+     * - esattamente il giudizio personale che la regola 2 vieta.
+     */
+  } satisfies CatalogExerciseFields;
 
   if (!esistente) {
     await createExercise({ ...campi, isCustom: false, catalogUid: voce.uid });
