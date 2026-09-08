@@ -14,7 +14,8 @@ import { useAccountStore } from "@/src/stores/accountStore";
 export function useAiAvailable(): boolean {
   const token = useAccountStore((s) => s.token);
   const aiEnabled = useAccountStore((s) => s.aiEnabled);
-  return aiAvailable({ token, aiEnabled });
+  const isHydrated = useAccountStore((s) => s.isHydrated);
+  return aiAvailable({ token, aiEnabled, isHydrated });
 }
 
 /**

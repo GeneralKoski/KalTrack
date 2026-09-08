@@ -97,11 +97,17 @@ export const AssistantButton: React.FC<AssistantButtonProps> = ({
    */
   useEffect(() => {
     if (launchRequests === 0 || launchRequests === servedLaunch.current) return;
-    servedLaunch.current = launchRequests;
+    // Segnata DOPO che il cancello ha deciso, non prima: `aiAvailable` ora
+    // risolve "non ancora idratato" in favore dell'utente, quindi la
+    // richiesta e' sempre servita davvero - ma se un giorno il cancello
+    // dovesse rimandare la decisione, segnarla prima l'avrebbe consumata
+    // senza che fosse successo niente, e nessun nuovo tocco l'avrebbe
+    // rimessa in coda.
     gateRef.current(() => {
       setOpen(true);
       void startListeningRef.current();
     });
+    servedLaunch.current = launchRequests;
   }, [launchRequests]);
 
   // Il contesto si prepara PRIMA di parlare o scrivere, non dopo: raccoglierlo mentre il

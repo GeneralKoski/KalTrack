@@ -1,5 +1,6 @@
 import { AssistantButton } from "@/src/containers/assistant/AssistantButton";
 import React from "react";
+import { TouchableOpacity } from "react-native";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 
 const mockNavigate = jest.fn();
@@ -18,15 +19,26 @@ jest.mock("@/src/components/kal", () => ({
   MetalSurface: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-// Nessun account: lo stesso stato che gia' spegne il tocco del microfono
-// (aiAccess.test.ts, "senza account e' spenta").
+/**
+ * Stato dell'account, controllabile per test: `token`, `aiEnabled` e
+ * `isHydrated` sono TRE informazioni diverse (vedi `aiAccess.ts`), e un mock
+ * che ne fissasse solo due renderebbe indistinguibili "nessun account" e
+ * "non ancora idratato" - esattamente il difetto che ha portato un utente con
+ * diritto sui piani da un deep link a freddo.
+ */
+let mockAccountState = {
+  token: null as string | null,
+  aiEnabled: null as boolean | null,
+  isHydrated: true,
+};
 jest.mock("@/src/stores/accountStore", () => ({
   useAccountStore: (
     selector: (state: {
       token: string | null;
       aiEnabled: boolean | null;
+      isHydrated: boolean;
     }) => unknown,
-  ) => selector({ token: null, aiEnabled: null }),
+  ) => selector(mockAccountState),
 }));
 
 const mockStartListening = jest.fn(async () => undefined);
@@ -49,10 +61,16 @@ jest.mock("@/src/containers/assistant/useAssistantSession", () => ({
   }),
 }));
 
-// L'overlay non c'entra con quel che si verifica qui (se si apre l'ascolto o
-// si naviga), ed e' pesante da montare per conto suo.
+// L'overlay non c'entra con la logica verificata qui, ma il suo prop
+// `visible` e' l'unico modo di vedere dall'esterno se `setOpen(true)` e'
+// scattato: senza chiamare l'AI davvero, e' il segno che il cancello ha
+// lasciato passare l'azione invece di navigare.
+const mockOverlay = jest.fn();
 jest.mock("@/src/containers/assistant/AssistantOverlay", () => ({
-  AssistantOverlay: () => null,
+  AssistantOverlay: (props: { visible: boolean }) => {
+    mockOverlay(props);
+    return null;
+  },
 }));
 
 /*
@@ -76,7 +94,65 @@ jest.mock("expo-linking", () => ({
 beforeEach(() => {
   mockNavigate.mockClear();
   mockStartListening.mockClear();
+  mockOverlay.mockClear();
   deepLinkHandler = null;
+  mockAccountState = { token: null, aiEnabled: null, isHydrated: true };
+});
+
+const lastVisible = (): boolean =>
+  Boolean(mockOverlay.mock.calls.at(-1)?.[0]?.visible);
+
+describe("AssistantButton, il tocco sul microfono", () => {
+  /**
+   * M12: senza diritto AI il tocco deve navigare ai piani, non aprire
+   * l'overlay. `token: null` con `isHydrated: true` e' "nessun account"
+   * CONFERMATO, non "non lo so ancora".
+   */
+  it("senza account naviga ai piani e non apre l'overlay", () => {
+    mockAccountState = { token: null, aiEnabled: null, isHydrated: true };
+    let renderer!: ReactTestRenderer;
+    act(() => {
+      renderer = create(<AssistantButton />);
+    });
+
+    act(() => {
+      renderer.root.findByType(TouchableOpacity).props.onPress();
+    });
+
+    expect(mockNavigate).toHaveBeenCalledWith("Plans");
+    expect(lastVisible()).toBe(false);
+  });
+
+  /** M18: il cancello deve guardare DAVVERO `aiEnabled`, non solo il token. */
+  it("con account ma senza diritto (ai_enabled: false) naviga ai piani", () => {
+    mockAccountState = { token: "t", aiEnabled: false, isHydrated: true };
+    let renderer!: ReactTestRenderer;
+    act(() => {
+      renderer = create(<AssistantButton />);
+    });
+
+    act(() => {
+      renderer.root.findByType(TouchableOpacity).props.onPress();
+    });
+
+    expect(mockNavigate).toHaveBeenCalledWith("Plans");
+    expect(lastVisible()).toBe(false);
+  });
+
+  it("con account e diritto apre l'overlay, senza navigare", () => {
+    mockAccountState = { token: "t", aiEnabled: true, isHydrated: true };
+    let renderer!: ReactTestRenderer;
+    act(() => {
+      renderer = create(<AssistantButton />);
+    });
+
+    act(() => {
+      renderer.root.findByType(TouchableOpacity).props.onPress();
+    });
+
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(lastVisible()).toBe(true);
+  });
 });
 
 describe("AssistantButton, la scorciatoia da fuori l'app", () => {
@@ -88,7 +164,8 @@ describe("AssistantButton, la scorciatoia da fuori l'app", () => {
    * conversione, non un problema di sicurezza (il cartello non e' una
    * serratura), ma le due porte devono essere d'accordo.
    */
-  it("senza diritto AI naviga ai piani e non apre l'ascolto", async () => {
+  it("senza account (confermato) naviga ai piani e non apre l'ascolto", async () => {
+    mockAccountState = { token: null, aiEnabled: null, isHydrated: true };
     let renderer!: ReactTestRenderer;
     await act(async () => {
       renderer = create(<AssistantButton />);
@@ -106,6 +183,35 @@ describe("AssistantButton, la scorciatoia da fuori l'app", () => {
 
     expect(mockNavigate).toHaveBeenCalledWith("Plans");
     expect(mockStartListening).not.toHaveBeenCalled();
+
+    act(() => {
+      renderer.unmount();
+    });
+  });
+
+  /**
+   * Important 1: `token: null` prima che `restore()` finisca NON e' "nessun
+   * account" - e' "non lo so ancora". Un deep link a freddo, con l'idratazione
+   * ancora in corso, deve aprire l'ascolto come chi ha diritto: negarlo per
+   * ignoranza e' esattamente il difetto che questo task esiste per impedire.
+   */
+  it("prima che l'idratazione finisca, apre l'ascolto invece di navigare", async () => {
+    mockAccountState = { token: null, aiEnabled: null, isHydrated: false };
+    let renderer!: ReactTestRenderer;
+    await act(async () => {
+      renderer = create(<AssistantButton />);
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      deepLinkHandler?.({ url: "kaltrack://assistente" });
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockStartListening).toHaveBeenCalledTimes(1);
 
     act(() => {
       renderer.unmount();

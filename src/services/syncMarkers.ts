@@ -164,7 +164,28 @@ export async function readAiEnabled(): Promise<boolean | null> {
   }
 }
 
-/** Scrive l'ultima risposta del server. Va chiamata a ogni `/api/me` riuscito. */
+/**
+ * Scrive l'ultima risposta del server. Va chiamata a ogni `/api/me` riuscito.
+ *
+ * Scrive SOLO un booleano esplicito. `apiRequest` non valida la forma della
+ * risposta (e' un confine di sistema - un APK piu' vecchio o piu' nuovo del
+ * backend, o una risposta a cui il campo manca, arrivano qui uguali): un
+ * valore che non e' `true` ne' `false` non deve diventare un "false"
+ * persistito, o "non lo so ancora" collasserebbe in "no" per sempre, fino al
+ * prossimo `/api/me` riuscito. Il segnaposto resta com'era.
+ */
 export async function writeAiEnabled(value: boolean): Promise<void> {
+  if (typeof value !== "boolean") return;
   await setSetting(AI_ENABLED, value ? "1" : "0");
+}
+
+/**
+ * Dimentica l'ultimo valore noto. Va chiamata da `signOut`: il valore
+ * appartiene all'account che sta uscendo, e lasciarlo scritto giudicherebbe
+ * il prossimo utente su un fatto che non e' il suo se il suo primo `/api/me`
+ * fallisse prima di poterlo sovrascrivere.
+ */
+export async function clearAiEnabled(): Promise<void> {
+  const db = await getDb();
+  await db.runAsync("DELETE FROM settings WHERE key = ?", [AI_ENABLED]);
 }
