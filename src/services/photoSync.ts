@@ -1,7 +1,7 @@
 import { apiRequest } from "@/src/api/client";
 import { API_URL, hasBackend } from "@/src/api/config";
 import { orphanPhotoNames } from "@/src/db/queries/photos";
-import { PHOTOS_DIR } from "@/src/services/photoStorage";
+import { CATALOG_PHOTOS_DIR, PHOTOS_DIR } from "@/src/services/photoStorage";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { logger } from "@/src/utils/logger";
 import * as FileSystem from "expo-file-system/legacy";
@@ -26,6 +26,13 @@ export const nameOf = (uri: string): string =>
 /** Dove vive, o dovrebbe vivere, su QUESTO telefono. */
 export const localPathOf = (name: string): string => `${PHOTOS_DIR}/${name}`;
 
+/** Dove vive, o dovrebbe vivere, una foto del catalogo su QUESTO telefono. */
+export const catalogPhotoPath = (name: string): string =>
+  `${CATALOG_PHOTOS_DIR}/${name}`;
+
+const isCatalogPhoto = (uri: string): boolean =>
+  uri.startsWith(CATALOG_PHOTOS_DIR);
+
 const exists = async (uri: string): Promise<boolean> => {
   try {
     return (await FileSystem.getInfoAsync(uri)).exists;
@@ -45,7 +52,20 @@ export async function ensureLocalPhoto(uri: string): Promise<string | null> {
   if (!uri) return null;
 
   const name = nameOf(uri);
-  const local = localPathOf(name);
+  /*
+   * La cartella dell'uri decide dove cercare e a chi chiedere.
+   *
+   * Una foto di catalogo sta in `storage/app/private/catalog/` sul server, non
+   * sotto `images/{utente}`: e' comune a tutti gli iscritti, e il percorso per
+   * utente la renderebbe di uno solo. Chiederla a `/images` sarebbe un 404
+   * garantito, e il segnaposto resterebbe per sempre senza che niente lo
+   * dicesse.
+   */
+  const catalogo = isCatalogPhoto(uri);
+  const local = catalogo ? catalogPhotoPath(name) : localPathOf(name);
+  const endpoint = catalogo
+    ? `${API_URL}/catalog/images/${encodeURIComponent(name)}`
+    : `${API_URL}/images/${encodeURIComponent(name)}`;
 
   if (await exists(local)) return local;
   if (!hasBackend()) return null;
@@ -54,15 +74,22 @@ export async function ensureLocalPhoto(uri: string): Promise<string | null> {
   if (!token) return null;
 
   try {
-    const result = await FileSystem.downloadAsync(
-      `${API_URL}/images/${encodeURIComponent(name)}`,
-      local,
-      { headers: { Authorization: `Bearer ${token}` } },
-    );
+    if (catalogo) {
+      // A differenza di `PHOTOS_DIR`, nessun `persistPhoto` scrive mai in
+      // questa cartella: senza questa riga il primo scaricamento di una foto
+      // di catalogo su un telefono nuovo troverebbe la cartella assente e
+      // fallirebbe.
+      await FileSystem.makeDirectoryAsync(CATALOG_PHOTOS_DIR, {
+        intermediates: true,
+      }).catch(() => {});
+    }
+
+    const result = await FileSystem.downloadAsync(endpoint, local, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     if (result.status !== 200) {
-      // Un 404 e' normale: il telefono d'origine non l'ha ancora caricata.
-      // Il file scritto a meta' va tolto, o la prossima volta lo troveremmo
-      // "esistente" e mostreremmo dei byte che non sono un'immagine.
+      // Un 404 e' normale: il telefono d'origine non l'ha ancora caricata, o
+      // il gestionale non ha ancora messo la foto su quella voce di catalogo.
       await FileSystem.deleteAsync(local, { idempotent: true });
       return null;
     }

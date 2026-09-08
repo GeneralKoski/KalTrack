@@ -3,11 +3,13 @@ import { __setDbForTesting } from "@/src/db/index";
 import { runMigrations } from "@/src/db/migrations";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 import {
+  catalogPhotoPath,
   collectOrphanPhotos,
   ensureLocalPhoto,
   nameOf,
   uploadPendingPhotos,
 } from "@/src/services/photoSync";
+import { PHOTOS_DIR } from "@/src/services/photoStorage";
 import { useAccountStore } from "@/src/stores/accountStore";
 import * as FileSystem from "expo-file-system/legacy";
 
@@ -45,6 +47,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   useAccountStore.setState({ token: "token-valido", profile: null });
   fs.deleteAsync.mockResolvedValue(undefined);
+  fs.makeDirectoryAsync.mockResolvedValue(undefined);
 });
 
 describe("il nome di una foto", () => {
@@ -274,5 +277,55 @@ describe("la raccolta delle foto orfane", () => {
       "file:///doc/photos/progress-morta.jpg",
       { idempotent: true },
     );
+  });
+});
+
+describe("le foto del catalogo", () => {
+  /**
+   * La cartella decide l'endpoint, e non e' una scorciatoia: una foto di
+   * catalogo e' comune a tutti gli iscritti e vive in
+   * `storage/app/private/catalog/`, mentre `/images/{name}` serve i file di
+   * un utente. Chiedere una foto di catalogo a `/images` e' un 404 sicuro, e
+   * il segnaposto resterebbe per sempre.
+   */
+  it("scarica da /catalog/images quando la foto e' di catalogo", async () => {
+    const uri = catalogPhotoPath("ex-panca.jpg");
+    fs.getInfoAsync.mockResolvedValue({ exists: false } as never);
+    fs.downloadAsync.mockResolvedValue({ status: 200 } as never);
+
+    expect(await ensureLocalPhoto(uri)).toBe(uri);
+
+    expect(fs.downloadAsync).toHaveBeenCalledWith(
+      "https://esempio.tld/api/catalog/images/ex-panca.jpg",
+      uri,
+      expect.objectContaining({
+        headers: { Authorization: "Bearer token-valido" },
+      }),
+    );
+  });
+
+  it("una foto dell'utente continua a passare da /images", async () => {
+    fs.getInfoAsync.mockResolvedValue({ exists: false } as never);
+    fs.downloadAsync.mockResolvedValue({ status: 200 } as never);
+
+    await ensureLocalPhoto(`${PHOTOS_DIR}/recipe-1.jpg`);
+
+    expect(fs.downloadAsync).toHaveBeenCalledWith(
+      "https://esempio.tld/api/images/recipe-1.jpg",
+      `${PHOTOS_DIR}/recipe-1.jpg`,
+      expect.anything(),
+    );
+  });
+
+  /**
+   * Il pull scrive il percorso prima che i byte ci siano: la foto gia' qui non
+   * deve costare una richiesta a ogni disegno.
+   */
+  it("non chiede niente se la foto di catalogo e' gia' qui", async () => {
+    fs.getInfoAsync.mockResolvedValue({ exists: true } as never);
+
+    const uri = catalogPhotoPath("ex-panca.jpg");
+    expect(await ensureLocalPhoto(uri)).toBe(uri);
+    expect(fs.downloadAsync).not.toHaveBeenCalled();
   });
 });

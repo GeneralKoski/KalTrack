@@ -15,6 +15,22 @@ import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
  */
 export const PHOTOS_DIR = `${FileSystem.documentDirectory}photos`;
 
+/**
+ * Le foto del catalogo comune, separate da quelle dell'utente.
+ *
+ * La separazione non e' ordine: `uploadPendingPhotos` manda al server tutto
+ * quel che trova in `PHOTOS_DIR`, e una foto di catalogo appena scaricata
+ * finirebbe ricaricata come foto personale in `images/{utente}` - una copia
+ * per utente di un'immagine che e' comune a tutti, che il server ha gia'.
+ * `collectOrphanPhotos` cancella dalla stessa cartella, e una foto di
+ * catalogo non e' orfana perche' un esercizio e' stato tolto: e' ancora la
+ * foto di quella voce per tutti gli altri.
+ *
+ * Nessuna delle due funzioni ha un caso speciale. E' la cartella a renderle
+ * giuste.
+ */
+export const CATALOG_PHOTOS_DIR = `${FileSystem.documentDirectory}catalog-photos`;
+
 async function ensureDir(): Promise<void> {
   const info = await FileSystem.getInfoAsync(PHOTOS_DIR);
   if (!info.exists) {
