@@ -95,6 +95,48 @@ class AdminFoodTest extends TestCase
         $this->assertEqualsWithDelta(10.9, $voce->protein, 0.01);
     }
 
+    /**
+     * L'`InputNumber` del pannello tiene `null` quando lo si svuota e
+     * `JSON.stringify` lo manda: senza la conversione in
+     * `AdminFoodRequest::prepareForValidation`, aprire un alimento,
+     * cancellare uno zucchero sbagliato e premere Salva dava un 422 con il
+     * campo in rosso e nessuna via d'uscita.
+     */
+    public function test_un_nutriente_si_puo_svuotare(): void
+    {
+        $voce = $this->alimento(['sugars' => 3.6]);
+
+        $this->actingAs($this->admin)
+            ->patchJson("/api/admin/foods/{$voce->id}", ['name' => 'Pasta di semola', 'sugars' => null])
+            ->assertOk();
+
+        $voce->refresh();
+        /*
+         * Zero e non `null`, e il valore sbagliato NON resta scritto: la
+         * colonna e' `NOT NULL DEFAULT 0` di qua come sul telefono, quindi in
+         * questo dominio "non dichiarato" e' zero - `FoodController::colonne`
+         * scrive `?? 0` da sempre per lo stesso motivo. Quel che conta e' che
+         * il 3.6 sbagliato sia andato via: un salvataggio che riuscisse
+         * lasciandolo li' sarebbe peggio del 422.
+         */
+        $this->assertEqualsWithDelta(0.0, $voce->sugars, 0.001);
+        $this->assertSame('Pasta di semola', $voce->name);
+    }
+
+    /** Un campo che nessuno ha mandato resta com'era: svuotare e' un gesto. */
+    public function test_svuotare_un_nutriente_non_tocca_gli_altri(): void
+    {
+        $voce = $this->alimento(['sugars' => 3.6]);
+
+        $this->actingAs($this->admin)
+            ->patchJson("/api/admin/foods/{$voce->id}", ['sugars' => null])
+            ->assertOk();
+
+        $voce->refresh();
+        $this->assertEqualsWithDelta(10.9, $voce->protein, 0.01);
+        $this->assertEqualsWithDelta(353.0, $voce->kcal, 0.01);
+    }
+
     public function test_rinominare_addosso_a_un_altro_fallisce_leggibilmente(): void
     {
         $this->alimento();

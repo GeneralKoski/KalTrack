@@ -125,6 +125,29 @@ class SubmissionTest extends TestCase
         $this->assertSame('published', $voce->status);
     }
 
+    /**
+     * Gemello di `AdminFoodTest::test_un_nutriente_si_puo_svuotare`: le due
+     * FormRequest avevano la stessa lacuna, e qui morde nel momento peggiore -
+     * una proposta arriva da un telefono, scritta di fretta, e correggerla
+     * puo' voler dire togliere un valore inventato, non sostituirlo.
+     */
+    public function test_un_nutriente_si_puo_svuotare_approvando(): void
+    {
+        $voce = $this->proposta();
+        $voce->sugars = 3.6;
+        $voce->save();
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/admin/submissions/food/{$voce->id}/approve", ['sugars' => null])
+            ->assertOk();
+
+        $voce->refresh();
+        // Zero e non `null` - la colonna e' `NOT NULL DEFAULT 0` - e il 3.6
+        // inventato e' andato via, che e' il punto.
+        $this->assertEqualsWithDelta(0.0, $voce->sugars, 0.001);
+        $this->assertSame('published', $voce->status);
+    }
+
     public function test_rifiutare_non_toglie_niente_a_nessuno(): void
     {
         $voce = $this->proposta();

@@ -34,8 +34,48 @@ class ReviewSubmissionRequest extends FormRequest
         return true;
     }
 
+    /** Gli stessi sette di `AdminFoodRequest::SVUOTABILI`. */
+    private const SVUOTABILI = [
+        'protein',
+        'carbs',
+        'sugars',
+        'fat',
+        'saturatedFat',
+        'fiber',
+        'salt',
+    ];
+
+    /**
+     * Un nutriente svuotato vale zero, per la stessa ragione di
+     * `AdminFoodRequest::prepareForValidation`, dove il perche' e' scritto
+     * per intero: quelle colonne sono `NOT NULL DEFAULT 0` da entrambi i
+     * lati, e in questo dominio "non dichiarato" e' zero.
+     *
+     * Qui morde nel momento peggiore. Una proposta arriva da un telefono,
+     * scritta di fretta, e correggerla vuol dire spesso TOGLIERE un valore
+     * inventato invece di sostituirlo: senza questa conversione, svuotare quel
+     * campo mentre si approva dava un 422 e la proposta restava in coda.
+     */
+    protected function prepareForValidation(): void
+    {
+        $azzerati = [];
+
+        foreach (self::SVUOTABILI as $campo) {
+            // `has()` e non `filled()`: la chiave c'e' e vale `null`, ed e'
+            // esattamente il caso da convertire.
+            if ($this->has($campo) && $this->input($campo) === null) {
+                $azzerati[$campo] = 0;
+            }
+        }
+
+        if ($azzerati !== []) {
+            $this->merge($azzerati);
+        }
+    }
+
     public function rules(): array
     {
+        // Nessun `nullable` sui nutrienti: vedi `prepareForValidation` sopra.
         $nutriente = ['sometimes', 'numeric', 'min:0', 'max:'.Food::MAX_NUTRIENT_GRAMS];
 
         return [

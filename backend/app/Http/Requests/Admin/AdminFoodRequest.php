@@ -38,9 +38,67 @@ class AdminFoodRequest extends FormRequest
         return true; // Il middleware `admin` ha gia' deciso.
     }
 
+    /**
+     * I sette nutrienti che si possono svuotare. `kcal` non c'e': e'
+     * obbligatorio in creazione per la ragione scritta sopra.
+     */
+    private const SVUOTABILI = [
+        'protein',
+        'carbs',
+        'sugars',
+        'fat',
+        'saturatedFat',
+        'fiber',
+        'salt',
+    ];
+
+    /**
+     * Un nutriente svuotato vale zero, e non e' un ripiego: e' quel che quel
+     * campo significa da entrambi i lati.
+     *
+     * Le otto colonne sono `NOT NULL DEFAULT 0` sul server come sul telefono
+     * (`create_foods_table`, `001_initial.ts`), e `FoodController::colonne`
+     * scrive `?? 0` da sempre per una proposta che arriva dall'app senza
+     * quel valore: in questo dominio "non dichiarato" e' zero, e `null` non
+     * e' un valore che si possa scrivere in colonna.
+     *
+     * Senza questa conversione nessun alimento con un campo nutrizionale
+     * vuoto si poteva salvare dal pannello: l'`InputNumber` di antd tiene
+     * `null` quando lo si svuota, `JSON.stringify` lo manda, e la regola
+     * `numeric` lo rifiutava - aprire un alimento, cancellare uno zucchero
+     * sbagliato e premere Salva dava un 422 con il campo in rosso e nessuna
+     * via d'uscita.
+     *
+     * Si converte qui e non si filtra la chiave lato client, ed e' la
+     * differenza che conta: filtrare vorrebbe dire lasciare in colonna il
+     * valore sbagliato che si stava cancellando, cioe' un Salva che riesce e
+     * non fa quel che gli si e' chiesto. Un amministratore deve poter
+     * AZZERARE un valore sbagliato - e' la seconda correzione piu' probabile
+     * dopo un refuso.
+     */
+    protected function prepareForValidation(): void
+    {
+        $azzerati = [];
+
+        foreach (self::SVUOTABILI as $campo) {
+            // `has()` e non `filled()`: la chiave c'e' e vale `null`, ed e'
+            // esattamente il caso da convertire.
+            if ($this->has($campo) && $this->input($campo) === null) {
+                $azzerati[$campo] = 0;
+            }
+        }
+
+        if ($azzerati !== []) {
+            $this->merge($azzerati);
+        }
+    }
+
     public function rules(): array
     {
         $obbligatorio = $this->isMethod('POST') ? 'required' : 'sometimes';
+        // Nessun `nullable`: `prepareForValidation` ha gia' trasformato in
+        // zero il campo svuotato, quindi un `null` non arriva mai fin qui - e
+        // scriverlo direbbe che la colonna lo accetta, che non e' vero.
         $nutriente = ['sometimes', 'numeric', 'min:0', 'max:'.Food::MAX_NUTRIENT_GRAMS];
 
         return [
