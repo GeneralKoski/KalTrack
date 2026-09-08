@@ -2621,6 +2621,61 @@ describe("pullFoods", () => {
 
     expect(await pullFoods()).toBe(0);
   });
+
+  /**
+   * Il difetto che la guardia sul fallback chiude, ed e' lo stesso trovato
+   * dalla review del task 6: una riga che porta gia' un uid diverso non e'
+   * questa voce. Senza la guardia, la riga di X si ritroverebbe con l'uid e i
+   * valori di Y, e le ricette che la nominano parlerebbero di un altro
+   * alimento.
+   */
+  it("non ruba una riga che porta gia' un altro uid", async () => {
+    const id = await createFood({
+      name: "Riso",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 350 },
+      source: "seed",
+      catalogUid: "food-altro",
+    });
+    mockApiRequest.mockResolvedValue(pagina([alimento()]));
+
+    await pullFoods();
+
+    // La riga di prima e' intatta...
+    const vecchia = await getFood(id);
+    expect(vecchia?.catalog_uid).toBe("food-altro");
+    expect(vecchia?.kcal).toBe(350);
+    // ...e la voce nuova e' entrata come riga sua.
+    expect(await searchFoods("riso")).toHaveLength(2);
+  });
+
+  /** Come per gli esercizi: il cursore si scrive a ogni pagina, non alla fine. */
+  it("tiene il cursore della pagina applicata se la successiva cade", async () => {
+    mockApiRequest
+      .mockResolvedValueOnce({
+        data: [alimento()],
+        cursor: { since: "2026-09-08T12:00:00+00:00", afterId: 1 },
+        next: { since: "2026-09-08T12:00:00+00:00", afterId: 1 },
+      })
+      .mockRejectedValueOnce(new Error("rete caduta"));
+
+    await pullFoods();
+
+    expect(await getSetting(CATALOG_FOODS_CURSOR)).toContain('"afterId":1');
+  });
+
+  /** Il tetto e' l'unica cosa fra un server che sbaglia e un giro infinito. */
+  it("non fa piu' di MAX_PAGES giri", async () => {
+    const cursore = { since: "2026-09-08T12:00:00+00:00", afterId: 1 };
+    mockApiRequest.mockResolvedValue({
+      data: [alimento()],
+      cursor: cursore,
+      next: cursore,
+    });
+
+    await pullFoods();
+
+    expect(mockApiRequest).toHaveBeenCalledTimes(50);
+  });
 });
 
 describe("syncCatalog", () => {
@@ -2670,7 +2725,9 @@ In `src/services/catalogSync.ts`, aggiungi gli import e, sotto
 async function applyFood(voce: catalog.CatalogFood): Promise<boolean> {
   const perUid = await findFoodByCatalogUid(voce.uid);
 
-  if (voce.deletedAt !== null) {
+  // `!= null` e non `!== null`: un campo assente non deve passare per un
+  // tombstone, ed e' il perno della regola 3.
+  if (voce.deletedAt != null) {
     if (!perUid || perUid.source !== "seed") return false;
     await detachFoodFromCatalog(perUid.id);
     return true;
@@ -2678,9 +2735,32 @@ async function applyFood(voce: catalog.CatalogFood): Promise<boolean> {
 
   if (!voce.name || voce.kcal === undefined) return false;
 
-  const esistente = perUid ?? (await findFoodByName(voce.name));
+  /*
+   * La ricaduta sul nome vale SOLO per una riga che non ha ancora un uid.
+   *
+   * Una riga che ne porta gia' uno diverso non e' questa voce, e' un'altra:
+   * il pannello rinomina la voce X liberandone il nome, una voce Y nuova lo
+   * prende, e la stessa pagina le porta entrambe. Accettando il match per
+   * nome, la riga di X si ritroverebbe riscritta con l'uid e il contenuto di
+   * Y - X orfana, e una riga che le ricette nominano diventata un altro
+   * alimento. Due righe che per un giro condividono il nome sono la
+   * soluzione, non il problema: l'altra voce si rinomina da se' al proprio
+   * aggiornamento.
+   */
+  const perNome = perUid ?? (await findFoodByName(voce.name));
+  const esistente =
+    perNome === null || perNome.catalog_uid === null || perNome === perUid
+      ? perNome
+      : null;
 
-  const campi: CatalogFoodFields = {
+  /*
+   * `satisfies` e non un'annotazione: annotare allargherebbe i campi al tipo
+   * dichiarato e il controllo delle proprieta' in eccesso sparirebbe, cioe'
+   * la regola 2 smetterebbe di essere un errore del compilatore sul ramo di
+   * inserimento. Con `satisfies` il tipo resta quello inferito E un campo di
+   * troppo non compila.
+   */
+  const campi = {
     name: voce.name,
     brand: voce.brand ?? null,
     nutrients: {
@@ -2699,7 +2779,7 @@ async function applyFood(voce: catalog.CatalogFood): Promise<boolean> {
     servingLabel: voce.servingLabel ?? null,
     // Come per gli esercizi: il percorso subito, i byte quando si guarda.
     imageUri: voce.image ? catalogPhotoPath(voce.image) : null,
-  };
+  } satisfies CatalogFoodFields;
 
   if (!esistente) {
     await createFood({
