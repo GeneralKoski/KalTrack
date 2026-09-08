@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { App as AntApp } from 'antd';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
@@ -21,7 +22,9 @@ const ESERCIZI = {
             updatedAt: null,
         },
     ],
-    meta: { total: 1, page: 1, lastPage: 1 },
+    // 60 e non 1: con 50 per pagina serve una seconda pagina perche' il test
+    // di paginazione qui sotto abbia un "2" su cui cliccare.
+    meta: { total: 60, page: 1, lastPage: 2 },
 };
 
 const GRUPPI = { data: [{ id: 1, slug: 'petto', labelIt: 'Petto', labelEn: 'Chest', sort: 10 }] };
@@ -71,6 +74,24 @@ describe('ExercisesPage', () => {
                 (c) => typeof c[0] === 'string' && c[0].startsWith('/api/admin/exercises'),
             );
             expect(chiamata?.[0]).toContain('missing=instructions');
+        });
+    });
+
+    // Regressione: `scrivi()` cancellava `page` due righe dopo averlo appena
+    // scritto, quindi ogni clic su una pagina diversa dalla prima tornava
+    // sempre alla prima. Con 60 righe e 50 per pagina la "2" esiste davvero.
+    it('va alla seconda pagina e la porta nella richiesta', async () => {
+        const finta = monta('/esercizi');
+
+        await screen.findByText('Panca piana');
+
+        await userEvent.click(screen.getByTitle('2'));
+
+        await waitFor(() => {
+            const ultima = finta.mock.calls
+                .filter((c) => typeof c[0] === 'string' && c[0].startsWith('/api/admin/exercises'))
+                .at(-1);
+            expect(ultima?.[0]).toContain('page=2');
         });
     });
 });

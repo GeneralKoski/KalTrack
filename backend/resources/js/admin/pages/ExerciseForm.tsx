@@ -88,7 +88,7 @@ export const ExerciseForm = ({ riga, aperto, onChiudi }: Props): React.ReactElem
     return (
         <Drawer
             open={aperto}
-            width={560}
+            size={560}
             title={riga === null ? 'Nuovo esercizio' : riga.name}
             onClose={onChiudi}
             destroyOnHidden
@@ -117,8 +117,7 @@ export const ExerciseForm = ({ riga, aperto, onChiudi }: Props): React.ReactElem
                     <Select
                         options={opzioniTassonomia(gruppi.data)}
                         loading={gruppi.isPending}
-                        showSearch
-                        optionFilterProp="label"
+                        showSearch={{ optionFilterProp: 'label' }}
                     />
                 </Form.Item>
                 <Form.Item name="secondaryMuscles" label="Muscoli secondari">
@@ -126,7 +125,7 @@ export const ExerciseForm = ({ riga, aperto, onChiudi }: Props): React.ReactElem
                         mode="multiple"
                         options={opzioniTassonomia(gruppi.data)}
                         loading={gruppi.isPending}
-                        optionFilterProp="label"
+                        showSearch={{ optionFilterProp: 'label' }}
                         allowClear
                     />
                 </Form.Item>
@@ -135,7 +134,7 @@ export const ExerciseForm = ({ riga, aperto, onChiudi }: Props): React.ReactElem
                         mode="multiple"
                         options={opzioniTassonomia(attrezzi.data)}
                         loading={attrezzi.isPending}
-                        optionFilterProp="label"
+                        showSearch={{ optionFilterProp: 'label' }}
                         allowClear
                     />
                 </Form.Item>

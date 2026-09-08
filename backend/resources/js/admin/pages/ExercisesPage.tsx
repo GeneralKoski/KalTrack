@@ -43,8 +43,14 @@ export const ExercisesPage = (): React.ReactElement => {
 
         // Cambiare un filtro riporta a pagina uno: restare alla nona pagina
         // di un elenco che ora ne ha due mostrerebbe una tabella vuota e
-        // sembrerebbe che il filtro non abbia trovato niente.
-        prossimi.delete('page');
+        // sembrerebbe che il filtro non abbia trovato niente. `page` e'
+        // l'eccezione: e' la chiave con cui la tabella scrive la pagina
+        // stessa, e cancellarla anche in quel caso disfaceva il valore
+        // appena scritto due righe sopra - un clic su "pagina 2" restava
+        // sempre alla prima.
+        if (chiave !== 'page') {
+            prossimi.delete('page');
+        }
         setParametri(prossimi);
     };
 
