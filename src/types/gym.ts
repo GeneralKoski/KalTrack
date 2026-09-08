@@ -1,4 +1,17 @@
-/** I gruppi muscolari, in un array cosi' da poterli mostrare e verificare. */
+/**
+ * I gruppi muscolari: il SEME della migrazione 020, non piu' l'elenco
+ * autorevole.
+ *
+ * L'elenco vero e' `muscle_groups` in SQLite, che il pull del catalogo
+ * riscrive: un gruppo aggiunto dal pannello arriva senza un rilascio
+ * dell'app, e un'union TypeScript non puo' rappresentarlo. Queste costanti
+ * restano per tre cose e nessun'altra: seminare la tabella, dare a
+ * `keys.test.ts` il minimo garantito da confrontare con i18n, e dire quali
+ * slug hanno un'etichetta di ricaduta in `gym.muscle.*`.
+ *
+ * Chi filtra un valore che arriva da fuori NON usa piu' queste: il metro e'
+ * la tassonomia (`knownSlugs` in `src/domain/taxonomy.ts`).
+ */
 export const MUSCLE_GROUPS = [
   "petto",
   "schiena",
@@ -14,9 +27,16 @@ export const MUSCLE_GROUPS = [
   "full_body",
 ] as const;
 
-export type MuscleGroup = (typeof MUSCLE_GROUPS)[number];
+/**
+ * Uno slug di gruppo muscolare.
+ *
+ * Era un'union dei dodici valori qui sopra. Adesso e' `string`, perche'
+ * l'elenco vive in una tabella che il server riscrive: il compilatore non
+ * puo' piu' garantirlo, e il controllo si fa a runtime contro la tassonomia.
+ */
+export type MuscleGroup = string;
 
-/** L'elenco chiuso degli attrezzi, in un array per poterli mostrare tutti. */
+/** Come MUSCLE_GROUPS: seme, non elenco autorevole. */
 export const EQUIPMENT = [
   "corpo_libero",
   "bilanciere",
@@ -31,7 +51,8 @@ export const EQUIPMENT = [
   "cardio",
 ] as const;
 
-export type Equipment = (typeof EQUIPMENT)[number];
+/** Come `MuscleGroup`: era un'union degli undici valori qui sopra. */
+export type Equipment = string;
 
 /** Blocchi: è il livello che rende esprimibili superset, circuiti e dropset. */
 export const BLOCK_KINDS = [
@@ -177,6 +198,10 @@ export const parseStringArray = (value: string | null): string[] => {
  * controlla solo `needed.length === 0` scarta ogni esercizio a corpo libero
  * appena l'utente dichiara la propria attrezzatura senza spuntare "corpo
  * libero", che e' l'ultima cosa a cui penserebbe.
+ *
+ * E' l'unico slug su cui questo codice fa un'affermazione propria invece di
+ * leggere la tassonomia, e regge perche' sul server "corpo_libero" non e'
+ * cancellabile: senza quella garanzia sarebbe un valore inventato qui.
  */
 export const ALWAYS_AVAILABLE_EQUIPMENT: Equipment[] = ["corpo_libero"];
 

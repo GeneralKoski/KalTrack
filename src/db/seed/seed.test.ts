@@ -11,6 +11,7 @@ import { SEED_EXERCISES } from "@/src/db/seed/exercises";
 import { SEED_FOODS } from "@/src/db/seed/foods";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
+import { EQUIPMENT, MUSCLE_GROUPS } from "@/src/types/gym";
 
 let db: LocalDatabase;
 
@@ -233,6 +234,39 @@ describe("dati del seed esercizi", () => {
     for (const exercise of SEED_EXERCISES) {
       expect(`${exercise.id}: ${exercise.instructions.trim().length > 20}`).toBe(
         `${exercise.id}: true`,
+      );
+    }
+  });
+
+  /**
+   * IL COMPILATORE NON CONTROLLA PIU' QUESTI SLUG.
+   *
+   * `muscleGroup`, `secondaryMuscles` ed `equipment` erano union chiuse fino
+   * al task 11 della Fase 3 del gestionale: un refuso in una delle seicento
+   * posizioni del seme era un errore di compilazione. Adesso sono `string`,
+   * perche' l'elenco autorevole e' una tabella che il server riscrive - e un
+   * esercizio con `"pettoo"` in colonna entrerebbe zitto, per poi non
+   * comparire sotto nessun filtro e mostrare lo slug crudo al posto
+   * dell'etichetta.
+   *
+   * Il metro qui e' il SEME (le costanti), non la tassonomia scaricata: il
+   * seme e' una costante di QUESTA versione dell'app, e i suoi slug devono
+   * essere quelli che la migrazione 020 semina - non quelli che un
+   * amministratore potrebbe aggiungere domani.
+   */
+  it("nomina solo gruppi muscolari e attrezzi del seme", () => {
+    const gruppi = new Set<string>(MUSCLE_GROUPS);
+    const attrezzi = new Set<string>(EQUIPMENT);
+
+    for (const exercise of SEED_EXERCISES) {
+      const sconosciuti = [
+        ...[exercise.muscleGroup, ...exercise.secondaryMuscles].filter(
+          (m) => !gruppi.has(m),
+        ),
+        ...exercise.equipment.filter((eq) => !attrezzi.has(eq)),
+      ];
+      expect(`${exercise.id}: ${sconosciuti.join(",")}`).toBe(
+        `${exercise.id}: `,
       );
     }
   });
