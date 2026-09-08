@@ -16,6 +16,14 @@ export default defineConfig({
     },
     test: {
         environment: 'jsdom',
+        // jsdom parte da "http://localhost/": `router.tsx` crea il
+        // `createBrowserRouter` con `basename: '/admin'` all'import, e un
+        // router con basename non rende niente su un URL che non ci parte
+        // sotto. In produzione il browser e' gia' su `/admin/...`; qui va
+        // detto esplicitamente.
+        environmentOptions: {
+            jsdom: { url: 'http://localhost/admin' },
+        },
         setupFiles: ['./vitest.setup.ts'],
         include: ['resources/js/admin/**/*.test.{ts,tsx}'],
         restoreMocks: true,
