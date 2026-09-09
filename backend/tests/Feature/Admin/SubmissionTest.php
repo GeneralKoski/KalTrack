@@ -99,6 +99,36 @@ class SubmissionTest extends TestCase
         $this->assertNotNull($voce->reviewed_at);
     }
 
+    /**
+     * Il tetto degli elenchi di slug e' UNO per tutte e tre le porte di
+     * scrittura (`Exercise::MAX_SLUG_LIST`), e questo test e' la meta' che
+     * conta: se la coda di revisione validasse piu' stretto di `store()`,
+     * una proposta arrivata legittimamente dal telefono non si potrebbe
+     * **approvare** - resterebbe in coda per sempre, con un 422 che dice al
+     * revisore che il campo e' troppo lungo per un campo che lui non ha
+     * scritto.
+     */
+    public function test_si_approva_una_proposta_con_un_elenco_di_slug_lungo(): void
+    {
+        $voce = $this->propostaEsercizio();
+        $attrezzi = implode(',', array_map(
+            fn (int $i) => str_pad("attrezzo-{$i}-", 40, 'x'),
+            range(1, 5)
+        ));
+        // Oltre il vecchio tetto di 120, dentro quello nuovo.
+        $this->assertGreaterThan(120, strlen($attrezzi));
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/admin/submissions/exercise/{$voce->id}/approve", [
+                'equipment' => $attrezzi,
+            ])
+            ->assertOk();
+
+        $voce->refresh();
+        $this->assertSame($attrezzi, $voce->equipment);
+        $this->assertSame('published', $voce->status);
+    }
+
     public function test_si_corregge_mentre_si_approva(): void
     {
         $voce = $this->proposta();

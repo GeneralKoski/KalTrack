@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\Exercise;
 use App\Models\Food;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -82,8 +83,11 @@ class ReviewSubmissionRequest extends FormRequest
             'name' => ['sometimes', 'string', 'max:120'],
             // Esercizi
             'muscleGroup' => ['sometimes', 'string', 'max:40'],
-            'secondaryMuscles' => ['sometimes', 'nullable', 'string', 'max:200'],
-            'equipment' => ['sometimes', 'nullable', 'string', 'max:120'],
+            // Vedi `Exercise::MAX_SLUG_LIST`: se la coda di revisione
+            // validasse piu' stretto di `store()`, una proposta arrivata
+            // legittimamente non si potrebbe approvare.
+            'secondaryMuscles' => ['sometimes', 'nullable', 'string', 'max:'.Exercise::MAX_SLUG_LIST],
+            'equipment' => ['sometimes', 'nullable', 'string', 'max:'.Exercise::MAX_SLUG_LIST],
             'instructions' => ['sometimes', 'nullable', 'string', 'max:2000'],
             // Alimenti
             'brand' => ['sometimes', 'nullable', 'string', 'max:60'],

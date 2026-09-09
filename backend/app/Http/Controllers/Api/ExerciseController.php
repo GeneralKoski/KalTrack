@@ -243,10 +243,14 @@ class ExerciseController extends Controller
     {
         return [
             'name' => ['required', 'string', 'max:120'],
+            // 40 e' esattamente la larghezza di `muscle_groups.slug`: un
+            // gruppo che non ci sta non e' una riga di tassonomia possibile.
             'muscleGroup' => ['required', 'string', 'max:40'],
-            // Elenchi separati da virgole, come in colonna.
-            'secondaryMuscles' => ['sometimes', 'nullable', 'string', 'max:200'],
-            'equipment' => ['sometimes', 'nullable', 'string', 'max:120'],
+            // Elenchi separati da virgole, come in colonna. Il tetto viene
+            // dal modello e non da un letterale: era 200 e 120, dimensionati
+            // su un insieme chiuso che la tassonomia dinamica ha aperto.
+            'secondaryMuscles' => ['sometimes', 'nullable', 'string', 'max:'.Exercise::MAX_SLUG_LIST],
+            'equipment' => ['sometimes', 'nullable', 'string', 'max:'.Exercise::MAX_SLUG_LIST],
         ];
     }
 

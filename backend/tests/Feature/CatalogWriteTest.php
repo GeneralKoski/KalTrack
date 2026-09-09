@@ -231,6 +231,46 @@ class CatalogWriteTest extends TestCase
         $this->assertSame($primo, $secondo);
     }
 
+    /**
+     * I tetti di `secondaryMuscles`/`equipment` erano 200 e 120, dimensionati
+     * su un insieme chiuso che la tassonomia dinamica ha aperto.
+     *
+     * Tornava per fortuna e non per costruzione: gli undici slug del seme
+     * uniti fanno 89 caratteri, sotto i 120. Un amministratore che aggiunge
+     * attrezzi fa crescere l'insieme senza un rilascio dell'app, e passato il
+     * tetto il telefono si prende un 422: `submitExerciseToCatalog` lo annota
+     * e va avanti - l'esercizio resta salvato sul telefono e **non viene mai
+     * proposto al catalogo**, per un'aritmetica che nessuno guarda.
+     *
+     * Duecento caratteri di attrezzatura sono cinque slug da 40 - il massimo
+     * che `equipment_types.slug` permette - e prima erano un 422.
+     */
+    public function test_un_elenco_di_slug_lungo_non_fa_cadere_la_proposta(): void
+    {
+        $anna = User::factory()->create();
+        $attrezzi = implode(',', array_map(
+            fn (int $i) => str_pad("attrezzo-{$i}-", 40, 'x'),
+            range(1, 5)
+        ));
+        $muscoli = implode(',', array_map(
+            fn (int $i) => str_pad("muscolo-{$i}-", 40, 'x'),
+            range(1, 5)
+        ));
+
+        // 204 e 200: oltre i due vecchi tetti, dentro quello nuovo.
+        $this->assertGreaterThan(120, strlen($attrezzi));
+        $this->assertGreaterThanOrEqual(200, strlen($muscoli));
+        $this->assertLessThanOrEqual(Exercise::MAX_SLUG_LIST, strlen($muscoli));
+
+        $this->actingAs($anna)
+            ->postJson('/api/catalog/exercises', $this->esercizio([
+                'equipment' => $attrezzi,
+                'secondaryMuscles' => $muscoli,
+            ]))
+            ->assertOk()
+            ->assertJsonPath('data.equipment', $attrezzi);
+    }
+
     /** Le rotte vecchie restano per id: un telefono non aggiornato le usa. */
     public function test_le_rotte_vecchie_restano_indirizzate_per_id(): void
     {

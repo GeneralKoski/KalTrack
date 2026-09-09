@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\Exercise;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -29,8 +30,11 @@ class AdminExerciseRequest extends FormRequest
         return [
             'name' => [$obbligatorio, 'string', 'max:120'],
             'muscleGroup' => [$obbligatorio, 'string', 'max:40'],
-            'secondaryMuscles' => ['sometimes', 'nullable', 'string', 'max:200'],
-            'equipment' => ['sometimes', 'nullable', 'string', 'max:120'],
+            // Vedi `Exercise::MAX_SLUG_LIST`: il tetto e' uno per tutte e
+            // tre le porte di scrittura, o il pannello approva una proposta
+            // che il telefono non poteva mandare - o il contrario.
+            'secondaryMuscles' => ['sometimes', 'nullable', 'string', 'max:'.Exercise::MAX_SLUG_LIST],
+            'equipment' => ['sometimes', 'nullable', 'string', 'max:'.Exercise::MAX_SLUG_LIST],
             'instructions' => ['sometimes', 'nullable', 'string', 'max:2000'],
         ];
     }
