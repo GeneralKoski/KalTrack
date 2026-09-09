@@ -1,6 +1,7 @@
 import { Text } from "@/src/components/ui";
 import { MetricEntrySheet } from "@/src/containers/progress/MetricEntrySheet";
 import { formatDate } from "@/src/utils/dateUtils";
+import { i18n } from "@/src/i18n";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { Calendar } from "lucide-react-native";
 import React from "react";
@@ -145,6 +146,50 @@ describe("MetricEntrySheet in modalita' modifica", () => {
       .map((node) => node.props.children)
       .join("");
     expect(dateText).toBe(formatDate("2026-01-06"));
+  });
+
+  /**
+   * `String(72.5)` scrive "72.5": corretto per un numero JS, sbagliato per un
+   * campo che un utente italiano legge - la stessa distinzione di
+   * CLAUDE.md § Lingua ("un numero formattato con le convenzioni di un'altra
+   * lingua non è brutto, è un altro numero"). Per i passi (interi) il difetto
+   * non si vede mai, per il peso sì: è la ragione per cui questo test vive nel
+   * Task 4 e non nel 3.
+   */
+  it("il pre-riempimento decimale segue la lingua dell'app", async () => {
+    const originale = i18n.locale;
+    try {
+      i18n.locale = "it";
+      let renderer!: ReactTestRenderer;
+      await act(async () => {
+        renderer = create(
+          <MetricEntrySheet
+            title="Modifica peso"
+            unit="kg"
+            initialDate="2026-01-05"
+            initialValue={72.5}
+            onSave={jest.fn()}
+          />,
+        );
+      });
+      expect(renderer.root.findByType(RNTextInput).props.value).toBe("72,5");
+
+      i18n.locale = "en";
+      await act(async () => {
+        renderer.update(
+          <MetricEntrySheet
+            title="Modifica peso"
+            unit="kg"
+            initialDate="2026-01-06"
+            initialValue={68.2}
+            onSave={jest.fn()}
+          />,
+        );
+      });
+      expect(renderer.root.findByType(RNTextInput).props.value).toBe("68.2");
+    } finally {
+      i18n.locale = originale;
+    }
   });
 
   it("la data non si puo' toccare", async () => {

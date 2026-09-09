@@ -6,6 +6,7 @@ import { todayIso, toIsoDate } from "@/src/domain/date";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import { formatDate } from "@/src/utils/dateUtils";
+import { decimalSeparator } from "@/src/utils/number";
 import { sanitizeDecimalInput } from "@/src/utils/utils";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import DateTimePicker, {
@@ -27,6 +28,18 @@ import {
 function parseIso(iso: string): Date {
   const [year, month, day] = iso.split("-").map(Number);
   return new Date(year, month - 1, day);
+}
+
+/**
+ * `String(72.5)` scrive sempre "72.5": corretto per JS, sbagliato per un
+ * campo che un utente italiano legge come proprio - stessa distinzione di
+ * `OnboardingProfileScreen` per il peso pre-riempito. Il separatore che si
+ * SCRIVE resta invariato (`sanitizeDecimalInput` accetta sia "," sia "."):
+ * questa e' solo la conversione del valore iniziale in quel che si VEDE.
+ */
+function toDisplayValue(value: number | undefined): string {
+  if (value === undefined) return "";
+  return String(value).replace(".", decimalSeparator());
 }
 
 interface MetricEntrySheetProps {
@@ -58,9 +71,7 @@ export const MetricEntrySheet = forwardRef<
   const isEditing = initialDate !== undefined;
 
   const [date, setDate] = useState(() => initialDate ?? todayIso());
-  const [text, setText] = useState(() =>
-    initialValue !== undefined ? String(initialValue) : "",
-  );
+  const [text, setText] = useState(() => toDisplayValue(initialValue));
   const [showIosPicker, setShowIosPicker] = useState(false);
   const [tempDate, setTempDate] = useState<Date>(new Date());
   const [saving, setSaving] = useState(false);
@@ -74,7 +85,7 @@ export const MetricEntrySheet = forwardRef<
 
   const reset = () => {
     setDate(initialDate ?? todayIso());
-    setText(initialValue !== undefined ? String(initialValue) : "");
+    setText(toDisplayValue(initialValue));
   };
 
   // Il foglio non si smonta mai fra una modifica e l'altra (e' un `ref`
