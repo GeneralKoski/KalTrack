@@ -402,7 +402,134 @@ iniziale e voluto a fase gia' chiusa.
 
 ---
 
-## 6. Debiti tecnici
+## 6. Fase 4: i dodici attriti dell'uso quotidiano
+
+**Fatto il 9 settembre 2026.** Dieci task hanno chiuso le dodici frasi che il
+proprietario si e' segnato usando l'app per giorni - piano in
+`docs/superpowers/plans/2026-09-09-fase-4-attriti-uso.md`, indagine in
+`.superpowers/sdd/2026-09-08-gestionale-fase-3-app/fase-4-indagine.md` - piu'
+tre difetti preesistenti trovati indagandole (§ 6.2).
+
+- [x] ~~**Le schede non saltano piu' in cima quando se ne attiva una.**~~
+      `listRoutines` non ha piu' `is_active DESC` nell'`ORDER BY`: attivare
+      una scheda non riordina piu' l'elenco.
+- [x] ~~**Le schede si riordinano trascinandole**~~, come i promemoria
+      (migrazione 021, colonna `position` su `routines`, la matematica del
+      trascinamento condivisa fra `RemindersScreen` e `RoutinesScreen` via
+      `src/domain/reorder.ts`). La `position` e' seminata sull'ordine
+      **alfabetico** che l'utente vedeva gia' (task 2 aveva lasciato
+      `ORDER BY name ASC`), non su quello di creazione: seminare per
+      `created_at` avrebbe riscritto l'elenco sotto il dito nello stesso
+      aggiornamento che introduce il trascinamento.
+- [x] ~~**Dallo storico passi si modifica una riga**~~, toccandola. Nasce
+      qui la forma generica (`initialDate`/`initialValue` su
+      `MetricEntrySheet`) che lo storico peso ha poi riusato senza modifiche.
+- [x] ~~**Dallo storico peso, stessa cosa.**~~ Corretto anche un difetto
+      preesistente, diventato portante da questo flusso: `setWeight` e
+      `setSteps` a due argomenti azzeravano massa grassa, nota e provenienza
+      (`source`, che finisce nel CSV esportato) invece di lasciarle come
+      stavano. Ora un `COALESCE` le preserva quando non vengono passate
+      esplicitamente.
+- [x] ~~**Una pagina di resoconto delle calorie**~~, in sola lettura come le
+      due gia' esistenti per peso e passi (`CaloriesHistoryScreen`).
+- [x] ~~**Una voce libera si modifica**~~ (nome e valori assoluti, mai i
+      grammi - la regola della fotografia, vedi `CLAUDE.md` § La
+      composizione di una voce del diario). La prima implementazione
+      azzerava zuccheri/grassi saturi/fibre/sale a ogni salvataggio anche
+      senza toccarli: la review l'ha trovato come Critical e corretto prima
+      della chiusura del task.
+- [x] ~~**La ricerca alimenti trova anche il marchio.**~~ `LIKE` grezzo su
+      `brand`, senza `brand_norm` ne' indice ne' migrazione - vedi § 6.1 per
+      il perche' resta cosi'.
+- [x] ~~**La foto di un alimento appena scattato si vede.**~~ La causa vera
+      non era nessuno dei due sospetti dell'indagine iniziale:
+      `persistPhoto` non verificava mai che l'archivio avesse davvero
+      ricevuto il file, il suo unico controllo faceva la domanda opposta
+      (un residuo di quando il nome del file derivava dall'uri di origine).
+- [x] ~~**Si scrive veloce e non si perde piu' niente.**~~ La diagnosi
+      dell'utente ("cambia font") era sbagliata sul sintomo - nessun
+      percorso di questa app puo' cambiare famiglia a runtime - ma il
+      difetto vero c'era accanto: il testo in composizione dell'IME di
+      Android sostituito quando React riscrive il `value` nativo in ritardo.
+      `SearchBar` e' passata a `DraftTextInput`, come le altre otto
+      superfici che condividono quel campo.
+- [x] ~~**"Aggiungi blocco" diventa "Esercizio"**, "Modifica esercizio" /
+      "Elimina esercizio" diventano "Modifica" / "Elimina"~~, e
+      ~~**Backup si sposta in Impostazioni, Salute sotto App**~~ dov'era
+      Backup.
+- [x] ~~**La stellina AI sparisce da una voce libera.**~~ `is_estimated` era
+      fisso a vero per qualunque voce, anche scritta a mano; ora dice il
+      vero - falso quando la scrive l'utente, vero solo per quel che viene
+      davvero da una stima da foto.
+
+### 6.1 Deliberatamente rinviato, non dimenticato
+
+- [ ] **`brand_norm` con il suo indice** (task 5, la ricerca per marchio).
+      SQLite e' gia' case-insensitive su ASCII, quindi un `LIKE` grezzo su
+      `brand` basta per l'uso di oggi - un utente solo, poche centinaia di
+      alimenti. Una colonna normalizzata e un indice hanno senso quando la
+      tabella cresce abbastanza da farsi sentire, non prima: costruirli ora
+      sarebbe ottimizzare una query che nessuno ha mai visto essere lenta.
+- [ ] **Il punto di chiamata di `defaultSlug` non e' pinnato da nessun
+      test.** `defaultSlug` (`src/domain/taxonomy.ts`) e' una funzione pura
+      e ha i suoi test; il suo unico chiamante,
+      `ExerciseFormSheet.tsx:104` (`editing?.muscle_group ?? defaultSlug(gruppi,
+      DEFAULT_MUSCLE_GROUP)`), non ha `ExerciseFormSheet.test.tsx` che lo
+      eserciti. Il caso che protegge - un amministratore ritira dalla
+      tassonomia lo slug di default del seme, e il modulo deve cadere su un
+      gruppo ancora vivo invece di selezionare uno slug che l'elenco
+      disegnato non contiene - e' esattamente il tipo di regressione
+      silenziosa che un refactor del foglio potrebbe rompere senza che la
+      suite se ne accorga.
+- [ ] **La stima da foto di `TodayScreen` non ha un pin dalla Fase 3.**
+      `estimateFromPhoto` (`src/ai/estimateFromPhoto.ts`) ha una suite
+      ampia come funzione pura; il suo chiamante,
+      `TodayScreen.tsx:212`, non compare in nessun mock o assert di
+      `TodayScreen.test.tsx`. E' la stessa classe di buco che ha permesso al
+      ritiro di un modello di passare inosservato per sei settimane (vedi
+      `CLAUDE.md` § Le vie per aggiungere al diario): la funzione era
+      corretta e testata, e nessuno chiamava piu' quella funzione da uno
+      schermo vero. Un test sul call site - anche solo "toccare la foto apre
+      il foglio di stima con quel che `estimateFromPhoto` ha restituito" -
+      avrebbe reso visibile un secondo ritiro nello stesso modo.
+- [ ] **Il trascinamento delle schede (task 10) non ha un test**: una
+      gesture non gira in jest. Coperti invece per test la matematica
+      (`movePosition`, `src/domain/reorder.ts`) e la scrittura
+      (`reorderRoutines`). Da controllare col pollice, sul telefono:
+      trascinare una scheda di due posizioni, uscire dalla schermata e
+      rientrare - l'ordine deve tenere, e le righe non devono accavallarsi a
+      meta' trascinamento (l'assunzione fragile e' l'altezza uniforme delle
+      righe, misurata sulla prima); e che un tocco semplice apra ancora il
+      modulo della scheda, coi due bersagli piccoli (attiva, cestino) ancora
+      raggiungibili dentro l'area della gesture.
+
+### 6.2 I tre difetti trovati indagando, non fra le dodici voci
+
+Chiusi il 9 settembre 2026 (task 11). Due erano regole che `CLAUDE.md`
+dichiara e il codice non rispettava.
+
+- [x] ~~**`reorderReminders` non scriveva `updated_at`.**~~ `reminders` sta
+      in `SYNCED_TABLES` e il push seleziona le righe per `updated_at`:
+      senza scriverlo, il riordino dei promemoria non si e' mai
+      sincronizzato dal giorno in cui e' nato - riordinarli su un telefono
+      lasciava l'altro con l'ordine vecchio per sempre, in silenzio. Corretto
+      seguendo la forma che il task 10 ha dato a `reorderRoutines`.
+- [x] ~~**L'ordine "prima il file locale, poi quello remoto" in
+      `photoSync.ts` non era pinnato da nessun test.**~~ `CLAUDE.md` § Le
+      foto lo dichiara load-bearing: invertirlo lascerebbe, in caso di
+      interruzione a meta', un file locale che nessuna riga nomina piu' e
+      che `uploadPendingPhotos` ricaricherebbe al giro dopo - una foto
+      cancellata e rimessa all'infinito. Il test nuovo e' stato verificato
+      per mutazione: scambiando le due righe in `photoSync.ts` la suite
+      cadeva, come doveva.
+- [x] ~~**Un commento stantio in `photoSync.test.ts`**~~ diceva ancora
+      `orphanPhotoNames`, rinominato in `orphanPhotoUris` altrove - la
+      differenza fra i due nomi non e' cosmetica, vedi `CLAUDE.md` § Le
+      foto sul perche' quelle query tornano percorsi e non nomi.
+
+---
+
+## 7. Debiti tecnici
 
 - [ ] **Nessuno cancella dal server le foto tolte dal telefono.**
       `storage/app/private/images` cresce e non scende. La raccolta degli
@@ -461,7 +588,7 @@ iniziale e voluto a fase gia' chiusa.
 
 ---
 
-## 7. Decisioni aperte
+## 8. Decisioni aperte
 
 - [ ] **La palla dell'assistente che si muove con la voce.** Il microfono
       virtuale dell'emulatore riporta `0.000` fisso anche con
@@ -474,7 +601,7 @@ iniziale e voluto a fase gia' chiusa.
 
 ---
 
-## 8. Fuori scope per scelta
+## 9. Fuori scope per scelta
 
 Non sono dimenticanze e non vanno riaperte senza una ragione nuova.
 
