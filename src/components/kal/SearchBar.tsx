@@ -1,5 +1,5 @@
 import { useAppTheme } from "@/src/components/ThemeContext";
-import { TextInput } from "@/src/components/ui";
+import { DraftTextInput } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import { Search } from "lucide-react-native";
@@ -7,6 +7,12 @@ import React from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 interface SearchBarProps {
+  /**
+   * Il termine come lo conosce il chiamante: qui e' il valore di partenza e
+   * quello a cui il campo si riallinea quando cambia da fuori (i fogli che si
+   * svuotano alla chiusura), non il testo che si sta digitando - quello vive
+   * dentro `DraftTextInput`.
+   */
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
@@ -43,7 +49,14 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       ) : (
         <Search size={20} color={accent} />
       )}
-      <TextInput
+      {/*
+        `DraftTextInput` e non `TextInput`: questo componente non ha stato
+        proprio, quindi ogni tasto passa dallo stato del chiamante - e il
+        chiamante e' sempre una schermata con una lista sotto (duecento
+        esercizi, l'elenco alimenti a due sezioni). E' esattamente il giro che
+        `CLAUDE.md` § Quel che si digita descrive.
+      */}
+      <DraftTextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder ?? t("search")}

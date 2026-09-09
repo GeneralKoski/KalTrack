@@ -1494,9 +1494,19 @@ ogni sua eco sembrerebbe un valore esterno: quello e' il mestiere di
 `DfNumberInput`, che resta controllato.
 
 Restano `TextInput` nudo i campi il cui stato e' gia' accanto a loro e serve a
-disegnare la finestra stessa (`QuantityPrompt`, `MetricEntrySheet`) e la
-`SearchBar`, che ridisegna solo se stessa - non a caso era l'unico campo
-dell'app che si scriveva bene.
+disegnare la finestra stessa: `QuantityPrompt` e `MetricEntrySheet`, e basta
+quelli.
+
+**La `SearchBar` non e' fra le eccezioni, e questo documento ha scritto il
+contrario fino al 9 settembre 2026**: diceva che "ridisegna solo se stessa", e
+non e' vero - non ha stato proprio, `value` e `onChangeText` sono prop, quindi
+ridisegna quel che ridisegna il chiamante, che e' sempre una schermata con una
+lista sotto. Era la frase piu' costosa del documento, perche' quel campo e' lo
+stesso in otto punti dell'app - Alimenti, Esercizi, Ricette, Amici, il foglio
+Aggiungi, `IngredientPicker`, `EntryCompositionSheet`, `ExercisePickerSheet` -
+cioe' il campo che si usa piu' spesso, sopra l'elenco piu' lungo. Il debounce
+che alcune di quelle schermate hanno non c'entra: protegge la **query**, non il
+**render**. Chi ci scrive dentro oggi passa da `DraftTextInput`.
 
 **`DfNumberInput` non scrive il separatore di migliaia.** Lo faceva, e al tasto
 dopo rileggeva quel punto come separatore decimale, perche' la virgola non
