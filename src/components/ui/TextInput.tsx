@@ -11,6 +11,37 @@ import {
 export type TextInputProps = RNTextInputProps;
 
 /**
+ * Lo stile che risolve Poppins dal peso e spegne il padding del font, cioe'
+ * quel che questo componente fa da se'.
+ *
+ * Esiste perche' c'e' **un** campo che non puo' passare da qui: `DfNumberInput`
+ * dentro un foglio deve rendere il `BottomSheetTextInput` di gorhom, o la
+ * tastiera si mangia il campo. Quello e' un `TextInput` di RN nudo, e senza
+ * questo stile i numeri dentro un foglio uscivano nel font di sistema. `ui/`
+ * non puo' importare gorhom - lo tirerebbe dentro ogni test che usa questo
+ * barrel, e reanimated sotto jest non si inizializza - quindi si condivide lo
+ * stile e non il componente.
+ *
+ * `includeFontPadding` sta PRIMA dello stile del chiamante, che percio' puo'
+ * ancora rivolerlo; la famiglia sta dopo, perche' e' calcolata da quel peso.
+ */
+export const resolvedFontStyle = (
+  style?: RNTextInputProps["style"],
+): RNTextInputProps["style"] => {
+  const flat = StyleSheet.flatten(style);
+  const weight = resolveFontWeight(flat?.fontWeight) ?? "regular";
+  return [
+    { includeFontPadding: false },
+    flat,
+    {
+      fontFamily: resolveFontFamily(weight, flat?.fontStyle === "italic"),
+      fontWeight: undefined,
+      fontStyle: undefined,
+    },
+  ];
+};
+
+/**
  * Drop-in replacement di RN TextInput che risolve automaticamente la fontFamily.
  *
  * `includeFontPadding: false` come nel `Text`, e per lo stesso motivo: dentro un
@@ -35,11 +66,6 @@ export type TextInputProps = RNTextInputProps;
 export const TextInput = React.forwardRef<RNTextInput, TextInputProps>(
   ({ style, ...props }, ref) => {
     const { colors } = useAppTheme();
-    const flat = StyleSheet.flatten(style);
-
-    const weight = resolveFontWeight(flat?.fontWeight) ?? "regular";
-    const isItalic = flat?.fontStyle === "italic";
-    const fontFamily = resolveFontFamily(weight, isItalic);
 
     return (
       <RNTextInput
@@ -48,15 +74,7 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputProps>(
         autoCorrect={false}
         autoComplete="off"
         {...props}
-        style={[
-          { includeFontPadding: false },
-          flat,
-          {
-            fontFamily,
-            fontWeight: undefined,
-            fontStyle: undefined,
-          },
-        ]}
+        style={resolvedFontStyle(style)}
       />
     );
   },

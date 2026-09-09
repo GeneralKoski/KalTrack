@@ -1,5 +1,6 @@
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text, TextInput } from "@/src/components/ui";
+import { resolvedFontStyle } from "@/src/components/ui/TextInput";
 import {
   formatNumber,
   numberToDisplay,
@@ -64,6 +65,15 @@ export const DfNumberInput = ({
   */
   const separator = decimalSeparator();
 
+  /*
+    Dentro un foglio il campo DEVE essere quello di gorhom, o la tastiera se lo
+    mangia: e' un `TextInput` di RN nudo, quindi la fontFamily non la risolve
+    nessuno e i numeri uscivano nel font di sistema invece che in Poppins. Non
+    e' il difetto che il proprietario ha segnalato - questo e' costante, non
+    tremola a ogni tasto - ma e' l'unico difetto di font che l'app abbia
+    davvero. Lo stile risolto si aggiunge solo in quel ramo: nell'altro lo fa
+    gia' `ui/TextInput`, e passarcelo due volte perderebbe il peso.
+  */
   const InputComponent = isInBottomSheet ? BottomSheetTextInput : TextInput;
 
   return (
@@ -94,6 +104,27 @@ export const DfNumberInput = ({
             return <></>;
           }
 
+          const inputStyle = [
+            styles.input,
+            {
+              color: colors.text,
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+            readOnly && {
+              backgroundColor: colors.surfaceMuted,
+              color: colors.textMuted,
+            },
+            error && styles.inputError,
+            showCurrency &&
+              currencyPosition === "left" &&
+              styles.inputWithCurrencyLeft,
+            showCurrency &&
+              currencyPosition === "right" &&
+              styles.inputWithCurrencyRight,
+            style,
+          ];
+
           return (
             <View style={styles.inputWrapper}>
               {showCurrency && currencyPosition === "left" && (
@@ -108,26 +139,9 @@ export const DfNumberInput = ({
                 </Text>
               )}
               <InputComponent
-                style={[
-                  styles.input,
-                  {
-                    color: colors.text,
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                  readOnly && {
-                    backgroundColor: colors.surfaceMuted,
-                    color: colors.textMuted,
-                  },
-                  error && styles.inputError,
-                  showCurrency &&
-                    currencyPosition === "left" &&
-                    styles.inputWithCurrencyLeft,
-                  showCurrency &&
-                    currencyPosition === "right" &&
-                    styles.inputWithCurrencyRight,
-                  style,
-                ]}
+                style={
+                  isInBottomSheet ? resolvedFontStyle(inputStyle) : inputStyle
+                }
                 placeholder={placeholder}
                 placeholderTextColor={colors.textFaint}
                 autoCapitalize="none"
