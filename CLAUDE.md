@@ -1667,6 +1667,18 @@ Valgono le guide Dieffetech `docs/react-native/`:
   style-as-function (con NativeWind v4 non viene applicato: nessun feedback al
   tap). `hitSlop={8}` sui target piccoli.
 - Token da `@/src/styles`, mai hex o numeri magici inline.
+- **`borderStyle: "dashed"`, `borderRadius` e `overflow: "hidden"` non stanno
+  nella stessa vista.** Su Android quei tre insieme ne annullano il disegno:
+  la vista non disegna piu' niente - ne' il bordo, ne' i figli - e resta un
+  rettangolo del colore del fondo. Nessun errore, nessun avviso, e i test non
+  possono accorgersene: guardano l'albero, e l'albero e' giusto. Due dei tre
+  sono innocui e usati in mezza app - i bordi tratteggiati di `PhotoField`
+  non hanno l'overflow, e `ListGroup`, `MetalSurface` e il confronto foto
+  hanno overflow e raggio senza tratteggio - ed e' il motivo per cui e'
+  rimasto nascosto: `PhotoTile` era l'unico posto dove i tre si incontravano,
+  e li' la tessera della foto e' stata un quadrato nero da 64 px per giorni,
+  con la foto caricata dentro. Se serve arrotondare un'immagine, il raggio va
+  sull'immagine, non sul ritaglio del genitore.
 - **Un elenco di righe e' un `ListGroup`, non N `Card`** (vedi § I tre livelli
   di superficie), e in una schermata c'e' **al massimo un `HeroPanel`**. La
   `Card` e' per quel che e' davvero una scheda a se', non per incorniciare una

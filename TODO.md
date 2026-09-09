@@ -441,11 +441,23 @@ tre difetti preesistenti trovati indagandole (§ 6.2).
 - [x] ~~**La ricerca alimenti trova anche il marchio.**~~ `LIKE` grezzo su
       `brand`, senza `brand_norm` ne' indice ne' migrazione - vedi § 6.1 per
       il perche' resta cosi'.
-- [x] ~~**La foto di un alimento appena scattato si vede.**~~ La causa vera
-      non era nessuno dei due sospetti dell'indagine iniziale:
-      `persistPhoto` non verificava mai che l'archivio avesse davvero
-      ricevuto il file, il suo unico controllo faceva la domanda opposta
-      (un residuo di quando il nome del file derivava dall'uri di origine).
+- [x] ~~**La foto di un alimento appena scattato si vede.**~~ Chiusa due
+      volte, e la prima era sbagliata: si erano corretti due difetti veri
+      (l'anteprima passa da `SyncedPhoto`, e `persistPhoto` verifica che
+      l'archivio abbia davvero ricevuto il file) dedotti dal codice, senza
+      mai riprodurre il sintomo - che e' rimasto intatto, e il proprietario
+      l'ha rimandato indietro.
+      La causa vera l'ha trovata l'emulatore: `PhotoTile` non disegnava
+      **niente**, in nessuno stato - ne' la foto, ne' il bordo tratteggiato,
+      ne' l'icona, ne' l'etichetta - perche' quella vista teneva
+      `borderStyle: "dashed"` + `borderRadius` + `overflow: "hidden"`
+      insieme. Su Android quei tre stili in una vista sola ne annullano il
+      disegno; togliendone uno qualunque torna. Provato una variabile alla
+      volta sull'emulatore, e la conferma che la catena a monte era sana e'
+      la riga di Glide nel logcat: la foto veniva caricata dentro la vista
+      (`[168x168] in 4.4 ms`) e nessuno la vedeva. Le due correzioni
+      precedenti restano, perche' i loro difetti erano reali - solo che non
+      erano questo.
 - [x] ~~**Si scrive veloce e non si perde piu' niente.**~~ La diagnosi
       dell'utente ("cambia font") era sbagliata sul sintomo - nessun
       percorso di questa app puo' cambiare famiglia a runtime - ma il

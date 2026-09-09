@@ -165,6 +165,55 @@ describe("PhotoTile", () => {
     });
   });
 
+  /*
+   * I tre stili che insieme rendevano la tessera un quadrato nero su Android:
+   * `borderStyle: "dashed"` + `borderRadius` + `overflow: "hidden"`. La vista
+   * non disegnava piu' niente - ne' la foto, ne' il bordo, ne' l'icona, ne'
+   * l'etichetta - e sembrava che la foto non arrivasse: arrivava, e Glide la
+   * caricava dentro una vista che nessuno vedeva.
+   *
+   * Nessun test puo' accorgersi di quel che Android non disegna, quindi si
+   * pinna la combinazione: due dei tre stili sono legittimi e usati in mezza
+   * app, e' il terzo insieme agli altri due che uccide la vista. Il giro va
+   * fatto in entrambi gli stati, perche' il tratteggio c'e' solo a tessera
+   * vuota ma la vista e' la stessa anche con la foto.
+   */
+  it.each([
+    ["vuota", null],
+    ["con la foto", ARCHIVIATA],
+  ])("%s non rimette i tre stili che la fanno sparire", async (_, uri) => {
+    const renderer = await monta(
+      <PhotoTile uri={uri} onChange={() => {}} label="Foto" />,
+    );
+
+    const tessera = renderer.root
+      .findAllByType(TouchableOpacity)
+      .find((node) => node.props.accessibilityLabel === "Foto");
+    const stile = StyleSheet.flatten(tessera?.props.style) ?? {};
+
+    expect(stile.borderRadius).toBeGreaterThan(0);
+    expect(stile.overflow).not.toBe("hidden");
+  });
+
+  /*
+   * L'arrotondamento della foto viene dall'immagine e non piu' dal ritaglio
+   * del genitore: chi lo togliesse da qui riavrebbe una foto quadrata dentro
+   * una tessera arrotondata, ed e' la ragione per cui `overflow` se ne e'
+   * potuto andare senza perdere niente.
+   */
+  it("arrotonda la foto sull'immagine, non col ritaglio del genitore", async () => {
+    mockEnsureLocalPhoto.mockResolvedValue(ARCHIVIATA);
+
+    const renderer = await monta(
+      <PhotoTile uri={ARCHIVIATA} onChange={() => {}} label="Foto" />,
+    );
+
+    const stile = StyleSheet.flatten(
+      renderer.root.findByType(ExpoImage).props.style,
+    );
+    expect(stile.borderRadius).toBeGreaterThan(0);
+  });
+
   it("vuota mostra l'icona e l'etichetta, non un segnaposto", async () => {
     const renderer = await monta(
       <PhotoTile uri={null} onChange={() => {}} label="Foto" />,

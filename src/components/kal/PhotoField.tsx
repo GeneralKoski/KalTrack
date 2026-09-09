@@ -331,6 +331,29 @@ const styles = StyleSheet.create({
   actionLabel: {
     fontSize: 13,
   },
+  /*
+   * NIENTE `overflow: "hidden"` qui, e non e' una preferenza di stile: su
+   * Android questa vista non disegnava PIU' NIENTE - non la foto, non il
+   * bordo tratteggiato, non l'icona, non l'etichetta. Un quadrato nero da 64
+   * in ogni stato, che e' esattamente la segnalazione "scatto la foto e vedo
+   * spazio nero": la foto arrivava, Glide la caricava davvero dentro la vista
+   * (`[168x168] in 4.4 ms` nel logcat) e nessuno la vedeva.
+   *
+   * A ucciderla erano TRE cose insieme, e serve saperlo perche' due delle tre
+   * sono usate in mezza app senza problemi: `borderStyle: "dashed"` +
+   * `borderRadius` + `overflow: "hidden"`. Togliendone una qualunque la vista
+   * torna a disegnarsi, provato sull'emulatore una variabile alla volta.
+   * Ecco perche' non si era mai visto altrove: gli altri bordi tratteggiati
+   * (`action`, qui sotto) non hanno l'overflow, e le altre viste con overflow
+   * e raggio (`ListGroup`, `MetalSurface`, il confronto foto) non hanno un
+   * bordo tratteggiato. Questa tessera era l'unico posto dove i tre si
+   * incontravano.
+   *
+   * Si e' scelto di togliere l'overflow e non il tratteggio perche' il
+   * tratteggio dice "qui manca qualcosa" ed e' la stessa convenzione di
+   * `action`. L'arrotondamento della foto passa a `tileImage`, che e' come lo
+   * fanno tutti gli altri punti dell'app.
+   */
   tile: {
     width: TILE_SIZE,
     height: TILE_SIZE,
@@ -338,8 +361,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 3,
-    overflow: "hidden",
   },
-  tileImage: { width: "100%", height: "100%" },
+  tileImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: theme.radius.lg,
+  },
   tileLabel: { fontSize: 10 },
 });
