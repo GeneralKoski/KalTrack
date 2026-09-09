@@ -67,8 +67,19 @@ export function PlansScreen() {
    * e' accedere. Chi ha gia' un account e non ha il diritto e' l'unico caso
    * in cui parlare di abbonamento e' onesto. Un motivo vero ma irrilevante e'
    * comunque una bugia, e questa schermata la vede un utente vero.
+   *
+   * `token !== null` da solo commette lo stesso errore che il resto del
+   * task esiste per correggere: prima che `restore()` finisca, `token` e'
+   * `null` senza dire ancora niente su un account - un deep link diretto a
+   * questa pagina (`kaltrack://abbonamento`) a freddo mostrerebbe "serve un
+   * account" a un utente che ce l'ha gia' e ha pure il diritto. Finche' non
+   * si sa, si assume che l'account ci sia: e' l'errore piu' innocuo dei
+   * due, sparisce da solo al prossimo aggiornamento dello store, e non manda
+   * nessuno a creare un account che ha gia'.
    */
-  const hasAccount = useAccountStore((s) => s.token !== null);
+  const hasAccount = useAccountStore(
+    (s) => !s.isHydrated || s.token !== null,
+  );
 
   return (
     <View style={styles.root}>

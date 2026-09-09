@@ -40,9 +40,21 @@ const mockWriteAiEnabled = jest.fn((value: boolean) => {
   }>("@/src/services/syncMarkers");
   return actual.writeAiEnabled(value);
 });
+/*
+ * Stessa delega di serie di `writeAiEnabled` sopra: i test che non
+ * chiedono un guasto vedono un `clearAiEnabled` che azzera DAVVERO la riga
+ * sul DB di prova.
+ */
+const mockClearAiEnabled = jest.fn(() => {
+  const actual = jest.requireActual<{
+    clearAiEnabled: () => Promise<void>;
+  }>("@/src/services/syncMarkers");
+  return actual.clearAiEnabled();
+});
 jest.mock("@/src/services/syncMarkers", () => ({
   ...jest.requireActual("@/src/services/syncMarkers"),
   writeAiEnabled: (value: boolean) => mockWriteAiEnabled(value),
+  clearAiEnabled: () => mockClearAiEnabled(),
 }));
 
 beforeEach(async () => {
@@ -63,6 +75,7 @@ beforeEach(async () => {
     aiEnabled: true,
   }));
   mockWriteAiEnabled.mockClear();
+  mockClearAiEnabled.mockClear();
 });
 
 describe("accesso", () => {
@@ -172,6 +185,69 @@ describe("il segnaposto del diritto AI", () => {
 
     await useAccountStore.getState().signOut();
 
+    expect(useAccountStore.getState().aiEnabled).toBeNull();
+    expect(await getSetting(AI_ENABLED)).toBeNull();
+  });
+
+  /**
+   * Il regresso trovato dal review round 4: `clearAiEnabled` passa da
+   * SQLite, e un database non sano - lo stesso stato che `App.tsx` tollera
+   * gia' - lo fa rigettare. Prima del riordino, quella reject usciva da
+   * `signOut()` PRIMA di azzerare lo stato: l'utente restava segnato come
+   * collegato in memoria mentre il token era gia' cancellato da
+   * SecureStore, e la conferma di uscita si chiudeva senza dire niente.
+   */
+  it("signOut lascia comunque l'utente disconnesso in memoria se il segnaposto non si azzera", async () => {
+    mockClearAiEnabled.mockRejectedValueOnce(new Error("database non sano"));
+    useAccountStore.setState({ token: "un-token", aiEnabled: true });
+
+    await expect(useAccountStore.getState().signOut()).resolves.toBeUndefined();
+
+    expect(useAccountStore.getState().token).toBeNull();
+    expect(useAccountStore.getState().profile).toBeNull();
+    expect(useAccountStore.getState().aiEnabled).toBeNull();
+  });
+
+  /**
+   * La porta seconda di Minor 10: un token REVOCATO DAL SERVER fa cadere la
+   * sessione dentro `refreshProfile`, non da `signOut` - lo dice gia' il
+   * commento di `signIn`. Senza azzerare anche li' il valore noto, il
+   * prossimo utente su questo telefono verrebbe giudicato sul diritto di
+   * quello prima, se il suo `/api/me` fallisse subito dopo l'accesso.
+   */
+  it("un token revocato dal server (non da signOut) azzera comunque il valore noto", async () => {
+    await setSetting(AI_ENABLED, "1");
+    useAccountStore.setState({
+      token: "un-token",
+      aiEnabled: true,
+      profile: {
+        handle: "anna",
+        displayName: "Anna",
+        avatarUrl: null,
+        bio: null,
+        email: "anna@example.com",
+        isAdmin: false,
+        aiEnabled: true,
+        shares: {
+          calories: false,
+          steps: false,
+          weight: false,
+          workouts: false,
+          gym: false,
+        },
+      },
+    });
+    mockFetchMyProfile.mockImplementation(async () => {
+      const error = new Error("token revocato") as Error & {
+        isUnauthenticated: boolean;
+      };
+      error.isUnauthenticated = true;
+      throw error;
+    });
+
+    await useAccountStore.getState().refreshProfile();
+
+    expect(useAccountStore.getState().token).toBeNull();
     expect(useAccountStore.getState().aiEnabled).toBeNull();
     expect(await getSetting(AI_ENABLED)).toBeNull();
   });

@@ -42,4 +42,25 @@ describe("restore, quando la lettura del segnaposto va storta", () => {
 
     expect(useAccountStore.getState().isHydrated).toBe(true);
   });
+
+  /**
+   * Finding 7 (round 4): un `readAiEnabled` che fallisce non deve costare
+   * la sessione a un utente che ha gia' un token valido in SecureStore. I
+   * due `try` sono separati apposta: il guasto della cache del diritto AI
+   * non deve impedire di leggere il token vero.
+   */
+  it("legge comunque il token, invece di trattare un utente collegato da sconosciuto", async () => {
+    useAccountStore.setState({
+      token: null,
+      profile: null,
+      aiEnabled: null,
+      isHydrated: false,
+    });
+
+    await useAccountStore.getState().restore();
+
+    expect(useAccountStore.getState().token).toBe("un-token");
+    // Il diritto non si e' potuto leggere: resta "non lo so", non "no".
+    expect(useAccountStore.getState().aiEnabled).toBeNull();
+  });
 });

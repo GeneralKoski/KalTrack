@@ -11,9 +11,11 @@ jest.mock("@/src/hooks/useAppNav", () => ({
 }));
 
 let mockToken: string | null = null;
+let mockIsHydrated = true;
 jest.mock("@/src/stores/accountStore", () => ({
-  useAccountStore: (selector: (state: { token: string | null }) => unknown) =>
-    selector({ token: mockToken }),
+  useAccountStore: (
+    selector: (state: { token: string | null; isHydrated: boolean }) => unknown,
+  ) => selector({ token: mockToken, isHydrated: mockIsHydrated }),
 }));
 
 jest.mock("react-native-safe-area-context", () => {
@@ -69,6 +71,7 @@ beforeEach(() => {
   mockNavigate.mockClear();
   mockGoBack.mockClear();
   mockToken = null;
+  mockIsHydrated = true;
 });
 
 const allText = (renderer: ReactTestRenderer): string =>
@@ -117,6 +120,26 @@ describe("PlansScreen, il motivo giusto per chi arriva", () => {
     const text = allText(renderer);
     expect(text).toContain(i18n.t("plans.hero_title"));
     expect(text).toContain(i18n.t("plans.not_available"));
+    expect(text).not.toContain(i18n.t("plans.no_account_action"));
+  });
+
+  /**
+   * Round 4: `token` e' `null` prima che `restore()` finisca senza dire
+   * ancora niente su un account - un deep link diretto a questa pagina a
+   * freddo (`kaltrack://abbonamento`) non deve leggere "serve un account" a
+   * chi ce l'ha gia'. Finche' non si sa, si assume di si'.
+   */
+  it("prima che l'idratazione finisca, non dice che serve un account", () => {
+    mockToken = null;
+    mockIsHydrated = false;
+    let renderer!: ReactTestRenderer;
+    act(() => {
+      renderer = create(<PlansScreen />);
+    });
+
+    const text = allText(renderer);
+    expect(text).toContain(i18n.t("plans.hero_title"));
+    expect(text).not.toContain(i18n.t("plans.no_account_title"));
     expect(text).not.toContain(i18n.t("plans.no_account_action"));
   });
 });

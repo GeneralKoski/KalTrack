@@ -56,13 +56,24 @@ export function useAiGate() {
 /**
  * Il cancello per una schermata INTERA, non per un bottone.
  *
- * `useAiGate` protegge il tocco che ci naviga, ma una schermata registrata
- * con un `linking.path` e' raggiungibile anche da un deep link diretto, che
- * scavalca qualunque gate messo su un bottone che porta li' - la stessa
- * porta seconda che `kaltrack://assistente` era per il microfono, chiusa
- * gia' una volta per il deep link dell'assistente. `GenerateRoutine`
- * (`schede/genera`) e' nella stessa situazione: il banner in
- * `RoutineFormScreen` la gia', ma il percorso diretto no.
+ * QUANDO USARE QUESTO E NON `useAiGate`: quando la schermata di destinazione
+ * e' registrata con un suo `linking.path` - cioe' e' una rotta a se',
+ * raggiungibile anche da un deep link diretto che scavalca qualunque gate
+ * messo sul bottone che normalmente ci naviga. Un bottone gated impedisce di
+ * ARRIVARCI da dentro l'app; non impedisce di finirci comunque da fuori. Se
+ * il punto d'ingresso invece non naviga a una rotta propria - apre un
+ * overlay, un modale, uno sheet - `useAiGate` sul tocco basta, perche' non
+ * c'e' una seconda porta da chiudere.
+ *
+ * E' la stessa identica situazione gia' vista e chiusa una volta per il
+ * microfono: il tocco su `AssistantButton` era gated, ma
+ * `kaltrack://assistente` apriva l'ascolto scavalcandolo - due porte sulla
+ * stessa stanza, una aperta. `GenerateRoutine` (`linking.path: "schede/genera"`)
+ * ha lo stesso difetto: il banner in `RoutineFormScreen` gia' gatiava il
+ * tocco che ci naviga, ma il deep link diretto no. Li' l'assistente ha
+ * risolto gatando anche l'effetto del deep link (stessa schermata, due
+ * ingressi); qui la soluzione e' questo hook, perche' `GenerateRoutine` e'
+ * una schermata a se' e non un effetto dentro un componente gia' montato.
  *
  * Naviga a `Plans` con `replace` (non `navigate`) appena la schermata monta
  * senza diritto, cosi' non resta in cronologia una schermata gated su cui

@@ -39,122 +39,167 @@ interface AccountStore {
   setProfile: (profile: social.MyProfile) => void;
 }
 
-export const useAccountStore = create<AccountStore>()((set, get) => ({
-  token: null,
-  profile: null,
-  aiEnabled: null,
-  isHydrated: false,
-
-  restore: async () => {
+export const useAccountStore = create<AccountStore>()((set, get) => {
+  /**
+   * Azzera il valore noto - stato E segnaposto - senza mai poter far
+   * fallire chi la chiama. E' la cache di un fatto del server, non il
+   * conto: un database non sano non deve impedire ne' l'uscita ne' far
+   * giudicare il prossimo utente sul diritto di quello precedente.
+   */
+  const forgetAiEnabled = async () => {
     try {
-      // Letto a prescindere dal token: senza account `aiAvailable()` torna
-      // comunque spenta, e leggerlo comunque evita di dover distinguere due
-      // percorsi per un valore che non danneggia nessuno stando in memoria.
-      //
-      // DENTRO il try, e non prima: `readAiEnabled` non lancia mai (e' testato
-      // apposta), ma se un giorno lo facesse - o smettesse di esserlo per un
-      // refactor distratto - la reject uscirebbe da `restore()` prima di
-      // arrivare a `isHydrated: true`. `App.tsx` gia' prevede un database non
-      // sano e sblocca comunque l'avvio; un `restore()` che non atterra mai
-      // lascerebbe `isHydrated` falso per sempre, e con lui l'intera catena
-      // di avvio (`runSync`, `syncSharedStats`, il catalogo) non partirebbe
-      // mai - un avvio impantanato per un settaggio che non si e' letto.
-      const aiEnabled = await readAiEnabled();
-      const token = await SecureStore.getItemAsync(TOKEN_KEY);
-      set({ token, aiEnabled, isHydrated: true });
-      if (token) void get().refreshProfile();
+      await clearAiEnabled();
     } catch (error) {
-      logger.error("[account] lettura del token fallita", error);
-      set({ isHydrated: true });
+      logger.warn("[account] segnaposto del diritto AI non azzerato", error);
     }
-  },
+  };
 
-  signIn: async (token) => {
-    /*
-     * Prima di tutto il resto: i segnaposto della sincronizzazione valgono per
-     * UN account.
-     *
-     * Il cursore e' la posizione dentro il contatore del server per quel
-     * l'utente. Entrando con un altro account e tenendolo, il telefono
-     * chiederebbe "le righe dopo la 406" a un contatore che riparte da uno, e
-     * la risposta e' vuota: i dati del nuovo account non arriverebbero mai, e
-     * senza nessun errore a dirlo.
-     *
-     * Va fatto qui e non nell'uscita: un token revocato dal server fa cadere
-     * la sessione senza passare da signOut, e il prossimo accesso si
-     * ritroverebbe i segnaposto vecchi. Dall'accesso invece non si scappa.
-     */
-    await resetSyncMarkers();
-    await SecureStore.setItemAsync(TOKEN_KEY, token);
-    set({ token });
-    await get().refreshProfile();
-  },
+  return {
+    token: null,
+    profile: null,
+    aiEnabled: null,
+    isHydrated: false,
 
-  signOut: async () => {
-    // Si prova a revocare il token sul server, ma l'uscita avviene comunque:
-    // restare collegati perche' la rete non c'e' sarebbe la cosa peggiore.
-    try {
-      if (get().token) await social.logout();
-    } catch (error) {
-      logger.warn("[account] revoca del token non riuscita", error);
-    }
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
-    /*
-     * Il valore noto appartiene all'account che sta uscendo, non al
-     * prossimo. Lasciarlo in piedi (stato E segnaposto) e' innocuo finche'
-     * non c'e' nessun token - `aiAvailable` lo ignora comunque - ma non copre
-     * la finestra subito dopo: un secondo utente che accede e il cui
-     * `/api/me` fallisce (rete caduta appena dopo il login) si ritroverebbe
-     * giudicato sul diritto di chi era uscito prima. Azzerarlo qui riporta
-     * quel caso a `null`, cioe' in favore dell'utente - la stessa regola che
-     * il task esiste per applicare.
-     */
-    await clearAiEnabled();
-    set({ token: null, profile: null, aiEnabled: null });
-  },
-
-  refreshProfile: async () => {
-    try {
-      const profile = await social.fetchMyProfile();
-      // Il profilo si tiene SUBITO: e' il dato vero, appena arrivato. Il
-      // segnaposto e' solo la sua cache per l'avvio offline, e un suo guasto
-      // non deve buttare via un profilo che e' arrivato davvero - ne'
-      // scrivere "profilo non letto" quando invece lo e' stato.
-      set({ profile, aiEnabled: profile.aiEnabled });
+    restore: async () => {
+      /*
+       * Letto a prescindere dal token: senza account `aiAvailable()` torna
+       * comunque spenta, e leggerlo comunque evita di dover distinguere due
+       * percorsi per un valore che non danneggia nessuno stando in memoria.
+       *
+       * In un `try` TUTTO SUO, separato da quello del token: `readAiEnabled`
+       * non lancia mai (e' testato apposta), ma se un giorno lo facesse - o
+       * smettesse di esserlo per un refactor distratto - non deve costare la
+       * sessione a un utente che ha gia' un token valido in SecureStore. Con
+       * un `try` solo, quella reject usciva PRIMA di leggere il token, e un
+       * utente con l'accesso gia' fatto si ritrovava trattato da sconosciuto
+       * per l'intera sessione - non per un guasto del token, ma per un
+       * guasto di una sua cache.
+       */
+      let aiEnabled: boolean | null = null;
       try {
-        // Si riscrive a ogni `/api/me` riuscito: e' l'unico momento in cui
-        // questo telefono sa davvero cosa dice il server.
-        await writeAiEnabled(profile.aiEnabled);
+        aiEnabled = await readAiEnabled();
       } catch (error) {
-        logger.warn("[account] segnaposto del diritto AI non scritto", error);
+        logger.warn("[account] lettura del diritto AI salvato fallita", error);
       }
-    } catch (error) {
-      logger.warn("[account] profilo non letto", error);
-      // Un token rifiutato non e' un errore di rete: e' una sessione finita.
-      if (
-        error instanceof Error &&
-        "isUnauthenticated" in error &&
-        (error as { isUnauthenticated: boolean }).isUnauthenticated
-      ) {
-        await SecureStore.deleteItemAsync(TOKEN_KEY);
-        set({ token: null, profile: null });
+      try {
+        const token = await SecureStore.getItemAsync(TOKEN_KEY);
+        set({ token, aiEnabled, isHydrated: true });
+        if (token) void get().refreshProfile();
+      } catch (error) {
+        logger.error("[account] lettura del token fallita", error);
+        set({ aiEnabled, isHydrated: true });
       }
-    }
-  },
+    },
 
-  setProfile: (profile) => {
-    // Anche qui arriva un profilo fresco (risposta di `updateMyProfile`, o
-    // l'aggiornamento ottimistico di `ShareSettings` che riusa quello gia' in
-    // stato): lo stesso segnaposto, altrimenti divergerebbe da quel che
-    // `refreshProfile` scrive. Il `.catch()` evita una promise rejection non
-    // gestita se il database rifiuta la scrittura: non c'e' niente da fare
-    // di piu' qui, la prossima `/api/me` riuscita la riscrive.
-    writeAiEnabled(profile.aiEnabled).catch((error) => {
-      logger.warn("[account] segnaposto del diritto AI non scritto", error);
-    });
-    set({ profile, aiEnabled: profile.aiEnabled });
-  },
-}));
+    signIn: async (token) => {
+      /*
+       * Prima di tutto il resto: i segnaposto della sincronizzazione valgono
+       * per UN account.
+       *
+       * Il cursore e' la posizione dentro il contatore del server per quel
+       * l'utente. Entrando con un altro account e tenendolo, il telefono
+       * chiederebbe "le righe dopo la 406" a un contatore che riparte da uno,
+       * e la risposta e' vuota: i dati del nuovo account non arriverebbero
+       * mai, e senza nessun errore a dirlo.
+       *
+       * Va fatto qui e non nell'uscita: un token revocato dal server fa
+       * cadere la sessione senza passare da signOut, e il prossimo accesso
+       * si ritroverebbe i segnaposto vecchi. Dall'accesso invece non si
+       * scappa.
+       */
+      await resetSyncMarkers();
+      await SecureStore.setItemAsync(TOKEN_KEY, token);
+      set({ token });
+      await get().refreshProfile();
+    },
+
+    signOut: async () => {
+      // Si prova a revocare il token sul server, ma l'uscita avviene
+      // comunque: restare collegati perche' la rete non c'e' sarebbe la cosa
+      // peggiore.
+      try {
+        if (get().token) await social.logout();
+      } catch (error) {
+        logger.warn("[account] revoca del token non riuscita", error);
+      }
+      await SecureStore.deleteItemAsync(TOKEN_KEY);
+      /*
+       * PRIMA lo stato in memoria, POI la cache su disco - e la cache non
+       * puo' far fallire `signOut()`. Il valore noto appartiene all'account
+       * che sta uscendo, non al prossimo: lasciarlo in piedi (stato E
+       * segnaposto) e' innocuo finche' non c'e' nessun token - `aiAvailable`
+       * lo ignora comunque - ma non copre la finestra subito dopo, quando un
+       * secondo utente accede e il suo `/api/me` fallisce (rete caduta
+       * appena dopo il login): si ritroverebbe giudicato sul diritto di chi
+       * era uscito prima. Azzerarlo qui riporta quel caso a `null`, cioe' in
+       * favore dell'utente - la stessa regola che il task esiste per
+       * applicare.
+       *
+       * Ma `clearAiEnabled` passa da SQLite (`getDb`), e un database non
+       * sano - lo stesso stato che `App.tsx` tollera gia' per sbloccare
+       * l'avvio - lo farebbe rigettare. Prima del riordino, quella reject
+       * usciva da `signOut()` PRIMA del `set()`: l'utente restava segnato
+       * come collegato in memoria (e `setAuthTokenProvider` continuava a
+       * consegnare un token gia' cancellato da SecureStore) mentre la
+       * finestra di conferma si chiudeva senza dire niente - la stessa forma
+       * del difetto gia' corretto in `refreshProfile`, un piano piu' sotto:
+       * una cache messa nel percorso dell'operazione vera, capace di
+       * distruggerla fallendo lei.
+       */
+      set({ token: null, profile: null, aiEnabled: null });
+      await forgetAiEnabled();
+    },
+
+    refreshProfile: async () => {
+      try {
+        const profile = await social.fetchMyProfile();
+        // Il profilo si tiene SUBITO: e' il dato vero, appena arrivato. Il
+        // segnaposto e' solo la sua cache per l'avvio offline, e un suo
+        // guasto non deve buttare via un profilo che e' arrivato davvero -
+        // ne' scrivere "profilo non letto" quando invece lo e' stato.
+        set({ profile, aiEnabled: profile.aiEnabled });
+        try {
+          // Si riscrive a ogni `/api/me` riuscito: e' l'unico momento in cui
+          // questo telefono sa davvero cosa dice il server.
+          await writeAiEnabled(profile.aiEnabled);
+        } catch (error) {
+          logger.warn("[account] segnaposto del diritto AI non scritto", error);
+        }
+      } catch (error) {
+        logger.warn("[account] profilo non letto", error);
+        // Un token rifiutato non e' un errore di rete: e' una sessione
+        // finita, con la STESSA porta seconda di `signOut` - un token
+        // revocato dal server non passa da li'. Senza azzerare anche qui il
+        // valore noto, il prossimo utente su questo telefono verrebbe
+        // giudicato sul diritto di quello prima, se il suo stesso `/api/me`
+        // fallisse subito dopo l'accesso.
+        if (
+          error instanceof Error &&
+          "isUnauthenticated" in error &&
+          (error as { isUnauthenticated: boolean }).isUnauthenticated
+        ) {
+          await SecureStore.deleteItemAsync(TOKEN_KEY);
+          set({ token: null, profile: null, aiEnabled: null });
+          await forgetAiEnabled();
+        }
+      }
+    },
+
+    setProfile: (profile) => {
+      // Anche qui arriva un profilo fresco (risposta di `updateMyProfile`, o
+      // l'aggiornamento ottimistico di `ShareSettings` che riusa quello
+      // gia' in stato): lo stesso segnaposto, altrimenti divergerebbe da
+      // quel che `refreshProfile` scrive. Il `.catch()` evita una promise
+      // rejection non gestita se il database rifiuta la scrittura: non c'e'
+      // niente da fare di piu' qui, la prossima `/api/me` riuscita la
+      // riscrive.
+      writeAiEnabled(profile.aiEnabled).catch((error) => {
+        logger.warn("[account] segnaposto del diritto AI non scritto", error);
+      });
+      set({ profile, aiEnabled: profile.aiEnabled });
+    },
+  };
+});
 
 // Il client legge il token da qui: cosi' non conosce lo store e lo store non
 // conosce axios.
