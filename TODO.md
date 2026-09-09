@@ -501,7 +501,24 @@ tre difetti preesistenti trovati indagandole (§ 6.2).
       meta' trascinamento (l'assunzione fragile e' l'altezza uniforme delle
       righe, misurata sulla prima); e che un tocco semplice apra ancora il
       modulo della scheda, coi due bersagli piccoli (attiva, cestino) ancora
-      raggiungibili dentro l'area della gesture.
+      raggiungibili dentro l'area della gesture. Quest'ultimo punto e' stato
+      corretto - il `GestureDetector` sta dentro `RoutineListItem` e avvolge
+      solo il corpo della riga, cosi' una gesture non puo' attivarsi su una
+      view che non copre - ma la correzione stessa non e' pinnata da niente,
+      per lo stesso motivo: e' una gesture.
+- [ ] **Tre imperfezioni del trascinamento, lasciate aperte per scelta** (la
+      review del task 10 le ha classificate Minor, e nessuna perde dati).
+      Stanno qui perche' chi le incontra creda a un difetto e vada a cercarlo:
+      - il primo fotogramma dopo il caricamento disegna `EmptyState`, perche'
+        `items` parte vuoto e lo riempie un effetto dopo il render che ha
+        gia' i dati. Lo stesso schema c'e' da sempre in `RemindersScreen`;
+      - una scheda aggiunta a elenco gia' montato entra animandosi dall'alto
+        della lista, attraversando le altre: alla comparsa la sua posizione
+        nello shared value non e' ancora scritta;
+      - `rowHeight` si misura una volta sola sulla riga 0 e non si rimisura.
+        La riga della scheda attiva porta un badge in piu', e il
+        `numberOfLines={1}` non copre quel caso: con righe di altezza diversa
+        il trascinamento salta.
 
 ### 6.2 I tre difetti trovati indagando, non fra le dodici voci
 
