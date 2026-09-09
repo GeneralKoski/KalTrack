@@ -158,10 +158,20 @@ export interface FoodSubmission {
 /**
  * Propone una voce al catalogo.
  *
- * Torna l'uid da salvare in colonna, o **null**: il server risponde `{ ok:
- * true }` senza `data` quando il nome combacia con una voce che qualcuno ha
- * tolto dal catalogo, e in quel caso non ha creato niente da agganciare. Un
- * `null` non e' un errore, e' "non c'e' un uid perche' non c'e' una proposta".
+ * Torna l'uid da salvare in colonna, o **null**. Il server risponde `{ ok:
+ * true }` senza `data` in tre casi, e nessuno dei tre e' un errore:
+ *
+ * - il nome combacia con una voce che qualcuno ha tolto dal catalogo;
+ * - combacia con una voce **pubblicata**;
+ * - combacia con la proposta **di un altro utente**.
+ *
+ * Gli ultimi due non c'erano, e la loro assenza era un difetto lato server
+ * (F2 della review finale): `firstOrCreate` cerca su `name_norm` e basta, e la
+ * risposta portava l'uid di una riga che non e' di chi chiede. Scritto in
+ * `catalog_uid` di una riga propria, quell'uid ne assorbiva l'identita': ogni
+ * correzione successiva si prendeva un 403, e il pull non inseriva mai piu' la
+ * voce di catalogo vera. `null` vuol dire "non c'e' un uid perche' non c'e'
+ * una **mia** proposta da agganciare".
  */
 export const submitExercise = (input: ExerciseSubmission) =>
   apiRequest<{ data?: { uid: string } }>({

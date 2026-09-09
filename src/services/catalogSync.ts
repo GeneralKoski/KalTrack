@@ -701,8 +701,10 @@ export async function submitExerciseToCatalog(
   try {
     if (!attivo()) return;
     const esito = await catalog.submitExercise(toSubmission(input));
-    // `null` quando il server non ha creato niente: il nome combacia con una
-    // voce tolta dal catalogo. Non e' un errore, e non c'e' uid da salvare.
+    // `null` quando non c'e' una PROPRIA proposta da agganciare: il nome
+    // combacia con una voce tolta dal catalogo, con una pubblicata, o con la
+    // proposta di un altro utente (vedi `submitExercise` in `api/catalog.ts`).
+    // Non e' un errore, e non c'e' uid da salvare.
     if (esito) await setExerciseCatalogUid(localId, esito.uid);
   } catch (error) {
     if (!alreadyLogged(error)) {
@@ -743,6 +745,12 @@ export async function amendExerciseSubmission(
      * dell'utente) e passa questo cancello, ma il server la rifiuta lo
      * stesso perche' non e' piu' `pending`. Distinguerla richiede uno stato
      * in colonna, che non c'e' ancora.
+     *
+     * La variante peggiore di quel residuo invece **e'** chiusa, e lo e' dove
+     * andava chiusa: `store()` non restituisce piu' l'uid di una riga che non
+     * e' la propria proposta (F2), quindi in `catalog_uid` non puo' piu'
+     * finire l'identita' della voce di qualcun altro - un 403 per sempre da
+     * qui, e la voce di catalogo vera che non arrivava piu' dal pull.
      */
     if (row.is_custom !== 1) return;
     if (row.catalog_uid === null) {

@@ -124,6 +124,33 @@ class ExerciseController extends Controller
             ],
         );
 
+        /*
+         * L'UID TORNA SOLO SE LA RIGA E' LA PROPRIA PROPOSTA ANCORA IN ATTESA.
+         *
+         * `firstOrCreate` cerca su `name_norm` e basta: nessun filtro su
+         * `status`, nessuno sull'autore. Quindi la riga che torna puo' essere
+         * una voce `published` - il catalogo di tutti - o la proposta
+         * `pending` di UN ALTRO utente che ha scelto lo stesso nome. Il
+         * telefono, che chiama questa rotta quando qualcuno salva un
+         * esercizio suo, scriveva quell'uid nel `catalog_uid` di una propria
+         * riga `is_custom = 1`, e da li' in poi due danni permanenti: ogni
+         * correzione o ritiro successivo spara PATCH/DELETE su un uid che non
+         * e' suo e si prende un 403 in `app_logs`, e - peggio - il pull
+         * successivo trova la riga locale per quell'uid, esce perche' e'
+         * dell'utente, e la voce di catalogo vera (con le istruzioni e la
+         * foto scritte per tutti gli iscritti) non arriva **mai** su quel
+         * telefono. La riga locale ne ha assorbito l'identita'.
+         *
+         * Il rimedio e' la stessa scelta gia' fatta poco sopra per una voce
+         * cancellata: `ok` senza `data`. Restituire la forma di una riga che
+         * non e' di chi chiede trasformerebbe questa rotta in una sonda sul
+         * catalogo, e il chiamante e' fire-and-forget - una risposta senza
+         * uid non scrive niente e non solleva.
+         */
+        if (! $this->eSuaProposta($request, $exercise)) {
+            return response()->json(['ok' => true]);
+        }
+
         return response()->json([
             'data' => $this->publicShape($exercise, $request->user()->id),
         ]);
@@ -246,16 +273,28 @@ class ExerciseController extends Controller
      */
     private function soloLaPropriaProposta(Request $request, Exercise $exercise): ?JsonResponse
     {
-        $mia = $exercise->created_by !== null
-            && $exercise->created_by === $request->user()->id;
-
-        if ($mia && $exercise->status === 'pending') {
+        if ($this->eSuaProposta($request, $exercise)) {
             return null;
         }
 
         return response()->json([
             'message' => 'Puoi modificare solo le proposte che hai fatto tu e che non sono ancora state pubblicate.',
         ], 403);
+    }
+
+    /**
+     * La condizione vera del permesso, senza la risposta di rifiuto attorno.
+     *
+     * Due condizioni e non una - di chi chiede E ancora in attesa - e la
+     * usano in due: chi corregge o cancella (col 403 attorno) e `store()`,
+     * che decide se l'uid puo' uscire. Sono la stessa domanda, e tenerla
+     * scritta due volte l'avrebbe fatta divergere alla prima modifica.
+     */
+    private function eSuaProposta(Request $request, Exercise $exercise): bool
+    {
+        return $exercise->created_by !== null
+            && $exercise->created_by === $request->user()->id
+            && $exercise->status === 'pending';
     }
 
     /**

@@ -108,6 +108,15 @@ class FoodController extends Controller
             ],
         );
 
+        // Come in `ExerciseController::store`, e per lo stesso danno: l'uid
+        // esce solo se la riga e' la propria proposta ancora in attesa.
+        // `firstOrCreate` cerca su `name_norm` e basta, quindi puo' tornare
+        // una voce pubblicata o la proposta pendente di un altro, e il
+        // telefono la scriverebbe nel `catalog_uid` di una riga sua.
+        if (! $this->eSuaProposta($request, $food)) {
+            return response()->json(['ok' => true]);
+        }
+
         return response()->json([
             'data' => $this->publicShape($food, $request->user()->id),
         ]);
@@ -253,16 +262,24 @@ class FoodController extends Controller
      */
     private function soloLaPropriaProposta(Request $request, Food $food): ?JsonResponse
     {
-        $mia = $food->created_by !== null
-            && $food->created_by === $request->user()->id;
-
-        if ($mia && $food->status === 'pending') {
+        if ($this->eSuaProposta($request, $food)) {
             return null;
         }
 
         return response()->json([
             'message' => 'Puoi modificare solo le proposte che hai fatto tu e che non sono ancora state pubblicate.',
         ], 403);
+    }
+
+    /**
+     * La condizione vera del permesso, senza la risposta di rifiuto attorno.
+     * Vedi `ExerciseController::eSuaProposta`: la usano il 403 e `store()`.
+     */
+    private function eSuaProposta(Request $request, Food $food): bool
+    {
+        return $food->created_by !== null
+            && $food->created_by === $request->user()->id
+            && $food->status === 'pending';
     }
 
     /**
