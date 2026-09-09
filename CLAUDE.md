@@ -1432,6 +1432,18 @@ text). NativeWind disponibile ma non prevalente. I componenti `Text` e
 `TextInput` in `src/components/ui/` risolvono automaticamente Poppins da
 fontWeight: **usare sempre quelli**, mai le primitive RN nude.
 
+**C'e' un campo solo che non puo' passare da li', ed e' l'unico difetto di font
+che l'app abbia mai avuto davvero.** `DfNumberInput` con `isInBottomSheet` deve
+rendere il `BottomSheetTextInput` di gorhom - senza, dentro un foglio la
+tastiera si mangia il campo - e quello e' un `TextInput` di RN nudo: nessuno
+gli risolveva la famiglia, quindi quei numeri uscivano nel **font di sistema**.
+Corretto il 9 settembre 2026 prendendo in prestito `resolvedFontStyle`, che sta
+in `ui/TextInput.tsx` proprio per questo (in `ui/` non entra gorhom, che
+finirebbe in ogni test che importa quel barrel). Non e' il difetto che il
+proprietario ha segnalato come "cambio di font" - questo e' costante per
+istanza e non tremola a ogni tasto, vedi § Quel che si digita - e oggi nessun
+chiamante accende quel ramo: si e' corretto prima che qualcuno lo raggiungesse.
+
 **Un testo affiancato a qualcos'altro sta allineato in altezza, e non e'
 compito della schermata.** Su Android il testo si porta dietro un padding sopra
 e sotto la riga, dentro la sua cassa: la cassa e' piu' alta del glifo, quindi un
@@ -1493,9 +1505,41 @@ trasforma il valore prima di rimandarlo indietro non puo' usarlo**, perche'
 ogni sua eco sembrerebbe un valore esterno: quello e' il mestiere di
 `DfNumberInput`, che resta controllato.
 
-Restano `TextInput` nudo i campi il cui stato e' gia' accanto a loro e serve a
-disegnare la finestra stessa: `QuantityPrompt` e `MetricEntrySheet`, e basta
-quelli.
+Restano `TextInput` nudo due elenchi diversi, e vanno letti come due cose
+diverse.
+
+**Le eccezioni di regola**: i campi il cui stato e' gia' accanto a loro e serve
+a disegnare la finestra stessa, cioe' `QuantityPrompt` e `MetricEntrySheet`.
+Li' `TextInput` e' la scelta giusta, non un lavoro rimasto indietro.
+
+**E tre decisioni, che stanno scritte qui perche' questo e' il posto dove
+qualcuno le cerchera'.** Un elenco che si chiudesse senza nominarle rimetterebbe
+il difetto di prima al contrario: chi grepa `ui/TextInput` trova dei
+controesempi e non sa se sono scelte o sviste.
+
+- **`DfInput`** (dentro ogni `DfForm`): il valore torna dal genitore, ma via
+  `Controller` di react-hook-form, che sottoscrive **per campo** - la battuta
+  ridisegna quel controller, non la schermata. Il giro c'e' ed e' corto, e
+  questo e' il componente col raggio piu' ampio dell'app: si converte quando
+  una misura su un modulo pesante dice che manca il fotogramma, non per la
+  forma.
+- **`AssistantOverlay`**: il valore torna dallo stato dell'overlay, ma la parte
+  pesante di quel genitore e' l'elenco degli intent, e mentre si scrive la
+  richiesta quell'elenco e' **vuoto** - gli intent arrivano dopo. (`VoiceOrb`
+  non c'entra: si disegna solo mentre si ascolta, e il campo solo mentre non si
+  ascolta, quindi la parte animata non e' mai nell'albero che si ridisegna a
+  ogni tasto.)
+- **`AdminPasswordReset`**: stessa forma, superficie minima - il genitore
+  ridisegna un pugno di righe statiche, la password e' dieci caratteri, e la
+  schermata la raggiunge un amministratore.
+
+Chi vuole convertire uno di questi tre faccia come per l'onboarding: misuri
+prima. E chi ne lascia fuori un quarto lo aggiunga a questo elenco, col motivo.
+
+**Un campo che ha bisogno del campo nativo passa `ref` anche a
+`DraftTextInput`**: da React 19 e' una prop come le altre e arriva dritta a
+`ui/TextInput`. Era l'unica cosa che teneva fuori `AccountForm` - dove l'invio
+porta il cursore al campo dopo - e li' si scrivono un'email e una password.
 
 **La `SearchBar` non e' fra le eccezioni, e questo documento ha scritto il
 contrario fino al 9 settembre 2026**: diceva che "ridisegna solo se stessa", e

@@ -45,9 +45,18 @@ export const OnboardingLabel: React.FC<{ children: string }> = ({ children }) =>
 /**
  * `DraftTextInput` e non `TextInput`: altezza e peso stanno in cima a
  * `OnboardingProfileScreen`, e ogni tasto ricalcola il fabbisogno e ridisegna
- * l'hero prima di restituire il carattere. Misurato in jest, quel giro costa
- * 7-8 ms di mediana su un Mac - meta' fotogramma sulla macchina piu' veloce
- * della catena, senza il livello nativo. Su un telefono non chiude in tempo.
+ * l'hero prima di restituire il carattere.
+ *
+ * Misurato invece che supposto, e il modo di rifarlo: si monta la schermata
+ * vera con `react-test-renderer` (solo `DfBottomSheet` sostituito da una
+ * `View`, che gorhom sotto jest non si inizializza), si riempiono altezza e
+ * peso - da li' in poi l'hero mostra un numero, cioe' il caso peggiore - e si
+ * cronometra il render sincrono di una battuta sul campo del peso. Contro un
+ * componente che contiene un `TextInput` e nient'altro, che e' il pavimento.
+ * Su un Mac, in Node, il pavimento sta sotto il millesimo e questa schermata
+ * sta fra i 7 e gli 8 ms di mediana: meta' fotogramma nel solo JS, sulla
+ * macchina piu' veloce della catena e senza il livello nativo dall'altra
+ * parte. Su un telefono quel giro non chiude in tempo.
  */
 export const OnboardingTextField: React.FC<{
   value: string;
