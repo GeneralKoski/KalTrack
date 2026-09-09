@@ -104,7 +104,8 @@ export function ProgressScreen() {
    * esisteva piu' da nessuna parte.
    *
    * `onAdd` assente vuol dire che quel numero non si scrive a mano: le calorie
-   * si ricavano dal diario.
+   * si ricavano dal diario. Lo storico delle calorie resta pero' raggiungibile
+   * (`onOpen`): e' in sola lettura, non un modulo.
    */
   const metric = (
     label: string,
@@ -251,6 +252,7 @@ export function ProgressScreen() {
                 "kcal",
                 (data?.kcalByDay ?? []).filter((v): v is number => v !== null),
                 t("progress.kcal_empty"),
+                () => navigate("KcalHistory"),
               )}
             </ListGroup>
           </ScrollView>

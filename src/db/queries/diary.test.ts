@@ -7,6 +7,7 @@ import {
   addRecipeEntry,
   copyDay,
   createMealType,
+  dailyKcalRange,
   deleteEntry,
   deleteMealType,
   getDayDiary,
@@ -581,5 +582,81 @@ describe("composizione di una voce", () => {
 
     await expect(getEntryComposition(entryId)).resolves.toBeNull();
     await expect(materializeComposition(entryId)).resolves.toBeNull();
+  });
+});
+
+/*
+ * `dailyKcalRange` e' la sorgente della schermata di resoconto delle
+ * calorie (Task 8, Fase 4): la sua media si divide per i giorni che questa
+ * query restituisce, quindi il contratto "un giorno senza pasti non compare"
+ * e' quello che tiene corretta quella media - non era coperto da nessun test
+ * prima di questo lavoro, pur avendo gia' tre chiamanti.
+ */
+describe("dailyKcalRange", () => {
+  it("somma le calorie di piu' pasti nello stesso giorno", async () => {
+    await addFoodEntry({
+      date: DATE,
+      mealTypeId: MEAL_TYPE_IDS.lunch,
+      foodId: riceId,
+      quantityG: 100,
+    });
+    await addFoodEntry({
+      date: DATE,
+      mealTypeId: MEAL_TYPE_IDS.dinner,
+      foodId: riceId,
+      quantityG: 50,
+    });
+
+    const giorni = await dailyKcalRange(DATE, DATE);
+
+    expect(giorni).toHaveLength(1);
+    expect(giorni[0].date).toBe(DATE);
+    expect(giorni[0].kcal).toBeCloseTo(358 * 1.5);
+  });
+
+  it("un giorno senza pasti non compare, anche se e' nell'intervallo", async () => {
+    const senzaPasti = "2026-08-29";
+    await addFoodEntry({
+      date: DATE,
+      mealTypeId: MEAL_TYPE_IDS.lunch,
+      foodId: riceId,
+      quantityG: 100,
+    });
+
+    const giorni = await dailyKcalRange(DATE, senzaPasti);
+
+    expect(giorni.map((g) => g.date)).toEqual([DATE]);
+  });
+
+  it("un giorno le cui uniche voci sono state cancellate sparisce dal risultato", async () => {
+    const entryId = await addFoodEntry({
+      date: DATE,
+      mealTypeId: MEAL_TYPE_IDS.lunch,
+      foodId: riceId,
+      quantityG: 100,
+    });
+    await deleteEntry(entryId);
+
+    expect(await dailyKcalRange(DATE, DATE)).toEqual([]);
+  });
+
+  it("torna in ordine cronologico, non nell'ordine in cui i pasti sono stati scritti", async () => {
+    const dopo = "2026-08-30";
+    await addFoodEntry({
+      date: dopo,
+      mealTypeId: MEAL_TYPE_IDS.lunch,
+      foodId: riceId,
+      quantityG: 100,
+    });
+    await addFoodEntry({
+      date: DATE,
+      mealTypeId: MEAL_TYPE_IDS.lunch,
+      foodId: riceId,
+      quantityG: 100,
+    });
+
+    const giorni = await dailyKcalRange(DATE, dopo);
+
+    expect(giorni.map((g) => g.date)).toEqual([DATE, dopo]);
   });
 });

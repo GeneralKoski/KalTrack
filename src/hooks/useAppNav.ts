@@ -60,6 +60,7 @@ export interface NavParams {
   Measurements: undefined;
   WeightHistory: undefined;
   StepsHistory: undefined;
+  KcalHistory: undefined;
   ProgressPhotos: undefined;
   /** Le due giornate da confrontare, in ISO. `first` e' la piu' vecchia. */
   PhotoCompare: { first: string; last: string };

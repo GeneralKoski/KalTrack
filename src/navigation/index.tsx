@@ -31,6 +31,7 @@ import { AchievementsScreen } from "@/src/navigation/screens/AchievementsScreen"
 import { AdminScreen } from "@/src/navigation/screens/AdminScreen";
 import { AppearanceScreen } from "@/src/navigation/screens/AppearanceScreen";
 import { BackupScreen } from "@/src/navigation/screens/BackupScreen";
+import { CaloriesHistoryScreen } from "@/src/navigation/screens/CaloriesHistoryScreen";
 import { ComparisonScreen } from "@/src/navigation/screens/ComparisonScreen";
 import { DiagnosticsScreen } from "@/src/navigation/screens/DiagnosticsScreen";
 import { ExerciseDetailScreen } from "@/src/navigation/screens/ExerciseDetailScreen";
@@ -313,6 +314,10 @@ const RootStack = createNativeStackNavigator({
     StepsHistory: {
       screen: StepsHistoryScreen,
       linking: { path: "passi/storico" },
+    },
+    KcalHistory: {
+      screen: CaloriesHistoryScreen,
+      linking: { path: "calorie/storico" },
     },
     ProgressPhotos: {
       screen: ProgressPhotosScreen,

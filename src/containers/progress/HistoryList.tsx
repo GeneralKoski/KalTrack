@@ -17,9 +17,14 @@ export interface HistoryListItem {
 interface HistoryListProps {
   /** Nell'ordine in cui vanno disegnate: dalla più recente in giù. */
   items: HistoryListItem[];
-  selected: Set<string>;
-  onPress: (date: string) => void;
-  onLongPress: (date: string) => void;
+  /**
+   * Assenti insieme per uno storico in sola lettura (le calorie: nessuna
+   * modifica, nessuna eliminazione, nessuna selezione multipla). Presenti
+   * insieme per peso e passi, che restano invariati.
+   */
+  selected?: Set<string>;
+  onPress?: (date: string) => void;
+  onLongPress?: (date: string) => void;
 }
 
 /**
@@ -36,22 +41,21 @@ export const HistoryList: React.FC<HistoryListProps> = ({
   onLongPress,
 }) => {
   const { colors } = useAppTheme();
-  const selecting = selected.size > 0;
+  const selecting = (selected?.size ?? 0) > 0;
+  // Senza tocco ne' pressione lunga la riga non e' un bottone: avvolgerla
+  // comunque in un `TouchableOpacity` lascerebbe premibile qualcosa che non
+  // fa niente, cioe' il difetto opposto di quello che questa prop opzionale
+  // risolve.
+  const touchable = Boolean(onPress || onLongPress);
 
   return (
     // Le righe non hanno icona: senza il rientro a zero il separatore
     // comincerebbe in mezzo alla data.
     <ListGroup indent={theme.spacing.md}>
       {items.map((item) => {
-        const isSelected = selected.has(item.date);
-        return (
-          <TouchableOpacity
-            key={item.id}
-            onPress={() => onPress(item.date)}
-            onLongPress={() => onLongPress(item.date)}
-            activeOpacity={0.6}
-            style={styles.row}
-          >
+        const isSelected = selected?.has(item.date) ?? false;
+        const row = (
+          <>
             <View style={styles.main}>
               <HistoryRow
                 date={item.date}
@@ -77,7 +81,23 @@ export const HistoryList: React.FC<HistoryListProps> = ({
                 ) : null}
               </View>
             ) : null}
+          </>
+        );
+
+        return touchable ? (
+          <TouchableOpacity
+            key={item.id}
+            onPress={() => onPress?.(item.date)}
+            onLongPress={() => onLongPress?.(item.date)}
+            activeOpacity={0.6}
+            style={styles.row}
+          >
+            {row}
           </TouchableOpacity>
+        ) : (
+          <View key={item.id} style={styles.row}>
+            {row}
+          </View>
         );
       })}
     </ListGroup>
