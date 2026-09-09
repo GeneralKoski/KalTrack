@@ -287,6 +287,50 @@ describe("updateFreeEntry", () => {
     expect(row?.label).toBe("Piatto");
     expect(row?.kcal).toBe(500);
   });
+
+  /**
+   * Finding della review di fase 4: `updateFreeEntry` non tocca
+   * `is_estimated` correttamente, e nessun test lo impediva - aggiungendo
+   * `is_estimated = 1` alla SET la suite restava verde. Stesso principio del
+   * pin gemello su `addFreeEntry` in TodayScreen.test.tsx ("il flag
+   * is_estimated", entrambi i versi): un test su un verso solo passerebbe
+   * anche se qualcuno inchiodasse il flag a un valore fisso.
+   */
+  it("una voce scritta a mano resta non stimata dopo la modifica", async () => {
+    const entryId = await addFreeEntry({
+      date: DATE,
+      mealTypeId: MEAL_TYPE_IDS.dinner,
+      label: "Piatto",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 500 },
+      isEstimated: false,
+    });
+
+    await updateFreeEntry(entryId, {
+      label: "Piatto corretto",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 700 },
+    });
+
+    const entry = (await getDayDiary(DATE)).meals[0].entries[0];
+    expect(entry.is_estimated).toBe(0);
+  });
+
+  it("una voce che viene da una stima resta stimata dopo la modifica", async () => {
+    const entryId = await addFreeEntry({
+      date: DATE,
+      mealTypeId: MEAL_TYPE_IDS.dinner,
+      label: "Cotoletta",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 400 },
+      isEstimated: true,
+    });
+
+    await updateFreeEntry(entryId, {
+      label: "Cotoletta corretta",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 450 },
+    });
+
+    const entry = (await getDayDiary(DATE)).meals[0].entries[0];
+    expect(entry.is_estimated).toBe(1);
+  });
 });
 
 describe("updateEntryQuantity", () => {
