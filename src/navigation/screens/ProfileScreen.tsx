@@ -15,8 +15,8 @@ import {
   Camera,
   CalendarRange,
   CookingPot,
-  DatabaseBackup,
   Dumbbell,
+  HeartPulse,
   ListChecks,
   Ruler,
   Salad,
@@ -98,7 +98,7 @@ const GROUPS: Group[] = [
     voices: [
       { route: "Friends", labelKey: "social.title", icon: Users },
       { route: "Reminders", labelKey: "profile.reminders", icon: Bell },
-      { route: "Backup", labelKey: "profile.backup", icon: DatabaseBackup },
+      { route: "Health", labelKey: "settings.health", icon: HeartPulse },
     ],
   },
 ];

@@ -12,8 +12,8 @@ import { theme } from "@/src/styles";
 import { showToast } from "@/src/utils/toast";
 import {
   ChevronLeft,
+  DatabaseBackup,
   Globe,
-  HeartPulse,
   LogOut,
   Palette,
   ShieldCheck,
@@ -86,14 +86,14 @@ export function SettingsScreen() {
               onPress={() => navigate("Language")}
             />
             <SettingsRow
-              icon={<HeartPulse size={20} color={colors.textSecondary} />}
-              label={t("settings.health")}
-              onPress={() => navigate("Health")}
-            />
-            <SettingsRow
               icon={<Stethoscope size={20} color={colors.textSecondary} />}
               label={t("diagnostics.title")}
               onPress={() => navigate("Diagnostics")}
+            />
+            <SettingsRow
+              icon={<DatabaseBackup size={20} color={colors.textSecondary} />}
+              label={t("profile.backup")}
+              onPress={() => navigate("Backup")}
             />
 
             {/* Solo per l'amministratore. Il server rifiuta comunque gli altri:
