@@ -1,5 +1,6 @@
 import { DfBottomSheet } from "@/src/components/DfBottomSheet";
 import { ListGroup, ListRow } from "@/src/components/kal/ListGroup";
+import { SyncedPhoto } from "@/src/components/kal/SyncedPhoto";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
@@ -11,13 +12,29 @@ import * as ImagePicker from "expo-image-picker";
 import { Camera, ImagePlus, Trash2, X } from "lucide-react-native";
 import React, { useRef } from "react";
 import {
-  Image,
   StyleProp,
   StyleSheet,
   TouchableOpacity,
   View,
   type ViewStyle,
 } from "react-native";
+
+/**
+ * Le due anteprime passano da `SyncedPhoto`, e non dall'`Image` di React
+ * Native.
+ *
+ * Erano le ultime due superfici fotografiche dell'app a non farlo - elenco
+ * alimenti, valori per cento grammi, ricette, esercizi, foto progressi e
+ * confronto ci passavano tutte - e questo e' il posto dove costava di piu':
+ * una foto scattata su un altro telefono arriva qui come percorso di un file
+ * che qui non c'e', e l'`Image` di RN in quel caso non disegna niente. Un
+ * riquadro nero, senza un errore da nessuna parte.
+ *
+ * `SyncedPhoto` risponde alle due domande che quell'`Image` non si poneva: il
+ * file e' su QUESTO telefono? se no, si puo' scaricare? e finche' non c'e'
+ * mette il segnaposto - che dice che la foto esiste e non e' ancora arrivata,
+ * invece di far sembrare rotta la tessera (`CLAUDE.md` § Le foto).
+ */
 
 /**
  * Il ritaglio, verticale per tutti.
@@ -144,7 +161,7 @@ export const PhotoField: React.FC<PhotoFieldProps> = ({
             width: (height * PHOTO_ASPECT[0]) / PHOTO_ASPECT[1],
           }}
         >
-          <Image source={{ uri }} style={styles.image} />
+          <SyncedPhoto uri={uri} style={styles.image} placeholderSize={28} />
           <TouchableOpacity
             style={styles.remove}
             onPress={remove}
@@ -242,7 +259,7 @@ export const PhotoTile: React.FC<{
         ]}
       >
         {uri ? (
-          <Image source={{ uri }} style={styles.tileImage} />
+          <SyncedPhoto uri={uri} style={styles.tileImage} />
         ) : (
           <>
             <Camera size={18} color={colors.textFaint} />
