@@ -98,6 +98,88 @@ describe("DraftTextInput", () => {
     expect(campo(renderer).props.value).toBe("");
   });
 
+  /**
+   * Lo svuotamento dei fogli con la CODA ANCORA PIENA, che da quando la
+   * `SearchBar` passa da qui non e' piu' un caso di scuola: cinque degli otto
+   * chiamanti svuotano il termine alla chiusura o dopo una scelta.
+   *
+   * Qui il chiamante e' rimasto indietro di due battute e poi svuota: quel
+   * vuoto non e' fra le echi in coda, quindi entra nel campo e la coda si
+   * butta. Riaprire il foglio non deve mostrare la ricerca di prima.
+   */
+  it("accetta lo svuotamento anche con le echi ancora in coda", () => {
+    let renderer!: ReactTestRenderer;
+    const render = (value: string) => (
+      <DraftTextInput value={value} onChangeText={() => {}} />
+    );
+    act(() => {
+      renderer = create(render(""));
+    });
+
+    scrivi(renderer, "zuc");
+    scrivi(renderer, "zucc");
+    scrivi(renderer, "zucch");
+    // Il chiamante arriva al primo carattere...
+    act(() => {
+      renderer.update(render("zuc"));
+    });
+    // ...e poi svuota di proposito, con due echi ancora in coda.
+    act(() => {
+      renderer.update(render(""));
+    });
+
+    expect(campo(renderer).props.value).toBe("");
+  });
+
+  /**
+   * Il confine, ed e' scritto qui perche' spostarlo rompe il test sopra.
+   *
+   * Se il valore del chiamante **non cambia** fra prima e dopo - il vuoto di
+   * partenza e il vuoto voluto sono la stessa stringa - da queste prop non si
+   * puo' sapere che sia successo qualcosa: lo stato (`value` fermo, una battuta
+   * in coda) e' identico a quello di un chiamante che non ha ancora
+   * ridisegnato, e ridisegnare il campo li' vuol dire riportarsi indietro il
+   * carattere appena scritto, cioe' il difetto che questo componente esiste per
+   * togliere.
+   *
+   * Nell'app non si raggiunge: React chiude un commit fra due eventi nativi,
+   * quindi la battuta e il tocco che svuota non stanno mai nello stesso giro -
+   * il caso di sopra e' quello vero. E i fogli gorhom smontano il contenuto
+   * alla chiusura, quindi riaprendoli il campo riparte comunque da zero.
+   */
+  it("non puo' vedere uno svuotamento che lascia il valore del chiamante fermo", () => {
+    let renderer!: ReactTestRenderer;
+    const render = (value: string) => (
+      <DraftTextInput value={value} onChangeText={() => {}} />
+    );
+    act(() => {
+      renderer = create(render(""));
+    });
+
+    scrivi(renderer, "zucchine");
+    act(() => {
+      renderer.update(render(""));
+    });
+
+    expect(campo(renderer).props.value).toBe("zucchine");
+  });
+
+  /**
+   * `AccountForm` porta il cursore al campo dopo con l'invio, e per farlo gli
+   * serve il campo nativo. Non c'e' `forwardRef` qui: la prop `ref` cavalca lo
+   * spread fino a `ui/TextInput`, e questo test e' la prova che ci arriva -
+   * senza, il modulo dell'accesso non poteva usare questo campo.
+   */
+  it("consegna il campo nativo a chi passa un `ref`", () => {
+    const ref = React.createRef<RNTextInput>();
+    act(() => {
+      create(<DraftTextInput ref={ref} value="" onChangeText={() => {}} />);
+    });
+
+    expect(ref.current).not.toBeNull();
+    expect(typeof ref.current?.focus).toBe("function");
+  });
+
   it("ripulisce il testo con `sanitize` prima di tenerlo e consegnarlo", () => {
     const consegnato: string[] = [];
     let renderer!: ReactTestRenderer;

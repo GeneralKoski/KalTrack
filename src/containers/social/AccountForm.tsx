@@ -2,7 +2,7 @@ import { ApiError } from "@/src/api/client";
 import * as social from "@/src/api/social";
 import { DfButton } from "@/src/components/form/DfButton";
 import { useAppTheme } from "@/src/components/ThemeContext";
-import { Text, TextInput } from "@/src/components/ui";
+import { DraftTextInput, Text } from "@/src/components/ui";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { syncCatalog } from "@/src/services/catalogSync";
 import { runSync } from "@/src/services/sync";
@@ -113,7 +113,13 @@ export const AccountForm: React.FC = () => {
     <View style={styles.field}>
       <Text style={[styles.label, { color: colors.textMuted }]}>{label}</Text>
       <View style={styles.inputRow}>
-        <TextInput
+        {/*
+          `DraftTextInput`: i cinque valori stanno in cima al componente, e
+          questo e' il primo modulo che un utente nuovo compila - un'email e
+          una password digitate in fretta, dove un carattere perso si vede solo
+          al messaggio di credenziali sbagliate.
+        */}
+        <DraftTextInput
           ref={options.inputRef}
           value={value}
           onChangeText={onChange}

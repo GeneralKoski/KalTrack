@@ -1,5 +1,6 @@
 import { TextInput, type TextInputProps } from "@/src/components/ui/TextInput";
 import React from "react";
+import type { TextInput as RNTextInput } from "react-native";
 
 export interface DraftTextInputProps
   extends Omit<TextInputProps, "value" | "onChangeText"> {
@@ -11,6 +12,17 @@ export interface DraftTextInputProps
   /** Ripulisce il testo prima di tenerlo (es. `sanitizeDecimalInput`). */
   sanitize?: (text: string) => string;
   onChangeText: (value: string) => void;
+  /**
+   * Il campo nativo, per chi ci porta il cursore da fuori: l'invio che passa
+   * al campo dopo in `AccountForm`.
+   *
+   * Basta dichiararlo. Da React 19 `ref` e' una prop come le altre, quindi
+   * cavalca lo spread qui sotto e arriva a `ui/TextInput`, che `forwardRef` lo
+   * e' davvero: senza questa riga funzionava a runtime e non compilava
+   * (TS2322), ed e' l'unica cosa che teneva `AccountForm` - dove si scrivono
+   * email e password - fuori da questo campo.
+   */
+  ref?: React.Ref<RNTextInput>;
 }
 
 /**
@@ -44,6 +56,17 @@ export interface DraftTextInputProps
  * voluto e una stringa vuota che abbiamo consegnato noi cancellando sono lo
  * stesso testo, e li distingue solo il fatto che il chiamante ci aveva gia'
  * raggiunti.
+ *
+ * **Il confine di quel patto**: se il valore del chiamante non CAMBIA - il
+ * vuoto di partenza e il vuoto voluto sono la stessa stringa - da queste prop
+ * non si puo' sapere che sia successo qualcosa, e il campo tiene quel che si
+ * stava scrivendo. Non e' una dimenticanza: quello stato e' identico a quello
+ * di un chiamante che non ha ancora ridisegnato, e riscrivere il campo li'
+ * riporterebbe indietro il carattere appena battuto. Nell'app non si raggiunge
+ * (React chiude un commit fra due eventi nativi, quindi la battuta e il tocco
+ * che svuota non stanno mai nello stesso giro), e `DraftTextInput.test.tsx` lo
+ * enuncia insieme al caso vero, cosi' chi prova a spostarlo vede subito cosa
+ * rompe.
  */
 export const DraftTextInput: React.FC<DraftTextInputProps> = ({
   value,
