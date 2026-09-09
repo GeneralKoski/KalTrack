@@ -58,12 +58,40 @@ export interface ResolvedDay {
  * scheda risponde a "quale e' attiva" (`getActiveRoutine`), non a "dove sta":
  * l'elenco non ordina per `is_active`, o accendere una scheda la farebbe
  * saltare in cima sotto il dito di chi la stava scorrendo.
+ *
+ * Dalla migrazione 021 l'ordine si sceglie trascinando, e sta in `position`.
+ * Il nome resta come secondo criterio e non e' decorativo: due schede sulla
+ * stessa posizione - un riordino interrotto, una riga arrivata dalla
+ * sincronizzazione - devono comunque uscire in un ordine stabile, o l'elenco
+ * cambierebbe da una lettura all'altra senza che nessuno l'abbia toccato.
  */
 export async function listRoutines(): Promise<RoutineRow[]> {
   const db = await getDb();
   return db.getAllAsync<RoutineRow>(
-    "SELECT * FROM routines WHERE deleted_at IS NULL ORDER BY name ASC",
+    `SELECT * FROM routines WHERE deleted_at IS NULL
+      ORDER BY position ASC, name ASC`,
   );
+}
+
+/**
+ * L'ordine scelto trascinando le card.
+ *
+ * SCRIVE `updated_at` SU OGNI RIGA, e non e' un dettaglio: `routines` sta in
+ * `SYNCED_TABLES` e il push seleziona per `updated_at`, quindi un riordino che
+ * non lo scrive non arriva mai sul secondo telefono. E' esattamente quel che
+ * e' successo a `reorderReminders` dal giorno in cui e' nato.
+ */
+export async function reorderRoutines(orderedIds: string[]): Promise<void> {
+  const db = await getDb();
+  const now = nowIso();
+  await db.withTransactionAsync(async () => {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await db.runAsync(
+        "UPDATE routines SET position = ?, updated_at = ? WHERE id = ?",
+        [i, now, orderedIds[i]],
+      );
+    }
+  });
 }
 
 export async function getActiveRoutine(): Promise<RoutineRow | null> {
@@ -153,10 +181,14 @@ export async function createRoutine(input: RoutineInput): Promise<string> {
   const now = nowIso();
 
   await db.withTransactionAsync(async () => {
+    // In fondo all'elenco, non in cima: chi ha riordinato le sue schede non
+    // se ne trova una nuova davanti a quelle che ha messo in ordine. Il
+    // massimo comprende anche le cancellate, cosi' la posizione resta unica.
     await db.runAsync(
       `INSERT INTO routines (id, name, is_active, notes, generated_by_ai,
-         created_at, updated_at)
-       VALUES (?, ?, 0, ?, ?, ?, ?)`,
+         position, created_at, updated_at)
+       VALUES (?, ?, 0, ?, ?,
+         (SELECT COALESCE(MAX(position), -1) + 1 FROM routines), ?, ?)`,
       [id, input.name, input.notes ?? null, input.generatedByAi ? 1 : 0, now, now],
     );
     await insertDays(db, id, input.days, now);

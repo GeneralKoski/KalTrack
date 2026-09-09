@@ -150,6 +150,8 @@ export interface RoutineRow {
   is_active: number;
   notes: string | null;
   generated_by_ai: number;
+  /** L'ordine scelto trascinando le card in elenco (migrazione 021). */
+  position: number;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;

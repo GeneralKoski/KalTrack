@@ -15,6 +15,7 @@ import {
   WEEKDAYS,
   WeekdayPicker,
 } from "@/src/containers/settings/WeekdayPicker";
+import { movePosition } from "@/src/domain/reorder";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
@@ -152,28 +153,6 @@ const dateToTime = (date: Date): string =>
   `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 
 const CARD_GAP = theme.spacing.sm;
-
-const movePosition = (
-  positions: Record<string, number>,
-  from: number,
-  to: number,
-): Record<string, number> => {
-  "worklet";
-  const next: Record<string, number> = {};
-  for (const key of Object.keys(positions)) {
-    const value = positions[key];
-    if (value === from) {
-      next[key] = to;
-    } else if (from < to && value > from && value <= to) {
-      next[key] = value - 1;
-    } else if (from > to && value >= to && value < from) {
-      next[key] = value + 1;
-    } else {
-      next[key] = value;
-    }
-  }
-  return next;
-};
 
 interface ReminderCardProps {
   reminder: Reminder;

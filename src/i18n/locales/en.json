@@ -427,6 +427,7 @@
     "preference_ban": "Never suggest it",
     "preference_ban_hint": "Disappears from suggestions and substitutions.",
     "routines": "My routines",
+    "reorder_hint": "Press and hold a routine to move it.",
     "no_routines": "No routines",
     "new_routine": "New routine",
     "active": "Active",

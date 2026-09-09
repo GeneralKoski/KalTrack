@@ -1249,6 +1249,39 @@ I giorni invece **non** si cancellano, ed e' deliberato: `recentSessions` e
 `sessionDetail` li leggono per il nome, e cosi' un allenamento passato continua
 a dire quale giorno di scheda seguiva anche dopo che la scheda non c'e' piu'.
 
+### L'ordine delle schede
+
+Si scelgono trascinandole, tenendo premuto, come i promemoria:
+`routines.position` (migrazione 021) e `reorderRoutines`. L'ordine non e' piu'
+alfabetico, e `listRoutines` continua a **non** ordinare per `is_active` - vedi
+il commento della query: attivare una scheda risponde a "quale e' attiva", non
+a "dove sta".
+
+Quattro cose da non rompere:
+
+- **La migrazione semina l'ORDINE ALFABETICO, non quello di creazione.** Era
+  per nome che l'elenco si disegnava fino a ieri: seminare su `created_at`
+  riscriverebbe l'elenco dell'utente nell'aggiornamento stesso che introduce il
+  trascinamento. Seminato per nome, l'aggiornamento e' invisibile e solo un
+  trascinamento cambia qualcosa. E' anche lo stesso calcolo su due
+  dispositivi - i nomi sono gli stessi - quindi il seme non tocca
+  `updated_at`: non e' una modifica dell'utente.
+- **Il riordino scrive `updated_at` su ogni riga.** `routines` sta in
+  `SYNCED_TABLES` e il push seleziona per `updated_at`: senza, il riordino non
+  arriverebbe mai sul secondo telefono. E' il difetto che `reorderReminders` ha
+  avuto dal giorno in cui e' nato, e c'e' un test che lo vieta qui.
+- **Il nome resta come secondo criterio.** Due schede sulla stessa posizione -
+  un riordino interrotto, una riga arrivata dalla sincronizzazione - devono
+  uscire in un ordine stabile, o l'elenco cambierebbe fra due letture senza che
+  nessuno l'abbia toccato.
+- **Una scheda nuova nasce in fondo** (`MAX(position) + 1`, cancellate
+  comprese): chi ha messo in ordine le sue schede non se ne trova una nuova
+  davanti a quelle che ha ordinato.
+
+`movePosition` sta in `src/domain/reorder.ts` e non dentro una schermata: la
+usano i promemoria e le schede, e una seconda copia sarebbero due
+comportamenti da tenere allineati a mano.
+
 ### Il quick-log di peso e passi
 
 Non sta piu' su Oggi. Fino al 4 settembre 2026 due card (`DayStatCard`,
@@ -1397,10 +1430,18 @@ dell'allenamento rimasto aperto. Non per fare da cornice a una riga.
 
 **Una lista LUNGA non e' un blocco.** `ListGroup` avvolge i suoi figli in una
 `View`, e una `FlatList` non ci passa dentro: gli elenchi virtualizzati -
-alimenti, ricette, esercizi, schede - restano `FlatList` con righe nude e
+alimenti, ricette, esercizi - restano `FlatList` con righe nude e
 `ItemSeparatorComponent` a filo di capello. E' il livello 3, non il 2. Duecento
 esercizi in card da 76 px ne facevano stare otto per schermata; a riga nuda,
 con la miniatura a 40, sono tredici.
+
+**Le schede sono l'eccezione, dal 9 settembre 2026**, e questo passaggio le
+nominava fra gli elenchi virtualizzati: `RoutinesScreen` non e' piu' una
+`FlatList` perche' le sue righe si riordinano trascinandole (§ L'ordine delle
+schede), e il trascinamento ha bisogno di tutte le righe montate insieme. La
+regola non e' cambiata - parla di elenchi **lunghi**, e le schede sono due o
+tre. Se un giorno diventassero tante, la virtualizzazione vince sul
+trascinamento.
 
 **L'etichetta di un campo non e' quella di una sezione.** `FieldLabel`
 (`kal/Primitives.tsx`) e' 14/500 in tondo - gli stessi numeri che `DfInput` ha

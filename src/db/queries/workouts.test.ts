@@ -23,6 +23,7 @@ import {
   logSet,
   personalBest,
   recentSessions,
+  reorderRoutines,
   sessionDetail,
   startSession,
   updateRoutine,
@@ -151,6 +152,101 @@ describe("listRoutines", () => {
 
     const after = (await listRoutines()).map((r) => r.id);
     expect(after).toEqual(before);
+  });
+});
+
+describe("reorderRoutines", () => {
+  const threeRoutines = async (): Promise<[string, string, string]> => [
+    await createRoutine({ ...pushDay(), name: "Scheda A" }),
+    await createRoutine({ ...pushDay(), name: "Scheda B" }),
+    await createRoutine({ ...pushDay(), name: "Scheda C" }),
+  ];
+
+  const backdate = async (stamp: string): Promise<void> => {
+    await db.runAsync("UPDATE routines SET updated_at = ?", [stamp]);
+  };
+
+  it("riscrive l'ordine dell'elenco", async () => {
+    const [first, second, third] = await threeRoutines();
+
+    await reorderRoutines([third, first, second]);
+
+    expect((await listRoutines()).map((r) => r.id)).toEqual([
+      third,
+      first,
+      second,
+    ]);
+  });
+
+  /** Una scheda nuova si aggiunge in fondo, non in cima all'ordine scelto. */
+  it("la scheda nuova arriva dopo quelle riordinate", async () => {
+    const [first, second, third] = await threeRoutines();
+    await reorderRoutines([third, second, first]);
+
+    const fourth = await createRoutine({ ...pushDay(), name: "Aaa prima" });
+
+    expect((await listRoutines()).map((r) => r.id)).toEqual([
+      third,
+      second,
+      first,
+      fourth,
+    ]);
+  });
+
+  /**
+   * `routines` sta in `SYNCED_TABLES` e il push seleziona per `updated_at`:
+   * un riordino che non lo scrive non arriva mai sul secondo telefono. E' il
+   * difetto che `reorderReminders` ha avuto dal giorno in cui e' nato.
+   */
+  it("scrive updated_at su ogni riga toccata", async () => {
+    const [first, second, third] = await threeRoutines();
+    const before = "2020-01-01T00:00:00.000Z";
+    await backdate(before);
+
+    await reorderRoutines([third, first, second]);
+
+    const rows = await db.getAllAsync<{ id: string; updated_at: string }>(
+      "SELECT id, updated_at FROM routines",
+    );
+    expect(rows).toHaveLength(3);
+    for (const row of rows) {
+      expect(Date.parse(row.updated_at)).toBeGreaterThan(Date.parse(before));
+    }
+    expect(rows.map((r) => r.id).sort()).toEqual(
+      [first, second, third].sort(),
+    );
+  });
+
+  /**
+   * Due schede sulla stessa posizione non sono un caso di scuola: bastano un
+   * riordino interrotto o una riga arrivata dalla sincronizzazione. L'elenco
+   * deve restare completo e stabile - non perdere una riga e non cambiare
+   * ordine fra due letture - e un riordino successivo lo rimette in fila.
+   */
+  it("una posizione duplicata non manda in crisi l'elenco", async () => {
+    const [first, second, third] = await threeRoutines();
+    await db.runAsync("UPDATE routines SET position = 0");
+
+    const once = (await listRoutines()).map((r) => r.id);
+    const twice = (await listRoutines()).map((r) => r.id);
+    expect(once).toHaveLength(3);
+    expect(twice).toEqual(once);
+
+    await reorderRoutines([second, third, first]);
+    expect((await listRoutines()).map((r) => r.id)).toEqual([
+      second,
+      third,
+      first,
+    ]);
+  });
+
+  it("una scheda cancellata resta fuori dall'elenco riordinato", async () => {
+    const [first, second, third] = await threeRoutines();
+    await deleteRoutine(second);
+
+    await reorderRoutines([third, first]);
+
+    expect((await listRoutines()).map((r) => r.id)).toEqual([third, first]);
   });
 });
 

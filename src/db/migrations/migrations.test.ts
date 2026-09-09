@@ -1,5 +1,6 @@
 import { createTestDb } from "@/src/db/__testing__/betterSqliteAdapter";
 import { MIGRATIONS, runMigrations } from "@/src/db/migrations";
+import { migration021 } from "@/src/db/migrations/021_routine_position";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 
 const userVersion = async (db: LocalDatabase): Promise<number> => {
@@ -87,6 +88,61 @@ describe("runMigrations", () => {
       "Snack",
       "Cena",
     ]);
+  });
+
+  /**
+   * La 021 semina `routines.position` sull'ordine ALFABETICO, che e' quello
+   * che l'elenco mostrava prima di lei: seminare su `created_at` riscriverebbe
+   * l'elenco dell'utente nell'aggiornamento stesso che introduce il
+   * trascinamento.
+   */
+  describe("021: la posizione delle schede", () => {
+    /** Un database fermo alla 020, con tre schede scritte in ordine sparso. */
+    const dbBeforeRoutinePosition = async (): Promise<LocalDatabase> => {
+      const db = createTestDb();
+      for (const migration of MIGRATIONS.filter((m) => m.version <= 20)) {
+        await db.execAsync(migration.up);
+      }
+      // Creazione: Zumba, poi Alfa, poi Mezzo. Alfabetico: Alfa, Mezzo, Zumba.
+      let index = 0;
+      for (const name of ["Zumba", "Alfa", "Mezzo"]) {
+        const stamp = `2026-01-0${++index}T00:00:00.000Z`;
+        await db.runAsync(
+          `INSERT INTO routines (id, name, is_active, notes, generated_by_ai,
+             created_at, updated_at)
+           VALUES (?, ?, 0, NULL, 0, ?, ?)`,
+          [name.toLowerCase(), name, stamp, stamp],
+        );
+      }
+      return db;
+    };
+
+    it("semina l'ordine alfabetico e non quello di creazione", async () => {
+      const db = await dbBeforeRoutinePosition();
+      await db.execAsync(migration021.up);
+
+      const rows = await db.getAllAsync<{ name: string; position: number }>(
+        "SELECT name, position FROM routines ORDER BY position ASC",
+      );
+      expect(rows.map((r) => r.name)).toEqual(["Alfa", "Mezzo", "Zumba"]);
+      expect(rows.map((r) => r.position)).toEqual([0, 1, 2]);
+    });
+
+    it("non spaccia il seme per una modifica dell'utente", async () => {
+      const db = await dbBeforeRoutinePosition();
+      await db.execAsync(migration021.up);
+
+      // `updated_at` intatto: il seme e' lo stesso calcolo su ogni
+      // dispositivo, non una modifica da spedire al server.
+      const rows = await db.getAllAsync<{ updated_at: string }>(
+        "SELECT updated_at FROM routines ORDER BY created_at ASC",
+      );
+      expect(rows.map((r) => r.updated_at)).toEqual([
+        "2026-01-01T00:00:00.000Z",
+        "2026-01-02T00:00:00.000Z",
+        "2026-01-03T00:00:00.000Z",
+      ]);
+    });
   });
 
   it("le versioni delle migrazioni sono uniche e crescenti", () => {
