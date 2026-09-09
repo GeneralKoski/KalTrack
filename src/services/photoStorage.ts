@@ -75,8 +75,14 @@ export async function persistPhoto(
      * - non c'e' niente da copiare - ma farlo in silenzio non lo era: la riga
      * finiva a database con un percorso che non e' dell'archivio, e mesi dopo
      * era un riquadro vuoto senza niente in Diagnostica che lo spiegasse.
+     *
+     * L'URI sta nel DETTAGLIO e non nel messaggio: Diagnostica raggruppa i
+     * guasti uguali su `livello|scope|messaggio` (`groupLogs`), e un messaggio
+     * che porta dentro un valore variabile non si raggruppa con niente - su un
+     * dispositivo che restituisce `content://` ogni scatto sarebbe una riga a
+     * se'.
      */
-    logger.warn(`[foto] non e' un file locale, non si archivia: ${sourceUri}`);
+    logger.warn("[foto] non e' un file locale, non si archivia", sourceUri);
     return sourceUri;
   }
   if (sourceUri.startsWith(PHOTOS_DIR)) return sourceUri;
@@ -119,7 +125,10 @@ export async function persistPhoto(
     }
     return target;
   } catch (error) {
-    logger.error("[photo] copia in archivio permanente fallita", error);
+    // `[foto]`, come le altre di questo modulo: lo scope e' una colonna di
+    // `app_logs`, e due scope per una funzione sola dividono i suoi guasti in
+    // due mucchi quando qualcuno filtra.
+    logger.error("[foto] copia in archivio permanente fallita", error);
     return sourceUri;
   }
 }

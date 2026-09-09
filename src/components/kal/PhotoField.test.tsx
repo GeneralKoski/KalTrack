@@ -4,7 +4,11 @@ import { Image as ExpoImage } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { ImageOff } from "lucide-react-native";
 import React from "react";
-import { Image as RNImage, TouchableOpacity } from "react-native";
+import {
+  Image as RNImage,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 
 /**
@@ -116,6 +120,49 @@ describe("PhotoTile", () => {
     // Il difetto era proprio questo: un'`Image` di RN col percorso dentro, che
     // per un file assente non disegna niente e non lo dice.
     expect(renderer.root.findAllByType(RNImage)).toHaveLength(0);
+  });
+
+  /**
+   * La sostituzione che questo task esiste per fare, enunciata dove si vede:
+   * quel che si disegna e' il percorso RISOLTO, non l'uri della riga. Con un
+   * `ensureLocalPhoto` che rimanda indietro il suo argomento i due sono
+   * indistinguibili, e un'`Image` col percorso della riga dentro passerebbe.
+   *
+   * Non e' un caso di scuola: la cartella dell'app cambia da un sistema
+   * all'altro, quindi una riga arrivata dall'altro telefono porta un percorso
+   * che qui non esiste - l'identita' di una foto e' il suo nome.
+   */
+  it("disegna il percorso risolto, non quello scritto nella riga", async () => {
+    const altroTelefono = "file:///var/mobile/x/photos/food-abc.jpg";
+    mockEnsureLocalPhoto.mockResolvedValue(ARCHIVIATA);
+
+    const renderer = await monta(
+      <PhotoTile uri={altroTelefono} onChange={() => {}} label="Foto" />,
+    );
+
+    expect(mockEnsureLocalPhoto).toHaveBeenCalledWith(altroTelefono);
+    expect(renderer.root.findByType(ExpoImage).props.source).toEqual({
+      uri: ARCHIVIATA,
+    });
+  });
+
+  /**
+   * 64, e non e' una misura qualunque: la tessera esiste perche' la foto del
+   * prodotto si prendeva mezza pagina in un modulo il cui lavoro e' digitare
+   * numeri. Chi la fa crescere rimette quel difetto.
+   */
+  it("resta una tessera da 64", async () => {
+    const renderer = await monta(
+      <PhotoTile uri={null} onChange={() => {}} label="Foto" />,
+    );
+
+    const tessera = renderer.root
+      .findAllByType(TouchableOpacity)
+      .find((node) => node.props.accessibilityLabel === "Foto");
+    expect(StyleSheet.flatten(tessera?.props.style)).toMatchObject({
+      width: 64,
+      height: 64,
+    });
   });
 
   it("vuota mostra l'icona e l'etichetta, non un segnaposto", async () => {

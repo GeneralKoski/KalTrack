@@ -46,14 +46,28 @@ const render = (width: number, height: number) => ({
  */
 const scritti = new Set<string>();
 
+/**
+ * L'ORDINE in cui l'archivio e' stato toccato.
+ *
+ * Serve perche' l'elenco delle chiamate a `getInfoAsync`, da solo, non
+ * distingue un pre-controllo da una verifica: prima e dopo la correzione le
+ * domande sono le stesse due, cambia solo se la seconda arriva prima o dopo la
+ * copia. Senza questo registro il test dell'ordine resta verde anche sul
+ * codice che l'ordine non lo rispetta.
+ */
+const gesti: string[] = [];
+
 beforeEach(() => {
   jest.clearAllMocks();
   scritti.clear();
-  fs.getInfoAsync.mockImplementation(
-    async (uri: string) => ({ exists: scritti.has(uri) }) as never,
-  );
+  gesti.length = 0;
+  fs.getInfoAsync.mockImplementation(async (uri: string) => {
+    gesti.push(`guarda ${uri}`);
+    return { exists: scritti.has(uri) } as never;
+  });
   fs.makeDirectoryAsync.mockResolvedValue(undefined);
   fs.copyAsync.mockImplementation(async ({ to }) => {
+    gesti.push(`copia ${to}`);
     scritti.add(to);
   });
   fs.deleteAsync.mockResolvedValue(undefined);
@@ -150,16 +164,23 @@ describe("persistPhoto", () => {
     spia.mockRestore();
   });
 
-  /** L'archivio si interroga dopo aver scritto, non prima: prima la risposta
-   *  era sempre "no", perche' il nome e' un UUID appena generato. */
-  it("chiede all'archivio dopo aver scritto, non prima", async () => {
+  /**
+   * L'ordine E' la correzione, quindi va enunciato come tale: la domanda sul
+   * target arriva DOPO la copia. Prima arrivava prima, ed era un ramo morto -
+   * il nome e' un UUID appena generato, quindi la risposta era sempre "no".
+   * Un test sul solo elenco delle chiamate non lo distingue: le due domande
+   * sono le stesse in entrambi i casi.
+   */
+  it("guarda l'archivio dopo aver scritto, non prima", async () => {
     mockRenderAsync.mockResolvedValue(render(200, 200));
 
     const uri = await persistPhoto("file:///cache/scatto.jpg", "food");
 
-    const domande = fs.getInfoAsync.mock.calls.map((call) => call[0]);
-    expect(domande).toEqual([PHOTOS_DIR, uri]);
-    expect(fs.getInfoAsync).toHaveBeenCalledTimes(2);
+    expect(gesti).toEqual([
+      `guarda ${PHOTOS_DIR}`,
+      `copia ${uri}`,
+      `guarda ${uri}`,
+    ]);
   });
 
   /**
@@ -174,7 +195,36 @@ describe("persistPhoto", () => {
 
     expect(await persistPhoto(content, "food")).toBe(content);
 
-    expect(spia).toHaveBeenCalledWith(expect.stringContaining(content));
+    // L'URI nel dettaglio e non nel messaggio, o Diagnostica non raggruppa
+    // piu' niente (`groupLogs` chiude su livello, scope e messaggio).
+    expect(spia).toHaveBeenCalledWith(
+      "[foto] non e' un file locale, non si archivia",
+      content,
+    );
+    spia.mockRestore();
+  });
+
+  /**
+   * Il ripiego dichiarato: una foto grande e' un difetto di peso, una foto che
+   * non si salva e' un pasto che non si registra. Un guasto del filesystem non
+   * arriva alla schermata, si registra e si tiene l'URI di partenza.
+   *
+   * Lo scope e' `[foto]` come tutte le altre righe di questo modulo: in
+   * `app_logs` e' una colonna, e due scope per una funzione sola dividono i
+   * suoi guasti in due mucchi quando qualcuno filtra.
+   */
+  it("non solleva se il filesystem non collabora, e lo registra", async () => {
+    fs.makeDirectoryAsync.mockRejectedValue(new Error("disco pieno"));
+    const spia = jest.spyOn(logger, "error").mockImplementation(() => {});
+
+    await expect(persistPhoto("file:///cache/scatto.jpg", "food")).resolves.toBe(
+      "file:///cache/scatto.jpg",
+    );
+
+    expect(spia).toHaveBeenCalledWith(
+      "[foto] copia in archivio permanente fallita",
+      expect.anything(),
+    );
     spia.mockRestore();
   });
 
