@@ -238,6 +238,7 @@
     "add_weight": "New weight",
     "add_steps": "New steps",
     "edit_steps": "Edit steps",
+    "edit_weight": "Edit weight",
     "date_label": "Date",
     "weight_history": "Weight history",
     "steps_history": "Steps history",

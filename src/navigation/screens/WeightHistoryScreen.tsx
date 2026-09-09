@@ -8,9 +8,10 @@ import {
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { HistoryList } from "@/src/containers/progress/HistoryList";
+import { MetricEntrySheet } from "@/src/containers/progress/MetricEntrySheet";
 import { MetricHistoryHero } from "@/src/containers/progress/MetricHistoryHero";
 import { earliestRecordedDate } from "@/src/db/queries/history";
-import { deleteWeight, listWeights } from "@/src/db/queries/tracking";
+import { deleteWeight, listWeights, setWeight } from "@/src/db/queries/tracking";
 import { todayIso } from "@/src/domain/date";
 import { trendWindowStart, type TrendWindow } from "@/src/domain/stats";
 import { useAppNav } from "@/src/hooks/useAppNav";
@@ -21,8 +22,9 @@ import type { WeightLogRow } from "@/src/types/nutrition";
 import { formatDecimal } from "@/src/utils/number";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
+import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { ChevronLeft, Scale, Trash2, X } from "lucide-react-native";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -63,6 +65,9 @@ export function WeightHistoryScreen() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const isSelecting = selectedDates.size > 0;
+
+  const editSheetRef = useRef<BottomSheetModal>(null);
+  const [editingRow, setEditingRow] = useState<WeightLogRow | null>(null);
 
   /** La finestra vale per tutta la schermata: grafico, numeri ed elenco. */
   const visible = useMemo(() => {
@@ -114,7 +119,16 @@ export function WeightHistoryScreen() {
   };
 
   const onRowPress = (date: string) => {
-    if (isSelecting) toggleSelection(date);
+    if (isSelecting) {
+      toggleSelection(date);
+      return;
+    }
+    // Fuori selezione, la riga si apre per correggerne il valore: la data
+    // resta quella (bloccata nel foglio), cambia solo il numero.
+    const row = rows.find((r) => r.date === date);
+    if (!row) return;
+    setEditingRow(row);
+    editSheetRef.current?.present();
   };
 
   const onRowLongPress = (date: string) => {
@@ -247,6 +261,18 @@ export function WeightHistoryScreen() {
         loading={deleting}
         onConfirm={removeSelected}
         onClose={() => setConfirmDelete(false)}
+      />
+
+      <MetricEntrySheet
+        ref={editSheetRef}
+        title={t("tracking.edit_weight")}
+        unit="kg"
+        initialDate={editingRow?.date}
+        initialValue={editingRow?.weight_kg}
+        onSave={async (date, value) => {
+          await setWeight(date, value);
+          reload();
+        }}
       />
     </View>
   );

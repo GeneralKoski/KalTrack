@@ -127,6 +127,31 @@ describe("setWeight", () => {
   it("rifiuta un peso non positivo", async () => {
     await expect(setWeight("2026-08-28", 0)).rejects.toThrow();
   });
+
+  /**
+   * Come per `setSteps`: senza `updated_at = excluded.updated_at` nell'upsert,
+   * correggere il peso di un giorno gia' scritto (§ Storico peso) lascerebbe
+   * la colonna com'era e la correzione non viaggerebbe verso l'altro
+   * telefono, senza nessun segno a schermo.
+   */
+  it("una correzione sposta updated_at in avanti, o non viaggia", async () => {
+    jest.useFakeTimers();
+    try {
+      jest.setSystemTime(new Date("2026-08-28T08:00:00.000Z"));
+      await setWeight("2026-08-28", 78.5);
+      const first = await getWeight("2026-08-28");
+
+      jest.setSystemTime(new Date("2026-08-28T09:00:00.000Z"));
+      await setWeight("2026-08-28", 78.1);
+      const second = await getWeight("2026-08-28");
+
+      expect(Date.parse(second!.updated_at)).toBeGreaterThan(
+        Date.parse(first!.updated_at),
+      );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });
 
 describe("latestWeight", () => {
