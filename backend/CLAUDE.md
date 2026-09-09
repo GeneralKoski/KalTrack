@@ -20,7 +20,7 @@ senza rete e senza account. Il server tiene una copia.
 
 ```bash
 php artisan serve            # sviluppo
-php artisan test             # 251 test
+php artisan test             # 267 test
 php artisan migrate          # 21 migrazioni
 ```
 

@@ -107,8 +107,8 @@ describe("quando parte la sincronizzazione", () => {
   });
 
   /**
-   * Finding 10. Due dei tre inneschi che questo task esiste per aggiungere -
-   * l'avvio e il ritorno in primo piano - non erano pinnati da nessuna parte:
+   * Finding 10. Due dei cinque inneschi del catalogo (§ Il catalogo comune,
+   * dal telefono) - l'avvio e il ritorno in primo piano - non erano pinnati:
    * cancellare `void syncCatalog();` da `runIfDue` lasciava la suite verde.
    */
   it("chiama anche il catalogo, all'avvio e al ritorno in primo piano", async () => {

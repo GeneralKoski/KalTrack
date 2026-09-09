@@ -340,8 +340,9 @@ iniziale e voluto a fase gia' chiusa.
       settembre 2026: `src/services/catalogSync.ts` sostituisce
       `exerciseCatalog.ts`/`foodCatalog.ts` (ritirati) con un pull
       incrementale sul proprio cursore, dentro una finestra di un'ora e con
-      tre inneschi (avvio, ritorno in primo piano, bottone in Esercizi e
-      Alimenti). Vedi `CLAUDE.md` § Il catalogo comune, dal telefono.
+      cinque inneschi (avvio, ritorno in primo piano, giro periodico dei
+      quindici minuti, accesso, bottone in Esercizi e Alimenti). Vedi
+      `CLAUDE.md` § Il catalogo comune, dal telefono.
 - [x] ~~**Salvare l'`uid` del catalogo lato app.**~~ Fatto l'8 settembre 2026
       (migrazione 019): `catalog_uid` e' l'identita', il nome normalizzato
       resta solo come ricaduta di un giro solo per le righe installate prima
@@ -392,8 +393,8 @@ iniziale e voluto a fase gia' chiusa.
 
       **Conseguenza piu' seria di questa, da tenere a mente prima del primo
       deploy: nessun task della Fase 3 ha mai scambiato un byte con un server
-      vero.** Tutti e 1230 i test mockano `apiRequest`, contro un mock scritto
-      leggendo il controller a mano. Il pull incrementale, il cursore
+      vero.** Ogni suite che parla con la rete mocka `apiRequest`, contro un
+      mock scritto leggendo il controller a mano. Il pull incrementale, il cursore
       composto, i tombstone, le proposte per uid e le foto pigre sono
       corretti **contro quel mock**. Il primo contatto reale con l'ambiente
       deployato sara' anche il primo momento in cui si scopre se il

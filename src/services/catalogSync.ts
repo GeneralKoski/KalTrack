@@ -616,9 +616,23 @@ async function finestraScaduta(): Promise<boolean> {
  * chiudere, riaperta senza bisogno di nessuna rinomina.
  *
  * La guardia sta QUI e non nello scheduler, per la stessa ragione della
- * regola 6 della sincronizzazione (`sync.ts`): il catalogo ha tre inneschi -
- * avvio, ritorno in primo piano, bottone su due schermate - e mettere la
- * guardia in uno solo di loro lascia gli altri liberi di scavalcarla.
+ * regola 6 della sincronizzazione (`sync.ts`): il catalogo ha CINQUE inneschi
+ * e mettere la guardia in uno solo di loro lascia gli altri liberi di
+ * scavalcarla.
+ *
+ * 1. l'avvio, da due chiamanti - la catena di `restore()` (`App.tsx`) e il
+ *    giro forzato d'avvio dello scheduler;
+ * 2. il ritorno in primo piano (`syncScheduler`);
+ * 3. il giro periodico dei quindici minuti (lo stesso);
+ * 4. l'**accesso** (`AccountForm`), che e' il momento in cui un account
+ *    diventa disponibile per la prima volta: senza, su un accesso nuovo il
+ *    catalogo aspetterebbe fino a un quarto d'ora il suo primo pull;
+ * 5. il bottone di `ExercisesScreen` e `FoodsScreen`.
+ *
+ * Il conto stava scritto "tre" qui, in `TODO.md` e in `CLAUDE.md`, e il
+ * quarto e' proprio quello che il ledger registra come una propria omissione:
+ * una dichiarazione che ne conta tre dove ce ne sono cinque e' come uno di
+ * loro sparisce, perche' chi li conta nel codice ne trova due di troppo.
  *
  * Un secondo chiamante AGGANCIA lo stesso giro invece di ricevere uno zero
  * finto: il bottone deve raccontare l'esito del giro che sta davvero girando,

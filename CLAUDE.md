@@ -612,10 +612,23 @@ giro dopo si aggancia per quello.
 
 Il catalogo scrive **solo i campi di catalogo** e **solo sulle righe che sono
 sue** - `is_custom = 0` per un esercizio, `source = 'seed'` per un alimento.
-`notes`, `dislike_level`, `is_banned`, `usage_count`, `is_favorite`, `barcode`
-e `off_id` non li scrive mai: sono giudizi personali, stato d'uso e identita',
-non la descrizione di una voce. Una voce tolta dal catalogo non si cancella,
-diventa dell'utente.
+Quando **aggiorna** una riga che ha gia' (`applyCatalogFood`,
+`applyCatalogExercise`) non tocca **mai** `notes`, `dislike_level`,
+`is_banned`, `usage_count`, `is_favorite`, `barcode` e `off_id`: sono giudizi
+personali, stato d'uso e identita', non la descrizione di una voce. Una voce
+tolta dal catalogo non si cancella, diventa dell'utente.
+
+**Sull'INSERIMENTO `barcode` e `off_id` invece si scrivono, ed e' deliberato**
+(§ Il codice a barre, che e' il posto dove la regola sta per esteso). Sono le
+due sole eccezioni di quell'elenco, e le altre cinque non ce l'hanno: su una
+riga che non esiste ancora non c'e' nessun codice da proteggere, e ometterli
+farebbe nascere ogni alimento di catalogo senza codice a barre - non
+scansionabile, quindi la scansione successiva cadrebbe su OpenFoodFacts e ne
+creerebbe un doppione. Questo passaggio ha dichiarato l'assoluto per tutti e
+sette fino al 9 settembre 2026, e chi lo leggeva senza leggere anche § Il
+codice a barre trovava una regola e un codice che la viola: toglieva le due
+righe da `createFood` e riapriva esattamente il difetto che questa fase esiste
+per chiudere.
 
 ### Nomi utente
 
@@ -942,11 +955,23 @@ riletta a ogni giro in silenzio. Si salva a ogni pagina e non alla fine del
 giro: un giro interrotto a meta' riprende da dove era, invece di rifare tutto.
 
 **Un giro alla volta, e la guardia sta dentro `syncCatalog`** - la stessa
-regola 6 della sincronizzazione dati, per lo stesso motivo: il catalogo ha tre
-inneschi (avvio, ritorno in primo piano, bottone su due schermate), e mettere
-la guardia in uno solo li lascerebbe liberi di scavalcarla. Un secondo
-chiamante **aggancia** il giro gia' in corso invece di ricevere uno zero
-finto, cosi' il bottone racconta l'esito del giro che sta davvero girando.
+regola 6 della sincronizzazione dati, per lo stesso motivo: il catalogo ha
+**cinque** inneschi e mettere la guardia in uno solo li lascerebbe liberi di
+scavalcarla. Sono l'avvio (da due chiamanti: la catena di `restore()` in
+`App.tsx` e il giro forzato d'avvio dello scheduler), il ritorno in primo
+piano, il giro periodico dei quindici minuti, l'**accesso**
+(`AccountForm` - senza, un telefono che si iscrive adesso aspetterebbe fino a
+un quarto d'ora il suo primo pull) e il bottone di Esercizi e Alimenti. Un
+secondo chiamante **aggancia** il giro gia' in corso invece di ricevere uno
+zero finto, cosi' il bottone racconta l'esito del giro che sta davvero
+girando.
+
+Il conto qui diceva "tre" - e lo diceva anche in `TODO.md` e nel commento di
+`catalogSync.ts` - saltando l'accesso e il giro periodico. Non e' pignoleria
+aritmetica: la meta' `App.tsx` dell'innesco d'avvio non e' pinnata da nessun
+test (non esiste un `App.test.tsx`), quindi chi conta gli inneschi nel codice,
+li confronta con la dichiarazione e ne trova due di troppo li toglie - e la
+suite resta verde.
 
 **Le foto del catalogo hanno una cartella loro**, `CATALOG_PHOTOS_DIR` e non
 `PHOTOS_DIR` (`src/services/photoSync.ts`). Sono comuni a tutti gli iscritti e
