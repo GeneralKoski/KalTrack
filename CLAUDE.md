@@ -498,7 +498,7 @@ di peso, una foto che non si salva e' un pasto che non si registra.
 l'ha". La differenza fra quel che il server tiene e quel che c'e' sul telefono
 non e' un elenco di orfani: una foto scattata su un altro dispositivo sta sul
 server e qui non e' ancora arrivata, e cancellarla distruggerebbe l'unica
-copia. Si guardano invece le righe (`orphanPhotoNames` in
+copia. Si guardano invece le righe (`orphanPhotoUris` in
 `src/db/queries/photos.ts`): orfana e' la foto che una riga cancellata nominava
 e che **nessuna riga viva nomina piu'**. La seconda meta' non e' una cautela in
 piu' - una foto libera del diario e' condivisa fra le N voci di quella stima, e
@@ -510,6 +510,27 @@ riga nomina, e `uploadPendingPhotos` lo ricaricherebbe al giro dopo - una foto
 cancellata e rimessa all'infinito); e **prima la raccolta, poi il caricamento**,
 perche' `uploadPendingPhotos` manda tutto quel che trova in cartella, orfani
 compresi.
+
+**Le foto del CATALOGO si raccolgono con un criterio diverso, e la differenza
+non e' un dettaglio di implementazione.** Vivono in una cartella loro
+(§ Il catalogo comune, dal telefono) e appartengono a tutti gli iscritti,
+quindi una riga cancellata su questo telefono non le rende orfane - restano la
+foto di quella voce per chiunque altro, e un ripristino la rivorrebbe. Sono
+inutili solo quando **nessuna riga le nomina piu'**, cancellata o viva: e'
+quel che succede quando il pannello sostituisce o toglie la foto e il pull
+scrive il percorso nuovo su una riga viva. Da qui le due letture di
+`queries/photos.ts` - `orphanPhotoUris` per le foto dell'utente,
+`referencedPhotoUris` per queste - e le due raccolte dentro
+`collectOrphanPhotos`, che incassano i propri errori separatamente.
+
+Due cose che seguono da "sono di tutti": **non si cancellano dal server** (di
+la' la porterebbe via a ogni iscritto, e la rotta per farlo non c'e'), e le
+query tornano **percorsi e non nomi**. Un nome nudo non dice a quale delle due
+cartelle appartiene: prima le tornava, e la raccolta cancellava
+`PHOTOS_DIR/<nome di catalogo>` - un no-op - contandolo comunque fra le
+rimosse. `[foto] rimosse N orfane` contava foto che non aveva rimosso, e le
+foto di catalogo non si cancellavano mai. Chi conosce le cartelle e'
+`photoSync`; `queries/photos.ts` dice solo cosa le righe nominano.
 
 ### Il confronto con gli amici
 
@@ -928,8 +949,11 @@ vivono sul server sotto un percorso diverso da quello per utente
 (`/catalog/images/*`, non `/images/{utente}/*`): chiederle al percorso
 sbagliato sarebbe un 404 garantito. Nessun `persistPhoto` scrive mai in questa
 cartella - le foto di catalogo arrivano solo dal pannello - quindi
-`uploadPendingPhotos` e `collectOrphanPhotos` non la toccano: non c'e' niente
-da caricare da li' ne' da raccogliere come orfano. Come per le foto normali, il
+`uploadPendingPhotos` non la tocca: non c'e' niente da caricare da li'.
+`collectOrphanPhotos` invece **la raccoglie**, con un criterio suo che non e'
+quello delle foto dell'utente: il dettaglio sta in § Le foto, e questo
+passaggio ha dichiarato il contrario finche' non lo si e' andato a guardare.
+Come per le foto normali, il
 percorso arriva subito col pull e i byte solo quando si guarda
 (`ensureLocalPhoto`): un catalogo di duecento esercizi non scarica duecento
 immagini per un giro che serve solo ad aggiornare due nomi.

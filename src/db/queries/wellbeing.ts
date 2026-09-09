@@ -159,7 +159,7 @@ export async function listProgressPhotos(): Promise<ProgressPhotoRow[]> {
  * chiama passa l'intera riga come la vuole, e togliere la posa a una foto
  * segnata "fronte" per sbaglio deve poter scrivere `null`.
  *
- * Sostituendo `uri` il file vecchio resta in cartella: `orphanPhotoNames`
+ * Sostituendo `uri` il file vecchio resta in cartella: `orphanPhotoUris`
  * raccoglie solo quel che una riga **cancellata** nominava, e qui la riga
  * resta viva. E' lo stesso comportamento di alimenti, ricette ed esercizi, che
  * la foto la sostituiscono dallo stesso `PhotoField`.

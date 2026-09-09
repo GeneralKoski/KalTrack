@@ -203,6 +203,11 @@ describe("la raccolta delle foto orfane", () => {
     await runMigrations(db);
     __setDbForTesting(db);
     fs.getInfoAsync.mockResolvedValue({ exists: true } as never);
+    // La cartella del catalogo vuota: questi test parlano delle foto
+    // dell'utente, e `jest.clearAllMocks()` azzera le chiamate ma NON le
+    // implementazioni, quindi senza questa riga un elenco lasciato da un
+    // test precedente conterebbe come foto di catalogo da raccogliere.
+    fs.readDirectoryAsync.mockResolvedValue([]);
   });
 
   afterEach(() => __setDbForTesting(null));
@@ -327,5 +332,114 @@ describe("le foto del catalogo", () => {
     const uri = catalogPhotoPath("ex-panca.jpg");
     expect(await ensureLocalPhoto(uri)).toBe(uri);
     expect(fs.downloadAsync).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * F6 della review finale: le foto di catalogo non si raccoglievano MAI, e il
+ * raccoglitore dichiarava di averle rimosse. `orphanPhotoUris` restituiva
+ * anche i loro nomi (le due colonne che le contengono sono nell'elenco), e
+ * `collectOrphanPhotos` cancellava `PHOTOS_DIR/<nome>` - la cartella
+ * sbagliata, quindi un no-op - e lo contava fra le rimosse perche' quel nome
+ * non e' nell'elenco `/images` dell'utente.
+ */
+describe("la raccolta delle foto di catalogo", () => {
+  let db: LocalDatabase;
+
+  const esercizio = async (
+    id: string,
+    photoUri: string | null,
+    cancellato = false,
+  ) => {
+    await db.runAsync(
+      `INSERT INTO exercises (id, name, name_norm, muscle_group, photo_uri,
+                              created_at, updated_at, deleted_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        id,
+        id,
+        "petto",
+        photoUri,
+        "2026-09-09T08:00:00.000Z",
+        "2026-09-09T08:00:00.000Z",
+        cancellato ? "2026-09-09T09:00:00.000Z" : null,
+      ],
+    );
+  };
+
+  beforeEach(async () => {
+    db = createTestDb();
+    await runMigrations(db);
+    __setDbForTesting(db);
+    fs.getInfoAsync.mockResolvedValue({ exists: true } as never);
+    mockApiRequest.mockResolvedValue({ names: [] });
+  });
+
+  afterEach(() => __setDbForTesting(null));
+
+  /**
+   * Il caso che non era raccoglibile nemmeno in principio: il pannello
+   * sostituisce la foto, il pull scrive il percorso nuovo su una riga VIVA, e
+   * dal quel momento il file vecchio non e' nominato da nessuno - ne' fra le
+   * righe cancellate ne' fra le vive.
+   */
+  it("toglie il file che nessuna riga nomina piu', e non chiede niente al server", async () => {
+    await esercizio("ex-panca", catalogPhotoPath("nuova.jpg"));
+    fs.readDirectoryAsync.mockResolvedValue(["nuova.jpg", "vecchia.jpg"]);
+
+    expect(await collectOrphanPhotos()).toBe(1);
+
+    expect(fs.deleteAsync).toHaveBeenCalledWith(catalogPhotoPath("vecchia.jpg"), {
+      idempotent: true,
+    });
+    expect(fs.deleteAsync).not.toHaveBeenCalledWith(
+      catalogPhotoPath("nuova.jpg"),
+      expect.anything(),
+    );
+    // La foto sta in `storage/app/private/catalog/`, comune a tutti gli
+    // iscritti: cancellarla di la' la porterebbe via a tutti.
+    expect(mockApiRequest).not.toHaveBeenCalledWith(
+      expect.objectContaining({ method: "delete" }),
+    );
+  });
+
+  /**
+   * Una riga cancellata dall'utente non rende orfana la foto di catalogo: e'
+   * ancora la foto di quella voce per tutti gli altri, e se la ripristinasse
+   * la vorrebbe vedere.
+   */
+  it("non tocca la foto di catalogo di una riga cancellata", async () => {
+    await esercizio("ex-panca", catalogPhotoPath("ex-panca.jpg"), true);
+    fs.readDirectoryAsync.mockResolvedValue(["ex-panca.jpg"]);
+
+    expect(await collectOrphanPhotos()).toBe(0);
+    expect(fs.deleteAsync).not.toHaveBeenCalled();
+  });
+
+  /**
+   * L'altra meta' del difetto: quel nome non deve entrare fra le orfane
+   * dell'utente, dove veniva contato come rimosso dopo aver cancellato un
+   * file in una cartella dove non e' mai stato.
+   */
+  it("il nome di una foto di catalogo non si conta fra le orfane dell'utente", async () => {
+    await esercizio("ex-panca", catalogPhotoPath("ex-panca.jpg"), true);
+    // La cartella del catalogo e' vuota: il file non e' ancora stato
+    // scaricato. Nessuna delle due raccolte ha niente da fare.
+    fs.readDirectoryAsync.mockResolvedValue([]);
+
+    expect(await collectOrphanPhotos()).toBe(0);
+    expect(fs.deleteAsync).not.toHaveBeenCalledWith(
+      `${PHOTOS_DIR}/ex-panca.jpg`,
+      expect.anything(),
+    );
+  });
+
+  /** Senza la cartella non c'e' niente da raccogliere, e non e' un errore. */
+  it("una cartella che non esiste non e' un guasto", async () => {
+    fs.getInfoAsync.mockResolvedValue({ exists: false } as never);
+
+    expect(await collectOrphanPhotos()).toBe(0);
+    expect(fs.readDirectoryAsync).not.toHaveBeenCalled();
   });
 });

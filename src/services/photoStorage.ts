@@ -21,13 +21,17 @@ export const PHOTOS_DIR = `${FileSystem.documentDirectory}photos`;
  * La separazione non e' ordine: `uploadPendingPhotos` manda al server tutto
  * quel che trova in `PHOTOS_DIR`, e una foto di catalogo appena scaricata
  * finirebbe ricaricata come foto personale in `images/{utente}` - una copia
- * per utente di un'immagine che e' comune a tutti, che il server ha gia'.
- * `collectOrphanPhotos` cancella dalla stessa cartella, e una foto di
- * catalogo non e' orfana perche' un esercizio e' stato tolto: e' ancora la
- * foto di quella voce per tutti gli altri.
+ * per utente di un'immagine che e' comune a tutti, che il server ha gia'. Per
+ * quella funzione la cartella basta da se': legge solo `PHOTOS_DIR`.
  *
- * Nessuna delle due funzioni ha un caso speciale. E' la cartella a renderle
- * giuste.
+ * `collectOrphanPhotos` invece HA un caso speciale, e non poteva non averlo:
+ * una foto di catalogo non e' orfana perche' un esercizio e' stato tolto - e'
+ * ancora la foto di quella voce per tutti gli altri - quindi il criterio e' un
+ * altro ("nessuna riga la nomina piu'", non "una riga cancellata la
+ * nominava") e la cancellazione non arriva mai al server. Dare per scontato
+ * che bastasse la cartella e' costato il difetto che F6 della review finale ha
+ * trovato: quel che raccoglieva erano nomi senza cartella, cancellati da
+ * `PHOTOS_DIR` - dove non sono mai stati - e contati fra le rimosse.
  */
 export const CATALOG_PHOTOS_DIR = `${FileSystem.documentDirectory}catalog-photos`;
 

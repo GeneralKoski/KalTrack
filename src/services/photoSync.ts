@@ -1,6 +1,9 @@
 import { apiRequest } from "@/src/api/client";
 import { API_URL, hasBackend } from "@/src/api/config";
-import { orphanPhotoNames } from "@/src/db/queries/photos";
+import {
+  orphanPhotoUris,
+  referencedPhotoUris,
+} from "@/src/db/queries/photos";
 import { CATALOG_PHOTOS_DIR, PHOTOS_DIR } from "@/src/services/photoStorage";
 import { useAccountStore } from "@/src/stores/accountStore";
 import { logger } from "@/src/utils/logger";
@@ -182,7 +185,7 @@ async function uploadOne(name: string): Promise<boolean> {
  * quel che il server tiene e quel che c'e' su questo telefono non e' un elenco
  * di orfani: una foto scattata su un altro dispositivo sta sul server e qui non
  * e' ancora arrivata, e cancellarla distruggerebbe l'unica copia. Si guardano
- * invece le righe (`orphanPhotoNames`), che questo telefono conosce per certo.
+ * invece le righe (`orphanPhotoUris`), che questo telefono conosce per certo.
  *
  * **Prima il file locale, poi quello remoto.** Nell'altro ordine, un
  * interruzione fra i due passaggi lascerebbe qui un file che nessuna riga
@@ -191,45 +194,117 @@ async function uploadOne(name: string): Promise<boolean> {
  * Cosi' invece il caso peggiore e' un orfano che resta sul server fino al giro
  * successivo.
  *
+ * **DUE RACCOLTE E NON UNA**, perche' le due cartelle non si raccolgono con lo
+ * stesso criterio (vedi le due funzioni sotto). Ognuna incassa i propri
+ * errori: un guasto nella prima non deve nascondere la seconda.
+ *
  * Non solleva mai, come tutto il resto di questo modulo: e' pulizia, e i dati
  * sono comunque al sicuro.
  */
 export async function collectOrphanPhotos(): Promise<number> {
+  let tolte = 0;
+
   try {
-    const orfane = await orphanPhotoNames();
-    if (orfane.length === 0) return 0;
-
-    let tolte = 0;
-    const remoti = await remoteNames();
-
-    for (const name of orfane) {
-      await FileSystem.deleteAsync(localPathOf(name), {
-        idempotent: true,
-      }).catch(() => {});
-
-      if (!remoti.has(name)) {
-        tolte++;
-        continue;
-      }
-      try {
-        await apiRequest({
-          method: "delete",
-          path: `/images/${encodeURIComponent(name)}`,
-        });
-        tolte++;
-      } catch (error) {
-        // Il file locale e' comunque andato: il giro dopo `orphanPhotoNames`
-        // la ritrova e riprova a togliere quella remota.
-        logger.warn(`[foto] ${name} non cancellata dal server`, error);
-      }
-    }
-
-    if (tolte > 0) logger.info(`[foto] rimosse ${tolte} orfane`);
-    return tolte;
+    tolte += await raccogliDelleRighe();
   } catch (error) {
     logger.warn("[foto] raccolta delle orfane non riuscita", error);
-    return 0;
   }
+
+  try {
+    tolte += await raccogliDelCatalogo();
+  } catch (error) {
+    logger.warn("[foto] raccolta delle foto di catalogo non riuscita", error);
+  }
+
+  if (tolte > 0) logger.info(`[foto] rimosse ${tolte} orfane`);
+  return tolte;
+}
+
+/**
+ * Le foto dell'utente: quelle che una riga cancellata nominava e che nessuna
+ * riga viva nomina piu', qui e sul server.
+ *
+ * I percorsi di catalogo si scartano, e non e' una cautela: appartengono a
+ * un'altra cartella e a un'altra domanda. Prima non si scartavano, e il
+ * risultato era `PHOTOS_DIR/<nome di catalogo>` cancellato - un no-op, la
+ * cartella e' un'altra - contato comunque fra le rimosse, perche' quel nome
+ * non compare nell'elenco `/images` dell'utente. `[foto] rimosse N orfane`
+ * contava foto che non aveva rimosso.
+ */
+async function raccogliDelleRighe(): Promise<number> {
+  const orfane = (await orphanPhotoUris()).filter((uri) => !isCatalogPhoto(uri));
+  if (orfane.length === 0) return 0;
+
+  let tolte = 0;
+  const remoti = await remoteNames();
+
+  for (const uri of orfane) {
+    const name = nameOf(uri);
+    await FileSystem.deleteAsync(localPathOf(name), {
+      idempotent: true,
+    }).catch(() => {});
+
+    if (!remoti.has(name)) {
+      tolte++;
+      continue;
+    }
+    try {
+      await apiRequest({
+        method: "delete",
+        path: `/images/${encodeURIComponent(name)}`,
+      });
+      tolte++;
+    } catch (error) {
+      // Il file locale e' comunque andato: il giro dopo `orphanPhotoUris`
+      // la ritrova e riprova a togliere quella remota.
+      logger.warn(`[foto] ${name} non cancellata dal server`, error);
+    }
+  }
+
+  return tolte;
+}
+
+/**
+ * Le foto del catalogo, e il criterio e' un altro: si tolgono quelle che
+ * **nessuna riga nomina piu'**, cancellata o viva.
+ *
+ * Non erano raccolte affatto, ed e' il buco che F6 della review finale ha
+ * trovato. Una foto di catalogo non e' orfana perche' l'utente ha cancellato
+ * l'esercizio: e' ancora la foto di quella voce per tutti gli altri, e la
+ * riga cancellata continua a nominarla - se l'utente la ripristinasse, la
+ * vorrebbe vedere. Diventa inutile quando il **pannello** la sostituisce o la
+ * toglie: il pull scrive il `photo_uri` nuovo (o `null`) su una riga viva, e
+ * il file vecchio resta in cartella senza che niente lo nomini piu'.
+ *
+ * **Solo in locale, nessun DELETE al server.** Il file sta in
+ * `storage/app/private/catalog/`, comune a tutti gli iscritti: cancellarlo di
+ * la' lo porterebbe via a tutti, e non e' una decisione che un telefono
+ * prende. La rotta per farlo non c'e' nemmeno.
+ *
+ * Nessun ordine da rispettare con il caricamento: `uploadPendingPhotos` legge
+ * solo `PHOTOS_DIR`, e in questa cartella non entra mai.
+ */
+async function raccogliDelCatalogo(): Promise<number> {
+  const dir = await FileSystem.getInfoAsync(CATALOG_PHOTOS_DIR);
+  if (!dir.exists) return 0;
+
+  const locali = await FileSystem.readDirectoryAsync(CATALOG_PHOTOS_DIR);
+  if (locali.length === 0) return 0;
+
+  const nominate = new Set(
+    (await referencedPhotoUris()).filter(isCatalogPhoto).map(nameOf),
+  );
+
+  let tolte = 0;
+  for (const name of locali) {
+    if (nominate.has(name)) continue;
+    await FileSystem.deleteAsync(catalogPhotoPath(name), {
+      idempotent: true,
+    }).catch(() => {});
+    tolte++;
+  }
+
+  return tolte;
 }
 
 /**
