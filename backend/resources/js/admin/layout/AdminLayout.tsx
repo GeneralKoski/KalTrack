@@ -40,8 +40,25 @@ export const AdminLayout = (): React.ReactElement => {
     const { me, esci } = useAuth();
 
     return (
-        <Layout style={{ minHeight: '100vh' }}>
-            <Layout.Sider breakpoint="lg" collapsedWidth={64} theme="light">
+        /*
+         * `height` e non `minHeight`: il guscio e' alto esattamente la
+         * finestra e a scorrere e' `Content`, perche' il documento non scorre
+         * piu' (vedi il commento in `admin.blade.php` - e' il rimedio allo
+         * sfarfallio all'apertura dei moduli). Con `minHeight` il guscio
+         * crescerebbe oltre la finestra e il documento tornerebbe a scorrere,
+         * rimettendo il difetto.
+         */
+        <Layout style={{ height: '100%' }}>
+            <Layout.Sider
+                breakpoint="lg"
+                collapsedWidth={64}
+                theme="light"
+                // Il menu scorre per conto suo: oggi sono sei voci e ci
+                // stanno, ma su una finestra bassa - o alla settima voce -
+                // senza questo l'ultima non si raggiungerebbe piu', perche'
+                // il documento non scorre piu' a rimediare.
+                style={{ overflowY: 'auto' }}
+            >
                 <Typography.Text strong style={{ display: 'block', padding: 16 }}>
                     KalTrack
                 </Typography.Text>
@@ -64,7 +81,12 @@ export const AdminLayout = (): React.ReactElement => {
                         </Button>
                     </Flex>
                 </Layout.Header>
-                <Layout.Content style={{ padding: 24 }}>
+                {/*
+                    L'unico elemento che scorre. `data-scroll` non e'
+                    decorativo: e' quel che il test guarda per accorgersi se
+                    qualcuno riporta lo scorrimento al documento.
+                */}
+                <Layout.Content data-scroll="contenuto" style={{ padding: 24, overflowY: 'auto' }}>
                     <Outlet />
                 </Layout.Content>
             </Layout>
