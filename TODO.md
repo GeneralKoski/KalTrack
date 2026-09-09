@@ -4,7 +4,7 @@ Quel che manca, in ordine di quanto blocca il resto. `HANDOFF.md` racconta lo
 **stato** e come ci si e' arrivati; qui ci sono solo le **cose da fare**, con il
 rimando a li' dove il contesto e' lungo.
 
-Ultimo aggiornamento: 7 settembre 2026.
+Ultimo aggiornamento: 9 settembre 2026.
 
 ---
 
@@ -306,23 +306,24 @@ CRUD di esercizi/alimenti/tassonomie/utenti e le statistiche;
 separato da quello a token dell'app. Dettagli in `backend/README.md`
 § L'eccezione dichiarata.
 
-**L'app stessa non e' stata toccata**, a parte uno script che esporta il suo
-seed in JSON per `catalog:seed`. E' la ragione per cui restano due voci
-aperte sotto, di cui la prima e' la piu' urgente delle due perche' e' l'unica
-che un utente vede oggi.
+**L'app e' stata toccata dall'8 settembre 2026, dalla Fase 3 del gestionale**
+(piano in
+`docs/superpowers/plans/2026-09-08-gestionale-fase-3-app.md`): consuma
+`/api/catalog/*` con un pull incrementale, salva `catalog_uid` come identita'
+stabile, legge le due tassonomie dal server invece che dalle costanti, e le
+due stringhe del § 5.1 dicono di nuovo il vero. Il 9 settembre 2026 vi si e'
+aggiunto anche l'interruttore AI lato app (§ 5.3), fuori dal perimetro
+iniziale e voluto a fase gia' chiusa.
+
+**Quel che nessuna delle tre fasi ha ancora potuto chiudere e' il deploy**
+(§ 5.4): il gestionale non gira in produzione.
 
 ### 5.1 Una promessa che l'app fa e il server non mantiene piu'
 
-- [ ] **Il testo sopra il campo del nome mente.** `ExerciseFormSheet` e
-      `FoodFormScreen` dicono ancora che quel che si crea "entra nell'elenco
-      di tutti gli iscritti" - vero fino al 6 settembre 2026, falso da quando
-      una voce nasce proposta e aspetta l'approvazione di un amministratore
-      prima di raggiungere chiunque altro. Nessuno ha toccato quelle
-      stringhe, e finche' resta cosi' l'app dice a chi la usa una cosa che
-      non succede piu'. E' il punto piu' visibile che questa fase ha lasciato
-      aperto, da leggere come tale e non come una nota a margine: le chiavi
-      sono `foods.catalog_notice` e `gym.catalog_notice`, e vanno riscritte in
-      **entrambi** `it.json` e `en.json` (vedi `CLAUDE.md` § Lingua).
+- [x] ~~**Il testo sopra il campo del nome mente.**~~ Corretto l'8 settembre
+      2026: `foods.catalog_notice` e `gym.catalog_notice` dicono ora che la
+      voce nasce proposta e aspetta l'approvazione di un amministratore,
+      in **entrambi** `it.json` e `en.json`.
 
 ### 5.2 Fase 2 del gestionale: il pannello
 
@@ -335,38 +336,33 @@ che un utente vede oggi.
 
 ### 5.3 Fase 3 del gestionale: il lato app
 
-- [ ] **Consumare `/api/catalog/*` invece del vecchio import.** Gli endpoint
-      di pull incrementale con cursore e tombstone esistono gia' lato server
-      e non hanno ancora un chiamante lato app - resta il percorso vecchio
-      (§ Debiti tecnici piu' sotto).
-- [ ] **Salvare l'`uid` del catalogo lato app.** E' l'identita' stabile che
-      deve sostituire il confronto per nome normalizzato (vedi `CLAUDE.md`
-      § L'unica cosa che esce verso i non amici): senza, una voce rinominata
-      dal pannello si duplica al pull successivo invece di aggiornarsi.
-
-      **Da ordinata a urgente da quando il pannello esiste**, ed e' la voce
-      piu' pressante di questa fase. Non e' un difetto del pannello - `uid`
-      sta in ogni risposta e in `api/types.ts`, semplicemente non lo legge
-      nessuno di qua - ma il pannello e' il primo strumento che rende una
-      rinomina facile: correggere il nome di una proposta mentre la si
-      approva e' il primo campo del modulo di revisione, ed e' proprio la
-      correzione che la spec chiede di poter fare.
-
-      Il conto lo pagano i telefoni. `exerciseCatalog.ts` ritrova la propria
-      voce dal nome normalizzato (`miaInCatalogo(previousName)`) e
-      `updatePublishedExercise`, quando quella ricerca non trova niente,
-      **crea** invece di aggiornare: dopo una rinomina dal pannello, la
-      prossima correzione locale di chi aveva proposto la voce deposita una
-      **seconda proposta** per la stessa cosa. E `importCatalog` salta per
-      nome, quindi ogni telefono che importa si porta a casa un esercizio
-      nuovo e si tiene quello col nome vecchio. Una rinomina = N doppioni.
-      Dichiarato in `backend/README.md` § L'eccezione dichiarata, cosi' che
-      chi revisiona lo sappia prima di riscrivere un nome.
-- [ ] **Tassonomie dinamiche.** Gruppi muscolari e attrezzatura sono ora
-      tabelle vere lato server, seminate dalle costanti dell'app; l'app
-      continua a leggerle dalle sue costanti proprie invece che dal server.
-- [ ] **Le stringhe del § 5.1**, che restano false finche' questa fase non
-      cambia il modo in cui l'app tratta una voce proposta.
+- [x] ~~**Consumare `/api/catalog/*` invece del vecchio import.**~~ Fatto l'8
+      settembre 2026: `src/services/catalogSync.ts` sostituisce
+      `exerciseCatalog.ts`/`foodCatalog.ts` (ritirati) con un pull
+      incrementale sul proprio cursore, dentro una finestra di un'ora e con
+      tre inneschi (avvio, ritorno in primo piano, bottone in Esercizi e
+      Alimenti). Vedi `CLAUDE.md` § Il catalogo comune, dal telefono.
+- [x] ~~**Salvare l'`uid` del catalogo lato app.**~~ Fatto l'8 settembre 2026
+      (migrazione 019): `catalog_uid` e' l'identita', il nome normalizzato
+      resta solo come ricaduta di un giro solo per le righe installate prima
+      della migrazione. Vedi `CLAUDE.md` § L'unica cosa che esce verso i non
+      amici.
+- [x] ~~**Tassonomie dinamiche.**~~ Fatto l'8 settembre 2026 (migrazione 020):
+      gruppi muscolari e attrezzatura sono tabelle vere, seminate una volta
+      dalla migrazione e tenute aggiornate dal pull; l'app le legge dalla
+      tabella e non piu' dalle sue costanti. Vedi `CLAUDE.md` § Il catalogo
+      comune, dal telefono.
+- [x] ~~**Le stringhe del § 5.1**~~, vedi § 5.1 qui sopra.
+- [x] ~~**L'interruttore IA lato app.**~~ Fuori dal perimetro iniziale di
+      questa fase, aggiunto il 9 settembre 2026 su richiesta a fase gia'
+      chiusa: `users.ai_enabled` arriva da `GET /api/me`, ogni punto
+      d'ingresso dell'AI resta visibile e toccabile, e senza il diritto il
+      tocco naviga alla pagina dei piani invece di eseguire l'azione
+      (`useAiGate`/`useAiScreenGate`, `src/hooks/useAiGate.ts`). **E' un
+      cartello, non una serratura** - la chiave Gemini sta nel bundle e l'app
+      chiama Gemini diretta, quindi si aggira ripacchettizzando l'APK - e lo
+      resta finche' le chiamate AI non passano dal backend (§ 3.1). Vedi
+      `CLAUDE.md` § AI.
 
 ### 5.4 Un avviso di deploy che morde una volta sola
 
@@ -383,6 +379,25 @@ che un utente vede oggi.
       Una produzione mal configurata passa comunque tutta la suite e fallisce
       al primo login vero: `php artisan test` verde non e' la prova che
       questa riga sia a posto.
+- [ ] **Il gestionale non e' deployato: il server di produzione gira ancora
+      una versione precedente alla Fase 1.** Verificato dall'esterno il 9
+      settembre 2026: su `kaltrack.martin-trajkovski.it`, `/admin` e
+      `/api/catalog/*` rispondono **404** - non "non autorizzato", proprio
+      "la rotta non esiste". Il backend e' vivo (Laravel risponde), ma senza
+      pannello ne' `/api/admin/*` ne' `/api/catalog/*`. Push non deploya
+      (`backend/README.md` § In produzione, decisione dell'utente perche'
+      esce dalla macchina): finche' non si deploya, il telefono non ha
+      nessun `/api/catalog/*` da interrogare, e il pull del catalogo comune
+      non ha mai toccato un server vero.
+
+      **Conseguenza piu' seria di questa, da tenere a mente prima del primo
+      deploy: nessun task della Fase 3 ha mai scambiato un byte con un server
+      vero.** Tutti e 1230 i test mockano `apiRequest`, contro un mock scritto
+      leggendo il controller a mano. Il pull incrementale, il cursore
+      composto, i tombstone, le proposte per uid e le foto pigre sono
+      corretti **contro quel mock**. Il primo contatto reale con l'ambiente
+      deployato sara' anche il primo momento in cui si scopre se il
+      contratto combacia davvero.
 
 ---
 
@@ -410,18 +425,17 @@ che un utente vede oggi.
       tutti a sola icona: TalkBack legge una schermata di pulsanti senza nome.
       Ultima priorita' per un'app personale, ma e' l'unica area senza
       copertura.
-- [ ] **Il catalogo alimenti si pubblica ma non si scarica.**
-      `importFoodCatalog` (`src/services/foodCatalog.ts`) e' scritta e non e'
-      chiamata da nessuna schermata. L'equivalente per gli esercizi,
-      `importCatalog`, sta dietro un pulsante in `ExercisesScreen`: per gli
-      alimenti quel pulsante non c'e', quindi le voci comuni escono da questo
-      telefono e non ci rientrano mai. Da cablare in `FoodsScreen` con le
-      stesse chiavi (`gym.imported_none`/`imported_some` hanno bisogno del
-      gemello lato alimenti).
+- [x] ~~Il catalogo alimenti si pubblica ma non si scarica.~~ Risolto dall'8
+      settembre 2026, sostituito invece che cablato: `importFoodCatalog` e
+      `importCatalog` (`foodCatalog.ts`/`exerciseCatalog.ts`) sono stati
+      ritirati insieme, e `catalogSync.ts` copre entrambi i cataloghi con lo
+      stesso bottone (`CloudDownload`) in `ExercisesScreen` e `FoodsScreen`.
+      Vedi § 5.3 e `CLAUDE.md` § Il catalogo comune, dal telefono.
 - [x] ~~Il catalogo non ha moderazione.~~ Risolto lato server il 7 settembre
       2026 dalla Fase 1 del gestionale (§ 5): una voce nasce proposta e un
-      amministratore la approva o la rifiuta da una coda di revisione. Quel
-      che resta aperto e' il lato app - § 5.1 e § 5.3.
+      amministratore la approva o la rifiuta da una coda di revisione. Il
+      lato app che restava aperto - § 5.1 e § 5.3 - e' chiuso anche lui
+      dall'8 settembre 2026.
 - [ ] **`src/i18n/locales/en.json` non ha ancora tutte le chiavi di
       `it.json`** (attrezzatura, storico peso/passi/misure/sessioni - le
       funzioni piu' recenti). Chi le usa in inglese vede la chiave grezza o il

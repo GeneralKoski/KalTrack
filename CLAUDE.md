@@ -112,7 +112,10 @@ Il layer `src/db/` è l'unico che conosce SQL:
 - `index.ts` — singleton `getDb()`, PRAGMA di connessione, `initDatabase()`.
 - `migrations/` — runner e migrazioni numerate.
 - `queries/` — funzioni tipizzate per dominio. **Le schermate non contengono
-  SQL.**
+  SQL.** `queries/taxonomies.ts` ha la stessa distinzione a due letture dei
+  tipi di pasto: `listTaxonomy` esclude i gruppi muscolari/attrezzatura
+  cancellati dal pannello (chi offre una scelta), `listAllTaxonomy` li
+  comprende (chi disegna l'etichetta di quel che c'e' gia').
 
 **`sqliteAdapter.ts` serializza le query su expo-sqlite.** Piu' chiamate non
 transazionali partite in parallelo (es. un `Promise.all` di query indipendenti
@@ -188,6 +191,17 @@ aggiunto a mano senza codice. Il nome vince anche a codici diversi - due righe
 con lo stesso nome in elenco sono indistinguibili. Sotto i tre caratteri non si
 interroga niente: "ri" restituisce mille prodotti e nessuno e' quello cercato.
 
+**La voce remota si ritrova dal `catalog_uid`**, dall'8 settembre 2026. Prima
+era il nome normalizzato, e il § L'unica cosa che esce verso i non amici
+spiega cosa costava.
+
+L'avvertenza contro il tenere in colonna un id del server **resta valida e non
+riguarda questa colonna**, ed e' una distinzione da tenere: un autoincrement
+su un secondo dispositivo punta alla riga di un altro catalogo, mentre `uid`
+e' una stringa stabile assegnata alla voce, il server e' uno solo, e la stessa
+voce ha lo stesso `uid` per chiunque. Un `uid` che dall'altra parte non esiste
+non risolve e basta, e la ricaduta sul nome lo ripesca al primo pull.
+
 ### Il codice a barre
 
 `FoodScanScreen`, aperta dall'icona nella barra di Alimenti. Fino al 2
@@ -224,6 +238,17 @@ passa - li azzerava a ogni salvataggio: aprire un prodotto arrivato
 dall'archivio, correggere una virgola e salvare gli portava via il codice, e da
 li' in poi `getFoodByBarcode` non lo trovava piu'. Nessun errore, nessun segno
 a schermo.
+
+**La stessa regola ha un gemello sull'inserimento, e i due non si confondono.**
+Il pull del catalogo comune (§ Il catalogo comune, dal telefono) scrive
+`barcode` e `off_id` quando **crea** una riga nuova da una voce di catalogo, e
+non li scrive mai quando **aggiorna** una riga esistente. Sull'aggiornamento
+c'e' un codice da proteggere, corretto a mano o gia' presente; sull'inserimento
+la riga non esiste ancora e non c'e' niente da proteggere - ometterli
+lascerebbe arrivare un alimento di catalogo senza codice a barre, cioe' non
+scansionabile: la scansione successiva non lo troverebbe in libreria e
+creerebbe un doppione da OpenFoodFacts, esattamente la classe di difetto che
+questa sezione esiste per chiudere.
 
 ### Le vie per aggiungere al diario
 
@@ -391,6 +416,13 @@ che sembrano dettagli e sono ognuna un difetto già pagato:
    che la sua unica ragione di esclusione era caduta: le foto dei progressi
    semplicemente non arrivavano sul secondo telefono, e niente lo diceva.
    `BACKUP_TABLES` aveva il controllo dalla Fase 3; qui mancava.
+
+   `muscle_groups` ed `equipment_types` (migrazione 020) sono in
+   `LOCAL_ONLY_TABLES`, e il motivo e' diverso dagli altri: non sono un dato
+   personale che non ha senso condividere, sono la copia locale di un elenco
+   che il server gia' pubblica per tutti (§ Il catalogo comune, dal telefono).
+   Sincronizzarle vorrebbe dire rispedire al server quel che lui stesso ha
+   appena mandato.
 6. **Un giro alla volta, e la guardia sta dentro `runSync`.** Stava in
    `syncScheduler`, che pero' e' uno dei tre chiamanti: `App.tsx` all'avvio e
    `AccountForm` all'accesso chiamano `runSync` per conto loro. All'avvio ne
@@ -545,13 +577,19 @@ Il testo che spiega la proposta sta **sopra** il campo del nome
 aver salvato. Senza account non compare, perche' senza account non esce
 niente.
 
-**Lato app la voce remota si ritrova dal nome normalizzato**, ed e' ancora vero
-oggi - ma solo perche' l'app non ha ancora ripreso in mano questo pezzo. E' la
-ragione per cui il server porta ora un `uid` stabile: un nome normalizzato non
-sopravvive a una rinomina fatta dal pannello - la voce rinominata smette di
-essere riconoscibile e il pull successivo la duplica invece di aggiornarla.
-Adottare `uid` come identita' lato app e' lavoro della Fase 3 del gestionale
-(`TODO.md` § 5.3), non fatto ancora.
+**Lato app l'identita' e' `catalog_uid`** (migrazione 019), e il pull e'
+incrementale: `src/services/catalogSync.ts` legge `/api/catalog/*` dal proprio
+cursore e riallinea le righe che ha gia' invece di inserire solo quel che
+manca. Il nome normalizzato e' la ricaduta di un giro solo, per le righe
+installate prima della 019: agganciata per nome, la riga riceve l'`uid` e dal
+giro dopo si aggancia per quello.
+
+Il catalogo scrive **solo i campi di catalogo** e **solo sulle righe che sono
+sue** - `is_custom = 0` per un esercizio, `source = 'seed'` per un alimento.
+`notes`, `dislike_level`, `is_banned`, `usage_count`, `is_favorite`, `barcode`
+e `off_id` non li scrive mai: sono giudizi personali, stato d'uso e identita',
+non la descrizione di una voce. Una voce tolta dal catalogo non si cancella,
+diventa dell'utente.
 
 ### Nomi utente
 
@@ -844,11 +882,80 @@ catalogo, ma un campo che oggi solo un amministratore riempie.
 **Aggiornare il seed non raggiunge chi ce l'ha gia'.** `applyExerciseSeeds`
 inserisce solo gli id mancanti e non tocca le righe esistenti, ed e' voluto:
 la scelta dell'utente vince, un esercizio vietato o cancellato non torna
-indietro. Oggi correggere il testo di un esercizio gia' installato vuol dire
-una migrazione che scriva **solo dove il campo e' ancora vuoto**, o non arriva
-a nessuno; da quando l'app consuma `/api/catalog/exercises` (Fase 3 del
-gestionale, `TODO.md` § 5.3), la via normale diventa il pull incrementale dal
-catalogo comune, non piu' una migrazione per ogni correzione.
+indietro. Correggere il testo di un esercizio gia' installato **non vuole piu'
+dire una migrazione**: l'app consuma `/api/catalog/exercises`, e lo fa il pull
+incrementale del catalogo comune, su una riga `is_custom = 0` - una migrazione
+resta necessaria solo per la riga che il pull non tocca mai, quella che
+l'utente ha reso propria (§ Il catalogo comune, dal telefono).
+
+### Il catalogo comune, dal telefono
+
+`src/services/catalogSync.ts`, dall'8 settembre 2026. Sostituisce
+`exerciseCatalog.ts`/`foodCatalog.ts` (ritirati insieme a lui): quelli
+leggevano tutto il catalogo a ogni giro e inserivano solo quel che mancava, e
+non potevano ne' aggiornare una riga gia' presente ne' seguire una rinomina -
+vedi § L'unica cosa che esce verso i non amici per il costo. Il commento in
+testa al file enuncia le tre regole per esteso; qui restano i **perche'** che
+non stanno nel codice.
+
+**Un'ora, non un giro a ogni avvio.** `CATALOG_WINDOW_MS` sotto quest'ora
+dall'ultimo giro riuscito non ne fa un altro. Il catalogo e' anagrafica
+comune che cambia quando un amministratore decide, non quando si registra una
+serie: un'ora basta a far arrivare una correzione in giornata e non pesa sul
+passaggio piu' frequente, il ritorno in primo piano - senza quella finestra,
+alternare due app avanti e indietro chiederebbe il catalogo a ogni passaggio.
+Il segnaposto si scrive **solo** se il giro e' arrivato davvero al server, e
+solo se **entrambi** i pull (esercizi e alimenti) ci sono arrivati: scriverlo a
+un giro parzialmente fallito chiuderebbe la meta' fallita per un'ora, cioe' il
+difetto che la finestra esiste per evitare.
+
+**Si salva `cursor` e non `next`.** Il primo dice dove siamo arrivati, il
+secondo se c'e' altro. Salvando `next`, l'ultima pagina - che non e' mai piena
+- non avrebbe avanzato il segnaposto, e la coda del catalogo si sarebbe
+riletta a ogni giro in silenzio. Si salva a ogni pagina e non alla fine del
+giro: un giro interrotto a meta' riprende da dove era, invece di rifare tutto.
+
+**Un giro alla volta, e la guardia sta dentro `syncCatalog`** - la stessa
+regola 6 della sincronizzazione dati, per lo stesso motivo: il catalogo ha tre
+inneschi (avvio, ritorno in primo piano, bottone su due schermate), e mettere
+la guardia in uno solo li lascerebbe liberi di scavalcarla. Un secondo
+chiamante **aggancia** il giro gia' in corso invece di ricevere uno zero
+finto, cosi' il bottone racconta l'esito del giro che sta davvero girando.
+
+**Le foto del catalogo hanno una cartella loro**, `CATALOG_PHOTOS_DIR` e non
+`PHOTOS_DIR` (`src/services/photoSync.ts`). Sono comuni a tutti gli iscritti e
+vivono sul server sotto un percorso diverso da quello per utente
+(`/catalog/images/*`, non `/images/{utente}/*`): chiederle al percorso
+sbagliato sarebbe un 404 garantito. Nessun `persistPhoto` scrive mai in questa
+cartella - le foto di catalogo arrivano solo dal pannello - quindi
+`uploadPendingPhotos` e `collectOrphanPhotos` non la toccano: non c'e' niente
+da caricare da li' ne' da raccogliere come orfano. Come per le foto normali, il
+percorso arriva subito col pull e i byte solo quando si guarda
+(`ensureLocalPhoto`): un catalogo di duecento esercizi non scarica duecento
+immagini per un giro che serve solo ad aggiornare due nomi.
+
+**Un ripristino da backup risemina la tassonomia.** Ogni backup precedente
+alla migrazione 020 non porta ne' `muscle_groups` ne' `equipment_types`
+(`BACKUP_TABLES` le svuota e reinserisce `payload.tables[table] ?? []`, cioe'
+niente), e `runMigrations` e' gated su `PRAGMA user_version`: quella
+migrazione non riparte una seconda volta. Senza rimedio le due tabelle
+resterebbero vuote per sempre - cinque selettori vuoti e l'assistente che
+rifiuta anche "petto" - e senza account non c'e' nemmeno un pull che le
+ripari. `applyTaxonomySeeds` (`src/db/seed/index.ts`) e' lo stesso contratto
+di `applyExerciseSeeds`: inserisce solo gli slug mancanti e non tocca le righe
+gia' presenti, nemmeno se il pannello le ha rinominate. Gira **sia** dopo un
+ripristino **sia** a ogni avvio, prima che qualunque schermata legga la
+tabella - e **non** resuscita uno slug che un amministratore ha cancellato: un
+cancellato conta come presente e non torna.
+
+**`src/db/seed/taxonomies.ts` e' una copia a mano dei valori della migrazione
+020**, per lo stesso motivo di `src/db/seed/exercises.ts`: la migrazione gira
+una volta sola e non puo' riseminare, `applyTaxonomySeeds` deve poter girare
+quante volte serve. Un test confronta tutte e 23 le righe in entrambe le
+lingue contro le costanti: senza, una divergenza fra le due copie - proprio
+nelle etichette che l'utente legge dopo un ripristino - sarebbe invisibile
+finche' qualcuno non apre quella schermata su un telefono che ha appena perso
+la tassonomia.
 
 ### L'attrezzatura
 
@@ -880,6 +987,20 @@ Vale la pena ricordare **perche' l'elenco e' per eccezione** (§
 tolto a mano. Su un telefono appena installato il risultato e' quindi
 l'attrezzatura completa - cioe' esattamente il vecchio preset predefinito, e
 nessuno vede un comportamento diverso da prima finche' non dichiara qualcosa.
+
+**Dall'8 settembre 2026 ci sono due letture, ed e' la stessa distinzione dei
+tipi di pasto** (§ I pasti che si possono usare): gruppi muscolari e
+attrezzatura sono ora tabelle di tassonomia, e un amministratore ci puo'
+cancellare uno slug. `listAvailableEquipment()` esclude i cancellati ed e' la
+lettura di chi **offre una scelta** - i picker, `create_exercise`;
+`listUsableEquipment()` li comprende ed e' la lettura di chi **disegna
+esercizi che esistono gia'** - `suggestAlternatives`, che ci era cascato
+usando la prima: un amministratore che cancella "panca" dalla tassonomia non
+deve togliere in silenzio, dalle alternative, gli esercizi con la panca che
+l'utente non ha mai smesso di avere. Entrambe restano per eccezione, e
+continuano a escludere quel che l'utente ha tolto a mano. Chiunque aggiunga
+una lettura della tassonomia deve farsi la stessa domanda dei tipi di pasto:
+sto offrendo una scelta o sto disegnando quel che c'e' gia'?
 
 ### I carichi di una scheda
 
@@ -1362,6 +1483,13 @@ Valgono le guide Dieffetech `docs/react-native/`:
   `useSafeAreaInsets()`.
 - Ogni testo visibile via `t("chiave")`, chiavi in `src/i18n/locales/it.json`
   e `en.json` (vedi § Lingua).
+- **Un'etichetta di gruppo muscolare o di attrezzatura viene dallo store, non
+  da `t()`.** Sono tassonomie dinamiche (§ Il catalogo comune, dal telefono):
+  un amministratore ne aggiunge una dal pannello senza un rilascio dell'app, e
+  una chiave i18n fissa non la vedrebbe mai. Chiunque aggiunga un punto che
+  disegna una di queste etichette si faccia la stessa domanda di
+  `listAvailableEquipment`/`listUsableEquipment`: sto offrendo una scelta o sto
+  disegnando quel che c'e' gia'?
 - **Un campo con errore di validazione prende il bordo rosso, mai un testo
   sotto il campo.** Il messaggio va nel toast unico che `DfForm` mostra al
   fallimento della validazione (`handleInvalid`); i componenti `form/` non
@@ -1450,6 +1578,25 @@ dall'utente da Impostazioni e con la precedenza su quella dell'app: e' stata
 tolta il 3 settembre 2026 perche' al rilascio pubblico si paga a consumo e non
 c'e' piu' una quota da scavalcare. Con lei sono spariti `aiKeyStore`, il campo
 in Impostazioni e la pagina che lo conteneva.
+
+**Dal 9 settembre 2026 l'app legge `users.ai_enabled`, ed e' un cartello e non
+una serratura** - la stessa distinzione di sopra, letta al contrario. Il
+pannello puo' spegnere l'AI per un utente (`GET /api/me` la manda gia' dalla
+Fase 1 del gestionale), e ogni punto d'ingresso resta **visibile e toccabile
+come sempre**: senza il diritto il tocco naviga alla pagina dei piani
+(`useAiGate`/`useAiScreenGate`, `src/hooks/useAiGate.ts`) invece di eseguire
+l'azione. Senza account l'AI e' spenta - stesso cartello, stesso motivo.
+Questo NON e' un controllo di accesso: la chiave Gemini sta nel bundle e l'app
+la chiama diretta, quindi si aggira ripacchettizzando l'APK. E' UX e
+preparazione al giorno in cui le chiamate passeranno dal backend (§ La quota
+qui sotto e `TODO.md` § 3.1): quel giorno il controllo vero sara' una riga nel
+proxy, non qui.
+
+L'ultimo valore noto di `aiEnabled` si persiste in `LOCAL_ONLY_SETTINGS`
+(`accountStore.ts`), perche' `profile` non e' persistito e offline sarebbe
+`null`: senza quel valore un utente con diritto, in palestra senza campo,
+vedrebbe negata un'AI per cui paga - il difetto esatto che la regola
+local-first di questo repo esiste per impedire.
 
 ### La quota, che e' il vincolo vero
 
