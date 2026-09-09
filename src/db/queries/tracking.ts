@@ -23,7 +23,7 @@ export async function getSteps(date: string): Promise<StepLogRow | null> {
 export async function setSteps(
   date: string,
   steps: number,
-  source: StepSource = "manual",
+  source?: StepSource,
 ): Promise<void> {
   if (steps < 0) throw new Error("I passi non possono essere negativi");
 
@@ -34,12 +34,26 @@ export async function setSteps(
      VALUES (?, ?, ?, ?, ?, ?)
      ON CONFLICT(date) DO UPDATE SET
        steps = excluded.steps,
-       source = excluded.source,
+       -- Chi corregge un valore senza dichiarare una sorgente (lo storico,
+       -- a due argomenti) non tocca quella gia' scritta: senza il COALESCE un
+       -- passo arrivato da Health Connect o dalla voce si ritroverebbe
+       -- 'manual' in silenzio. Il parametro va legato di nuovo qui, grezzo
+       -- (non passato dentro VALUES), perche' una volta dentro excluded ha
+       -- gia' preso il difetto di 'manual' scritto sopra per il solo INSERT.
+       source = COALESCE(?, step_logs.source),
        -- Il giorno torna vivo: senza, dopo una cancellazione l'upsert
        -- aggiornerebbe i numeri su una riga che nessuna lettura vede piu'.
        deleted_at = NULL,
        updated_at = excluded.updated_at`,
-    [newId(), date, Math.round(steps), source, now, now],
+    [
+      newId(),
+      date,
+      Math.round(steps),
+      source ?? "manual",
+      now,
+      now,
+      source ?? null,
+    ],
   );
 }
 
@@ -94,8 +108,12 @@ export async function setWeight(
      VALUES (?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(date) DO UPDATE SET
        weight_kg = excluded.weight_kg,
-       body_fat_pct = excluded.body_fat_pct,
-       note = excluded.note,
+       -- Chi corregge solo il peso (lo storico, a due argomenti) non tocca
+       -- grasso e nota già scritti: senza il COALESCE l'upsert li
+       -- azzererebbe in silenzio, perché bodyFatPct/note di default a null
+       -- sono indistinguibili da "cancella questo campo".
+       body_fat_pct = COALESCE(excluded.body_fat_pct, weight_logs.body_fat_pct),
+       note = COALESCE(excluded.note, weight_logs.note),
        -- Come per i passi: reinserire un peso riporta in vita il giorno.
        deleted_at = NULL,
        updated_at = excluded.updated_at`,

@@ -42,6 +42,19 @@ describe("setSteps", () => {
   });
 
   /**
+   * `StepsHistoryScreen` corregge un giorno chiamando `setSteps(date, value)`
+   * a due argomenti: senza questa garanzia, correggere un valore arrivato da
+   * Health Connect o dalla voce ne riscriverebbe la sorgente a "manual" in
+   * silenzio, perdendo la provenienza di un dato che nessuno intendeva
+   * toccare.
+   */
+  it("correggere il valore senza indicare una sorgente non tocca quella già scritta", async () => {
+    await setSteps("2026-08-28", 8000, "health");
+    await setSteps("2026-08-28", 8200);
+    expect((await getSteps("2026-08-28"))?.source).toBe("health");
+  });
+
+  /**
    * `updated_at` e' quel che decide se una correzione viaggia: il push
    * seleziona per quella colonna, e chi corregge il valore di un giorno gia'
    * scritto (§ Storico passi in CLAUDE.md) si aspetta che l'altro telefono lo
@@ -126,6 +139,21 @@ describe("setWeight", () => {
 
   it("rifiuta un peso non positivo", async () => {
     await expect(setWeight("2026-08-28", 0)).rejects.toThrow();
+  });
+
+  /**
+   * `WeightHistoryScreen` corregge un giorno chiamando `setWeight(date, value)`
+   * a due argomenti: senza questa garanzia, correggere solo il peso di un
+   * giorno che portava già percentuale di grasso e nota le cancellerebbe in
+   * silenzio, senza un modo per tornare indietro.
+   */
+  it("correggere il peso senza indicare grasso o nota non li cancella", async () => {
+    await setWeight("2026-08-28", 78.5, 18, "dopo la corsa");
+    await setWeight("2026-08-28", 78.8);
+    const row = await getWeight("2026-08-28");
+    expect(row?.weight_kg).toBe(78.8);
+    expect(row?.body_fat_pct).toBe(18);
+    expect(row?.note).toBe("dopo la corsa");
   });
 
   /**

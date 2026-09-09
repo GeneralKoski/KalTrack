@@ -185,8 +185,6 @@ describe("StepsHistoryScreen, il tocco su una riga", () => {
     });
     expect(latestHistoryListProps().selected.has(dateA)).toBe(true);
 
-    const sheetCallsBefore = mockMetricEntrySheetProps.mock.calls.length;
-
     // Un tocco su un'altra riga, ancora in selezione: deve aggiungerla al
     // gruppo, non aprire il foglio di modifica su di lei.
     act(() => {
@@ -199,9 +197,6 @@ describe("StepsHistoryScreen, il tocco su una riga", () => {
 
     // Il foglio puo' essere stato ri-renderizzato (lo schermo intero lo e'),
     // ma le sue prop non devono essersi mai riempite per questa riga.
-    expect(mockMetricEntrySheetProps.mock.calls.length).toBeGreaterThanOrEqual(
-      sheetCallsBefore,
-    );
     expect(latestSheetProps().initialDate).toBeUndefined();
     expect(latestSheetProps().initialValue).toBeUndefined();
 
