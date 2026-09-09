@@ -11,6 +11,7 @@ import {
   getFoodByBarcode,
   incrementFoodUsage,
   searchFoods,
+  searchMyFoods,
   toggleFoodFavorite,
   updateFood,
 } from "@/src/db/queries/foods";
@@ -119,6 +120,72 @@ describe("searchFoods", () => {
     const results = await searchFoods("");
     expect(results[0].id).toBe(yogurt.id);
     expect(results[1].id).toBe(rice.id);
+  });
+});
+
+describe("la ricerca trova anche il marchio", () => {
+  /**
+   * Il difetto segnalato: "Formaggio spalmabile" marchio "milbona" era
+   * invisibile a chi scriveva "milbona" - la ricerca guardava solo
+   * `name_norm`. Tre casi, e il terzo e' quello che una WHERE allargata con
+   * poca cura rompe piu' spesso: `brand` e' nullable, e `NULL LIKE '%x%'` e'
+   * `NULL`, non falso.
+   */
+  beforeEach(async () => {
+    await createFood({
+      name: "Formaggio spalmabile",
+      brand: "Milbona",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 250 },
+    });
+    await createFood({
+      name: "Yogurt alla frutta",
+      brand: "Milbona",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 90 },
+    });
+    await createFood(chickenInput); // senza marchio (brand null)
+  });
+
+  it("il marchio trova il prodotto e tutti gli altri dello stesso marchio", async () => {
+    const results = await searchFoods("milbona");
+    expect(results.map((r) => r.name).sort()).toEqual([
+      "Formaggio spalmabile",
+      "Yogurt alla frutta",
+    ]);
+  });
+
+  it("il nome continua a trovare", async () => {
+    const results = await searchFoods("spalmabile");
+    expect(results.map((r) => r.name)).toEqual(["Formaggio spalmabile"]);
+  });
+
+  it("un alimento senza marchio non sparisce dalla ricerca per nome", async () => {
+    const results = await searchFoods("pollo");
+    expect(results.map((r) => r.name)).toEqual(["Petto di pollo"]);
+  });
+
+  it("non ritorna un alimento cancellato che porta quel marchio", async () => {
+    const results = await searchFoods("milbona");
+    const id = results.find((r) => r.name === "Formaggio spalmabile")!.id;
+    await deleteFood(id);
+
+    expect((await searchFoods("milbona")).map((r) => r.name)).toEqual([
+      "Yogurt alla frutta",
+    ]);
+  });
+
+  it("searchMyFoods trova per marchio ed esclude comunque i seed", async () => {
+    await createFood({
+      name: "Formaggio del seed",
+      brand: "Milbona",
+      source: "seed",
+      nutrients: EMPTY_NUTRIENTS,
+    });
+
+    const results = await searchMyFoods("milbona");
+    expect(results.map((r) => r.name).sort()).toEqual([
+      "Formaggio spalmabile",
+      "Yogurt alla frutta",
+    ]);
   });
 });
 

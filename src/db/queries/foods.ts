@@ -12,7 +12,14 @@ const SELECT_FOOD = `
 const ORDER = "ORDER BY is_favorite DESC, usage_count DESC, name ASC LIMIT ?";
 
 /**
- * Ricerca per sottostringa sul nome normalizzato (accenti e maiuscole ignorati).
+ * Ricerca per sottostringa sul nome normalizzato (accenti e maiuscole ignorati)
+ * o sul marchio grezzo: scrivere "milbona" deve trovare tutti i prodotti di
+ * quel marchio, non solo un alimento che si chiama cosi'. `LIKE` di SQLite e'
+ * gia' case-insensitive su ASCII, quindi non serve un `brand_norm` - solo gli
+ * accenti nel marchio non si troverebbero, e i marchi che contano (Milbona,
+ * Barilla, Coop...) sono ASCII. Le due condizioni stanno fra parentesi: senza,
+ * `deleted_at IS NULL AND name_norm LIKE ? OR brand LIKE ?` per precedenza
+ * ritornerebbe anche i cancellati che portano quel marchio.
  * Termine vuoto = tutti. Ordine: preferiti, poi più usati, poi alfabetico, così
  * gli alimenti che si mangiano davvero salgono in cima senza scorrere.
  */
@@ -27,8 +34,8 @@ export async function searchFoods(
     return db.getAllAsync<FoodRow>(`${SELECT_FOOD} ${ORDER}`, [limit]);
   }
   return db.getAllAsync<FoodRow>(
-    `${SELECT_FOOD} AND name_norm LIKE ? ${ORDER}`,
-    [`%${normalized}%`, limit],
+    `${SELECT_FOOD} AND (name_norm LIKE ? OR brand LIKE ?) ${ORDER}`,
+    [`%${normalized}%`, `%${term.trim()}%`, limit],
   );
 }
 
@@ -53,8 +60,8 @@ export async function searchMyFoods(
     );
   }
   return db.getAllAsync<FoodRow>(
-    `${SELECT_FOOD} AND source != 'seed' AND name_norm LIKE ? ${ORDER}`,
-    [`%${normalized}%`, limit],
+    `${SELECT_FOOD} AND source != 'seed' AND (name_norm LIKE ? OR brand LIKE ?) ${ORDER}`,
+    [`%${normalized}%`, `%${term.trim()}%`, limit],
   );
 }
 
