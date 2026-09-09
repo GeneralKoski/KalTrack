@@ -1262,18 +1262,28 @@ Quattro cose da non rompere:
 - **La migrazione semina l'ORDINE ALFABETICO, non quello di creazione.** Era
   per nome che l'elenco si disegnava fino a ieri: seminare su `created_at`
   riscriverebbe l'elenco dell'utente nell'aggiornamento stesso che introduce il
-  trascinamento. Seminato per nome, l'aggiornamento e' invisibile e solo un
-  trascinamento cambia qualcosa. E' anche lo stesso calcolo su due
-  dispositivi - i nomi sono gli stessi - quindi il seme non tocca
-  `updated_at`: non e' una modifica dell'utente.
+  trascinamento. Seminato per nome, l'aggiornamento e' invisibile **a chi ha
+  gia' delle schede** - il suo elenco resta quello di ieri e solo un
+  trascinamento lo cambia. Su un'installazione nuova non c'e' niente da
+  seminare: l'ordine lo scrive `createRoutine`, quindi l'elenco segue la
+  creazione dove prima seguiva il nome. E' il comportamento giusto per un
+  elenco che si trascina - una scheda nuova si accoda invece di riordinare
+  l'elenco da sola. Il seme e' anche lo stesso calcolo su due dispositivi (i
+  nomi sono gli stessi), e per questo non tocca `updated_at`: non e' una
+  modifica dell'utente.
 - **Il riordino scrive `updated_at` su ogni riga.** `routines` sta in
   `SYNCED_TABLES` e il push seleziona per `updated_at`: senza, il riordino non
   arriverebbe mai sul secondo telefono. E' il difetto che `reorderReminders` ha
   avuto dal giorno in cui e' nato, e c'e' un test che lo vieta qui.
-- **Il nome resta come secondo criterio.** Due schede sulla stessa posizione -
-  un riordino interrotto, una riga arrivata dalla sincronizzazione - devono
-  uscire in un ordine stabile, o l'elenco cambierebbe fra due letture senza che
-  nessuno l'abbia toccato.
+- **Il nome resta come secondo criterio, e il caso che lo rende necessario e'
+  un ripristino da backup.** Un backup precedente alla 021 riporta righe che
+  quella colonna non hanno mai avuto - restano tutte a `DEFAULT 0`, perche'
+  `runMigrations` e' gated su `PRAGMA user_version` e la 021 non riparte. Senza
+  il ripiego l'elenco uscirebbe in ordine di rowid, cioe' di creazione: chi
+  ripristina si troverebbe le schede rimescolate rispetto al telefono di
+  prima. Lo stesso vale per due righe a pari posizione arrivate dalla
+  sincronizzazione. C'e' un test, perche' per un giorno non c'e' stato e
+  togliere quelle due parole lasciava la suite verde.
 - **Una scheda nuova nasce in fondo** (`MAX(position) + 1`, cancellate
   comprese): chi ha messo in ordine le sue schede non se ne trova una nuova
   davanti a quelle che ha ordinato.

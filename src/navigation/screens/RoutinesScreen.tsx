@@ -28,7 +28,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { Gesture } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
   useAnimatedReaction,
@@ -134,15 +134,23 @@ function DraggableRoutine({
         runOnJS(handleSwap)();
       }
     })
+    /*
+      LO STATO SI CHIUDE QUI, NON NELLA CALLBACK DELL'ANIMAZIONE. Appenderla a
+      `finished` vuol dire che un atterraggio interrotto - un secondo dito, un
+      valore riscritto da fuori mentre la riga scende - lascia `isDragging` su
+      true, lo scorrimento della pagina spento e il riordino mai scritto sul
+      database: la schermata resta bloccata e l'ordine appena scelto si perde
+      senza un segno. Il gesto e' finito nel momento in cui `onFinalize`
+      scatta, e l'animazione e' solo il modo in cui la riga si posa.
+    */
     .onFinalize(() => {
       if (!isDragging.value) return;
-      const target = (positions.value[id] ?? 0) * itemHeight.value;
-      translateY.value = withTiming(target, { duration: 160 }, (finished) => {
-        if (finished) {
-          isDragging.value = false;
-          runOnJS(handleDragEnd)(positions.value);
-        }
+      isDragging.value = false;
+      const order = positions.value;
+      translateY.value = withTiming((order[id] ?? 0) * itemHeight.value, {
+        duration: 160,
       });
+      runOnJS(handleDragEnd)(order);
     });
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -155,39 +163,43 @@ function DraggableRoutine({
   }));
 
   return (
-    <GestureDetector gesture={panGesture}>
-      {/*
-        La riga e' nuda in elenco, ma quella in mano prende uno sfondo: su
-        fondo trasparente il trascinamento sembrerebbe una riga che si
-        disallinea, non una che si solleva. Sfondo e raggio non cambiano
-        l'altezza, quindi la riga non sussulta nel momento in cui la si prende.
-      */}
-      <Animated.View
-        style={[
-          styles.dragItem,
-          dragging && [
-            styles.draggingRow,
-            {
-              backgroundColor: colors.surface,
-              shadowColor: theme.colors.black,
-              shadowOpacity: isDark ? 0.7 : 0.25,
-            },
-          ],
-          animatedStyle,
-        ]}
-      >
-        <RoutineListItem
-          routine={entry.routine}
-          dayCount={entry.dayCount}
-          onPress={onPress}
-          onActivate={onActivate}
-          onDelete={onDelete}
-        />
-        {last || dragging ? null : (
-          <View style={[styles.separator, { backgroundColor: colors.border }]} />
-        )}
-      </Animated.View>
-    </GestureDetector>
+    /*
+      La riga e' nuda in elenco, ma quella in mano prende uno sfondo: su fondo
+      trasparente il trascinamento sembrerebbe una riga che si disallinea, non
+      una che si solleva. Sfondo e raggio non cambiano l'altezza, quindi la
+      riga non sussulta nel momento in cui la si prende.
+
+      Quel che si muove e' TUTTA la riga, ma il gesto lo raccoglie il corpo:
+      il `GestureDetector` sta dentro `RoutineListItem`, o una pressione lenta
+      sul cerchio "attiva" o sul cestino diventerebbe un trascinamento invece
+      di premere il bottone.
+    */
+    <Animated.View
+      style={[
+        styles.dragItem,
+        dragging && [
+          styles.draggingRow,
+          {
+            backgroundColor: colors.surface,
+            shadowColor: theme.colors.black,
+            shadowOpacity: isDark ? 0.7 : 0.25,
+          },
+        ],
+        animatedStyle,
+      ]}
+    >
+      <RoutineListItem
+        routine={entry.routine}
+        dayCount={entry.dayCount}
+        dragGesture={panGesture}
+        onPress={onPress}
+        onActivate={onActivate}
+        onDelete={onDelete}
+      />
+      {last || dragging ? null : (
+        <View style={[styles.separator, { backgroundColor: colors.border }]} />
+      )}
+    </Animated.View>
   );
 }
 

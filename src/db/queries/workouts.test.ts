@@ -223,6 +223,28 @@ describe("reorderRoutines", () => {
    * deve restare completo e stabile - non perdere una riga e non cambiare
    * ordine fra due letture - e un riordino successivo lo rimette in fila.
    */
+  /**
+   * IL RIPIEGO `, name ASC` NON E' DECORATIVO, e questo e' il caso che lo
+   * rende necessario: un ripristino da un backup precedente alla 021 riporta
+   * righe che quella colonna non hanno mai avuto, quindi restano tutte a
+   * `DEFAULT 0` - la migrazione non riparte, e' gated su `PRAGMA
+   * user_version`. Senza il ripiego l'elenco uscirebbe in ordine di rowid,
+   * cioe' di creazione: chi ripristina un backup si troverebbe le schede
+   * rimescolate rispetto a come le vedeva sul telefono di prima.
+   */
+  it("a posizioni pari l'ordine e' alfabetico, non quello di creazione", async () => {
+    const zumba = await createRoutine({ ...pushDay(), name: "Zumba" });
+    const alfa = await createRoutine({ ...pushDay(), name: "Alfa" });
+    const mezzo = await createRoutine({ ...pushDay(), name: "Mezzo" });
+    await db.runAsync("UPDATE routines SET position = 0");
+
+    expect((await listRoutines()).map((r) => r.id)).toEqual([
+      alfa,
+      mezzo,
+      zumba,
+    ]);
+  });
+
   it("una posizione duplicata non manda in crisi l'elenco", async () => {
     const [first, second, third] = await threeRoutines();
     await db.runAsync("UPDATE routines SET position = 0");

@@ -183,7 +183,10 @@ export async function createRoutine(input: RoutineInput): Promise<string> {
   await db.withTransactionAsync(async () => {
     // In fondo all'elenco, non in cima: chi ha riordinato le sue schede non
     // se ne trova una nuova davanti a quelle che ha messo in ordine. Il
-    // massimo comprende anche le cancellate, cosi' la posizione resta unica.
+    // massimo comprende anche le cancellate, cosi' una scheda nuova non prende
+    // il numero che una cancellata tiene ancora - una cancellata puo' tornare
+    // (un ripristino, una riga in arrivo dalla sincronizzazione), e tornerebbe
+    // esattamente sopra di lei.
     await db.runAsync(
       `INSERT INTO routines (id, name, is_active, notes, generated_by_ai,
          position, created_at, updated_at)
