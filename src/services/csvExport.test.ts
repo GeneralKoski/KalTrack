@@ -262,6 +262,26 @@ describe("export del diario", () => {
     const rows = parseCsv(await buildDatasetCsv("diary"));
     expect(rows).toHaveLength(1);
   });
+
+  /**
+   * Conseguenza della correzione a TodayScreen.tsx: una voce libera scritta a
+   * mano ora si salva con `isEstimated: false` (prima era sempre `true`), e
+   * qui si vede la stessa cosa da un altro lato - la colonna "stimato" del
+   * CSV, che prima diceva "sì" anche per un piatto digitato a mano.
+   */
+  it("una voce libera scritta a mano esporta \"stimato\" no", async () => {
+    await addFreeEntry({
+      date: "2026-08-20",
+      mealTypeId: MEAL_TYPE_IDS.lunch,
+      label: "Piatto scritto a mano",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 400 },
+      isEstimated: false,
+    });
+
+    const rows = parseCsv(await buildDatasetCsv("diary"));
+    const headers = rows[0];
+    expect(rows[1][headers.indexOf("stimato")]).toBe("no");
+  });
 });
 
 describe("export di peso e passi", () => {
