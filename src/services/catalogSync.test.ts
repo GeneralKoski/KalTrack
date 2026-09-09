@@ -553,6 +553,51 @@ describe("pullExercises, il cursore", () => {
   });
 
   /**
+   * F7 della review finale. `readCursor` accetta `afterId` solo come numero
+   * JSON e niente lato server lo garantisce: su un driver che restituisse
+   * `id` come stringa (PDO MySQL lo fa di serie) la risposta porterebbe
+   * `"afterId": "42"`, e scritto cosi' `readCursor` lo rifiuterebbe al giro
+   * dopo - il pull ripartirebbe da zero **per sempre**, in silenzio. Le cifre
+   * si convertono, com'e' gia' la regola del contatore della
+   * sincronizzazione.
+   */
+  it("un `afterId` in cifre dentro una stringa si salva come numero", async () => {
+    mockApiRequest.mockResolvedValue({
+      data: [],
+      cursor: { since: "2026-09-08T10:00:00+00:00", afterId: "42" },
+      next: null,
+    });
+
+    await pullExercises();
+
+    expect(
+      JSON.parse((await getSetting(CATALOG_EXERCISES_CURSOR)) ?? "null"),
+    ).toEqual({ since: "2026-09-08T10:00:00+00:00", afterId: 42 });
+  });
+
+  /**
+   * Qualunque altra forma non si scrive, e si annota: un cursore inventato
+   * salterebbe righe che il server non rimanderebbe piu'. Non scrivere niente
+   * costa al massimo di rileggere la stessa pagina, che e' idempotente.
+   */
+  it("un `afterId` che non e' un numero non si salva affatto", async () => {
+    const warn = jest.spyOn(logger, "warn").mockImplementation(() => {});
+    mockApiRequest.mockResolvedValue({
+      data: [],
+      cursor: { since: "2026-09-08T10:00:00+00:00", afterId: null },
+      next: null,
+    });
+
+    await pullExercises();
+
+    expect(await getSetting(CATALOG_EXERCISES_CURSOR)).toBeNull();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("cursore inutilizzabile"),
+    );
+    warn.mockRestore();
+  });
+
+  /**
    * La resistenza che il commento in `pullExercises` promette: il cursore si
    * scrive a OGNI pagina, non alla fine del giro. Se la seconda pagina fallisce,
    * quella della prima deve essere gia' sul disco - altrimenti un giro

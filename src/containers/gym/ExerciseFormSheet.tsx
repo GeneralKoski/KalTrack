@@ -15,6 +15,7 @@ import {
   submitExerciseToCatalog,
 } from "@/src/services/catalogSync";
 import { useAccountStore } from "@/src/stores/accountStore";
+import { defaultSlug } from "@/src/domain/taxonomy";
 import { useTaxonomyStore } from "@/src/stores/taxonomyStore";
 import { theme } from "@/src/styles";
 import {
@@ -95,13 +96,18 @@ export const ExerciseFormSheet = forwardRef<
   // il modulo si presenterebbe vuoto.
   const fillFromEditing = useCallback(() => {
     setName(editing?.name ?? "");
-    setMuscleGroup(editing?.muscle_group ?? DEFAULT_MUSCLE_GROUP);
+    // `defaultSlug` e non il letterale: `DEFAULT_MUSCLE_GROUP` e' uno slug
+    // del seme che un amministratore puo' ritirare, e il modulo lo mostrerebbe
+    // selezionato mentre l'elenco che disegna - `gruppi`, cioe' i vivi - non
+    // lo contiene. Salvando scriverebbe in colonna uno slug ritirato, che
+    // `create_exercise` rifiuta dall'altra porta (F8).
+    setMuscleGroup(editing?.muscle_group ?? defaultSlug(gruppi, DEFAULT_MUSCLE_GROUP));
     setSecondary(editing ? exerciseSecondary(editing) : []);
     setEquipment(editing ? exerciseEquipment(editing) : []);
     setPhotoUri(editing?.photo_uri ?? null);
     setInstructions(editing?.instructions ?? "");
     setView("form");
-  }, [editing]);
+  }, [editing, gruppi]);
 
   useEffect(() => {
     fillFromEditing();

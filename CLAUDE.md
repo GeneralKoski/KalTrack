@@ -112,10 +112,15 @@ Il layer `src/db/` è l'unico che conosce SQL:
 - `index.ts` — singleton `getDb()`, PRAGMA di connessione, `initDatabase()`.
 - `migrations/` — runner e migrazioni numerate.
 - `queries/` — funzioni tipizzate per dominio. **Le schermate non contengono
-  SQL.** `queries/taxonomies.ts` ha la stessa distinzione a due letture dei
-  tipi di pasto: `listTaxonomy` esclude i gruppi muscolari/attrezzatura
-  cancellati dal pannello (chi offre una scelta), `listAllTaxonomy` li
-  comprende (chi disegna l'etichetta di quel che c'e' gia').
+  SQL.** `queries/taxonomies.ts` ha una lettura sola, `listAllTaxonomy`
+  (tutti, cancellati compresi): la distinzione a due letture dei tipi di pasto
+  applicata alle tassonomie **vive nello store** e non nelle query -
+  `taxonomyStore.hydrate()` ricava dallo stesso elenco `muscleGroups`/
+  `equipment` per chi disegna l'etichetta di quel che c'e' gia' e
+  `liveMuscleGroups`/`liveEquipment` per chi offre una scelta. C'e' stata una
+  `listTaxonomy` che filtrava in SQL, ritirata il 9 settembre 2026: nessun
+  consumatore la chiamava e teneva la regola scritta in una funzione che
+  nessuno esegue.
 
 **`sqliteAdapter.ts` serializza le query su expo-sqlite.** Piu' chiamate non
 transazionali partite in parallelo (es. un `Promise.all` di query indipendenti
@@ -1016,7 +1021,11 @@ nessuno vede un comportamento diverso da prima finche' non dichiara qualcosa.
 tipi di pasto** (§ I pasti che si possono usare): gruppi muscolari e
 attrezzatura sono ora tabelle di tassonomia, e un amministratore ci puo'
 cancellare uno slug. `listAvailableEquipment()` esclude i cancellati ed e' la
-lettura di chi **offre una scelta** - i picker, `create_exercise`;
+lettura di chi **offre una scelta**, e il suo unico chiamante e'
+`GenerateRoutineScreen` - i selettori e `create_exercise` fanno la stessa
+scelta leggendo `liveEquipment` dallo store, che e' dove la distinzione vive
+per le tassonomie (§ Il layer `src/db/`); queste due query sono l'altra meta'
+della domanda, quella sull'attrezzatura che l'utente ha tolto a mano.
 `listUsableEquipment()` li comprende ed e' la lettura di chi **disegna
 esercizi che esistono gia'** - `suggestAlternatives`, che ci era cascato
 usando la prima: un amministratore che cancella "panca" dalla tassonomia non

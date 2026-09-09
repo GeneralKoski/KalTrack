@@ -1,5 +1,5 @@
 import type { TaxonomyRow } from "@/src/db/queries/taxonomies";
-import { knownSlugs, taxonomyLabel } from "@/src/domain/taxonomy";
+import { defaultSlug, knownSlugs, taxonomyLabel } from "@/src/domain/taxonomy";
 
 const riga = (over: Partial<TaxonomyRow> = {}): TaxonomyRow => ({
   slug: "petto",
@@ -47,5 +47,37 @@ describe("knownSlugs", () => {
     const righe = [riga(), riga({ slug: "avambracci", deleted_at: "2026-09-08T09:00:00+00:00" })];
     expect(knownSlugs(righe).has("avambracci")).toBe(true);
     expect(knownSlugs(righe).has("branchie")).toBe(false);
+  });
+});
+
+/**
+ * F8 della review finale: `DEFAULT_MUSCLE_GROUP` e' un letterale del seme che
+ * un amministratore puo' ritirare dal pannello, e il modulo lo mostrava
+ * selezionato mentre disegnava l'elenco dei gruppi vivi - un valore fuori
+ * dalle proprie opzioni, scritto in colonna al salvataggio.
+ */
+describe("defaultSlug", () => {
+  it("tiene il preferito se l'elenco lo conosce ancora", () => {
+    const righe = [riga({ slug: "schiena" }), riga()];
+
+    expect(defaultSlug(righe, "petto")).toBe("petto");
+  });
+
+  it("ricade sul primo dell'elenco se il preferito e' stato ritirato", () => {
+    // L'elenco arriva gia' ordinato per `sort`: il primo e' quello che il
+    // selettore mostra per primo, quindi partire da li' non sposta niente
+    // agli occhi di chi apre il modulo.
+    const righe = [riga({ slug: "schiena" }), riga({ slug: "gambe" })];
+
+    expect(defaultSlug(righe, "petto")).toBe("schiena");
+  });
+
+  /**
+   * L'elenco vuoto e' la tassonomia che non si e' potuta leggere: il modulo
+   * non ha comunque opzioni da offrire e lo dice a schermo, quindi tornare il
+   * preferito e' meglio che tornare una stringa vuota.
+   */
+  it("a elenco vuoto torna il preferito", () => {
+    expect(defaultSlug([], "petto")).toBe("petto");
   });
 });

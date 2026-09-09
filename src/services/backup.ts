@@ -1,7 +1,7 @@
 import { getDb } from "@/src/db/index";
 import { MIGRATIONS, runMigrations } from "@/src/db/migrations";
 import { applyTaxonomySeeds } from "@/src/db/seed";
-import { resetSyncMarkers } from "@/src/services/syncMarkers";
+import { forgetRestoredMarkers } from "@/src/services/syncMarkers";
 import { useTaxonomyStore } from "@/src/stores/taxonomyStore";
 import { logger } from "@/src/utils/logger";
 
@@ -155,7 +155,7 @@ export async function restoreBackup(payload: BackupPayload): Promise<void> {
   await applyTaxonomySeeds(db);
 
   /*
-   * I segnaposto della sincronizzazione NON si ripristinano.
+   * I segnaposto locali che un ripristino non deve portarsi dietro.
    *
    * Stanno in `settings`, che è nel backup, quindi il ripristino rimetterebbe
    * quelli del giorno dell'export: "tutto fino a quella data è già stato
@@ -166,8 +166,14 @@ export async function restoreBackup(payload: BackupPayload): Promise<void> {
    * ripristino doveva sostituire.
    *
    * Azzerandoli, il database ripristinato si riconcilia da capo con il server.
+   *
+   * QUALI siano lo dice `FORGOTTEN_ON_RESTORE` in `syncMarkers.ts`, non
+   * questa riga: `LOCAL_ONLY_SETTINGS` parla della sincronizzazione e non del
+   * backup, e questa era l'unica delle due domande a non avere risposta
+   * scritta da nessuna parte - `ai.enabled` viaggiava nel backup pur essendo
+   * di un account solo.
    */
-  await resetSyncMarkers();
+  await forgetRestoredMarkers();
 
   // `pullTaxonomies` ridrata subito dopo aver scritto: un ripristino cambia
   // la tabella allo stesso modo e deve fare lo stesso, o le etichette e i

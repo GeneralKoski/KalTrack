@@ -4,14 +4,24 @@ import { getDb } from "@/src/db/index";
  * I gruppi muscolari e l'attrezzatura, copia locale di quel che il server
  * pubblica per tutti.
  *
- * DUE LETTURE E NON UNA, ed e' la stessa distinzione dei tipi di pasto:
- * `listTaxonomy` esclude i cancellati ed e' la lettura di chi OFFRE UNA
- * SCELTA - il selettore del gruppo muscolare, i chip dell'attrezzatura;
- * `listAllTaxonomy` li comprende ed e' la lettura di chi DISEGNA QUEL CHE C'E'
- * GIA' - l'etichetta di un esercizio che nomina quello slug in colonna.
+ * UNA SOLA LETTURA, e la distinzione sta un livello piu' su. Sono ventitre'
+ * righe: chi le legge le rilegge tutte, cancellati compresi, e a dividerle e'
+ * `taxonomyStore.hydrate()`, che dallo stesso elenco ricava
+ * `muscleGroups`/`equipment` (tutti, per DISEGNARE QUEL CHE C'E' GIA' - le
+ * etichette) e `liveMuscleGroups`/`liveEquipment` (solo i vivi, per chi OFFRE
+ * UNA SCELTA - i selettori, `create_exercise`).
  *
- * Chiunque aggiunga una lettura deve scegliere, e la domanda e' sempre la
- * stessa: sto offrendo una scelta o sto disegnando quel che c'e' gia'?
+ * C'e' stata anche una `listTaxonomy` che filtrava i cancellati in SQL, ed e'
+ * stata ritirata il 9 settembre 2026: nessun consumatore la chiamava piu' -
+ * i lettori sono passati allo store - e teneva la regola scritta in un posto
+ * che nessuno esegue, dove chi la andava a cercare la trovava morta e la
+ * reimplementava una terza volta. Rimetterla vorrebbe dire quattro query dove
+ * ne bastano due e un filtro, per rifare al database una domanda a cui lo
+ * store ha gia' la risposta in mano.
+ *
+ * Chiunque aggiunga una lettura deve comunque scegliere, e la domanda e'
+ * sempre la stessa: sto offrendo una scelta o sto disegnando quel che c'e'
+ * gia'? Solo che si risponde scegliendo il campo dello store, non la query.
  */
 
 /** Il nome della tabella, che e' anche il tipo di tassonomia. */
@@ -31,16 +41,6 @@ export interface TaxonomyRow {
  * lascia passare altro. Un identificatore SQL non si puo' legare con un
  * parametro, e questa e' la ragione per cui il tipo e' cosi' stretto.
  */
-
-/** Gli slug che si possono offrire in una scelta: i cancellati non ci sono. */
-export async function listTaxonomy(
-  kind: TaxonomyKind,
-): Promise<TaxonomyRow[]> {
-  const db = await getDb();
-  return db.getAllAsync<TaxonomyRow>(
-    `SELECT * FROM ${kind} WHERE deleted_at IS NULL ORDER BY sort, slug`,
-  );
-}
 
 /** Tutti, cancellati compresi: serve a disegnare l'etichetta di quel che c'e'. */
 export async function listAllTaxonomy(

@@ -1,5 +1,11 @@
 import { collectChanges } from "@/src/services/sync";
-import { CURSOR_KEY, PUSHED_KEY } from "@/src/services/syncMarkers";
+import {
+  AI_ENABLED,
+  CATALOG_PULLED_AT,
+  CURSOR_KEY,
+  PUSHED_KEY,
+  RESTORE_BUCKETS,
+} from "@/src/services/syncMarkers";
 import { createTestDb } from "@/src/db/__testing__/betterSqliteAdapter";
 import { __setDbForTesting, getDb } from "@/src/db/index";
 import { MEAL_TYPE_IDS, runMigrations } from "@/src/db/migrations";
@@ -330,6 +336,44 @@ describe("ripristino e sincronizzazione", () => {
 
     const changes = await collectChanges(await getSetting(PUSHED_KEY));
     expect(changes.some((c) => c.table === "foods")).toBe(true);
+  });
+
+  /**
+   * F9 della review finale, la meta' che si vede. `ai.enabled` e' la cache di
+   * un fatto di cui il SERVER e' l'autorita' per QUELL'account, e viaggiava
+   * nel backup: l'utente A esporta, l'utente B ripristina e resta offline, e
+   * `readAiEnabled()` legge il valore di A. Se A era `ai_enabled = false`, a
+   * B - che ha diritto - i punti d'ingresso AI portavano alla pagina dei
+   * piani fino al primo `/api/me` riuscito.
+   *
+   * I tre del catalogo invece restano, e li' e' giusto: le righe di
+   * `exercises`/`foods` arrivano dalla stessa istantanea, quindi cursore e
+   * contenuto sono coerenti e il pull successivo chiede esattamente quel che
+   * e' cambiato dopo.
+   */
+  it("un ripristino dimentica il diritto AI e tiene i segnaposto del catalogo", async () => {
+    await seedData();
+    for (const chiave of RESTORE_BUCKETS.forgotten) {
+      await setSetting(chiave, "1");
+    }
+    for (const chiave of RESTORE_BUCKETS.kept) {
+      await setSetting(chiave, "1");
+    }
+    const backup = buildBackupFixture(await buildBackup());
+
+    await restoreBackup(backup);
+
+    // Per nome e non solo iterando gli elenchi: cosi' spostare `ai.enabled`
+    // fra quelle che restano rompe QUESTO test e non solo la dichiarazione.
+    expect(await getSetting(AI_ENABLED)).toBeNull();
+    expect(await getSetting(CATALOG_PULLED_AT)).toBe("1");
+
+    for (const chiave of RESTORE_BUCKETS.forgotten) {
+      expect(await getSetting(chiave)).toBeNull();
+    }
+    for (const chiave of RESTORE_BUCKETS.kept) {
+      expect(await getSetting(chiave)).toBe("1");
+    }
   });
 });
 

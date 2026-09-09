@@ -105,8 +105,52 @@ async function readCursor(
   return undefined;
 }
 
-const writeCursor = (key: string, cursore: catalog.CatalogCursor) =>
-  setSetting(key, JSON.stringify(cursore));
+/**
+ * Il cursore da salvare, normalizzato, o `null` se non e' utilizzabile.
+ *
+ * `readCursor` accetta `afterId` solo come NUMERO JSON, e niente lato server
+ * lo garantisce: su SQLite - il database di sviluppo e di produzione -
+ * `$ultima->id` e' un intero e `json_encode` emette un numero, quindi oggi il
+ * contratto tiene. Su un driver che restituisse `id` come stringa (PDO MySQL
+ * lo fa di serie) la risposta porterebbe `"afterId": "42"`: scritto cosi'
+ * com'era, `readCursor` lo rifiuterebbe al giro dopo e il pull ripartirebbe da
+ * zero **per sempre** - nessun sintomo a schermo, nessuna riga in
+ * Diagnostica, solo il catalogo intero riscaricato a ogni giro.
+ *
+ * Le cifre in una stringa si convertono, com'e' gia' la regola del contatore
+ * della sincronizzazione (`readCursor` in `syncMarkers.ts`). Qualunque altra
+ * forma non si scrive: un cursore inventato salterebbe righe che il server
+ * non rimanderebbe piu', e non scrivere niente costa al massimo di rileggere
+ * la stessa pagina al giro dopo - il pull e' idempotente.
+ */
+const normalizzaCursore = (
+  cursore: catalog.CatalogCursor,
+): catalog.CatalogCursor | null => {
+  const { since, afterId } = cursore;
+  if (typeof since !== "string" || since === "") return null;
+
+  if (typeof afterId === "number" && Number.isInteger(afterId)) {
+    return { since, afterId };
+  }
+  if (typeof afterId === "string" && /^\d+$/.test(afterId)) {
+    return { since, afterId: Number(afterId) };
+  }
+  return null;
+};
+
+async function writeCursor(
+  key: string,
+  cursore: catalog.CatalogCursor,
+): Promise<void> {
+  const buono = normalizzaCursore(cursore);
+  if (!buono) {
+    logger.warn(
+      `[catalogo] cursore inutilizzabile, non salvato: ${JSON.stringify(cursore)}`,
+    );
+    return;
+  }
+  await setSetting(key, JSON.stringify(buono));
+}
 
 /**
  * Gli slug che la tassonomia conosce, cancellati compresi.

@@ -3,7 +3,6 @@ import { __setDbForTesting } from "@/src/db/index";
 import { runMigrations } from "@/src/db/migrations";
 import {
   listAllTaxonomy,
-  listTaxonomy,
   replaceTaxonomy,
   type TaxonomyKind,
 } from "@/src/db/queries/taxonomies";
@@ -39,17 +38,17 @@ describe("il seme della migrazione 020", () => {
    * gruppo che il compilatore conosce e il database no.
    */
   it("semina gli stessi slug delle costanti", async () => {
-    const muscoli = await listTaxonomy("muscle_groups");
+    const muscoli = await listAllTaxonomy("muscle_groups");
     expect(muscoli.map((r) => r.slug).sort()).toEqual(
       [...MUSCLE_GROUPS].sort(),
     );
 
-    const attrezzi = await listTaxonomy("equipment_types");
+    const attrezzi = await listAllTaxonomy("equipment_types");
     expect(attrezzi.map((r) => r.slug).sort()).toEqual([...EQUIPMENT].sort());
   });
 
   it("li ordina per `sort` e non alfabeticamente", async () => {
-    const muscoli = await listTaxonomy("muscle_groups");
+    const muscoli = await listAllTaxonomy("muscle_groups");
     expect(muscoli[0].slug).toBe("petto");
     expect(muscoli.at(-1)?.slug).toBe("full_body");
   });
@@ -70,7 +69,7 @@ describe("il seme della migrazione 020", () => {
   it.each(["muscle_groups", "equipment_types"] as const)(
     "porta le etichette di i18n, riga per riga (%s)",
     async (kind) => {
-      const righe = await listTaxonomy(kind);
+      const righe = await listAllTaxonomy(kind);
 
       // Senza questa riga il confronto sotto e' `[] toEqual []` su un
       // elenco vuoto e passa senza aver guardato niente: e' il numero di
@@ -96,7 +95,7 @@ describe("replaceTaxonomy", () => {
       { slug: "trapezi", label_it: "Trapezi", label_en: "Traps", sort: 130, deleted_at: null },
     ]);
 
-    const righe = await listTaxonomy("muscle_groups");
+    const righe = await listAllTaxonomy("muscle_groups");
     expect(righe.find((r) => r.slug === "femorali")?.label_it).toBe(
       "Ischiocrurali",
     );
@@ -107,25 +106,25 @@ describe("replaceTaxonomy", () => {
   });
 
   /**
-   * Uno slug cancellato dal pannello resta in tabella con la sua data: gli
-   * esercizi che lo nominano devono continuare ad avere un'etichetta.
+   * Uno slug cancellato dal pannello resta in tabella CON LA SUA DATA, ed e'
+   * quel che rende possibile la divisione vivi/tutti dello store: gli
+   * esercizi che lo nominano devono continuare ad avere un'etichetta, e i
+   * selettori non devono piu' offrirlo.
    */
-  it("una riga cancellata esce da `listTaxonomy` e resta in `listAllTaxonomy`", async () => {
+  it("una riga cancellata resta in tabella, con la sua data e la sua etichetta", async () => {
     await replaceTaxonomy("muscle_groups", [
       { slug: "avambracci", label_it: "Avambracci", label_en: "Forearms", sort: 60, deleted_at: "2026-09-08T09:00:00+00:00" },
     ]);
 
-    const vivi = await listTaxonomy("muscle_groups");
-    const tutti = await listAllTaxonomy("muscle_groups");
-
-    expect(vivi.map((r) => r.slug)).not.toContain("avambracci");
-    expect(tutti.map((r) => r.slug)).toContain("avambracci");
-    expect(tutti.find((r) => r.slug === "avambracci")?.label_it).toBe(
-      "Avambracci",
+    const riga = (await listAllTaxonomy("muscle_groups")).find(
+      (r) => r.slug === "avambracci",
     );
+
+    expect(riga?.deleted_at).toBe("2026-09-08T09:00:00+00:00");
+    expect(riga?.label_it).toBe("Avambracci");
   });
 
-  /** Ripristinata dal pannello, torna in elenco. */
+  /** Ripristinata dal pannello, `deleted_at` torna a null e rientra fra i vivi. */
   it("una riga ripristinata torna fra i vivi", async () => {
     await replaceTaxonomy("muscle_groups", [
       { slug: "avambracci", label_it: "Avambracci", label_en: "Forearms", sort: 60, deleted_at: "2026-09-08T09:00:00+00:00" },
@@ -134,14 +133,14 @@ describe("replaceTaxonomy", () => {
       { slug: "avambracci", label_it: "Avambracci", label_en: "Forearms", sort: 60, deleted_at: null },
     ]);
 
-    expect(
-      (await listTaxonomy("muscle_groups")).map((r) => r.slug),
-    ).toContain("avambracci");
+    const righe = await listAllTaxonomy("muscle_groups");
+    expect(righe.map((r) => r.slug)).toContain("avambracci");
+    expect(righe.find((r) => r.slug === "avambracci")?.deleted_at).toBeNull();
   });
 
   it("un elenco vuoto non cancella niente", async () => {
     await replaceTaxonomy("muscle_groups", []);
 
-    expect(await listTaxonomy("muscle_groups")).toHaveLength(12);
+    expect(await listAllTaxonomy("muscle_groups")).toHaveLength(12);
   });
 });

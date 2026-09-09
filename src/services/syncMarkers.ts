@@ -46,61 +46,95 @@ export const CATALOG_PULLED_AT = "catalog.pulled_at";
 export const AI_ENABLED = "ai.enabled";
 
 /**
- * Impostazioni che NON viaggiano: sono stato di questo dispositivo, non dati
- * dell'utente.
+ * Le local-only che un RIPRISTINO da backup deve dimenticare.
+ *
+ * `LOCAL_ONLY_SETTINGS` dice che una chiave non viaggia nella
+ * sincronizzazione, e non dice niente sul backup: `settings` sta in
+ * `BACKUP_TABLES` e `buildBackup` fa `SELECT *`, quindi un ripristino rimette
+ * in tabella OGNI chiave del giorno dell'export. Sono due domande diverse, e
+ * la seconda non aveva nessuna guardia - l'unico dei quattro cancelli delle
+ * dichiarazioni senza un test, che e' la condizione che ha lasciato
+ * `progress_photos` fuori dalla sincronizzazione per settimane.
+ */
+const FORGOTTEN_ON_RESTORE = [
+  /*
+   * I due della sincronizzazione, per la ragione che `resetSyncMarkers`
+   * spiega: le righe appena ripristinate sono tutte piu' vecchie della data
+   * dell'export, quindi con quei segnaposto in piedi non partirebbero mai.
+   */
+  CURSOR_KEY,
+  PUSHED_KEY,
+  /*
+   * `ai.enabled` e' la cache di un fatto di cui il SERVER e' l'autorita' PER
+   * QUELL'ACCOUNT. Il backup di A ripristinato sul telefono di B lo portava
+   * con se': se A era `ai_enabled = false`, a B - che ha diritto - i punti
+   * d'ingresso AI portavano alla pagina dei piani fino al primo `/api/me`
+   * riuscito. E' la stessa forma del difetto corretto in `signOut`, un
+   * livello piu' fuori, e la risposta e' la stessa: "non lo so" e' in favore
+   * dell'utente.
+   */
+  AI_ENABLED,
+] as const;
+
+/**
+ * Le local-only che invece SOPRAVVIVONO a un ripristino, e perche'.
+ *
+ * - I tre del catalogo: le righe di `exercises`/`foods` arrivano dalla stessa
+ *   istantanea, quindi cursore e contenuto restano coerenti e il pull
+ *   successivo chiede esattamente quel che e' cambiato dopo. Azzerarli
+ *   costerebbe un pull completo per niente.
+ * - Le tre frasi su questo telefono (Health Connect, ultimo backup esportato)
+ *   e `onboarding_step`: un ripristino non cambia ne' il dispositivo ne'
+ *   l'account, quindi restano vere quanto lo erano prima. Sono false su un
+ *   ALTRO telefono, ed e' per questo che non viaggiano nella
+ *   sincronizzazione: e' un backup ripristinato altrove a poterle sballare,
+ *   e nessuna delle tre decide niente che l'utente non veda subito.
+ */
+const KEPT_ON_RESTORE = [
+  "health.steps_import_enabled",
+  "health.steps_last_sync",
+  "last_backup_export",
+  "onboarding_step",
+  CATALOG_EXERCISES_CURSOR,
+  CATALOG_FOODS_CURSOR,
+  CATALOG_PULLED_AT,
+] as const;
+
+/**
+ * Impostazioni che NON viaggiano: sono stato di questo dispositivo, o la
+ * cache di un fatto di cui decide il server, non dati dell'utente.
  *
  * Il cursore e' il caso grave. Sincronizzandolo, ogni giro ne scriveva uno
  * nuovo da mandare al giro dopo - un ciclo che non si esaurisce mai - e
  * soprattutto il cursore di un telefono sarebbe finito sull'altro, che
  * avrebbe saltato tutte le righe arrivate prima di quel punto senza averle
- * mai ricevute.
+ * mai ricevute. I tre del catalogo fanno lo stesso danno su un elenco che il
+ * server pubblica per tutti; `ai.enabled` rimbalzerebbe fra due copie che
+ * non decidono niente, perche' l'autorita' e' `users.ai_enabled` su
+ * `/api/me`.
+ *
+ * Due chiavi che sembrano di qui e NON ci sono, entrambe apposta:
+ * `plan_applied:<data>` dice che il piano di quel giorno e' gia' diventato
+ * pasti - un fatto sui dati, e senza sincronizzarlo l'altro dispositivo lo
+ * applicherebbe di nuovo duplicandoli - e `onboarding_completed` dice che il
+ * profilo e' compilato, che un secondo dispositivo sullo stesso account non
+ * deve richiedere daccapo.
+ *
+ * **E' L'UNIONE DEI DUE ELENCHI QUI SOPRA, e non un terzo elenco.** Una
+ * chiave local-only nuova non puo' entrare senza che qualcuno abbia risposto
+ * anche alla seconda domanda - un ripristino la deve dimenticare o tenere? -
+ * che e' esattamente quel che nessuno si e' chiesto per `ai.enabled`.
  */
-export const LOCAL_ONLY_SETTINGS = new Set([
-  CURSOR_KEY,
-  PUSHED_KEY,
-  /*
-   * Le altre sono frasi su QUESTO telefono, e su un altro sarebbero false.
-   *
-   * "L'ultima sincronizzazione dei passi e' andata a buon fine" dice che il
-   * collegamento a Health Connect funziona: su un telefono dove non e' nemmeno
-   * configurato e' una bugia, e l'utente non capirebbe perche' i passi non
-   * arrivano. Stesso discorso per l'interruttore dell'importazione e per la
-   * data dell'ultimo backup esportato, che e' un file su questo dispositivo.
-   *
-   * `plan_applied:<data>` invece NON e' qui, ed e' voluto: dice che il piano
-   * di quel giorno e' gia' stato trasformato in pasti. E' un fatto sui dati,
-   * non sul telefono, e senza sincronizzarlo l'altro dispositivo lo
-   * applicherebbe una seconda volta duplicando i pasti.
-   */
-  "health.steps_import_enabled",
-  "health.steps_last_sync",
-  "last_backup_export",
-  /*
-   * `onboarding_step` dice a che punto e' arrivato il wizard SU QUESTO
-   * telefono: e' come si riprende un abbandono a meta', non un fatto sui
-   * dati. `onboarding_completed` invece NON e' qui, apposta: dice che il
-   * profilo e' stato compilato, ed e' quello che deve viaggiare perche' un
-   * secondo dispositivo sullo stesso account non lo richieda daccapo.
-   */
-  "onboarding_step",
-  /*
-   * I segnaposto del catalogo dicono a che punto e' arrivato QUESTO telefono
-   * a leggere un elenco che il server pubblica per tutti. Sincronizzarli
-   * porterebbe la posizione di un telefono sull'altro, che salterebbe le voci
-   * arrivate prima di quel punto senza averle mai ricevute - lo stesso danno
-   * che `sync.cursor` fa quando viaggia.
-   */
-  CATALOG_EXERCISES_CURSOR,
-  CATALOG_FOODS_CURSOR,
-  CATALOG_PULLED_AT,
-  /*
-   * L'autorita' su questo fatto e' il SERVER, non questo telefono: e'
-   * `users.ai_enabled` letto da `/api/me`. Sincronizzarlo lo farebbe
-   * rimbalzare fra due copie che non decidono niente - esattamente il
-   * problema che i segnaposto del catalogo risolvono per la stessa ragione.
-   */
-  AI_ENABLED,
+export const LOCAL_ONLY_SETTINGS = new Set<string>([
+  ...FORGOTTEN_ON_RESTORE,
+  ...KEPT_ON_RESTORE,
 ]);
+
+/** Solo per il test del cancello: i due elenchi, separati. */
+export const RESTORE_BUCKETS = {
+  forgotten: FORGOTTEN_ON_RESTORE,
+  kept: KEPT_ON_RESTORE,
+} as const;
 
 /**
  * Il segnaposto salvato, letto come numero.
@@ -135,15 +169,32 @@ export const readCursor = (stored: string | null): number => {
  * recente - e in cambio non serve indovinare se l'account e' lo stesso.
  */
 export async function resetSyncMarkers(): Promise<void> {
-  const db = await getDb();
-  await db.runAsync("DELETE FROM settings WHERE key IN (?, ?)", [
-    CURSOR_KEY,
-    PUSHED_KEY,
-  ]);
+  await dimentica([CURSOR_KEY, PUSHED_KEY]);
   // La riconciliazione completa che segue e' voluta: senza questa riga nel
   // log sembrerebbe un difetto.
   logger.info("[sync] segnaposto azzerati: si riparte dall'inizio");
 }
+
+/**
+ * Quel che un RIPRISTINO da backup non deve portarsi dietro.
+ *
+ * Comprende i due della sincronizzazione - per la ragione di
+ * `resetSyncMarkers`, che il ripristino condivide - e `ai.enabled`, che
+ * appartiene all'account che ha esportato il backup e non a chi lo
+ * ripristina. Vedi `FORGOTTEN_ON_RESTORE` per il resto.
+ */
+export async function forgetRestoredMarkers(): Promise<void> {
+  await dimentica([...FORGOTTEN_ON_RESTORE]);
+  logger.info("[backup] segnaposto locali dimenticati: si riparte dall'inizio");
+}
+
+const dimentica = async (chiavi: string[]): Promise<void> => {
+  const db = await getDb();
+  await db.runAsync(
+    `DELETE FROM settings WHERE key IN (${chiavi.map(() => "?").join(", ")})`,
+    chiavi,
+  );
+};
 
 /**
  * L'ultimo `aiEnabled` visto da `/api/me`, o `null` se non si sa ancora.

@@ -35,6 +35,27 @@ export function taxonomyLabel(
 }
 
 /**
+ * Lo slug con cui aprire un modulo nuovo: quello di serie se le righe passate
+ * lo conoscono ancora, altrimenti la prima che offrono.
+ *
+ * `DEFAULT_MUSCLE_GROUP` e' un letterale del seme, e un amministratore puo'
+ * ritirarlo dal pannello: il modulo lo mostrava selezionato mentre disegnava
+ * l'elenco dei gruppi VIVI, cioe' un valore fuori dalle proprie opzioni, e
+ * salvando scriveva uno slug ritirato in colonna. Le due porte dissentivano -
+ * `create_exercise` dall'assistente rifiuta lo stesso slug, con una lettura
+ * viva - e il difetto e' la forma, non il valore: `petto` e' solo lo slug con
+ * meno probabilita' di essere cancellato.
+ *
+ * A elenco vuoto torna il preferito, che e' il caso in cui la tassonomia non
+ * si e' potuta leggere: li' il modulo non ha comunque opzioni da offrire e lo
+ * dice a schermo.
+ */
+export const defaultSlug = (rows: TaxonomyRow[], preferito: string): string =>
+  rows.some((r) => r.slug === preferito)
+    ? preferito
+    : (rows[0]?.slug ?? preferito);
+
+/**
  * Gli slug che la tassonomia conosce, CANCELLATI COMPRESI.
  *
  * Serve a filtrare quel che arriva dal catalogo, e li' un gruppo cancellato
