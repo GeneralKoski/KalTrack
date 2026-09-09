@@ -180,7 +180,6 @@
     "kcal_eaten": "kcal",
     "of_target": "of %{target} kcal",
     "multiplier": "×%{count}",
-    "multiplier_unit": "× the serving",
     "pick_day": "Choose the day",
     "pick_day_hint": "The ring shows how the day went for calories, split by protein, carbs and fat. Empty means you didn't log anything.",
     "free_macro_placeholder": "0",

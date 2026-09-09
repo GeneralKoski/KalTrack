@@ -52,13 +52,108 @@ jest.mock("@/src/hooks/useFocusData", () => ({
     data: {
       diary: {
         date: "2026-09-09",
-        meals: [],
+        meals: [
+          {
+            meal: {
+              id: "meal-1",
+              date: "2026-09-09",
+              meal_type_id: "colazione",
+              name: null,
+              time: null,
+              notes: null,
+              created_at: "2026-01-01T00:00:00.000Z",
+              updated_at: "2026-01-01T00:00:00.000Z",
+              deleted_at: null,
+            },
+            type: {
+              id: "colazione",
+              name: "Colazione",
+              icon: null,
+              sort: 0,
+              is_custom: 0,
+              hidden: 0,
+              created_at: "2026-01-01T00:00:00.000Z",
+              updated_at: "2026-01-01T00:00:00.000Z",
+              deleted_at: null,
+            },
+            // Una voce libera e una con un alimento dietro: e' il bivio che
+            // `onEditEntry` deve fare fra FreeEntrySheet e QuantityPrompt.
+            entries: [
+              {
+                id: "free-1",
+                meal_id: "meal-1",
+                source_kind: "free",
+                food_id: null,
+                recipe_id: null,
+                label: "Pizza al taglio",
+                quantity_g: 1,
+                servings: null,
+                kcal: 800,
+                protein: 30,
+                carbs: 90,
+                sugars: 0,
+                fat: 25,
+                saturated_fat: 0,
+                fiber: 0,
+                salt: 0,
+                is_estimated: 0,
+                confidence: null,
+                note: null,
+                photo_uri: null,
+                components: null,
+                created_via: "manual",
+                sort: 0,
+                created_at: "2026-01-01T00:00:00.000Z",
+                updated_at: "2026-01-01T00:00:00.000Z",
+                deleted_at: null,
+              },
+              {
+                id: "food-1",
+                meal_id: "meal-1",
+                source_kind: "food",
+                food_id: "food-x",
+                recipe_id: null,
+                label: null,
+                quantity_g: 150,
+                servings: null,
+                kcal: 300,
+                protein: 20,
+                carbs: 10,
+                sugars: 0,
+                fat: 5,
+                saturated_fat: 0,
+                fiber: 0,
+                salt: 0,
+                is_estimated: 0,
+                confidence: null,
+                note: null,
+                photo_uri: null,
+                components: null,
+                created_via: "manual",
+                sort: 1,
+                created_at: "2026-01-01T00:00:00.000Z",
+                updated_at: "2026-01-01T00:00:00.000Z",
+                deleted_at: null,
+              },
+            ],
+            totals: {
+              kcal: 1100,
+              protein: 50,
+              carbs: 100,
+              sugars: 0,
+              fat: 30,
+              saturatedFat: 0,
+              fiber: 0,
+              salt: 0,
+            },
+          },
+        ],
         totals: {
-          kcal: 0,
-          protein: 0,
-          carbs: 0,
+          kcal: 1100,
+          protein: 50,
+          carbs: 100,
           sugars: 0,
-          fat: 0,
+          fat: 30,
           saturatedFat: 0,
           fiber: 0,
           salt: 0,
@@ -152,11 +247,24 @@ jest.mock("@/src/containers/diary/EntryCompositionSheet", () => ({
   EntryCompositionSheet: () => null,
 }));
 jest.mock("@/src/containers/diary/MacroBars", () => ({ MacroBars: () => null }));
+/*
+ * Interessa `onEditEntry`, che e' la via per cui TodayScreen sceglie fra
+ * FreeEntrySheet (in modifica) e QuantityPrompt.
+ */
+const mockMealSectionProps = jest.fn();
 jest.mock("@/src/containers/diary/MealSection", () => ({
-  MealSection: () => null,
+  MealSection: (props: Record<string, unknown>) => {
+    mockMealSectionProps(props);
+    return null;
+  },
 }));
+
+const mockQuantityPromptProps = jest.fn();
 jest.mock("@/src/containers/recipes/QuantityPrompt", () => ({
-  QuantityPrompt: () => null,
+  QuantityPrompt: (props: Record<string, unknown>) => {
+    mockQuantityPromptProps(props);
+    return null;
+  },
 }));
 jest.mock("@/src/containers/settings/AiKeyPrompt", () => ({
   AiKeyPrompt: () => null,
@@ -188,6 +296,9 @@ jest.mock("@/src/containers/diary/PhotoEstimateSheet", () => ({
 }));
 
 const mockAddFreeEntry = jest.fn(async (_args: Record<string, unknown>) => "entry-1");
+const mockUpdateFreeEntry = jest.fn(
+  async (_entryId: string, _args: Record<string, unknown>) => undefined,
+);
 jest.mock("@/src/db/queries/diary", () => ({
   addFoodEntry: jest.fn(),
   addFreeEntry: (args: Record<string, unknown>) => mockAddFreeEntry(args),
@@ -197,12 +308,17 @@ jest.mock("@/src/db/queries/diary", () => ({
   getDayDiary: jest.fn(),
   listMealTypes: jest.fn(),
   updateEntryQuantity: jest.fn(),
+  updateFreeEntry: (entryId: string, args: Record<string, unknown>) =>
+    mockUpdateFreeEntry(entryId, args),
 }));
 
 beforeEach(() => {
   mockFreeEntrySheetProps.mockClear();
   mockPhotoEstimateSheetProps.mockClear();
+  mockMealSectionProps.mockClear();
+  mockQuantityPromptProps.mockClear();
   mockAddFreeEntry.mockClear();
+  mockUpdateFreeEntry.mockClear();
 });
 
 const flush = async () => {
@@ -303,6 +419,91 @@ describe("TodayScreen, il flag is_estimated", () => {
       isEstimated: true,
       createdVia: "photo",
     });
+
+    act(() => {
+      renderer.unmount();
+    });
+  });
+});
+
+/**
+ * Il bivio 4b: toccare una voce libera apriva "× la porzione", una modale
+ * senza senso per un piatto che non ha grammi. Ora il tocco fa una scelta per
+ * `source_kind`: "free" va a FreeEntrySheet in modifica, il resto continua ad
+ * aprire QuantityPrompt esattamente come prima.
+ */
+describe("TodayScreen, il bivio di onEditEntry", () => {
+  it("una voce libera apre FreeEntrySheet in modifica, non QuantityPrompt", async () => {
+    let renderer!: ReactTestRenderer;
+    await act(async () => {
+      renderer = create(<TodayScreen />);
+      await flush();
+    });
+
+    const sectionProps = mockMealSectionProps.mock.calls.at(-1)?.[0] as {
+      onEditEntry: (entryId: string) => void;
+    };
+    await act(async () => {
+      sectionProps.onEditEntry("free-1");
+      await flush();
+    });
+
+    const freeProps = mockFreeEntrySheetProps.mock.calls.at(-1)?.[0] as {
+      isOpen: boolean;
+      editing: { id: string } | null;
+      onConfirm: (label: string, nutrients: Nutrients) => void;
+    };
+    expect(freeProps.isOpen).toBe(true);
+    expect(freeProps.editing?.id).toBe("free-1");
+
+    const quantityProps = mockQuantityPromptProps.mock.calls.at(-1)?.[0] as {
+      isOpen: boolean;
+    };
+    expect(quantityProps.isOpen).toBe(false);
+
+    await act(async () => {
+      freeProps.onConfirm("Pizza XL", emptyNutrients);
+      await flush();
+    });
+
+    expect(mockUpdateFreeEntry).toHaveBeenCalledTimes(1);
+    expect(mockUpdateFreeEntry).toHaveBeenCalledWith("free-1", {
+      label: "Pizza XL",
+      nutrients: emptyNutrients,
+    });
+    expect(mockAddFreeEntry).not.toHaveBeenCalled();
+
+    act(() => {
+      renderer.unmount();
+    });
+  });
+
+  it("una voce con un alimento dietro apre QuantityPrompt, non FreeEntrySheet in modifica", async () => {
+    let renderer!: ReactTestRenderer;
+    await act(async () => {
+      renderer = create(<TodayScreen />);
+      await flush();
+    });
+
+    const sectionProps = mockMealSectionProps.mock.calls.at(-1)?.[0] as {
+      onEditEntry: (entryId: string) => void;
+    };
+    await act(async () => {
+      sectionProps.onEditEntry("food-1");
+      await flush();
+    });
+
+    const quantityProps = mockQuantityPromptProps.mock.calls.at(-1)?.[0] as {
+      isOpen: boolean;
+    };
+    expect(quantityProps.isOpen).toBe(true);
+
+    const freeProps = mockFreeEntrySheetProps.mock.calls.at(-1)?.[0] as {
+      isOpen: boolean;
+      editing: { id: string } | null;
+    };
+    expect(freeProps.isOpen).toBe(false);
+    expect(freeProps.editing).toBeNull();
 
     act(() => {
       renderer.unmount();

@@ -420,6 +420,42 @@ export async function addFreeEntry(args: {
 }
 
 /**
+ * Riscrive nome e valori assoluti di una voce libera.
+ *
+ * Una voce libera non ha grammi da correggere - li congela a 1 fin dalla
+ * creazione (§ `FREE_ENTRY_BASE_QUANTITY`) - quindi "modificarla" vuol dire
+ * riscrivere cosa si e' scritto: il nome e i numeri del piatto intero.
+ * `quantity_g`/`servings` restano quel che erano: quello resta il mestiere
+ * del moltiplicatore di `updateEntryQuantity`.
+ */
+export async function updateFreeEntry(
+  entryId: string,
+  args: { label: string; nutrients: Nutrients },
+): Promise<void> {
+  const db = await getDb();
+  const n = args.nutrients;
+  await db.runAsync(
+    `UPDATE meal_entries SET
+       label = ?, kcal = ?, protein = ?, carbs = ?, sugars = ?, fat = ?,
+       saturated_fat = ?, fiber = ?, salt = ?, updated_at = ?
+     WHERE id = ?`,
+    [
+      args.label,
+      n.kcal,
+      n.protein,
+      n.carbs,
+      n.sugars,
+      n.fat,
+      n.saturatedFat,
+      n.fiber,
+      n.salt,
+      nowIso(),
+      entryId,
+    ],
+  );
+}
+
+/**
  * Cambia la quantità di una riga e ne ricalcola lo snapshot.
  *
  * Per alimenti e pasti ricalcola dai valori ATTUALI: l'utente sta correggendo

@@ -19,6 +19,7 @@ import {
   setMealTypeHidden,
   saveEntryComposition,
   updateEntryQuantity,
+  updateFreeEntry,
 } from "@/src/db/queries/diary";
 import { createFood, getFood, updateFood } from "@/src/db/queries/foods";
 import {
@@ -189,6 +190,78 @@ describe("addFreeEntry", () => {
     expect(entry.label).toBe("Margherita al ristorante");
     expect(entry.is_estimated).toBe(1);
     expect(entry.source_kind).toBe("free");
+  });
+});
+
+describe("updateFreeEntry", () => {
+  it("riscrive nome e valori assoluti", async () => {
+    const entryId = await addFreeEntry({
+      date: DATE,
+      mealTypeId: MEAL_TYPE_IDS.dinner,
+      label: "Margherita al ristorante",
+      nutrients: {
+        ...EMPTY_NUTRIENTS,
+        kcal: 850,
+        protein: 35,
+        carbs: 90,
+        fat: 30,
+      },
+    });
+
+    await updateFreeEntry(entryId, {
+      label: "Margherita XL",
+      nutrients: {
+        ...EMPTY_NUTRIENTS,
+        kcal: 1000,
+        protein: 40,
+        carbs: 100,
+        fat: 35,
+      },
+    });
+
+    const entry = (await getDayDiary(DATE)).meals[0].entries[0];
+    expect(entry.label).toBe("Margherita XL");
+    expect(entry.kcal).toBeCloseTo(1000);
+    expect(entry.protein).toBeCloseTo(40);
+    expect(entry.carbs).toBeCloseTo(100);
+    expect(entry.fat).toBeCloseTo(35);
+  });
+
+  it("scrive updated_at - la tabella e' sincronizzata", async () => {
+    const entryId = await addFreeEntry({
+      date: DATE,
+      mealTypeId: MEAL_TYPE_IDS.dinner,
+      label: "Piatto",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 500 },
+    });
+    const before = (await getDayDiary(DATE)).meals[0].entries[0].updated_at;
+
+    await new Promise((r) => setTimeout(r, 5));
+    await updateFreeEntry(entryId, {
+      label: "Piatto",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 600 },
+    });
+
+    const after = (await getDayDiary(DATE)).meals[0].entries[0].updated_at;
+    expect(after).not.toBe(before);
+  });
+
+  it("non tocca la quantita': resta 1", async () => {
+    const entryId = await addFreeEntry({
+      date: DATE,
+      mealTypeId: MEAL_TYPE_IDS.dinner,
+      label: "Piatto",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 500 },
+    });
+
+    await updateFreeEntry(entryId, {
+      label: "Piatto corretto",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 700 },
+    });
+
+    const entry = (await getDayDiary(DATE)).meals[0].entries[0];
+    expect(entry.quantity_g).toBe(1);
+    expect(entry.servings).toBeNull();
   });
 });
 

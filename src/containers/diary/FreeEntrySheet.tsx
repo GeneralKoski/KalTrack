@@ -4,12 +4,21 @@ import { DraftTextInput, Text } from "@/src/components/ui";
 import { EMPTY_NUTRIENTS, type Nutrients } from "@/src/domain/nutrition";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
+import { decimalSeparator } from "@/src/utils/number";
 import { sanitizeDecimalInput } from "@/src/utils/utils";
+import type { MealEntryRow } from "@/src/types/nutrition";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 interface FreeEntrySheetProps {
   isOpen: boolean;
+  /**
+   * Presente quando il foglio serve a CORREGGERE una voce libera gia' scritta
+   * (non ad aggiungerne una nuova). I grammi non entrano: una voce libera li
+   * congela a 1 fin dalla creazione, quindi modificare vuol dire riscrivere
+   * nome e valori assoluti, non quanto - vedi `updateFreeEntry`.
+   */
+  editing?: MealEntryRow | null;
   onConfirm: (label: string, nutrients: Nutrients) => void;
   onClose: () => void;
 }
@@ -19,6 +28,10 @@ const toNumber = (text: string): number => {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
 };
 
+/** `850` -> "850", coi decimali nella forma che si scrive in questa lingua. */
+const toDisplayValue = (value: number): string =>
+  String(value).replace(".", decimalSeparator());
+
 /**
  * Voce libera: un piatto di cui si sanno solo i valori approssimativi, tipico
  * del mangiare fuori. Non è una stima di un modello - i numeri li scrive
@@ -26,6 +39,7 @@ const toNumber = (text: string): number => {
  */
 export const FreeEntrySheet: React.FC<FreeEntrySheetProps> = ({
   isOpen,
+  editing = null,
   onConfirm,
   onClose,
 }) => {
@@ -37,14 +51,27 @@ export const FreeEntrySheet: React.FC<FreeEntrySheetProps> = ({
   const [carbs, setCarbs] = useState("");
   const [fat, setFat] = useState("");
 
+  // Un foglio che si riempie da una prop torna a quella prop, non al vuoto
+  // (CLAUDE.md "Un foglio o una finestra che si chiude si svuota"): in
+  // modifica riempie dalla voce che si sta correggendo, altrimenti svuota. La
+  // dipendenza su `isOpen` e' quel che fa ripartire il riempimento a ogni
+  // riapertura, anche sulla stessa voce.
   useEffect(() => {
     if (!isOpen) return;
-    setLabel("");
-    setKcal("");
-    setProtein("");
-    setCarbs("");
-    setFat("");
-  }, [isOpen]);
+    if (editing) {
+      setLabel(editing.label ?? "");
+      setKcal(toDisplayValue(editing.kcal));
+      setProtein(toDisplayValue(editing.protein));
+      setCarbs(toDisplayValue(editing.carbs));
+      setFat(toDisplayValue(editing.fat));
+    } else {
+      setLabel("");
+      setKcal("");
+      setProtein("");
+      setCarbs("");
+      setFat("");
+    }
+  }, [isOpen, editing]);
 
   const valid = label.trim().length > 0 && toNumber(kcal) > 0;
 

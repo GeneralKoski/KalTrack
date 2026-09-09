@@ -42,6 +42,7 @@ import {
   getDayDiary,
   listMealTypes,
   updateEntryQuantity,
+  updateFreeEntry,
   type DayDiary,
 } from "@/src/db/queries/diary";
 import { getFood } from "@/src/db/queries/foods";
@@ -101,6 +102,9 @@ export function TodayScreen() {
   const [editingEntry, setEditingEntry] = useState<MealEntryRow | null>(null);
   const [editingFood, setEditingFood] = useState<FoodRow | null>(null);
   const [freeOpen, setFreeOpen] = useState(false);
+  /** La voce libera di cui si stanno correggendo nome e valori. */
+  const [editingFreeEntry, setEditingFreeEntry] =
+    useState<MealEntryRow | null>(null);
   /**
    * Stima da foto. `photoUri` e' quella GIA' copiata in archivio permanente:
    * l'URI che torna dal picker sta in cache, e il sistema la svuota quando ha
@@ -285,6 +289,17 @@ export function TodayScreen() {
   };
 
   const confirmFree = async (label: string, nutrients: Nutrients) => {
+    if (editingFreeEntry) {
+      try {
+        await updateFreeEntry(editingFreeEntry.id, { label, nutrients });
+        setEditingFreeEntry(null);
+        setFreeOpen(false);
+        reload();
+      } catch {
+        showToast.error({ title: t("general_error") });
+      }
+      return;
+    }
     if (!mealTypeId) return;
     try {
       await addFreeEntry({
@@ -319,6 +334,14 @@ export function TodayScreen() {
       .flatMap((m) => m.entries)
       .find((e) => e.id === entryId);
     if (!entry) return;
+    // Una voce libera non ha grammi: "quanti g?" non e' la sua domanda. Si
+    // corregge nel proprio foglio - nome e valori - non nel prompt di
+    // quantita', che per lei non ha senso.
+    if (entry.source_kind === "free") {
+      setEditingFreeEntry(entry);
+      setFreeOpen(true);
+      return;
+    }
     setEditingEntry(entry);
     if (entry.food_id) {
       const food = await getFood(entry.food_id);
@@ -331,10 +354,6 @@ export function TodayScreen() {
   const promptOpen = pendingPick !== null || editingEntry !== null;
   const promptIsRecipe =
     editingEntry?.source_kind === "recipe" || pendingPick?.kind === "recipe";
-  // Una voce libera si scala per moltiplicatore, non per grammi: chiederle
-  // "quanti g?" e passare il numero a updateEntryQuantity moltiplicava lo
-  // snapshot per quel numero.
-  const promptIsFree = editingEntry?.source_kind === "free";
 
   const promptTitle = editingEntry
     ? (data?.names[editingEntry.id] ?? "")
@@ -473,13 +492,7 @@ export function TodayScreen() {
       <QuantityPrompt
         isOpen={promptOpen}
         title={promptTitle}
-        unit={
-          promptIsRecipe
-            ? t("recipes.servings_unit")
-            : promptIsFree
-              ? t("diary.multiplier_unit")
-              : "g"
-        }
+        unit={promptIsRecipe ? t("recipes.servings_unit") : "g"}
         initialValue={promptValue}
         food={pendingPick?.kind === "food" ? pendingPick.food : editingFood}
         onConfirm={confirmQuantity}
@@ -492,8 +505,12 @@ export function TodayScreen() {
 
       <FreeEntrySheet
         isOpen={freeOpen}
+        editing={editingFreeEntry}
         onConfirm={confirmFree}
-        onClose={() => setFreeOpen(false)}
+        onClose={() => {
+          setFreeOpen(false);
+          setEditingFreeEntry(null);
+        }}
       />
 
       <AiKeyPrompt isOpen={askKey} onClose={() => setAskKey(false)} />
