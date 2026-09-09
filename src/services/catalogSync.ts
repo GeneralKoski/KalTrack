@@ -114,9 +114,7 @@ const writeCursor = (key: string, cursore: catalog.CatalogCursor) =>
  * Il metro era `MUSCLE_GROUPS` / `EQUIPMENT`, cioe' quel che questa versione
  * dell'app aveva compilato dentro: un gruppo aggiunto dal pannello veniva
  * buttato per sempre. Ora e' quel che il server dichiara, e il controllo non
- * sparisce - cambia fonte. Quel che nemmeno la tassonomia conosce si butta
- * come prima: il catalogo lo scrivono anche altri telefoni, e una stringa
- * sconosciuta in colonna girerebbe per l'app come se fosse un valore vero.
+ * sparisce - cambia fonte.
  *
  * I cancellati contano come noti: un esercizio che nomina un gruppo tolto dal
  * pannello non diventa sbagliato, e la sua etichetta c'e' ancora.
@@ -147,8 +145,32 @@ const parseSlugs = (value: string | null | undefined, noti: Set<string>): string
  * da confrontare. Non lascia scoperto niente, perche' i tombstone escono solo
  * in un pull incrementale - il primo pull, quello che distribuisce gli uid,
  * non ne contiene nessuno.
+ *
+ * UN GRUPPO MUSCOLARE CHE LA TASSONOMIA NON CONOSCE NON FA SCARTARE LA VOCE.
+ * Lo faceva, e in silenzio: `giroEsercizi` scrive il cursore qualunque cosa
+ * questa funzione risponda, quindi lo scarto era DEFINITIVO - al giro dopo il
+ * server non ha piu' niente da dare per quella riga, e l'esercizio non
+ * arriva mai piu' su questo telefono. Bastavano due inneschi per niente
+ * esotici: `/catalog/taxonomies` che fallisce mentre `/catalog/exercises`
+ * riesce (l'ordine "tassonomie per prime" protegge dal caso in cui la
+ * tassonomia ARRIVA, non da quello in cui fallisce), o un amministratore che
+ * scrive uno slug che la tabella di tassonomia non ha - il server non lo
+ * impedisce.
+ *
+ * Da quando `MuscleGroup` e' `string` (la tassonomia non e' piu' un insieme
+ * chiuso) uno slug sconosciuto e' comunque SCRIVIBILE, e la sua etichetta
+ * ricade sullo slug crudo (§ `taxonomyLabel`) fino al primo pull di
+ * tassonomia che lo colma. Uno slug crudo a schermo per un giro e'
+ * incomparabilmente meglio di un esercizio che su questo telefono non esiste:
+ * il telefono e' la fonte di verita', si tiene il dato e si degrada quel che
+ * si mostra. Lo slug finisce in `sconosciuti`, che `giroEsercizi` annota una
+ * volta per giro - prima non c'era nessun log, quindi in Diagnostica non
+ * compariva niente da collegare a un esercizio mancante.
  */
-async function applyExercise(voce: catalog.CatalogExercise): Promise<boolean> {
+async function applyExercise(
+  voce: catalog.CatalogExercise,
+  sconosciuti: Set<string>,
+): Promise<boolean> {
   const perUid = await findExerciseByCatalogUid(voce.uid);
 
   // `!= null` e non `!== null`: il campo e' sempre presente su un tombstone
@@ -161,9 +183,10 @@ async function applyExercise(voce: catalog.CatalogExercise): Promise<boolean> {
     return true;
   }
 
-  if (!voce.name || !voce.muscleGroup || !muscoliNoti().has(voce.muscleGroup)) {
-    return false;
-  }
+  // Nome o gruppo assenti: questa non e' una voce, e' un payload malformato -
+  // non c'e' niente da tenere e niente da recuperare a un giro futuro.
+  if (!voce.name || !voce.muscleGroup) return false;
+  if (!muscoliNoti().has(voce.muscleGroup)) sconosciuti.add(voce.muscleGroup);
 
   /*
    * Il fallback per nome vale SOLO per una riga che l'uid non ce l'ha ancora
@@ -254,12 +277,23 @@ async function giroEsercizi(): Promise<EsitoGiro> {
 
     let cursore = await readCursor(CATALOG_EXERCISES_CURSOR);
     let toccate = 0;
+    /*
+     * Gli slug che la tassonomia non conosce, raccolti per tutto il giro e
+     * annotati una volta sola alla fine.
+     *
+     * Una riga per voce vorrebbe dire duecento righe in `app_logs` - che ne
+     * tiene trecento in tutto - per un solo gruppo aggiunto dal pannello:
+     * il registro dei guasti si svuoterebbe da se' proprio nel giro in cui
+     * serve. Un insieme, invece, dice l'unica cosa utile: quali slug sono
+     * arrivati e non si sanno ancora tradurre.
+     */
+    const sconosciuti = new Set<string>();
 
     for (let giro = 0; giro < MAX_PAGES; giro++) {
       const pagina = await catalog.fetchCatalogExercises(cursore);
 
       for (const voce of pagina.data) {
-        if (await applyExercise(voce)) toccate++;
+        if (await applyExercise(voce, sconosciuti)) toccate++;
       }
 
       /*
@@ -277,6 +311,14 @@ async function giroEsercizi(): Promise<EsitoGiro> {
     }
 
     if (toccate > 0) logger.info(`[catalogo] esercizi aggiornati: ${toccate}`);
+    if (sconosciuti.size > 0) {
+      // `warn` e non `info`: e' la traccia con cui si spiega, in Diagnostica,
+      // un'etichetta che a schermo esce come slug crudo.
+      logger.warn(
+        "[catalogo] gruppi muscolari non in tassonomia, etichetta sullo slug: " +
+          [...sconosciuti].sort().join(", "),
+      );
+    }
     return { toccate, riuscito: true };
   } catch (error) {
     if (!alreadyLogged(error)) {
@@ -458,10 +500,17 @@ const toTaxonomyRow = (entry: catalog.TaxonomyEntry): TaxonomyRow => ({
  *
  * Ridrata lo store subito dopo: senza, le etichette nuove resterebbero in
  * tabella e a schermo si vedrebbero quelle vecchie fino al riavvio.
+ *
+ * Torna se e' arrivata davvero al server, come i due `giro*`: tornava `void`,
+ * e `eseguiGiroCatalogo` non poteva quindi tenerne conto nel `riuscito` del
+ * giro. Un giro in cui questa fallisce e i due pull riescono contava come
+ * riuscito e chiudeva la finestra per un'ora, cioe' lasciava le etichette
+ * ferme a quelle di prima con la rete tornata a funzionare - lo stesso
+ * difetto che la finestra scritta solo sui giri riusciti esiste per evitare.
  */
-export async function pullTaxonomies(): Promise<void> {
+export async function pullTaxonomies(): Promise<boolean> {
   try {
-    if (!attivo()) return;
+    if (!attivo()) return false;
 
     const { muscleGroups, equipment } = await catalog.fetchTaxonomies();
     try {
@@ -475,10 +524,12 @@ export async function pullTaxonomies(): Promise<void> {
       // questo `finally` e' il rimedio a quella mancanza.
       await useTaxonomyStore.getState().hydrate();
     }
+    return true;
   } catch (error) {
     if (!alreadyLogged(error)) {
       logger.warn("[catalogo] tassonomie non aggiornate", error);
     }
+    return false;
   }
 }
 
@@ -577,13 +628,21 @@ async function eseguiGiroCatalogo(force: boolean): Promise<EsitoGiro> {
    * misura gli slug che arrivano contro quel che la tassonomia conosce, e
    * leggendole dopo un gruppo nuovo verrebbe buttato per un giro intero.
    */
-  await pullTaxonomies();
+  const tassonomie = await pullTaxonomies();
   const esercizi = await giroEsercizi();
   const alimenti = await giroAlimenti();
-  const riuscito = esercizi.riuscito && alimenti.riuscito;
+  /*
+   * TRE GAMBE E NON DUE. `riuscito` contava solo i due pull: un giro in cui
+   * le tassonomie erano cadute scriveva comunque il segnaposto, e la finestra
+   * teneva ferme per un'ora le etichette di gruppi e attrezzi anche con la
+   * rete tornata. Le tassonomie sono la gamba che le altre due misurano
+   * (vedi l'ordine qui sopra): un giro in cui manca lei non e' un giro
+   * riuscito a due terzi, e' un giro da rifare al prossimo innesco utile.
+   */
+  const riuscito = tassonomie && esercizi.riuscito && alimenti.riuscito;
 
   /*
-   * Il segnaposto si scrive SOLO quando entrambi i pull sono arrivati al
+   * Il segnaposto si scrive SOLO quando tutte e tre le gambe sono arrivate al
    * server, mai su un giro parziale o totalmente fallito.
    *
    * Scriverlo comunque - come faceva la prima versione - vuol dire che "ho

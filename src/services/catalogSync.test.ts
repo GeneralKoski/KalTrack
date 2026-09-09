@@ -297,15 +297,54 @@ describe("pullExercises, quel che non tocca", () => {
   });
 
   /**
-   * Il catalogo lo scrivono altri telefoni e il gestionale: un gruppo che
-   * questa versione dell'app non conosce non deve entrare in colonna e
-   * girare come se fosse buono.
+   * F1 della review finale. Fin qui la voce si SCARTAVA, e in silenzio: il
+   * cursore avanza comunque, quindi al giro dopo il server non ha piu' niente
+   * da dare per quella riga e l'esercizio non arriva **mai piu'** su questo
+   * telefono. Bastava un `/catalog/taxonomies` caduto, o un amministratore
+   * che scrive uno slug che la tabella non ha - il server non lo impedisce.
+   *
+   * La voce si tiene. L'etichetta ricade sullo slug crudo (§ `taxonomyLabel`)
+   * finche' il prossimo pull di tassonomia non la colma: uno slug a schermo
+   * per un giro invece di un esercizio che non esiste.
    */
-  it("scarta una voce il cui gruppo muscolare non esiste", async () => {
-    mockApiRequest.mockResolvedValue(pagina([voce({ muscleGroup: "branchie" })]));
+  it("tiene una voce il cui gruppo muscolare non e' ancora in tassonomia", async () => {
+    // Il warn di sotto e' previsto: zittito, o resta in coda all'output dei
+    // test e qualcuno lo inseguirebbe come se fosse un difetto.
+    const warn = jest.spyOn(logger, "warn").mockImplementation(() => {});
+    mockApiRequest.mockResolvedValue(pagina([voce({ muscleGroup: "trapezi" })]));
 
-    expect(await pullExercises()).toBe(0);
-    expect(await searchExercises({ term: "panca" })).toHaveLength(0);
+    expect(await pullExercises()).toBe(1);
+    const [riga] = await searchExercises({ term: "panca" });
+    expect(riga.muscle_group).toBe("trapezi");
+    warn.mockRestore();
+  });
+
+  /**
+   * Lo scarto era muto: nessun `logger`, nessuna riga in `app_logs`, niente
+   * in Diagnostica da collegare a un esercizio mancante. Ora c'e', **una
+   * volta per giro** e non una per voce: `app_logs` ne tiene trecento in
+   * tutto, e duecento righe identiche svuoterebbero il registro proprio nel
+   * giro in cui serve leggerlo.
+   */
+  it("annota gli slug sconosciuti una volta per giro, non una per voce", async () => {
+    const warn = jest.spyOn(logger, "warn").mockImplementation(() => {});
+    mockApiRequest.mockResolvedValue(
+      pagina([
+        voce({ uid: "ex-uno", name: "Scrollate", muscleGroup: "trapezi" }),
+        voce({ uid: "ex-due", name: "Shrug", muscleGroup: "trapezi" }),
+        voce({ uid: "ex-tre", name: "Ponte", muscleGroup: "glutei_medi" }),
+      ]),
+    );
+
+    await pullExercises();
+
+    const righe = warn.mock.calls.filter((c) =>
+      String(c[0]).includes("non in tassonomia"),
+    );
+    expect(righe).toHaveLength(1);
+    // Ordinati, e ognuno una volta sola: e' un insieme, non un elenco.
+    expect(String(righe[0][0])).toContain("glutei_medi, trapezi");
+    warn.mockRestore();
   });
 
   it("tiene solo gli attrezzi e i muscoli che conosce", async () => {
@@ -972,6 +1011,36 @@ describe("syncCatalog", () => {
   });
 
   /**
+   * F1 della review finale, la meta' del giro. Le tassonomie sono la gamba
+   * che le altre due misurano, e non entravano nel `riuscito`: un giro in cui
+   * cadevano loro e riuscivano i due pull scriveva il segnaposto e chiudeva
+   * la finestra per un'ora - le etichette restavano quelle di prima con la
+   * rete tornata a funzionare, che e' esattamente il difetto per cui il
+   * segnaposto si scrive solo sui giri arrivati davvero.
+   *
+   * E la voce col gruppo sconosciuto **c'e'**: prima veniva buttata, il
+   * cursore avanzava e non tornava mai piu'.
+   */
+  it("le tassonomie cadute rendono il giro fallito, e la voce nuova resta", async () => {
+    // Due warn previsti qui: le tassonomie cadute e lo slug sconosciuto.
+    const warn = jest.spyOn(logger, "warn").mockImplementation(() => {});
+    mockApiRequest.mockImplementation(({ path }: { path: string }) => {
+      if (path === "/catalog/taxonomies") {
+        return Promise.reject(new Error("rete assente"));
+      }
+      if (path === "/catalog/exercises") {
+        return Promise.resolve(pagina([voce({ muscleGroup: "trapezi" })]));
+      }
+      return Promise.resolve(pagina([]));
+    });
+
+    expect(await syncCatalog()).toEqual({ toccate: 1, riuscito: false });
+    expect(await getSetting(CATALOG_PULLED_AT)).toBeNull();
+    expect(await searchExercises({ term: "panca" })).toHaveLength(1);
+    warn.mockRestore();
+  });
+
+  /**
    * Il pull parte all'avvio e a ogni ritorno in primo piano: senza una
    * finestra, alternare due app avanti e indietro chiederebbe il catalogo a
    * ogni passaggio.
@@ -1462,7 +1531,10 @@ describe("pullTaxonomies", () => {
     await useTaxonomyStore.getState().hydrate();
     mockApiRequest.mockRejectedValue(new Error("rete assente"));
 
-    await expect(pullTaxonomies()).resolves.toBeUndefined();
+    // `false` e non `undefined`: il giro deve poter DIRE di non essere
+    // arrivato al server, o `eseguiGiroCatalogo` chiude la finestra per
+    // un'ora su etichette che non ha aggiornato (F1).
+    await expect(pullTaxonomies()).resolves.toBe(false);
     expect(useTaxonomyStore.getState().muscleLabel("petto")).toBe("Petto");
   });
 
@@ -1498,7 +1570,8 @@ describe("pullTaxonomies", () => {
         return originale(kind, rows);
       });
 
-    await expect(pullTaxonomies()).resolves.toBeUndefined();
+    // Una scrittura a meta' non e' un giro arrivato: `false`, come sopra.
+    await expect(pullTaxonomies()).resolves.toBe(false);
 
     // I gruppi muscolari sono scritti davvero (l'implementazione originale
     // e' girata) e lo store li riflette, anche se il giro e' fallito a meta'.
