@@ -292,7 +292,8 @@ export function TodayScreen() {
         mealTypeId,
         label,
         nutrients,
-        isEstimated: true,
+        // Voce scritta a mano: nessun modello ha immaginato questi numeri.
+        isEstimated: false,
       });
       setFreeOpen(false);
       reload();

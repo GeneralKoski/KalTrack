@@ -21,8 +21,8 @@ const toNumber = (text: string): number => {
 
 /**
  * Voce libera: un piatto di cui si sanno solo i valori approssimativi, tipico
- * del mangiare fuori. Viene salvata come stimata, così nei totali si distingue
- * da un dato misurato.
+ * del mangiare fuori. Non è una stima di un modello - i numeri li scrive
+ * l'utente - quindi non porta la stellina AI.
  */
 export const FreeEntrySheet: React.FC<FreeEntrySheetProps> = ({
   isOpen,

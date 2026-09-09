@@ -183,13 +183,13 @@ export function ExerciseDetailScreen() {
             {exercise.is_custom === 1 ? (
               <View style={styles.ownerActions}>
                 <DfButton
-                  label={t("gym.edit_exercise")}
+                  label={t("edit")}
                   variant="outlined"
                   onPress={() => formRef.current?.present()}
                   style={styles.ownerButton}
                 />
                 <DfButton
-                  label={t("gym.delete_exercise")}
+                  label={t("delete")}
                   variant="outlined"
                   color={theme.colors.error}
                   icon={<Trash2 size={18} color={theme.colors.error} />}
