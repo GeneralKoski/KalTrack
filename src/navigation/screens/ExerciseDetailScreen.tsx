@@ -1,7 +1,7 @@
 import { DfAlert } from "@/src/components/DfAlert";
-import { DfImage } from "@/src/components/DfImage";
 import { DfButton } from "@/src/components/form/DfButton";
 import { ScreenBackground, SectionLabel } from "@/src/components/kal";
+import { SyncedPhoto } from "@/src/components/kal/SyncedPhoto";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { ExerciseFormSheet } from "@/src/containers/gym/ExerciseFormSheet";
@@ -116,10 +116,20 @@ export function ExerciseDetailScreen() {
             ]}
             showsVerticalScrollIndicator={false}
           >
+            {/* `SyncedPhoto` e non `DfImage`, che era l'`Image` di React
+                Native con un ripiego sull'icona dell'app: la foto di un
+                esercizio del catalogo comune sta in `CATALOG_PHOTOS_DIR` e si
+                scarica quando serve, quindi su un telefono appena installato
+                quel percorso non ha niente dietro - e al posto della
+                dimostrazione si vedeva l'icona di KalTrack. Qui il download
+                parte, e finche' non e' arrivata c'e' il segnaposto. Stessa
+                coppia di casi di `ExerciseListItem`: manubrio quando la foto
+                non c'e', segnaposto quando c'e' ma non e' ancora qui. */}
             {exercise.photo_uri ? (
-              <DfImage
-                source={exercise.photo_uri}
-                containerStyle={styles.photo}
+              <SyncedPhoto
+                uri={exercise.photo_uri}
+                style={styles.photo}
+                placeholderSize={40}
               />
             ) : (
               <View
