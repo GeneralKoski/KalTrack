@@ -12,7 +12,7 @@ import DateTimePicker, {
   DateTimePickerAndroid,
 } from "@react-native-community/datetimepicker";
 import { Calendar } from "lucide-react-native";
-import React, { forwardRef, useState } from "react";
+import React, { forwardRef, useEffect, useState } from "react";
 import {
   Modal,
   Platform,
@@ -33,22 +33,34 @@ interface MetricEntrySheetProps {
   title: string;
   unit: string;
   onSave: (date: string, value: number) => Promise<void>;
+  /**
+   * Presenti insieme quando il foglio serve a CORREGGERE il valore di un
+   * giorno gia' scritto (non ad aggiungerne uno nuovo): la data si mostra ma
+   * non si tocca, perche' spostare un valore da un giorno a un altro e' un
+   * gesto diverso - cancellare e riscrivere - e quello esiste gia'.
+   */
+  initialDate?: string;
+  initialValue?: number;
 }
 
 /**
  * Foglio "data + valore" riusato da peso e passi in Progress. La data si
  * sceglie (non e' sempre oggi): e' il modo di aggiungere un inserimento
- * passato.
+ * passato. Con `initialDate`/`initialValue` diventa il foglio di modifica di
+ * una riga gia' scritta, e la data resta bloccata.
  */
 export const MetricEntrySheet = forwardRef<
   BottomSheetModal,
   MetricEntrySheetProps
->(({ title, unit, onSave }, ref) => {
+>(({ title, unit, onSave, initialDate, initialValue }, ref) => {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
+  const isEditing = initialDate !== undefined;
 
-  const [date, setDate] = useState(() => todayIso());
-  const [text, setText] = useState("");
+  const [date, setDate] = useState(() => initialDate ?? todayIso());
+  const [text, setText] = useState(() =>
+    initialValue !== undefined ? String(initialValue) : "",
+  );
   const [showIosPicker, setShowIosPicker] = useState(false);
   const [tempDate, setTempDate] = useState<Date>(new Date());
   const [saving, setSaving] = useState(false);
@@ -61,9 +73,19 @@ export const MetricEntrySheet = forwardRef<
   };
 
   const reset = () => {
-    setDate(todayIso());
-    setText("");
+    setDate(initialDate ?? todayIso());
+    setText(initialValue !== undefined ? String(initialValue) : "");
   };
+
+  // Riapre lo stesso foglio (mai smontato) per una riga diversa da quella
+  // appena corretta: senza questo effetto lo stato resterebbe quello della
+  // riga precedente finche' non si richiude. Non riparte se la riga e' la
+  // stessa - vedi CLAUDE.md "Un foglio o una finestra che si chiude si
+  // svuota".
+  useEffect(() => {
+    reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialDate, initialValue]);
 
   const openDatePicker = () => {
     const base = parseIso(date);
@@ -102,11 +124,19 @@ export const MetricEntrySheet = forwardRef<
           {t("tracking.date_label")}
         </Text>
         <TouchableOpacity
-          onPress={openDatePicker}
+          onPress={isEditing ? undefined : openDatePicker}
+          disabled={isEditing}
           activeOpacity={0.6}
-          style={[styles.datePickerBtn, { borderColor: colors.border }]}
+          style={[
+            styles.datePickerBtn,
+            { borderColor: colors.border },
+            isEditing && styles.datePickerBtnLocked,
+          ]}
         >
-          <Calendar size={18} color={colors.textSecondary} />
+          <Calendar
+            size={18}
+            color={isEditing ? colors.textFaint : colors.textSecondary}
+          />
           <Text style={[styles.datePickerText, { color: colors.text }]}>
             {formatDate(date)}
           </Text>
@@ -208,6 +238,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   datePickerText: { fontSize: 15, fontWeight: "500" },
+  datePickerBtnLocked: { opacity: 0.6 },
   row: {
     flexDirection: "row",
     alignItems: "center",

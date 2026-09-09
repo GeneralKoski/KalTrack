@@ -8,9 +8,10 @@ import {
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { HistoryList } from "@/src/containers/progress/HistoryList";
+import { MetricEntrySheet } from "@/src/containers/progress/MetricEntrySheet";
 import { MetricHistoryHero } from "@/src/containers/progress/MetricHistoryHero";
 import { earliestRecordedDate } from "@/src/db/queries/history";
-import { deleteSteps, listSteps } from "@/src/db/queries/tracking";
+import { deleteSteps, listSteps, setSteps } from "@/src/db/queries/tracking";
 import { todayIso } from "@/src/domain/date";
 import { average, trendWindowStart, type TrendWindow } from "@/src/domain/stats";
 import { useAppNav } from "@/src/hooks/useAppNav";
@@ -21,8 +22,9 @@ import type { StepLogRow } from "@/src/types/nutrition";
 import { formatInteger } from "@/src/utils/number";
 import { logger } from "@/src/utils/logger";
 import { showToast } from "@/src/utils/toast";
+import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { ChevronLeft, Footprints, Trash2, X } from "lucide-react-native";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -63,6 +65,9 @@ export function StepsHistoryScreen() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const isSelecting = selectedDates.size > 0;
+
+  const editSheetRef = useRef<BottomSheetModal>(null);
+  const [editingRow, setEditingRow] = useState<StepLogRow | null>(null);
 
   const visible = useMemo(() => {
     const from = trendWindowStart(window, todayIso());
@@ -117,7 +122,16 @@ export function StepsHistoryScreen() {
   };
 
   const onRowPress = (date: string) => {
-    if (isSelecting) toggleSelection(date);
+    if (isSelecting) {
+      toggleSelection(date);
+      return;
+    }
+    // Fuori selezione, la riga si apre per correggerne il valore: la data
+    // resta quella (bloccata nel foglio), cambia solo il numero.
+    const row = rows.find((r) => r.date === date);
+    if (!row) return;
+    setEditingRow(row);
+    editSheetRef.current?.present();
   };
 
   const onRowLongPress = (date: string) => {
@@ -249,6 +263,18 @@ export function StepsHistoryScreen() {
         loading={deleting}
         onConfirm={removeSelected}
         onClose={() => setConfirmDelete(false)}
+      />
+
+      <MetricEntrySheet
+        ref={editSheetRef}
+        title={t("tracking.edit_steps")}
+        unit={t("tracking.steps_unit")}
+        initialDate={editingRow?.date}
+        initialValue={editingRow?.steps}
+        onSave={async (date, value) => {
+          await setSteps(date, value);
+          reload();
+        }}
       />
     </View>
   );
