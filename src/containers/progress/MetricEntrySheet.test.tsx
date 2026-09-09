@@ -101,6 +101,52 @@ describe("MetricEntrySheet in modalita' modifica", () => {
     expect(renderer.root.findByType(RNTextInput).props.value).toBe("8000");
   });
 
+  /**
+   * Il foglio non si smonta mai fra una modifica e l'altra: e' un `ref`
+   * unico, presentato di nuovo per la riga successiva. Il backdrop di gorhom
+   * chiude col primo tocco (`pressBehavior` di default e' "close"), quindi non
+   * si puo' toccare una riga diversa mentre il foglio e' ancora aperto - ma
+   * si chiude su una riga e si riapre su un'altra senza che React smonti mai
+   * il componente, e in quel momento le prop cambiano da sole (senza passare
+   * da `onDismiss`). Senza l'effetto che le segue, il campo mostrerebbe
+   * ancora la riga di prima.
+   */
+  it("passando a un'altra riga (senza chiudere prima) si riempie con i suoi valori", async () => {
+    let renderer!: ReactTestRenderer;
+    await act(async () => {
+      renderer = create(
+        <MetricEntrySheet
+          title="Modifica passi"
+          unit="passi"
+          initialDate="2026-01-05"
+          initialValue={8000}
+          onSave={jest.fn()}
+        />,
+      );
+    });
+    expect(renderer.root.findByType(RNTextInput).props.value).toBe("8000");
+
+    await act(async () => {
+      renderer.update(
+        <MetricEntrySheet
+          title="Modifica passi"
+          unit="passi"
+          initialDate="2026-01-06"
+          initialValue={9500}
+          onSave={jest.fn()}
+        />,
+      );
+    });
+
+    expect(renderer.root.findByType(RNTextInput).props.value).toBe("9500");
+    const dateButton = dateButtonOf(renderer);
+    const dateText = dateButton
+      .findAllByType(Text)
+      .map((node) => node.props.children)
+      .join("");
+    expect(dateText).toBe(formatDate("2026-01-06"));
+  });
+
   it("la data non si puo' toccare", async () => {
     let renderer!: ReactTestRenderer;
     await act(async () => {

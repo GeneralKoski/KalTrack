@@ -41,6 +41,33 @@ describe("setSteps", () => {
     expect((await getSteps("2026-08-28"))?.source).toBe("voice");
   });
 
+  /**
+   * `updated_at` e' quel che decide se una correzione viaggia: il push
+   * seleziona per quella colonna, e chi corregge il valore di un giorno gia'
+   * scritto (§ Storico passi in CLAUDE.md) si aspetta che l'altro telefono lo
+   * veda. Senza `updated_at = excluded.updated_at` nell'upsert, una riscrittura
+   * lascerebbe la colonna com'era e la correzione resterebbe locale per
+   * sempre, senza nessun segno a schermo.
+   */
+  it("una correzione sposta updated_at in avanti, o non viaggia", async () => {
+    jest.useFakeTimers();
+    try {
+      jest.setSystemTime(new Date("2026-08-28T08:00:00.000Z"));
+      await setSteps("2026-08-28", 8000);
+      const first = await getSteps("2026-08-28");
+
+      jest.setSystemTime(new Date("2026-08-28T09:00:00.000Z"));
+      await setSteps("2026-08-28", 8500);
+      const second = await getSteps("2026-08-28");
+
+      expect(Date.parse(second!.updated_at)).toBeGreaterThan(
+        Date.parse(first!.updated_at),
+      );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it("un giorno senza dati ritorna null, non zero", async () => {
     // Distinguere "non ho camminato" da "non ho registrato" conta appena
     // compaiono le medie settimanali.

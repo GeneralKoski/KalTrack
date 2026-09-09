@@ -77,11 +77,15 @@ export const MetricEntrySheet = forwardRef<
     setText(initialValue !== undefined ? String(initialValue) : "");
   };
 
-  // Riapre lo stesso foglio (mai smontato) per una riga diversa da quella
-  // appena corretta: senza questo effetto lo stato resterebbe quello della
-  // riga precedente finche' non si richiude. Non riparte se la riga e' la
-  // stessa - vedi CLAUDE.md "Un foglio o una finestra che si chiude si
-  // svuota".
+  // Il foglio non si smonta mai fra una modifica e l'altra (e' un `ref`
+  // unico, presentato di nuovo per la riga successiva). Il backdrop di
+  // gorhom chiude col primo tocco, quindi non si passa da una riga all'altra
+  // A FOGLIO APERTO - ma si chiude sulla riga di lunedi' e si riapre su
+  // quella di martedi' senza che React smonti mai il componente: le prop
+  // cambiano da sole in quel momento, senza passare da `onDismiss`. Senza
+  // questo effetto lo stato resterebbe quello di lunedi'. Non riparte se la
+  // riga e' la stessa - vedi CLAUDE.md "Un foglio o una finestra che si
+  // chiude si svuota".
   useEffect(() => {
     reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
