@@ -1,6 +1,7 @@
 import { aiAvailable } from "@/src/domain/aiAccess";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useAccountStore } from "@/src/stores/accountStore";
+import { useEffect } from "react";
 
 /**
  * Il diritto AI adesso, come booleano.
@@ -50,4 +51,33 @@ export function useAiGate() {
       navigate("Plans");
     }
   };
+}
+
+/**
+ * Il cancello per una schermata INTERA, non per un bottone.
+ *
+ * `useAiGate` protegge il tocco che ci naviga, ma una schermata registrata
+ * con un `linking.path` e' raggiungibile anche da un deep link diretto, che
+ * scavalca qualunque gate messo su un bottone che porta li' - la stessa
+ * porta seconda che `kaltrack://assistente` era per il microfono, chiusa
+ * gia' una volta per il deep link dell'assistente. `GenerateRoutine`
+ * (`schede/genera`) e' nella stessa situazione: il banner in
+ * `RoutineFormScreen` la gia', ma il percorso diretto no.
+ *
+ * Naviga a `Plans` con `replace` (non `navigate`) appena la schermata monta
+ * senza diritto, cosi' non resta in cronologia una schermata gated su cui
+ * "indietro" tornerebbe. Ritorna il booleano perche' la schermata deve
+ * comunque decidere cosa disegnare nell'istante fra il mount e la
+ * sostituzione - `null` e' la risposta giusta, non il proprio contenuto.
+ */
+export function useAiScreenGate(): boolean {
+  const available = useAiAvailable();
+  const { replace } = useAppNav();
+
+  useEffect(() => {
+    if (!available) replace("Plans");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [available]);
+
+  return available;
 }

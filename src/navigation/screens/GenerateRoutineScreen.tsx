@@ -13,6 +13,7 @@ import { Card, ScreenBackground, SectionLabel } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { listAvailableEquipment } from "@/src/db/queries/exercises";
+import { useAiScreenGate } from "@/src/hooks/useAiGate";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { useTaxonomyStore } from "@/src/stores/taxonomyStore";
@@ -60,6 +61,14 @@ export function GenerateRoutineScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const { navigate, popTo, goBack } = useAppNav();
+  /*
+   * Il banner in RoutineFormScreen gia' gated il tocco che porta qui, ma
+   * questa schermata ha anche un `linking.path` (`schede/genera`): un deep
+   * link diretto la raggiunge scavalcando quel banner, la stessa porta
+   * seconda che l'assistente aveva con `kaltrack://assistente`. Questo e'
+   * il gate all'INGRESSO della schermata, non del bottone che ci naviga.
+   */
+  const aiAvailable = useAiScreenGate();
   const equipmentLabel = useTaxonomyStore((s) => s.equipmentLabel);
   const formRef = useRef<DfFormRef>(null);
   const [loading, setLoading] = useState(false);
@@ -137,6 +146,10 @@ export function GenerateRoutineScreen() {
       setLoading(false);
     }
   };
+
+  // Senza diritto, `useAiScreenGate` sta gia' sostituendo questa schermata
+  // con `Plans`: qui non c'e' niente da disegnare nel frattempo.
+  if (!aiAvailable) return null;
 
   return (
     <View style={styles.root}>
