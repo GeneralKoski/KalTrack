@@ -155,13 +155,14 @@ async function writeCursor(
 /**
  * Gli slug che la tassonomia conosce, cancellati compresi.
  *
- * Il metro era `MUSCLE_GROUPS` / `EQUIPMENT`, cioe' quel che questa versione
- * dell'app aveva compilato dentro: un gruppo aggiunto dal pannello veniva
- * buttato per sempre. Ora e' quel che il server dichiara, e il controllo non
- * sparisce - cambia fonte.
- *
  * I cancellati contano come noti: un esercizio che nomina un gruppo tolto dal
  * pannello non diventa sbagliato, e la sua etichetta c'e' ancora.
+ *
+ * Non sono piu' un filtro - `parseSlugs` non butta piu' niente (vedi sotto) -
+ * ma il metro con cui si decide **cosa annotare**: uno slug che la tassonomia
+ * non conosce e' uno slug la cui etichetta uscira' cruda finche' il prossimo
+ * pull di tassonomia non la colma, e in Diagnostica deve poterlo spiegare
+ * qualcosa.
  */
 const muscoliNoti = (): Set<string> =>
   knownSlugs(useTaxonomyStore.getState().muscleGroups);
@@ -169,11 +170,46 @@ const muscoliNoti = (): Set<string> =>
 const attrezziNoti = (): Set<string> =>
   knownSlugs(useTaxonomyStore.getState().equipment);
 
-const parseSlugs = (value: string | null | undefined, noti: Set<string>): string[] =>
-  (value ?? "")
+/**
+ * Gli slug di un elenco separato da virgole. **Non ne butta nessuno.**
+ *
+ * Buttava quel che la tassonomia non conosceva, e la regola dichiarata era
+ * "quel che non si conosce si butta". E' la stessa scelta che F1 ha ribaltato
+ * sul gruppo muscolare principale, e tenerla qui lasciava il file con **due
+ * filosofie a una riga di distanza**: la voce si accetta con un gruppo
+ * sconosciuto, e intanto un attrezzo sconosciuto sulla stessa voce si perde.
+ *
+ * E si perdeva con la stessa definitivita', perche' il cursore avanza: quel
+ * che consola in F1 - "al prossimo pull si rimedia" - qui vale solo se la
+ * voce cambia **di nuovo** sul server, e nessuno modifica un esercizio per
+ * riparare l'elenco attrezzi di un telefono. In pratica resta sbagliato
+ * finche' non capita che qualcuno lo tocchi per altri motivi.
+ *
+ * Quel che si butta e' solo il vuoto - `"".split(",")` da' `[""]`, e una
+ * stringa vuota non e' uno slug - e i doppioni, perche' un elenco e' un
+ * insieme e due volte lo stesso attrezzo non vuol dire niente.
+ *
+ * Gli slug sconosciuti finiscono in `sconosciuti`, che `giroEsercizi` annota
+ * una volta per giro insieme a quelli del gruppo principale: la conseguenza a
+ * schermo e' la stessa - un'etichetta cruda - quindi la spiegazione e' la
+ * stessa.
+ */
+const parseSlugs = (
+  value: string | null | undefined,
+  noti: Set<string>,
+  sconosciuti: Set<string>,
+): string[] => {
+  const slugs = (value ?? "")
     .split(",")
     .map((v) => v.trim())
-    .filter((v) => noti.has(v));
+    .filter((v) => v !== "");
+
+  for (const slug of slugs) {
+    if (!noti.has(slug)) sconosciuti.add(slug);
+  }
+
+  return [...new Set(slugs)];
+};
 
 /**
  * Una voce di catalogo applicata alla riga locale. Torna true se ha toccato
@@ -210,6 +246,10 @@ const parseSlugs = (value: string | null | undefined, noti: Set<string>): string
  * si mostra. Lo slug finisce in `sconosciuti`, che `giroEsercizi` annota una
  * volta per giro - prima non c'era nessun log, quindi in Diagnostica non
  * compariva niente da collegare a un esercizio mancante.
+ *
+ * **La stessa regola vale per muscoli secondari e attrezzatura**, e li' la
+ * applica `parseSlugs`: quel che la tassonomia non conosce si tiene in
+ * colonna invece di sparire dall'elenco.
  */
 async function applyExercise(
   voce: catalog.CatalogExercise,
@@ -251,8 +291,8 @@ async function applyExercise(
   const campi = {
     name: voce.name,
     muscleGroup: voce.muscleGroup,
-    secondaryMuscles: parseSlugs(voce.secondaryMuscles, muscoliNoti()),
-    equipment: parseSlugs(voce.equipment, attrezziNoti()),
+    secondaryMuscles: parseSlugs(voce.secondaryMuscles, muscoliNoti(), sconosciuti),
+    equipment: parseSlugs(voce.equipment, attrezziNoti(), sconosciuti),
     instructions: voce.instructions ?? null,
     /*
      * Il PERCORSO si scrive subito, i byte arrivano dopo.
@@ -357,9 +397,11 @@ async function giroEsercizi(): Promise<EsitoGiro> {
     if (toccate > 0) logger.info(`[catalogo] esercizi aggiornati: ${toccate}`);
     if (sconosciuti.size > 0) {
       // `warn` e non `info`: e' la traccia con cui si spiega, in Diagnostica,
-      // un'etichetta che a schermo esce come slug crudo.
+      // un'etichetta che a schermo esce come slug crudo. Gruppi muscolari e
+      // attrezzi finiscono nello stesso elenco perche' la conseguenza e' la
+      // stessa, e distinguerli vorrebbe dire due righe per dire una cosa.
       logger.warn(
-        "[catalogo] gruppi muscolari non in tassonomia, etichetta sullo slug: " +
+        "[catalogo] slug non in tassonomia, etichetta sullo slug: " +
           [...sconosciuti].sort().join(", "),
       );
     }

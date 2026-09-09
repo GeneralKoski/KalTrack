@@ -944,9 +944,40 @@ serie: un'ora basta a far arrivare una correzione in giornata e non pesa sul
 passaggio piu' frequente, il ritorno in primo piano - senza quella finestra,
 alternare due app avanti e indietro chiederebbe il catalogo a ogni passaggio.
 Il segnaposto si scrive **solo** se il giro e' arrivato davvero al server, e
-solo se **entrambi** i pull (esercizi e alimenti) ci sono arrivati: scriverlo a
-un giro parzialmente fallito chiuderebbe la meta' fallita per un'ora, cioe' il
-difetto che la finestra esiste per evitare.
+solo se **tutte e tre** le gambe ci sono arrivate - tassonomie, esercizi,
+alimenti: scriverlo a un giro parzialmente fallito chiuderebbe la parte fallita
+per un'ora, cioe' il difetto che la finestra esiste per evitare. Le gambe erano
+due, e le tassonomie non contavano: un giro in cui cadevano loro e riuscivano i
+due pull chiudeva la finestra su etichette che non aveva aggiornato, con la
+rete tornata a funzionare.
+
+**Uno slug che la tassonomia non conosce non fa buttare niente: si tiene il
+dato e si degrada quel che si mostra.** E' la regola opposta a quella che
+questo file dichiarava fino al 9 settembre 2026 ("quel che non si conosce si
+butta"), e il motivo per cui e' cambiata e' che **il cursore rende lo scarto
+definitivo**: la riga scartata non torna al giro dopo, perche' il suo
+`updated_at` sta dietro al cursore, quindi quella voce non arriva **mai piu'**
+su quel telefono. Bastavano due inneschi per niente esotici - `taxonomies` che
+cade mentre `exercises` riesce (l'ordine "tassonomie per prime" protegge dal
+caso in cui la tassonomia **arriva**, non da quello in cui fallisce), o un
+amministratore che scrive uno slug che la tabella non ha, che il server non
+impedisce.
+
+Da quando `MuscleGroup` ed `Equipment` sono `string`, uno slug sconosciuto e'
+scrivibile, e `taxonomyLabel` ricade sullo slug crudo: **un'etichetta cruda per
+un giro e' incomparabilmente meglio di un esercizio che su questo telefono non
+esiste**, ed e' la stessa gerarchia che vale in tutto il resto dell'app - il
+telefono e' la fonte di verita'. Vale per il gruppo principale
+(`applyExercise`) **e** per muscoli secondari e attrezzatura (`parseSlugs`):
+erano due filosofie a una riga di distanza, e la seconda perdeva silenziosamente
+un attrezzo che nessuno avrebbe rimesso, perche' rimediare richiede che la voce
+cambi **di nuovo** sul server. Quel che `parseSlugs` butta ancora e' solo il
+vuoto e i doppioni, che non sono slug.
+
+Gli slug sconosciuti di un giro si annotano **una volta per giro**, non una per
+voce: `app_logs` ne tiene trecento in tutto, e duecento righe identiche per un
+solo gruppo aggiunto dal pannello svuoterebbero il registro proprio nel giro in
+cui serve leggerlo.
 
 **Si salva `cursor` e non `next`.** Il primo dice dove siamo arrivati, il
 secondo se c'e' altro. Salvando `next`, l'ultima pagina - che non e' mai piena

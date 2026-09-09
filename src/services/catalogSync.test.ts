@@ -347,7 +347,24 @@ describe("pullExercises, quel che non tocca", () => {
     warn.mockRestore();
   });
 
-  it("tiene solo gli attrezzi e i muscoli che conosce", async () => {
+  /**
+   * QUESTO TEST DICEVA IL CONTRARIO, e la decisione e' cambiata di proposito.
+   *
+   * Diceva `tiene solo gli attrezzi e i muscoli che conosce`, e asseriva
+   * `["bilanciere"]` e `["tricipiti"]` - gli sconosciuti spariti dall'elenco.
+   * Era la regola dichiarata ("quel che non si conosce si butta"), la stessa
+   * che F1 ha ribaltato sul gruppo muscolare principale: tenerla qui lasciava
+   * il file con due filosofie a una riga di distanza, e la perdita era
+   * definitiva allo stesso modo, perche' il cursore avanza. "Al prossimo pull
+   * si rimedia" vale solo se la voce cambia **di nuovo** sul server, e nessuno
+   * modifica un esercizio per riparare l'elenco attrezzi di un telefono.
+   *
+   * Ora si tengono tutti e si annotano, ed e' un'asserzione piu' forte di
+   * prima: gli array esatti **piu'** la riga in Diagnostica che spiega
+   * l'etichetta cruda.
+   */
+  it("tiene anche gli attrezzi e i muscoli che non conosce, e li annota", async () => {
+    const warn = jest.spyOn(logger, "warn").mockImplementation(() => {});
     mockApiRequest.mockResolvedValue(
       pagina([
         voce({
@@ -360,8 +377,42 @@ describe("pullExercises, quel che non tocca", () => {
     await pullExercises();
 
     const [riga] = await searchExercises({ term: "panca" });
-    expect(JSON.parse(riga.equipment ?? "[]")).toEqual(["bilanciere"]);
-    expect(JSON.parse(riga.secondary_muscles ?? "[]")).toEqual(["tricipiti"]);
+    expect(JSON.parse(riga.equipment ?? "[]")).toEqual([
+      "bilanciere",
+      "astronave",
+    ]);
+    expect(JSON.parse(riga.secondary_muscles ?? "[]")).toEqual([
+      "tricipiti",
+      "branchie",
+    ]);
+    // Un elenco solo per gruppi e attrezzi: la conseguenza a schermo e' la
+    // stessa, e distinguerli sarebbe due righe per dire una cosa.
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("astronave, branchie"),
+    );
+    warn.mockRestore();
+  });
+
+  /**
+   * Quel che `parseSlugs` butta ancora, e sono le due cose che non sono slug:
+   * la stringa vuota (`"".split(",")` da' `[""]`) e i doppioni, perche' un
+   * elenco di attrezzi e' un insieme e due volte lo stesso non dice niente.
+   */
+  it("scarta il vuoto e i doppioni, che non sono slug", async () => {
+    mockApiRequest.mockResolvedValue(
+      pagina([
+        voce({
+          equipment: "bilanciere,,bilanciere, panca",
+          secondaryMuscles: "",
+        }),
+      ]),
+    );
+
+    await pullExercises();
+
+    const [riga] = await searchExercises({ term: "panca" });
+    expect(JSON.parse(riga.equipment ?? "[]")).toEqual(["bilanciere", "panca"]);
+    expect(JSON.parse(riga.secondary_muscles ?? "[]")).toEqual([]);
   });
 
   /**
