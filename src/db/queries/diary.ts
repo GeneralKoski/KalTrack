@@ -438,7 +438,7 @@ export async function updateFreeEntry(
     `UPDATE meal_entries SET
        label = ?, kcal = ?, protein = ?, carbs = ?, sugars = ?, fat = ?,
        saturated_fat = ?, fiber = ?, salt = ?, updated_at = ?
-     WHERE id = ?`,
+     WHERE id = ? AND deleted_at IS NULL`,
     [
       args.label,
       n.kcal,

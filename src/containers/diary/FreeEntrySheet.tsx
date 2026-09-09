@@ -6,7 +6,7 @@ import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import { decimalSeparator } from "@/src/utils/number";
 import { sanitizeDecimalInput } from "@/src/utils/utils";
-import type { MealEntryRow } from "@/src/types/nutrition";
+import { entryNutrients, type MealEntryRow } from "@/src/types/nutrition";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
@@ -75,10 +75,20 @@ export const FreeEntrySheet: React.FC<FreeEntrySheetProps> = ({
 
   const valid = label.trim().length > 0 && toNumber(kcal) > 0;
 
+  /*
+   * La base di quel che si manda indietro: in modifica e' la voce com'era -
+   * sugars, saturated_fat, fiber e salt compresi, che questo foglio non ha
+   * campi per mostrare - in aggiunta e' vuota, perche' non c'e' ancora niente
+   * da preservare. Partire sempre da EMPTY_NUTRIENTS azzerava quei quattro
+   * valori a ogni salvataggio, anche senza toccare nulla: una voce nata da una
+   * stima da foto (che quei valori li porta) li perdeva silenziosamente al
+   * primo "conferma".
+   */
   const confirm = () => {
     if (!valid) return;
+    const base = editing ? entryNutrients(editing) : EMPTY_NUTRIENTS;
     onConfirm(label.trim(), {
-      ...EMPTY_NUTRIENTS,
+      ...base,
       kcal: toNumber(kcal),
       protein: toNumber(protein),
       carbs: toNumber(carbs),

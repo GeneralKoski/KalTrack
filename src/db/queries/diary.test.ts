@@ -263,6 +263,30 @@ describe("updateFreeEntry", () => {
     expect(entry.quantity_g).toBe(1);
     expect(entry.servings).toBeNull();
   });
+
+  it("non scrive su una voce cancellata", async () => {
+    const entryId = await addFreeEntry({
+      date: DATE,
+      mealTypeId: MEAL_TYPE_IDS.dinner,
+      label: "Piatto",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 500 },
+    });
+    await deleteEntry(entryId);
+
+    await updateFreeEntry(entryId, {
+      label: "Non dovrebbe scriversi",
+      nutrients: { ...EMPTY_NUTRIENTS, kcal: 999 },
+    });
+
+    // getDayDiary filtra i cancellati: si legge la riga grezza per vedere se
+    // l'UPDATE l'ha comunque toccata.
+    const row = await db.getFirstAsync<{ label: string | null; kcal: number }>(
+      "SELECT label, kcal FROM meal_entries WHERE id = ?",
+      [entryId],
+    );
+    expect(row?.label).toBe("Piatto");
+    expect(row?.kcal).toBe(500);
+  });
 });
 
 describe("updateEntryQuantity", () => {
