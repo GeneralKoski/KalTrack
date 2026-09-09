@@ -855,7 +855,7 @@ toccava niente. Globale, seguiva l'utente in dodici schermate dove non poteva
 fare nulla, e in due si sedeva sopra un interruttore.
 
 **La domanda e' stata riaperta e richiusa il 3 settembre 2026** (`TODO.md`
-§ 7). `src/ai/tools/registry.ts` ha **tredici** strumenti, e tre riguardano la
+§ 9). `src/ai/tools/registry.ts` ha **tredici** strumenti, e tre riguardano la
 palestra: `create_exercise`, `create_routine`, `log_workout`. Con le mani sul
 bilanciere il microfono sarebbe piu' veloce di qualunque campo, ma la scelta
 di prodotto resta: l'AI in palestra fa solo `create_routine` - generazione
@@ -1268,8 +1268,14 @@ Quattro cose da non rompere:
   seminare: l'ordine lo scrive `createRoutine`, quindi l'elenco segue la
   creazione dove prima seguiva il nome. E' il comportamento giusto per un
   elenco che si trascina - una scheda nuova si accoda invece di riordinare
-  l'elenco da sola. Il seme e' anche lo stesso calcolo su due dispositivi (i
-  nomi sono gli stessi), e per questo non tocca `updated_at`: non e' una
+  l'elenco da sola. Il seme e' lo stesso calcolo su due dispositivi, **a meno
+  di due schede omonime**: l'ordine fra nomi diversi e' lo stesso ovunque, ma
+  lo spareggio fra due schede con lo STESSO nome legge `rowid`, e quello la
+  sincronizzazione non lo allinea - applica le righe nell'ordine del cursore,
+  non di creazione. Due schede omonime possono quindi seminare scambiate fra i
+  due telefoni: non si perde niente (restano entrambe, vicine in elenco, e un
+  trascinamento sistema l'ordine), ma non e' il calcolo identico che sembra a
+  prima vista. Per questo il seme non tocca comunque `updated_at`: non e' una
   modifica dell'utente.
 - **Il riordino scrive `updated_at` su ogni riga.** `routines` sta in
   `SYNCED_TABLES` e il push seleziona per `updated_at`: senza, il riordino non

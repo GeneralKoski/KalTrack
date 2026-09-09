@@ -507,7 +507,7 @@ export function RoutineFormScreen() {
               sottile qui e piu' alto altrove fa sembrare che contino diverso.
 
               Restano distinguibili senza etichette in piu': "Salva" e' pieno e
-              "Aggiungi blocco" a contorno, quindi affiancarli non dice che
+              "Esercizio" a contorno, quindi affiancarli non dice che
               pesano uguale - che e' l'obiezione a cui rispondono anche le
               azioni di `GenerateRoutineScreen`.
             */}
@@ -664,7 +664,7 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.lg,
   },
   // Meta' ciascuno: la gerarchia la dice il pieno contro il contorno, non la
-  // larghezza. Finche' non c'e' un giorno "Aggiungi blocco" non esiste, e
+  // larghezza. Finche' non c'e' un giorno "Esercizio" non esiste, e
   // "Salva" si prende la riga intera da solo.
   action: { flex: 1 },
   loader: { marginTop: theme.spacing.xl },

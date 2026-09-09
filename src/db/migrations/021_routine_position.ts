@@ -16,10 +16,14 @@ import type { Migration } from "@/src/db/migrations/types";
  * un elenco che si trascina una scheda nuova si accoda, non si riordina
  * l'elenco da sola.
  *
- * E' anche deterministico su due dispositivi: i nomi sono gli stessi da
- * entrambe le parti, quindi le due migrazioni calcolano le stesse posizioni
- * senza doversele sincronizzare. Per questo il seme non tocca `updated_at`:
- * non e' una modifica dell'utente, e' lo stesso ordine scritto in colonna.
+ * E' deterministico su due dispositivi A MENO DI DUE SCHEDE OMONIME. L'ordine
+ * fra nomi diversi e' lo stesso ovunque, ma lo spareggio fra due righe con lo
+ * STESSO nome legge `rowid`, e quello la sincronizzazione non lo allinea:
+ * applica le righe nell'ordine del cursore, non di creazione. Due schede
+ * omonime possono quindi seminare scambiate fra i due telefoni - non si perde
+ * niente, restano entrambe vicine in elenco, e un trascinamento sistema
+ * l'ordine. Per questo il seme non tocca comunque `updated_at`: non e' una
+ * modifica dell'utente, e' lo stesso ordine scritto in colonna.
  *
  * Il conteggio comprende anche le schede cancellate, che quindi occupano un
  * numero: un buco nella numerazione delle vive non si vede, e la posizione di
