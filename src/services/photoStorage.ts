@@ -68,7 +68,17 @@ export async function persistPhoto(
   sourceUri: string,
   prefix: string,
 ): Promise<string> {
-  if (!sourceUri.startsWith("file://")) return sourceUri;
+  if (!sourceUri.startsWith("file://")) {
+    /*
+     * Non e' un caso normale: i due chiamanti passano quel che esce da
+     * ImagePicker, e da li' arriva un `file://`. Restituirlo com'e' e' giusto
+     * - non c'e' niente da copiare - ma farlo in silenzio non lo era: la riga
+     * finiva a database con un percorso che non e' dell'archivio, e mesi dopo
+     * era un riquadro vuoto senza niente in Diagnostica che lo spiegasse.
+     */
+    logger.warn(`[foto] non e' un file locale, non si archivia: ${sourceUri}`);
+    return sourceUri;
+  }
   if (sourceUri.startsWith(PHOTOS_DIR)) return sourceUri;
 
   try {
@@ -88,9 +98,24 @@ export async function persistPhoto(
     const name = `${prefix}-${newId()}.jpg`;
     const target = `${PHOTOS_DIR}/${name}`;
 
-    const existing = await FileSystem.getInfoAsync(target);
-    if (!existing.exists) {
-      await writeResized(sourceUri, target);
+    await writeResized(sourceUri, target);
+
+    /*
+     * L'archivio si interroga DOPO aver scritto, e non prima.
+     *
+     * Qui c'era la domanda opposta - `target` esiste gia'? - ed era rimasta da
+     * quando il nome si ricavava dall'URI di partenza: da quando e' un UUID la
+     * risposta e' sempre no, cioe' un giro di filesystem su un ramo morto.
+     * Quel che serve sapere e' se il file c'e' ADESSO, perche' `writeResized`
+     * ripiega sull'originale e il ripiego puo' non riuscire a sua volta: chi
+     * chiamava si portava indietro un percorso senza niente dietro e lo
+     * scriveva a database, e l'anteprima disegnava il vuoto senza che niente
+     * segnalasse un guasto.
+     */
+    const scritto = await FileSystem.getInfoAsync(target);
+    if (!scritto.exists) {
+      logger.error("[foto] l'archivio non ha ricevuto il file", target);
+      return sourceUri;
     }
     return target;
   } catch (error) {

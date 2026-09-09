@@ -4,6 +4,7 @@ import {
   persistPhoto,
   PHOTOS_DIR,
 } from "@/src/services/photoStorage";
+import { logger } from "@/src/utils/logger";
 import * as FileSystem from "expo-file-system/legacy";
 
 jest.mock("expo-file-system/legacy", () => ({
@@ -35,11 +36,26 @@ const render = (width: number, height: number) => ({
   saveAsync: mockSaveAsync,
 });
 
+/**
+ * Un finto filesystem, e non un `getInfoAsync` che risponde sempre lo stesso.
+ *
+ * `persistPhoto` ora chiede all'archivio se il file c'e' DOPO averlo scritto:
+ * con una risposta fissa i due casi - scritto e non scritto - non si
+ * distinguerebbero. Qui `copyAsync` annota dove ha copiato, e `getInfoAsync`
+ * risponde di conseguenza.
+ */
+const scritti = new Set<string>();
+
 beforeEach(() => {
   jest.clearAllMocks();
-  fs.getInfoAsync.mockResolvedValue({ exists: false } as never);
+  scritti.clear();
+  fs.getInfoAsync.mockImplementation(
+    async (uri: string) => ({ exists: scritti.has(uri) }) as never,
+  );
   fs.makeDirectoryAsync.mockResolvedValue(undefined);
-  fs.copyAsync.mockResolvedValue(undefined);
+  fs.copyAsync.mockImplementation(async ({ to }) => {
+    scritti.add(to);
+  });
   fs.deleteAsync.mockResolvedValue(undefined);
   mockResize.mockReturnValue({ renderAsync: mockRenderAsync });
   mockSaveAsync.mockResolvedValue({ uri: "file:///cache/ridotta.jpg" });
@@ -108,9 +124,58 @@ describe("persistPhoto", () => {
   });
 
   it("lascia stare quel che non e' un file locale", async () => {
+    const spia = jest.spyOn(logger, "warn").mockImplementation(() => {});
     const remoto = "https://esempio.tld/foto.jpg";
     expect(await persistPhoto(remoto, "food")).toBe(remoto);
     expect(fs.copyAsync).not.toHaveBeenCalled();
+    spia.mockRestore();
+  });
+
+  /**
+   * Il difetto che ha portato al riquadro nero nel modulo di un alimento: se
+   * ne' la riduzione ne' il ripiego mettono il file in archivio, `persistPhoto`
+   * restituiva `target` comunque - un percorso senza niente dietro, scritto a
+   * database, e un'anteprima vuota senza un guasto da nessuna parte.
+   */
+  it("non promette un archivio che non ha ricevuto il file", async () => {
+    mockRenderAsync.mockResolvedValue(render(200, 200));
+    // La copia "riesce" senza scrivere niente: e' il caso che nessuno vedeva.
+    fs.copyAsync.mockResolvedValue(undefined);
+    const spia = jest.spyOn(logger, "error").mockImplementation(() => {});
+
+    const uri = await persistPhoto("file:///cache/scatto.jpg", "food");
+
+    expect(uri).toBe("file:///cache/scatto.jpg");
+    expect(spia).toHaveBeenCalled();
+    spia.mockRestore();
+  });
+
+  /** L'archivio si interroga dopo aver scritto, non prima: prima la risposta
+   *  era sempre "no", perche' il nome e' un UUID appena generato. */
+  it("chiede all'archivio dopo aver scritto, non prima", async () => {
+    mockRenderAsync.mockResolvedValue(render(200, 200));
+
+    const uri = await persistPhoto("file:///cache/scatto.jpg", "food");
+
+    const domande = fs.getInfoAsync.mock.calls.map((call) => call[0]);
+    expect(domande).toEqual([PHOTOS_DIR, uri]);
+    expect(fs.getInfoAsync).toHaveBeenCalledTimes(2);
+  });
+
+  /**
+   * Un URI che non e' un file locale - un `content://` di Android - si
+   * restituisce com'e', perche' non c'e' niente da copiare. Ma va REGISTRATO:
+   * era l'unica uscita di questa funzione che non lasciava traccia, e la riga
+   * salvata puntava alla cache invece che all'archivio.
+   */
+  it("registra l'URI che non si sa archiviare", async () => {
+    const spia = jest.spyOn(logger, "warn").mockImplementation(() => {});
+    const content = "content://media/external/images/42";
+
+    expect(await persistPhoto(content, "food")).toBe(content);
+
+    expect(spia).toHaveBeenCalledWith(expect.stringContaining(content));
+    spia.mockRestore();
   });
 
   it("lascia stare quel che e' gia' in archivio", async () => {
