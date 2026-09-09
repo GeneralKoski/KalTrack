@@ -1,6 +1,6 @@
 import { DfBottomSheet } from "@/src/components/DfBottomSheet";
 import { useAppTheme } from "@/src/components/ThemeContext";
-import { Text, TextInput } from "@/src/components/ui";
+import { DraftTextInput, Text } from "@/src/components/ui";
 import { birthdatePickerStart, toIsoDate } from "@/src/domain/date";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { useTranslationStore } from "@/src/stores/translationStore";
@@ -42,6 +42,13 @@ export const OnboardingLabel: React.FC<{ children: string }> = ({ children }) =>
   return <Text style={[styles.label, { color: colors.textMuted }]}>{children}</Text>;
 };
 
+/**
+ * `DraftTextInput` e non `TextInput`: altezza e peso stanno in cima a
+ * `OnboardingProfileScreen`, e ogni tasto ricalcola il fabbisogno e ridisegna
+ * l'hero prima di restituire il carattere. Misurato in jest, quel giro costa
+ * 7-8 ms di mediana su un Mac - meta' fotogramma sulla macchina piu' veloce
+ * della catena, senza il livello nativo. Su un telefono non chiude in tempo.
+ */
 export const OnboardingTextField: React.FC<{
   value: string;
   onChangeText: (v: string) => void;
@@ -50,7 +57,7 @@ export const OnboardingTextField: React.FC<{
 }> = ({ value, onChangeText, placeholder, keyboardType = "decimal-pad" }) => {
   const { colors } = useAppTheme();
   return (
-    <TextInput
+    <DraftTextInput
       value={value}
       onChangeText={onChangeText}
       keyboardType={keyboardType}
