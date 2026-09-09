@@ -149,12 +149,13 @@ export async function listReminders(): Promise<Reminder[]> {
 
 export async function reorderReminders(orderedIds: string[]): Promise<void> {
   const db = await getDb();
+  const now = nowIso();
   await db.withTransactionAsync(async () => {
     for (let i = 0; i < orderedIds.length; i++) {
-      await db.runAsync("UPDATE reminders SET position = ? WHERE id = ?", [
-        i,
-        orderedIds[i],
-      ]);
+      await db.runAsync(
+        "UPDATE reminders SET position = ?, updated_at = ? WHERE id = ?",
+        [i, now, orderedIds[i]],
+      );
     }
   });
 }

@@ -279,4 +279,43 @@ describe("stato", () => {
     const reordered = await listReminders();
     expect(reordered.map((r) => r.id)).toEqual([c.id, a.id, b.id]);
   });
+
+  /**
+   * `reminders` sta in `SYNCED_TABLES` e il push seleziona per `updated_at`:
+   * un riordino che non lo scrive non arriva mai sul secondo telefono. Il
+   * riordino dei promemoria non si e' mai sincronizzato per questo motivo.
+   */
+  it("scrive updated_at su ogni riga toccata", async () => {
+    const a = await saveReminder({
+      kind: "water",
+      time: "08:00",
+      weekdays: [1],
+      enabled: true,
+    });
+    const b = await saveReminder({
+      kind: "meals",
+      time: "12:00",
+      weekdays: [1],
+      enabled: true,
+    });
+    const c = await saveReminder({
+      kind: "workout",
+      time: "18:00",
+      weekdays: [1],
+      enabled: true,
+    });
+    const before = "2020-01-01T00:00:00.000Z";
+    await db.runAsync("UPDATE reminders SET updated_at = ?", [before]);
+
+    await reorderReminders([c.id, a.id, b.id]);
+
+    const rows = await db.getAllAsync<{ id: string; updated_at: string }>(
+      "SELECT id, updated_at FROM reminders",
+    );
+    expect(rows).toHaveLength(3);
+    for (const row of rows) {
+      expect(Date.parse(row.updated_at)).toBeGreaterThan(Date.parse(before));
+    }
+    expect(rows.map((r) => r.id).sort()).toEqual([a.id, b.id, c.id].sort());
+  });
 });

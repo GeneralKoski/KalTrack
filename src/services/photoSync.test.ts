@@ -230,6 +230,29 @@ describe("la raccolta delle foto orfane", () => {
     });
   });
 
+  /**
+   * CLAUDE.md § Le foto: "Due ordini che non si invertono - prima il file
+   * locale, poi quello remoto". Nell'altro verso, un'interruzione fra i due
+   * passaggi lascerebbe qui un file che nessuna riga nomina piu', e
+   * `uploadPendingPhotos` - che manda tutto quel che trova in cartella - lo
+   * ricaricherebbe al giro dopo: una foto cancellata e rimessa all'infinito.
+   */
+  it("cancella prima il file locale e poi quello remoto", async () => {
+    await progressPhoto("p1", "progress-morta.jpg", true);
+    const ordine: string[] = [];
+    fs.deleteAsync.mockImplementation(async () => {
+      ordine.push("locale");
+    });
+    mockApiRequest.mockImplementation(async (args: { method: string }) => {
+      if (args.method === "delete") ordine.push("remoto");
+      return args.method === "get" ? { names: ["progress-morta.jpg"] } : {};
+    });
+
+    await collectOrphanPhotos();
+
+    expect(ordine).toEqual(["locale", "remoto"]);
+  });
+
   it("non tocca la foto di una riga viva", async () => {
     await progressPhoto("p1", "progress-viva.jpg", false);
     mockApiRequest.mockResolvedValue({ names: ["progress-viva.jpg"] });
@@ -274,7 +297,7 @@ describe("la raccolta delle foto orfane", () => {
 
     // Con l'elenco remoto illeggibile il nome risulta "non sul server", quindi
     // la cancellazione remota non parte. Il file locale se ne va comunque, e la
-    // riga resta cancellata: al giro dopo `orphanPhotoNames` la ritrova e la
+    // riga resta cancellata: al giro dopo `orphanPhotoUris` la ritrova e la
     // remota se ne va allora. Si sistema da solo.
     await collectOrphanPhotos();
 
