@@ -128,6 +128,32 @@ describe("activateRoutine", () => {
   });
 });
 
+describe("listRoutines", () => {
+  /**
+   * Il difetto: `ORDER BY is_active DESC` faceva saltare in cima la scheda
+   * appena attivata, riscrivendone la posizione sotto il dito di chi la usa.
+   * L'ordine e' una cosa che l'utente si costruisce mentalmente, e attivare
+   * una scheda risponde alla domanda "quale e' attiva" - non a "dove sta".
+   *
+   * L'asserzione non fissa la CHIAVE di ordinamento (oggi il nome, domani una
+   * colonna di posizione col riordino a trascinamento): fissa solo che
+   * attivare una scheda non tocca l'ordine che c'era prima.
+   */
+  it("l'ordine non cambia attivando una scheda in mezzo", async () => {
+    const first = await createRoutine({ ...pushDay(), name: "Scheda A" });
+    const second = await createRoutine({ ...pushDay(), name: "Scheda B" });
+    const third = await createRoutine({ ...pushDay(), name: "Scheda C" });
+
+    const before = (await listRoutines()).map((r) => r.id);
+    expect(before).toEqual([first, second, third]);
+
+    await activateRoutine(second);
+
+    const after = (await listRoutines()).map((r) => r.id);
+    expect(after).toEqual(before);
+  });
+});
+
 describe("updateRoutine", () => {
   it("riscrive giorni e blocchi per intero", async () => {
     const id = await createRoutine(pushDay());

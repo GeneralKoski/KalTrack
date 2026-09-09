@@ -53,10 +53,16 @@ export interface ResolvedDay {
   blocks: ResolvedBlock[];
 }
 
+/**
+ * L'ordine e' quello che l'utente si costruisce mentalmente, e attivare una
+ * scheda risponde a "quale e' attiva" (`getActiveRoutine`), non a "dove sta":
+ * l'elenco non ordina per `is_active`, o accendere una scheda la farebbe
+ * saltare in cima sotto il dito di chi la stava scorrendo.
+ */
 export async function listRoutines(): Promise<RoutineRow[]> {
   const db = await getDb();
   return db.getAllAsync<RoutineRow>(
-    "SELECT * FROM routines WHERE deleted_at IS NULL ORDER BY is_active DESC, name ASC",
+    "SELECT * FROM routines WHERE deleted_at IS NULL ORDER BY name ASC",
   );
 }
 
