@@ -18,6 +18,41 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         /*
+         * Ci si fida dell'nginx che sta davanti, e senza questa riga non ci si
+         * fidava di nessuno.
+         *
+         * Il TLS lo chiude l'nginx del server, che poi parla al container in
+         * chiaro mandando `X-Forwarded-Proto: https` (e `X-Forwarded-For` con
+         * l'IP vero). Quelle intestazioni arrivavano da sempre; quel che
+         * mancava era dichiarare che si possono credere - senza,
+         * `Request::getTrustedProxies()` e' vuoto e Symfony le ignora tutte.
+         * Due conseguenze, e nessuna delle due si vede in un test:
+         *
+         * - `$request->isSecure()` tornava false, quindi `asset()` - e con lui
+         *   `@vite` - scriveva `http://` dentro una pagina servita in
+         *   `https://`. Il browser blocca uno script cosi' (mixed content), e
+         *   il gestionale restava un `<div id="admin-root">` vuoto: la pagina
+         *   risponde 200 e non c'e' niente dentro. Un controllo sul codice di
+         *   stato non lo coglie.
+         * - il client era sempre il gateway di Docker, cioe' **lo stesso per
+         *   tutti**: il `throttle:6,1` su `login` e `register` non contava piu'
+         *   i tentativi per chi li fa, li contava per il proxy. E' esattamente
+         *   il difetto che il commento nel file nginx dice di aver evitato
+         *   mettendo quelle intestazioni - solo che a leggerle non ci pensava
+         *   nessuno.
+         *
+         * `at: '*'` si fida di qualunque mittente, ed **e' sicuro qui per una
+         * ragione precisa**: `docker-compose.yml` pubblica la porta su
+         * `127.0.0.1:8003`, quindi il container non e' raggiungibile
+         * dall'esterno e l'unica via d'ingresso e' quell'nginx. Nessuno da
+         * fuori puo' scriversi un `X-Forwarded-For` a piacere. **Chi cambia
+         * quel binding in `0.0.0.0` deve cambiare anche questa riga**, o
+         * regala a chiunque la possibilita' di dichiararsi un IP diverso a
+         * ogni tentativo di accesso.
+         */
+        $middleware->trustProxies(at: '*');
+
+        /*
          * Nessun redirect per chi non e' autenticato.
          *
          * Il default di Laravel manda gli ospiti a route('login'), che qui non

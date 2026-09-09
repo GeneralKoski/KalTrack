@@ -361,6 +361,31 @@ vero, o
 valorizzare `SANCTUM_STATEFUL_DOMAINS` esplicitamente - la riga sopra fa gia'
 questo per la produzione.
 
+**L'nginx davanti chiude il TLS, e il container si deve fidare di lui**
+(`bootstrap/app.php`, `trustProxies(at: '*')`). Il proxy manda da sempre
+`X-Forwarded-Proto: https` e `X-Forwarded-For`; quel che mancava era
+dichiarare che si possono credere, e finche' non lo era Symfony le ignorava
+entrambe. Due conseguenze, e la prima si e' vista solo aprendo il pannello in
+un browser:
+
+- `asset()` - e con lui `@vite` - scriveva `http://` dentro una pagina servita
+  in `https://`. Il browser blocca uno script cosi' (mixed content), quindi
+  `/admin` rispondeva **200 con dentro un `<div id="admin-root">` vuoto**:
+  nessun errore lato server, e un controllo sul codice di stato dice che va
+  tutto bene. E' il secondo difetto di questa fase il cui sintomo e' "sembra
+  su e non lo e'", dopo `SANCTUM_STATEFUL_DOMAINS`.
+- il client era sempre il gateway di Docker, **lo stesso per tutti**: il
+  `throttle:6,1` su `login` e `register` contava i tentativi del proxy invece
+  di quelli di chi bussa, cioe' non limitava nessuno in particolare.
+
+`at: '*'` si fida di qualunque mittente ed e' sicuro **per una ragione che va
+verificata e non assunta**: `docker-compose.yml` pubblica la porta su
+`127.0.0.1:8003`, quindi dall'esterno al container non si arriva se non
+passando da quell'nginx. Chi cambia quel binding in `0.0.0.0` deve cambiare
+anche quella riga, o chiunque potra' dichiararsi un IP diverso a ogni
+tentativo di accesso. `TrustedProxyTest` pinna schema e IP: con la riga
+togliata ne cadono tre su quattro.
+
 Gli asset di `/admin` (`resources/js/admin/`) si compilano **dentro
 l'immagine**: il `Dockerfile` ha uno stadio Node a parte (`FROM node:22-alpine
 AS assets`) che gira `npm ci && npm run build` e passa `public/build` allo
