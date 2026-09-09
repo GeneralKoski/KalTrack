@@ -55,6 +55,20 @@ describe("setSteps", () => {
   });
 
   /**
+   * L'altra metà della garanzia sopra: il parametro legato due volte serve a
+   * distinguere "non fornito" (preserva) da "fornito" (sostituisce), e senza
+   * questo test solo la prima metà era pinnata - una COALESCE scritta al
+   * contrario (che ignorasse sempre il terzo argomento) avrebbe superato la
+   * suite lo stesso. Un giorno scritto da Health Connect e poi corretto
+   * dall'assistente (voce) deve finire "voice", non restare "health".
+   */
+  it("correggere indicando esplicitamente un'altra sorgente la sostituisce", async () => {
+    await setSteps("2026-08-28", 8000, "health");
+    await setSteps("2026-08-28", 8200, "voice");
+    expect((await getSteps("2026-08-28"))?.source).toBe("voice");
+  });
+
+  /**
    * `updated_at` e' quel che decide se una correzione viaggia: il push
    * seleziona per quella colonna, e chi corregge il valore di un giorno gia'
    * scritto (§ Storico passi in CLAUDE.md) si aspetta che l'altro telefono lo
@@ -154,6 +168,21 @@ describe("setWeight", () => {
     expect(row?.weight_kg).toBe(78.8);
     expect(row?.body_fat_pct).toBe(18);
     expect(row?.note).toBe("dopo la corsa");
+  });
+
+  /**
+   * L'altra metà: il COALESCE preserva quel che non è fornito, ma non deve
+   * bloccare una correzione che indica esplicitamente un grasso o una nota
+   * diversi - senza questo test una COALESCE scritta al contrario (che
+   * ignorasse sempre i nuovi valori) avrebbe superato la suite lo stesso.
+   */
+  it("correggere indicando esplicitamente grasso o nota diversi li sostituisce", async () => {
+    await setWeight("2026-08-28", 78.5, 18, "dopo la corsa");
+    await setWeight("2026-08-28", 78.8, 20, "a digiuno");
+    const row = await getWeight("2026-08-28");
+    expect(row?.weight_kg).toBe(78.8);
+    expect(row?.body_fat_pct).toBe(20);
+    expect(row?.note).toBe("a digiuno");
   });
 
   /**
