@@ -94,7 +94,7 @@ export const LoginPage = (): React.ReactElement => {
             <Card style={{ width: 380 }}>
                 <Typography.Title level={4}>Gestionale KalTrack</Typography.Title>
                 <Typography.Paragraph type="secondary">
-                    L&apos;accesso e&apos; riservato agli amministratori.
+                    L&apos;accesso è riservato agli amministratori.
                 </Typography.Paragraph>
                 <Form form={form} layout="vertical" onFinish={entra} requiredMark={false}>
                     <Form.Item

@@ -9,13 +9,23 @@ use App\Models\Food;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Password;
 
 /**
- * Rimettere a posto la password di qualcuno, dall'app o dal gestionale.
+ * Rimettere a posto la password di qualcuno, dal gestionale.
  *
- * Serve perche' non c'e' il recupero password via email: senza questo,
- * chi dimentica la propria e' fuori, e l'unico rimedio era un comando sul
- * server. Con pochi utenti che si conoscono, e' il rimedio proporzionato.
+ * **Due vie, e si scelgono per un motivo.** `sendResetLink` manda il
+ * collegamento di recupero all'indirizzo dell'utente, e non fa sapere niente a
+ * nessun altro: e' quella da usare. `resetPassword` assegna una password che
+ * l'amministratore scrive e poi deve comunicare - la sanno in due e passa da
+ * un canale qualunque - e resta perche' e' l'unica che funziona quando la mail
+ * non e' raggiungibile: un indirizzo sbagliato alla registrazione, una casella
+ * persa.
+ *
+ * Il recupero via email non c'era affatto fino al 9 settembre 2026, e questo
+ * file era l'unico rimedio a una password dimenticata. L'altra meta' - quella
+ * che un utente raggiunge da solo, senza chiedere niente a nessuno - sta in
+ * `PasswordResetController`.
  *
  * IL CONTROLLO STA SUL SERVER, non nella schermata: l'app nasconde la voce a
  * chi non e' amministratore, ma nascondere non e' proteggere. Vive nel
@@ -85,6 +95,54 @@ class AdminController extends Controller
         $user->tokens()->delete();
 
         return response()->json(['handle' => $user->handle]);
+    }
+
+    /**
+     * L'altra scelta: manda il collegamento di recupero all'indirizzo
+     * dell'utente e non tocca la password.
+     *
+     * La differenza con `resetPassword` non e' di comodita'. Li' la password
+     * la sceglie l'amministratore, quindi la sanno in due e passa da un canale
+     * qualunque (un messaggio, una telefonata) per arrivare a destinazione;
+     * qui non la sa nessuno tranne chi la scrivera'. Quella resta perche' e'
+     * l'unica che funziona quando la mail non e' raggiungibile - un indirizzo
+     * sbagliato alla registrazione, una casella persa.
+     *
+     * Qui l'indirizzo NON arriva dalla richiesta ma dalla riga dell'utente:
+     * accettarlo dal pannello vorrebbe dire che un amministratore puo' farsi
+     * mandare a un indirizzo suo il collegamento per l'account di un altro.
+     *
+     * A differenza di `PasswordResetController::forgot`, un esito negativo si
+     * dice: chi chiama e' un amministratore che guarda una riga che esiste, e
+     * l'enumerazione di indirizzi - la ragione della risposta uniforme
+     * dell'endpoint pubblico - non e' un rischio verso chi ha gia' l'elenco
+     * degli iscritti sotto gli occhi. Qui la risposta e' l'unico modo di
+     * sapere che la mail non e' partita.
+     */
+    public function sendResetLink(User $user): JsonResponse
+    {
+        $esito = Password::sendResetLink(['email' => $user->email]);
+
+        if ($esito !== Password::ResetLinkSent) {
+            /*
+             * Il messaggio e' scritto qui e non tradotto da `$esito`: quello
+             * e' una chiave (`passwords.throttled`, `passwords.user`) e le
+             * traduzioni di Laravel per quel file non sono pubblicate in
+             * questo progetto - `trans()` restituirebbe la chiave nuda, cioe'
+             * "La mail non e' partita: passwords.user".
+             *
+             * I due casi che arrivano qui sono uno di troppa fretta (un
+             * collegamento chiesto un attimo fa e' ancora valido) e uno di
+             * indirizzo che il broker non riconosce.
+             */
+            return response()->json([
+                'message' => $esito === Password::ResetThrottled
+                    ? 'Un collegamento è stato mandato pochi istanti fa: quello vale ancora.'
+                    : 'La mail non è partita: questo indirizzo non è utilizzabile per il recupero.',
+            ], 422);
+        }
+
+        return response()->json(['email' => $user->email]);
     }
 
     /**

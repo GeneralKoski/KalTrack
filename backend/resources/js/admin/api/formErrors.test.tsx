@@ -82,7 +82,7 @@ describe('applicaErroriServer', () => {
         const avvisa = vi.fn();
         // Non un'istanza di `Error`: `messageOf` non ha un `.message` a cui
         // appoggiarsi e deve rispondere col suo messaggio di riserva.
-        render(<Cavia error="qualcosa e' andato storto" avvisa={avvisa} />);
+        render(<Cavia error="qualcosa è andato storto" avvisa={avvisa} />);
 
         await userEvent.click(screen.getByRole('button', { name: 'Applica' }));
 

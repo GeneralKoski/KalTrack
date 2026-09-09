@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { App, Button, Drawer, Flex, Form, Input, Select, Space } from 'antd';
+import { App, Button, Drawer, Form, Input, Select, Space } from 'antd';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@admin/api/client';
 import { applicaErroriServer } from '@admin/api/formErrors';
+import { caricaFoto } from '@admin/api/photo';
 import { opzioniTassonomia, useTaxonomy } from '@admin/api/taxonomies';
 import type { ExerciseRow } from '@admin/api/types';
-import { CatalogImage } from '@admin/components/CatalogImage';
-import { PhotoUpload } from '@admin/components/PhotoUpload';
+import { PhotoPicker } from '@admin/components/PhotoPicker';
 import { joinCsv, splitCsv } from '@admin/domain/csv';
 
 interface Props {
@@ -29,6 +29,7 @@ export const ExerciseForm = ({ riga, aperto, onChiudi }: Props): React.ReactElem
     const [form] = Form.useForm<Valori>();
     const [inCorso, setInCorso] = useState(false);
     const [foto, setFoto] = useState<string | null>(null);
+    const [fotoScelta, setFotoScelta] = useState<File | null>(null);
     const gruppi = useTaxonomy('muscle-groups');
     const attrezzi = useTaxonomy('equipment');
     const client = useQueryClient();
@@ -40,6 +41,9 @@ export const ExerciseForm = ({ riga, aperto, onChiudi }: Props): React.ReactElem
         }
 
         setFoto(riga?.photo ?? null);
+        // La scelta non sopravvive alla chiusura: riaprendo un'altra voce, un
+        // file rimasto qui verrebbe caricato sulla voce sbagliata.
+        setFotoScelta(null);
 
         if (riga === null) {
             form.resetFields();
@@ -68,10 +72,24 @@ export const ExerciseForm = ({ riga, aperto, onChiudi }: Props): React.ReactElem
         setInCorso(true);
 
         try {
+            /*
+             * La foto va dopo, e in creazione non c'e' alternativa: la rotta
+             * e' `POST .../{id}/photo` e l'id nasce con questa risposta.
+             */
+            let id = riga?.id;
+
             if (riga === null) {
-                await apiFetch('/api/admin/exercises', { method: 'POST', body: corpo });
+                const creato = await apiFetch<{ data: ExerciseRow }>('/api/admin/exercises', {
+                    method: 'POST',
+                    body: corpo,
+                });
+                id = creato.data.id;
             } else {
                 await apiFetch(`/api/admin/exercises/${riga.id}`, { method: 'PATCH', body: corpo });
+            }
+
+            if (fotoScelta !== null && id !== undefined) {
+                await caricaFoto(`/api/admin/exercises/${id}/photo`, fotoScelta);
             }
 
             await client.invalidateQueries({ queryKey: ['exercises'] });
@@ -141,7 +159,7 @@ export const ExerciseForm = ({ riga, aperto, onChiudi }: Props): React.ReactElem
                 <Form.Item
                     name="instructions"
                     label="Come si esegue"
-                    extra="128 esercizi su 200 sono rimasti senza per mesi: e' il campo che il pannello esiste per riempire."
+                    extra="128 esercizi su 200 sono rimasti senza per mesi: è il campo che il pannello esiste per riempire."
                     rules={[{ max: 2000 }]}
                 >
                     <Input.TextArea rows={6} autoSize={{ minRows: 6, maxRows: 14 }} />
@@ -149,24 +167,12 @@ export const ExerciseForm = ({ riga, aperto, onChiudi }: Props): React.ReactElem
             </Form>
 
             {/*
-                La foto solo su una voce salvata: la rotta e'
-                `POST /api/admin/exercises/{id}/photo` e in creazione l'id non
-                esiste ancora.
+                Anche in creazione: il file resta qui e lo manda `salva` dopo
+                la POST, quando l'id esiste. Prima il riquadro compariva solo
+                su una voce già salvata, e l'unico modo di dare una foto a un
+                esercizio nuovo era salvarlo e riaprirlo.
             */}
-            {riga !== null && (
-                <Flex align="center" gap={16}>
-                    <CatalogImage nome={foto} lato={72} />
-                    <PhotoUpload
-                        endpoint={`/api/admin/exercises/${riga.id}/photo`}
-                        campo="photo"
-                        onCaricata={(nome) => {
-                            setFoto(nome);
-                            void client.invalidateQueries({ queryKey: ['exercises'] });
-                            void client.invalidateQueries({ queryKey: ['stats'] });
-                        }}
-                    />
-                </Flex>
-            )}
+            <PhotoPicker nomeSalvato={foto} scelto={fotoScelta} onScelta={setFotoScelta} />
         </Drawer>
     );
 };

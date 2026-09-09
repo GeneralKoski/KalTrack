@@ -109,7 +109,7 @@ export const TaxonomiesPage = (): React.ReactElement => (
             sottotitolo="I gruppi muscolari e gli attrezzi che descrivono il catalogo."
         />
         <Typography.Paragraph type="secondary">
-            L&apos;identificativo e&apos; quel che sta scritto in colonna su ogni esercizio, e non si
+            L&apos;identificativo è quel che sta scritto in colonna su ogni esercizio, e non si
             cambia mai: rinominare &quot;Femorali&quot; in &quot;Ischiocrurali&quot; cambia
             l&apos;etichetta.
         </Typography.Paragraph>

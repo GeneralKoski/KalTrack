@@ -127,8 +127,6 @@ const NUTRIENTI: [string, string][] = [
 
 export const ReviewDrawer = ({ proposta, aperto, onChiudi }: Props): React.ReactElement => {
     const [form] = Form.useForm<Record<string, unknown>>();
-    const [nota, setNota] = useState('');
-    const [erroreNota, setErroreNota] = useState<string | null>(null);
     const [inCorso, setInCorso] = useState(false);
     const gruppi = useTaxonomy('muscle-groups');
     const attrezzi = useTaxonomy('equipment');
@@ -139,9 +137,6 @@ export const ReviewDrawer = ({ proposta, aperto, onChiudi }: Props): React.React
         if (!aperto || proposta === null) {
             return;
         }
-
-        setNota('');
-        setErroreNota(null);
 
         const iniziali = valoriIniziali(proposta);
         form.setFieldsValue(
@@ -214,25 +209,19 @@ export const ReviewDrawer = ({ proposta, aperto, onChiudi }: Props): React.React
         }
     };
 
+    /*
+     * Il rifiuto non porta una nota, e non e' una semplificazione: quella
+     * nota non e' mai stata mostrata all'autore - `review_note` la leggeva
+     * solo chi guardava il database - quindi era un campo obbligatorio che
+     * chiedeva di motivare una decisione a nessuno. Il server accetta ancora
+     * `note` come `sometimes`, e non riceverlo va bene.
+     */
     const rifiuta = async (): Promise<void> => {
-        /*
-         * La nota e' obbligatoria QUI e non sul server, dove `note` e'
-         * `sometimes`: e' l'unica traccia del perche', e il giorno che
-         * all'autore lo si dira' - la spec dice che oggi non c'e' ancora
-         * niente che gliela mostri - una nota vuota non gli direbbe niente.
-         */
-        if (nota.trim() === '') {
-            setErroreNota('Scrivi perche\' viene rifiutata.');
-
-            return;
-        }
-
         setInCorso(true);
 
         try {
             await apiFetch(`/api/admin/submissions/${proposta.type}/${proposta.id}/reject`, {
                 method: 'POST',
-                body: { note: nota.trim() },
             });
             message.success('Rifiutata. Resta sul telefono di chi l\'ha scritta.');
             await dopoLaDecisione();
@@ -373,21 +362,6 @@ export const ReviewDrawer = ({ proposta, aperto, onChiudi }: Props): React.React
                 )}
             </Form>
 
-            <Form.Item
-                label="Nota di rifiuto"
-                validateStatus={erroreNota === null ? undefined : 'error'}
-                help={erroreNota ?? 'Serve solo per rifiutare. Non e\' ancora mostrata all\'autore.'}
-            >
-                <Input.TextArea
-                    rows={3}
-                    maxLength={500}
-                    value={nota}
-                    onChange={(e) => {
-                        setNota(e.target.value);
-                        setErroreNota(null);
-                    }}
-                />
-            </Form.Item>
         </Drawer>
     );
 };

@@ -4,7 +4,6 @@ import {
     Button,
     Col,
     Drawer,
-    Flex,
     Form,
     Input,
     InputNumber,
@@ -18,8 +17,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@admin/api/client';
 import { applicaErroriServer } from '@admin/api/formErrors';
 import type { FoodRow } from '@admin/api/types';
-import { CatalogImage } from '@admin/components/CatalogImage';
-import { PhotoUpload } from '@admin/components/PhotoUpload';
+import { caricaFoto } from '@admin/api/photo';
+import { PhotoPicker } from '@admin/components/PhotoPicker';
 import { kcalFromMacros, macrosDiverge } from '@admin/domain/nutrition';
 
 interface Props {
@@ -110,6 +109,7 @@ export const FoodForm = ({ riga, aperto, onChiudi }: Props): React.ReactElement 
     const [form] = Form.useForm<Valori>();
     const [inCorso, setInCorso] = useState(false);
     const [immagine, setImmagine] = useState<string | null>(null);
+    const [immagineScelta, setImmagineScelta] = useState<File | null>(null);
     const client = useQueryClient();
     const { message } = App.useApp();
 
@@ -119,6 +119,9 @@ export const FoodForm = ({ riga, aperto, onChiudi }: Props): React.ReactElement 
         }
 
         setImmagine(riga?.image ?? null);
+        // La scelta non sopravvive alla chiusura: riaprendo un'altra voce, un
+        // file rimasto qui verrebbe caricato sull'alimento sbagliato.
+        setImmagineScelta(null);
 
         if (riga === null) {
             form.resetFields();
@@ -164,10 +167,24 @@ export const FoodForm = ({ riga, aperto, onChiudi }: Props): React.ReactElement 
         setInCorso(true);
 
         try {
+            /*
+             * La foto va dopo, e in creazione non c'e' alternativa: la rotta
+             * e' `POST .../{id}/image` e l'id nasce con questa risposta.
+             */
+            let id = riga?.id;
+
             if (riga === null) {
-                await apiFetch('/api/admin/foods', { method: 'POST', body: corpo });
+                const creato = await apiFetch<{ data: FoodRow }>('/api/admin/foods', {
+                    method: 'POST',
+                    body: corpo,
+                });
+                id = creato.data.id;
             } else {
                 await apiFetch(`/api/admin/foods/${riga.id}`, { method: 'PATCH', body: corpo });
+            }
+
+            if (immagineScelta !== null && id !== undefined) {
+                await caricaFoto(`/api/admin/foods/${id}/image`, immagineScelta);
             }
 
             await client.invalidateQueries({ queryKey: ['foods'] });
@@ -277,19 +294,15 @@ export const FoodForm = ({ riga, aperto, onChiudi }: Props): React.ReactElement 
                 </Form.Item>
             </Form>
 
-            {riga !== null && (
-                <Flex align="center" gap={16}>
-                    <CatalogImage nome={immagine} lato={72} />
-                    <PhotoUpload
-                        endpoint={`/api/admin/foods/${riga.id}/image`}
-                        campo="image"
-                        onCaricata={(nome) => {
-                            setImmagine(nome);
-                            void client.invalidateQueries({ queryKey: ['foods'] });
-                        }}
-                    />
-                </Flex>
-            )}
+            {/*
+                Anche in creazione: il file resta qui e lo manda `salva` dopo
+                la POST, quando l'id esiste.
+            */}
+            <PhotoPicker
+                nomeSalvato={immagine}
+                scelto={immagineScelta}
+                onScelta={setImmagineScelta}
+            />
         </Drawer>
     );
 };

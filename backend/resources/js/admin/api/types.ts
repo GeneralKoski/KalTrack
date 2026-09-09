@@ -77,7 +77,6 @@ export interface SubmissionRow {
     uid: string;
     name: string;
     status: string;
-    reviewNote: string | null;
     createdAt: string | null;
     author: { handle: string; displayName: string } | null;
     /*

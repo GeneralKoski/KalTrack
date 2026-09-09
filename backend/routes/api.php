@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\ExerciseController;
 use App\Http\Controllers\Api\FoodController;
 use App\Http\Controllers\Api\FriendshipController;
 use App\Http\Controllers\Api\ImageController;
+use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\SharedStatController;
 use App\Http\Controllers\Api\SharedWorkoutController;
@@ -32,6 +33,19 @@ Route::post('register', [AuthController::class, 'register'])
     ->middleware('throttle:6,1');
 Route::post('login', [AuthController::class, 'login'])
     ->middleware('throttle:6,1');
+
+/*
+ * Il recupero della password: le altre due porte che chiunque puo' bussare.
+ *
+ * `forgot` manda mail a indirizzi che non ha scelto chi chiama, quindi il
+ * limite e' piu' basso di quello dell'accesso; `reset` prova un token, e un
+ * limite alto lo renderebbe indovinabile a forza bruta. Rispondono sempre allo
+ * stesso modo a un indirizzo che non esiste - il perche' sta nel controller.
+ */
+Route::post('password/forgot', [PasswordResetController::class, 'forgot'])
+    ->middleware('throttle:5,1');
+Route::post('password/reset', [PasswordResetController::class, 'reset'])
+    ->middleware('throttle:5,1');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('logout', [AuthController::class, 'logout']);
@@ -77,6 +91,19 @@ Route::middleware('auth:sanctum')->group(function () {
          */
         Route::post('users/{user}/password', [AdminController::class, 'resetPassword'])
             ->middleware('throttle:10,1');
+
+        /*
+         * L'altra meta' del reimposta password: il collegamento per mail,
+         * invece di una password scelta dall'amministratore.
+         *
+         * E' una rotta a se' e non un ramo di quella sopra perche' le due non
+         * si somigliano affatto: quella scrive una credenziale e la fa
+         * comunicare a voce, questa non fa sapere niente a nessuno tranne che
+         * all'interessato. Il limite e' quello di `password/forgot`, per lo
+         * stesso motivo: manda mail.
+         */
+        Route::post('users/{user}/password/link', [AdminController::class, 'sendResetLink'])
+            ->middleware('throttle:5,1');
 
         /*
          * La coda di revisione delle proposte: alimenti ed esercizi creati a

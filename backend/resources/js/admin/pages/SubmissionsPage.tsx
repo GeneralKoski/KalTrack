@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
+import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import {
+    App,
     Alert,
     Button,
     DatePicker,
@@ -9,17 +11,26 @@ import {
     Select,
     Space,
     Table,
+    Tooltip,
     Typography,
 } from 'antd';
 import type { Dayjs } from 'dayjs';
 import { useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@admin/api/client';
 import { messageOf } from '@admin/api/errors';
 import { useStats } from '@admin/api/stats';
-import type { Elenco, SubmissionRow, SubmissionType } from '@admin/api/types';
+import type {
+    Elenco,
+    ExerciseRow,
+    FoodRow,
+    SubmissionRow,
+    SubmissionType,
+} from '@admin/api/types';
 import { TagStato } from '@admin/components/TagStato';
 import { PageHeader } from '@admin/layout/PageHeader';
+import { ExerciseForm } from '@admin/pages/ExerciseForm';
+import { FoodForm } from '@admin/pages/FoodForm';
 import { ReviewDrawer } from '@admin/pages/ReviewDrawer';
 
 /**
@@ -36,6 +47,62 @@ function conteggio(mostrate: number, arrivate: number): string {
     return mostrate === arrivate ? proposte : `${mostrate} di ${proposte}`;
 }
 
+/*
+ * Una proposta APPROVATA e' una riga di catalogo, e da qui si corregge con lo
+ * stesso modulo delle pagine Esercizi e Alimenti invece di doverla ritrovare
+ * la'. `fields` porta gia' tutte le colonne che quei moduli leggono (vedi
+ * `SubmissionController::forma`), quindi la riga si ricompone qui: e' la
+ * stessa riga, chiesta con un'altra domanda.
+ */
+const testo = (valore: unknown): string | null => (typeof valore === 'string' ? valore : null);
+const numero = (valore: unknown): number | null => (typeof valore === 'number' ? valore : null);
+
+function comeEsercizio(riga: SubmissionRow): ExerciseRow {
+    const f = riga.fields;
+
+    return {
+        id: riga.id,
+        uid: riga.uid,
+        name: riga.name,
+        muscleGroup: testo(f.muscleGroup) ?? '',
+        secondaryMuscles: testo(f.secondaryMuscles),
+        equipment: testo(f.equipment),
+        instructions: testo(f.instructions),
+        photo: testo(f.photo),
+        status: riga.status,
+        createdAt: riga.createdAt,
+        updatedAt: null,
+    };
+}
+
+function comeAlimento(riga: SubmissionRow): FoodRow {
+    const f = riga.fields;
+
+    return {
+        id: riga.id,
+        uid: riga.uid,
+        name: riga.name,
+        brand: testo(f.brand),
+        barcode: testo(f.barcode),
+        offId: testo(f.offId),
+        kcal: numero(f.kcal) ?? 0,
+        protein: numero(f.protein),
+        carbs: numero(f.carbs),
+        sugars: numero(f.sugars),
+        fat: numero(f.fat),
+        saturatedFat: numero(f.saturatedFat),
+        fiber: numero(f.fiber),
+        salt: numero(f.salt),
+        isLiquid: f.isLiquid === true,
+        defaultServingG: numero(f.defaultServingG),
+        servingLabel: testo(f.servingLabel),
+        image: testo(f.image),
+        status: riga.status,
+        createdAt: riga.createdAt,
+        updatedAt: null,
+    };
+}
+
 /** Il tipo con quante ne aspettano, quando le statistiche sono arrivate. */
 const etichettaSegmento = (nome: string, quante: number | undefined): string =>
     quante === undefined ? nome : `${nome} (${quante})`;
@@ -46,7 +113,11 @@ export const SubmissionsPage = (): React.ReactElement => {
     const [periodo, setPeriodo] = useState<[Dayjs, Dayjs] | null>(null);
     const [inRevisione, setInRevisione] = useState<SubmissionRow | null>(null);
     const [aperto, setAperto] = useState(false);
+    const [inModifica, setInModifica] = useState<SubmissionRow | null>(null);
+    const [apertoModulo, setApertoModulo] = useState(false);
     const stats = useStats();
+    const client = useQueryClient();
+    const { message, modal } = App.useApp();
 
     const type = (parametri.get('type') ?? 'exercise') as SubmissionType;
     const status = parametri.get('status') ?? 'pending';
@@ -68,6 +139,35 @@ export const SubmissionsPage = (): React.ReactElement => {
      * fra le opzioni - e la tabella filtrava a zero. Che si legge come "non ci
      * sono proposte di alimenti".
      */
+    /*
+     * Toglie dal catalogo la voce di una proposta approvata: e' la riga di
+     * catalogo, quindi la rotta e' quella del catalogo e non della coda.
+     */
+    const elimina = (riga: SubmissionRow): void => {
+        const dove = riga.type === 'exercise' ? 'exercises' : 'foods';
+
+        modal.confirm({
+            title: `Togliere "${riga.name}" dal catalogo?`,
+            content:
+                'La riga resta sul server marcata cancellata, ed è così che i telefoni vengono a sapere che non c\'è più.',
+            okText: 'Elimina',
+            okButtonProps: { danger: true },
+            cancelText: 'Annulla',
+            onOk: async () => {
+                try {
+                    await apiFetch(`/api/admin/${dove}/${riga.id}`, { method: 'DELETE' });
+                    await client.invalidateQueries({ queryKey: ['submissions'] });
+                    await client.invalidateQueries({ queryKey: [dove] });
+                    await client.invalidateQueries({ queryKey: ['stats'] });
+                    message.success('Tolto dal catalogo.');
+                } catch (error) {
+                    message.error(messageOf(error));
+                    throw error;
+                }
+            },
+        });
+    };
+
     const cambiaTipo = (valore: SubmissionType): void => {
         setAutore(undefined);
         setPeriodo(null);
@@ -155,15 +255,15 @@ export const SubmissionsPage = (): React.ReactElement => {
 
             <Space wrap style={{ marginBottom: 16 }}>
                 {/*
-                    I due numeri stanno sui due segmenti, e non e' un ornamento:
+                    I due numeri stanno sui due segmenti, e non è un ornamento:
                     la dashboard somma i due tipi in un riquadro solo ("3
                     proposte in attesa") e il suo link non porta un `type`,
                     quindi si atterra su Esercizi. Con zero esercizi e tre
                     alimenti in coda, la dashboard diceva tre e qui non si
                     vedeva niente. Ora la coda dice dove sta il lavoro, con lo
-                    stesso `['stats']` che la dashboard ha gia' letto: un
+                    stesso `['stats']` che la dashboard ha già letto: un
                     contatore che non venisse da la' potrebbe divergere da
-                    quello, che e' il difetto che si sta chiudendo.
+                    quello, che è il difetto che si sta chiudendo.
                 */}
                 <Segmented
                     value={type}
@@ -231,10 +331,10 @@ export const SubmissionsPage = (): React.ReactElement => {
                     emptyText: (
                         /*
                             Il vuoto parla del TIPO che si sta guardando, non
-                            della coda intera: questa query e' filtrata su
-                            `type`, e "il catalogo e' in pari" era
+                            della coda intera: questa query è filtrata su
+                            `type`, e "il catalogo è in pari" era
                             un'affermazione su tutto ricavata da una risposta
-                            su meta'. Con tre alimenti in attesa, la coda
+                            su metà. Con tre alimenti in attesa, la coda
                             dichiarava di non avere niente da fare.
                         */
                         <Empty
@@ -270,24 +370,52 @@ export const SubmissionsPage = (): React.ReactElement => {
                     {
                         title: '',
                         key: 'azioni',
-                        width: 140,
-                        render: (_, riga) => (
-                            <Button
-                                size="small"
-                                type="primary"
-                                // Approvare e rifiutare valgono solo su una
-                                // proposta ancora in attesa: il server
-                                // risponde 422 su tutto il resto, e offrire
-                                // il bottone lo farebbe scoprire dopo.
-                                disabled={riga.status !== 'pending'}
-                                onClick={() => {
-                                    setInRevisione(riga);
-                                    setAperto(true);
-                                }}
-                            >
-                                Revisiona
-                            </Button>
-                        ),
+                        width: 150,
+                        /*
+                            In attesa si revisiona; approvata si corregge e si
+                            elimina, con gli stessi moduli delle pagine di
+                            catalogo. Prima su una proposta gia' decisa
+                            restava un solo bottone spento, cioe' la coda
+                            mostrava le voci approvate e non permetteva di
+                            farci niente - per correggerne una si doveva
+                            andare a ritrovarla in Esercizi o Alimenti.
+                        */
+                        render: (_, riga) =>
+                            riga.status === 'pending' ? (
+                                <Button
+                                    size="small"
+                                    type="primary"
+                                    onClick={() => {
+                                        setInRevisione(riga);
+                                        setAperto(true);
+                                    }}
+                                >
+                                    Revisiona
+                                </Button>
+                            ) : riga.status === 'published' ? (
+                                <Space>
+                                    <Tooltip title="Modifica">
+                                        <Button
+                                            size="small"
+                                            icon={<EditOutlined />}
+                                            aria-label="Modifica"
+                                            onClick={() => {
+                                                setInModifica(riga);
+                                                setApertoModulo(true);
+                                            }}
+                                        />
+                                    </Tooltip>
+                                    <Tooltip title="Elimina">
+                                        <Button
+                                            size="small"
+                                            danger
+                                            icon={<DeleteOutlined />}
+                                            aria-label="Elimina"
+                                            onClick={() => elimina(riga)}
+                                        />
+                                    </Tooltip>
+                                </Space>
+                            ) : null,
                     },
                 ]}
             />
@@ -297,6 +425,33 @@ export const SubmissionsPage = (): React.ReactElement => {
                 aperto={aperto}
                 onChiudi={() => setAperto(false)}
             />
+
+            {/*
+                Lo stesso modulo delle pagine di catalogo, montato solo per il
+                tipo che si sta guardando: due moduli montati insieme
+                leggerebbero entrambi le tassonomie e uno dei due su una riga
+                che non e' sua.
+            */}
+            {inModifica?.type === 'exercise' && (
+                <ExerciseForm
+                    riga={comeEsercizio(inModifica)}
+                    aperto={apertoModulo}
+                    onChiudi={() => {
+                        setApertoModulo(false);
+                        void client.invalidateQueries({ queryKey: ['submissions'] });
+                    }}
+                />
+            )}
+            {inModifica?.type === 'food' && (
+                <FoodForm
+                    riga={comeAlimento(inModifica)}
+                    aperto={apertoModulo}
+                    onChiudi={() => {
+                        setApertoModulo(false);
+                        void client.invalidateQueries({ queryKey: ['submissions'] });
+                    }}
+                />
+            )}
         </>
     );
 };

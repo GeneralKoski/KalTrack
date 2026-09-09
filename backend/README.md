@@ -219,10 +219,8 @@ c'e' `App\Rules\UniqueHandle`.
 ## Amministratori
 
 `users.is_admin`, spento per tutti. Chi ce l'ha puo' vedere l'elenco degli
-utenti e **reimpostare la password di chiunque**, dall'app.
-
-Serve perche' non c'e' il recupero via email: senza, chi la dimentica resta
-fuori e l'unico rimedio era un comando sul server.
+utenti e **rimettere a posto la password di chiunque**, dal gestionale e
+dall'app (`AdminPasswordReset`, che offre solo l'assegnazione a mano).
 
 E' una colonna e non "l'utente numero 1". Gli id non sono un ruolo: in questo
 database l'id 1 non esiste piu' - e' stato un account di prova, cancellato - e
@@ -231,6 +229,50 @@ SQLite non lo riassegna. Una regola scritta su quel numero sarebbe nata morta.
 Reimpostare una password **cancella i token di quell'utente**: una password si
 cambia anche perche' si teme che qualcuno la conosca, e lasciare aperte le
 sessioni gia' avviate renderebbe il cambio una formalita'.
+
+### Le due vie per una password dimenticata
+
+Dal 9 settembre 2026 ce ne sono **due**, e non si scelgono a gusto.
+
+1. **Il collegamento per mail** (`POST /api/password/forgot` per chi se ne
+   accorge da solo, `POST /api/admin/users/{id}/password/link` per un
+   amministratore che lo fa partire da una riga dell'elenco). La password nuova
+   la scrive l'interessato su `GET /password/reset/{token}` e non la sa nessun
+   altro. **E' la via da preferire**, ed e' la predefinita nel pannello.
+2. **L'assegnazione a mano** (`POST /api/admin/users/{id}/password`), che c'era
+   da sempre ed era l'unica: la password la scrive l'amministratore e poi deve
+   comunicarla, quindi la sanno in due e passa da un canale qualunque - un
+   messaggio, una telefonata. **Resta perche' e' l'unica che funziona quando la
+   mail non e' raggiungibile**: un indirizzo sbagliato alla registrazione, una
+   casella persa.
+
+Tre cose da non rompere:
+
+- **`password/forgot` risponde sempre allo stesso modo**, indirizzo
+  sconosciuto compreso. Una risposta diversa per un'email che non esiste
+  trasforma l'endpoint in un modo per sapere, un indirizzo alla volta, chi e'
+  iscritto a questo server. Per lo stesso motivo e' sotto `throttle:5,1`.
+  L'endpoint del **gestionale** invece un guasto lo dice: chi chiama e' un
+  amministratore che ha gia' l'elenco degli iscritti sotto gli occhi, e li' la
+  risposta e' l'unico modo di sapere che la mail non e' partita.
+- **L'indirizzo di destinazione lo decide la riga dell'utente, non la
+  richiesta.** Accettarlo dal pannello vorrebbe dire che un amministratore
+  puo' farsi mandare a un indirizzo suo il collegamento per l'account di un
+  altro.
+- **Il reset fa cadere i token**, esattamente come l'assegnazione a mano: una
+  password si recupera anche perche' si teme che qualcuno la conosca.
+
+La rotta web si chiama **`password.reset`** e quel nome e' funzionale: la
+notifica di serie di Laravel costruisce la URL della mail da quel nome, e
+senza la rotta `sendResetLink` va in errore mentre compone il messaggio. La
+pagina e' Blade nudo, senza Vite e senza React - una pagina di recupero che
+dipende da un asset compilato e' una pagina che si rompe al deploy sbagliato -
+e il suo modulo chiama lo stesso `POST /api/password/reset` che userebbe
+l'app: la logica del recupero sta in un posto solo.
+
+Con `MAIL_MAILER=log` la mail finisce in `storage/logs`, che e' il caso di
+adesso. Configurare un mittente vero (Resend) non cambia una riga di questo
+codice.
 
 ## Localizzazione dei messaggi
 
@@ -349,6 +391,8 @@ non e' un backup.
 |---|---|---|
 | POST | `/api/register` | Crea l'account, torna il token |
 | POST | `/api/login` | Torna il token. Campo `login`: email **o** nome utente |
+| POST | `/api/password/forgot` | Chiede il collegamento di recupero. **Risposta uguale a indirizzo ignoto** |
+| POST | `/api/password/reset` | Riscrive la password col token della mail. Fa cadere i token di accesso |
 | POST | `/api/logout` | Revoca **solo** il token in uso |
 | GET | `/api/me` | Il proprio profilo, per intero |
 | PATCH | `/api/me` | Handle, email, nome, bio, avatar, condivisioni |
@@ -396,7 +440,8 @@ e' amministratore prende 403, chi non ha un account 401.
 |---|---|---|
 | GET | `/api/admin/users` | L'elenco, con quante proposte ciascuno ha fatto e quante pubblicate |
 | PATCH | `/api/admin/users/{id}` | Accende o spegne l'AI per un utente |
-| POST | `/api/admin/users/{id}/password` | Reimposta una password |
+| POST | `/api/admin/users/{id}/password` | Assegna una password a mano. Da usare quando la mail non e' raggiungibile |
+| POST | `/api/admin/users/{id}/password/link` | Manda il collegamento di recupero all'indirizzo **della riga**, non a uno passato |
 | GET | `/api/admin/stats` | I numeri della dashboard: in attesa, pubblicati, cosa manca |
 | GET | `/api/admin/submissions?type=&status=&q=` | La coda di revisione, con l'autore di ogni proposta |
 | POST | `/api/admin/submissions/{type}/{id}/approve` | Pubblica una proposta **pending**, correggendola se serve |
@@ -418,9 +463,14 @@ e' amministratore prende 403, chi non ha un account 401.
 
 ## Cosa manca
 
-- Verifica dell'email e recupero password automatico. Al loro posto c'e' il
-  reimposta password dell'amministratore, che con pochi utenti che si conoscono
-  e' il rimedio proporzionato.
+- **La verifica dell'email.** Un indirizzo si scrive alla registrazione e
+  nessuno controlla che esista: da quando il recupero password passa da li'
+  (§ Le due vie per una password dimenticata) quell'indirizzo non e' piu' solo
+  un dato di contatto, ed e' il motivo per cui l'assegnazione a mano
+  dell'amministratore resta.
+- **Un mittente vero.** `MAIL_MAILER=log`: le mail di recupero si scrivono in
+  `storage/logs` e non partono. Il codice non cambia quando si configurera'
+  Resend.
 - Un database vero al posto di SQLite, se mai gli utenti diventassero tanti.
 - **Un secondo ambiente.** Ce n'e' uno solo, e le migrazioni vanno dritte in
   produzione con un backup prima. La scelta test/prod di `deploy.sh` viene dal

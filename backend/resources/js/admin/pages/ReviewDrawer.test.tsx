@@ -12,7 +12,6 @@ const PROPOSTA: SubmissionRow = {
     uid: 'f-1',
     name: 'Riso',
     status: 'pending',
-    reviewNote: null,
     createdAt: '2026-09-01T10:00:00+00:00',
     author: { handle: 'tizio', displayName: 'Tizio' },
     fields: {
@@ -42,7 +41,6 @@ const PROPOSTA_ESERCIZIO: SubmissionRow = {
     uid: 'e-1',
     name: 'Squat con bilanciere',
     status: 'pending',
-    reviewNote: null,
     createdAt: '2026-09-01T10:00:00+00:00',
     author: { handle: 'caio', displayName: 'Caio' },
     fields: {
@@ -137,16 +135,24 @@ describe('ReviewDrawer', () => {
         });
     });
 
-    it('rifiutare senza una nota non si puo\': la nota e\' l\'unica cosa che resta all\'autore', async () => {
+    /*
+     * Il rifiuto parte al primo clic e non porta una nota. Era obbligatoria,
+     * ed era un campo che chiedeva di motivare una decisione a nessuno:
+     * `review_note` non e' mai arrivata all'autore. Questo test tiene ferme
+     * entrambe le meta' - che non ci sia piu' un ostacolo, e che non si mandi
+     * un corpo che il server non aspetta piu'.
+     */
+    it('rifiutare non chiede una nota e non ne manda una', async () => {
         const finta = monta();
 
         await userEvent.click(await screen.findByRole('button', { name: 'Rifiuta' }));
 
         await waitFor(() => {
-            expect(screen.getByText('Scrivi perche\' viene rifiutata.')).toBeDefined();
+            const chiamata = finta.mock.calls.find(
+                (c) => typeof c[0] === 'string' && c[0].includes('/reject'),
+            );
+            expect(chiamata?.[0]).toBe('/api/admin/submissions/food/12/reject');
+            expect(chiamata?.[1].body).toBeUndefined();
         });
-        expect(
-            finta.mock.calls.find((c) => typeof c[0] === 'string' && c[0].includes('/reject')),
-        ).toBeUndefined();
     });
 });

@@ -252,7 +252,6 @@ class SubmissionController extends Controller
             'uid' => $riga->uid,
             'name' => $riga->name,
             'status' => $riga->status,
-            'reviewNote' => $riga->review_note,
             'createdAt' => $riga->created_at?->toIso8601String(),
             'author' => $riga->author === null ? null : [
                 'handle' => $riga->author->handle,

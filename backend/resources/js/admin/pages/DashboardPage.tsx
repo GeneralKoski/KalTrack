@@ -66,7 +66,7 @@ export const DashboardPage = (): React.ReactElement => {
             </Typography.Title>
             <Typography.Paragraph type="secondary">
                 Conta solo gli esercizi <strong>pubblicati</strong>: una proposta ancora in coda non
-                e&apos; un buco nel catalogo, e&apos; una riga da revisionare.
+                è un buco nel catalogo, è una riga da revisionare.
             </Typography.Paragraph>
             <Row gutter={[16, 16]}>
                 <Col xs={24} sm={12}>
@@ -74,7 +74,7 @@ export const DashboardPage = (): React.ReactElement => {
                         <Statistic title="Esercizi senza descrizione" value={data.missing.instructions} />
                         {/*
                             Il numero e il filtro che ci porta dentro sono le
-                            due meta' dello stesso rimedio: sapere che 128
+                            due metà dello stesso rimedio: sapere che 128
                             esercizi sono muti non serve a niente se poi non
                             si sa quali.
                         */}

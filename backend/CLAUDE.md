@@ -20,7 +20,7 @@ senza rete e senza account. Il server tiene una copia.
 
 ```bash
 php artisan serve            # sviluppo
-php artisan test             # 269 test
+php artisan test             # 278 test
 php artisan migrate          # 21 migrazioni
 ```
 
@@ -107,8 +107,16 @@ Router, TypeScript strict, test con Vitest. Quattro cose da non rompere:
 
 - **Ogni richiesta passa da `apiFetch`.** Un `fetch` nudo non porta il token
   CSRF e torna 419 - e' quel che faceva l'upload di serie di AntD, che fa un
-  `fetch` suo per conto proprio, ed e' il motivo per cui `PhotoUpload` usa
-  `customRequest`.
+  `fetch` suo per conto proprio.
+- **Una foto scelta non parte da sola: parte al Salva.** `PhotoPicker` non
+  carica niente (`beforeUpload` torna `false`), tiene il `File` nel genitore e
+  ne mostra l'anteprima con `URL.createObjectURL`; il caricamento e'
+  `caricaFoto` (`api/photo.ts`), chiamato da `ExerciseForm`/`FoodForm` **dopo**
+  che la riga esiste - su una creazione serve l'id, che arriva solo dalla
+  risposta del POST. C'e' stato un `PhotoUpload` che caricava all'istante con
+  `customRequest`: su una voce nuova non aveva un id a cui appendere la foto,
+  quindi il campo compariva solo in modifica, e su una voce esistente scriveva
+  una foto che un Annulla non toglieva piu'.
 - **I moduli di scheda rimandano l'intero elenco modificabile, ed e' voluto.**
   `ExerciseForm` e `FoodForm` mandano tutto cio' che il modulo mostra - nome
   compreso - a ogni salvataggio, perche' ogni campo e' gia' a schermo e

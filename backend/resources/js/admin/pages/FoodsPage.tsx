@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Alert, App, Button, Input, Space, Table, Tag, Typography } from 'antd';
+import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
+import { Alert, App, Button, Input, Space, Table, Tag, Tooltip, Typography } from 'antd';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@admin/api/client';
@@ -176,21 +177,29 @@ export const FoodsPage = (): React.ReactElement => {
                     {
                         title: '',
                         key: 'azioni',
-                        width: 190,
+                        width: 100,
                         render: (_, riga) => (
                             <Space>
-                                <Button
-                                    size="small"
-                                    onClick={() => {
-                                        setInModifica(riga);
-                                        setAperto(true);
-                                    }}
-                                >
-                                    Correggi
-                                </Button>
-                                <Button size="small" danger onClick={() => elimina(riga)}>
-                                    Elimina
-                                </Button>
+                                <Tooltip title="Modifica">
+                                    <Button
+                                        size="small"
+                                        icon={<EditOutlined />}
+                                        aria-label="Modifica"
+                                        onClick={() => {
+                                            setInModifica(riga);
+                                            setAperto(true);
+                                        }}
+                                    />
+                                </Tooltip>
+                                <Tooltip title="Elimina">
+                                    <Button
+                                        size="small"
+                                        danger
+                                        icon={<DeleteOutlined />}
+                                        aria-label="Elimina"
+                                        onClick={() => elimina(riga)}
+                                    />
+                                </Tooltip>
                             </Space>
                         ),
                     },
