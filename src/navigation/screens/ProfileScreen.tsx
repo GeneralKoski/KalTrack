@@ -17,6 +17,7 @@ import {
   CookingPot,
   Dumbbell,
   HeartPulse,
+  Library,
   ListChecks,
   Ruler,
   Salad,
@@ -78,6 +79,15 @@ const GROUPS: Group[] = [
     voices: [
       { route: "Routines", labelKey: "gym.routines", icon: Dumbbell },
       { route: "Exercises", labelKey: "profile.exercises", icon: ListChecks },
+      /*
+       * Il catalogo alimenti sta accanto a quello esercizi, e non nel gruppo
+       * Alimentazione insieme a "I miei alimenti": sono le due facce della
+       * stessa cosa - l'anagrafica comune che arriva dal server e si aggiorna
+       * dal suo bottone. L'icona non e' `Salad`, che e' gia' di "I miei
+       * alimenti": due voci con la stessa icona si leggono come la stessa
+       * pagina.
+       */
+      { route: "FoodCatalog", labelKey: "profile.food_catalog", icon: Library },
       { route: "Equipment", labelKey: "profile.equipment", icon: Wrench },
     ],
   },

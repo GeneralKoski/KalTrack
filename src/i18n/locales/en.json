@@ -24,8 +24,15 @@
   },
   "catalog": {
     "up_to_date": "Catalog already up to date",
-    "updated": "%{count} catalog entries updated",
+    "updated": {
+      "one": "1 catalog entry updated",
+      "other": "%{count} catalog entries updated"
+    },
     "sync_failed": "Catalog update failed"
+  },
+  "food_catalog": {
+    "title": "Foods",
+    "empty": "No food in the catalog"
   },
   "foods": {
     "title": "My foods",
@@ -91,6 +98,7 @@
     "group_progress": "Progress",
     "group_app": "App",
     "exercises": "Exercises",
+    "food_catalog": "Foods",
     "equipment": "Equipment"
   },
   "recipes": {

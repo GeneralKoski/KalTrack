@@ -4,7 +4,7 @@ Quel che manca, in ordine di quanto blocca il resto. `HANDOFF.md` racconta lo
 **stato** e come ci si e' arrivati; qui ci sono solo le **cose da fare**, con il
 rimando a li' dove il contesto e' lungo.
 
-Ultimo aggiornamento: 9 settembre 2026.
+Ultimo aggiornamento: 10 settembre 2026.
 
 ---
 
@@ -315,8 +315,10 @@ due stringhe del § 5.1 dicono di nuovo il vero. Il 9 settembre 2026 vi si e'
 aggiunto anche l'interruttore AI lato app (§ 5.3), fuori dal perimetro
 iniziale e voluto a fase gia' chiusa.
 
-**Quel che nessuna delle tre fasi ha ancora potuto chiudere e' il deploy**
-(§ 5.4): il gestionale non gira in produzione.
+**Il gestionale e' in produzione dal 9 settembre 2026** (§ 5.4), e il
+pannello ci si entra. Quel che resta aperto non e' piu' il deploy ne' la
+configurazione, ma il **primo pull del catalogo da un telefono**: e' l'unico
+pezzo del contratto che non ha ancora parlato con un server vero.
 
 ### 5.1 Una promessa che l'app fa e il server non mantiene piu'
 
@@ -367,38 +369,65 @@ iniziale e voluto a fase gia' chiusa.
 
 ### 5.4 Un avviso di deploy che morde una volta sola
 
-- [ ] **`SANCTUM_STATEFUL_DOMAINS` in produzione, e nessun test lo puo' dire.**
-      Il pannello chiama `/api/*` col cookie di sessione, e Sanctum tratta una
-      richiesta come "dal frontend" solo se `Referer`/`Origin` combacia con
-      `sanctum.stateful`. In produzione quella lista deve contenere
-      `kaltrack.martin-trajkovski.it` (gia' scritto in `backend/README.md`
-      § In produzione), o il primo accesso vero dal pannello risponde 401.
+- [x] ~~**`SANCTUM_STATEFUL_DOMAINS` in produzione, e nessun test lo puo'
+      dire.**~~ Verificato il 10 settembre 2026, e la prova non e' un test ma
+      il pannello che funziona: l'accesso e le sue pagine mostrano i dati che
+      arrivano da `/api/admin/*`. **E' la prova esatta di questa riga**, per
+      come il difetto e' fatto: `POST /admin/login` passerebbe comunque -
+      e' una rotta `web` e non guarda `sanctum.stateful` - mentre ogni
+      chiamata successiva allega la sessione solo se l'host combacia con
+      quell'elenco; se non combaciasse, `auth:sanctum` cercherebbe un Bearer
+      che la SPA non ha e risponderebbe 401 su tutto. Verificati anche gli
+      asset di `/admin`, che escono in `https://` sull'host vero: nessun mixed
+      content, quindi tiene anche `trustProxies`.
 
-      **Nessun test lo intercetta**, ed e' la parte da tenere a mente:
-      Laravel disattiva la verifica CSRF sotto `testing`, e l'host del client
-      di test e' gia' nell'elenco di serie di Sanctum (`config/sanctum.php`).
-      Una produzione mal configurata passa comunque tutta la suite e fallisce
-      al primo login vero: `php artisan test` verde non e' la prova che
-      questa riga sia a posto.
-- [ ] **Il gestionale non e' deployato: il server di produzione gira ancora
-      una versione precedente alla Fase 1.** Verificato dall'esterno il 9
-      settembre 2026: su `kaltrack.martin-trajkovski.it`, `/admin` e
-      `/api/catalog/*` rispondono **404** - non "non autorizzato", proprio
-      "la rotta non esiste". Il backend e' vivo (Laravel risponde), ma senza
-      pannello ne' `/api/admin/*` ne' `/api/catalog/*`. Push non deploya
-      (`backend/README.md` § In produzione, decisione dell'utente perche'
-      esce dalla macchina): finche' non si deploya, il telefono non ha
-      nessun `/api/catalog/*` da interrogare, e il pull del catalogo comune
-      non ha mai toccato un server vero.
+      **Letto sul server lo stesso giorno, e sono a posto entrambe le vie**:
+      `SANCTUM_STATEFUL_DOMAINS=kaltrack.martin-trajkovski.it` nel `.env` di
+      produzione **e** `APP_URL=https://kaltrack.martin-trajkovski.it`
+      allineato, quindi l'elenco ci ricadrebbe da solo anche senza la prima.
+      Confermato sulla configurazione **effettiva** dentro il container e non
+      solo sul file - `config('sanctum.stateful')` torna esattamente
+      `["kaltrack.martin-trajkovski.it"]`: e' il controllo che
+      `backend/README.md` § In produzione raccomanda, e l'unico che vede
+      anche una config in cache.
 
-      **Conseguenza piu' seria di questa, da tenere a mente prima del primo
-      deploy: nessun task della Fase 3 ha mai scambiato un byte con un server
-      vero.** Ogni suite che parla con la rete mocka `apiRequest`, contro un
-      mock scritto leggendo il controller a mano. Il pull incrementale, il cursore
-      composto, i tombstone, le proposte per uid e le foto pigre sono
-      corretti **contro quel mock**. Il primo contatto reale con l'ambiente
-      deployato sara' anche il primo momento in cui si scopre se il
-      contratto combacia davvero.
+      **Quel che di questa voce resta vero per sempre**, e vale per chi
+      rifara' il server da zero: nessun test la intercetta. Laravel disattiva
+      la verifica CSRF sotto `testing`, e l'host del client di test e' gia'
+      nell'elenco di serie di Sanctum, quindi una produzione mal configurata
+      passa comunque tutta la suite. `php artisan test` verde non e' la prova
+      che questa riga sia a posto - lo e' solo un pannello che, dopo
+      l'accesso, mostra dei dati.
+- [x] ~~**Il gestionale non e' deployato.**~~ Deployato il **9 settembre 2026
+      alle 12:13**, cioe' poche ore dopo la verifica che qui sopra trovava i
+      404: quella fotografia era di quella mattina, non della giornata.
+      Immagine `kaltrack-api` costruita a quell'ora, container su da allora e
+      `healthy`. Verificato dall'esterno il 10 settembre: `/up` 200, `/admin`
+      **200** con gli asset in `https://` sull'host vero (nessun mixed
+      content, quindi tiene anche `trustProxies`), e
+      `/api/catalog/exercises`, `/api/catalog/taxonomies`,
+      `/api/catalog/foods` **401** - "non autorizzato" e non piu' "la rotta
+      non esiste", cioe' le rotte ci sono e chiedono un token: la risposta
+      attesa da fuori.
+
+      Dal database di produzione, il 10 settembre: **21 migrazioni** applicate
+      (quelle dell'immagine, non i sette residui inerti che il volume `/data`
+      si porta dietro - la trappola del mount descritta in
+      `backend/README.md` non e' scattata), **201 esercizi e 202 alimenti
+      tutti `published`**, nessuna proposta in coda, 12 gruppi muscolari e 11
+      attrezzature. Il primo pull da un telefono ha quindi qualcosa da
+      scaricare: se torna vuoto, non e' perche' il catalogo e' vuoto.
+
+- [ ] **Il contratto non e' ancora stato provato contro il server vero.**
+      Il 404 e' caduto, questa no: **nessun task della Fase 3 ha mai
+      scambiato un byte con un server vero.** Ogni suite che parla con la
+      rete mocka `apiRequest`, contro un mock scritto leggendo il controller
+      a mano. Il pull incrementale, il cursore composto, i tombstone, le
+      proposte per uid e le foto pigre sono corretti **contro quel mock**. Il
+      primo pull da un telefono su un account vero e' anche il primo momento
+      in cui si scopre se il contratto combacia davvero - e un 401 dall'esterno
+      non lo dimostra, perche' e' la risposta che si ottiene prima di entrare
+      nel merito.
 
 ---
 
@@ -573,6 +602,25 @@ dichiara e il codice non rispettava.
 - [ ] **Dieci file usano `expo-file-system/legacy`**, l'API deprecata: foto,
       backup, esportazioni CSV, log e trascrizione. Il giorno che sparisce si
       fermano tutti insieme.
+- [ ] **Il backup pre-deploy si fa a mano, e una volta e' venuto male.**
+      Su `/data` e' rimasto per un giorno `kaltrack-pre-deploy-'.sqlite`: un
+      apostrofo al posto della data, il quoting sbagliato di un comando
+      digitato a mano - nel repository non c'e' **nessuno** script che lo
+      generi, e questa e' la ragione. Il file e' stato cancellato il 10
+      settembre 2026 dopo aver verificato che non contenesse niente di
+      unico: confrontate tutte le tabelle, il database attuale ne aveva
+      sempre quante o piu', e le sole quattro righe di `shared_workouts` con
+      id diversi erano le stesse condivisioni riscritte da capo (quella
+      tabella si rifa' per intero a ogni push, quindi gli id cambiano e il
+      contenuto no).
+
+      **Quel che resta da fare e' lo script**, con `VACUUM INTO` e la data nel
+      nome (la forma giusta e' in `HANDOFF.md`): un backup a mano si sbaglia
+      di nuovo, e la prossima volta il nome rotto potrebbe sovrascrivere
+      qualcosa che serve. **Da adesso il server non ha nessun backup**, ed e'
+      sostenibile solo perche' il telefono e' la fonte di verita' - il giorno
+      che i dati sul server iniziano a contare, questa riga e quella qui
+      sotto sul secondo ambiente sono lo stesso lavoro.
 - [ ] **Un secondo ambiente (test).** Il backend e' uno solo: la scelta
       test/prod che `deploy.sh` propone viene dal template Dieffetech e non e'
       mai stata configurata (`.env.test` e `.env.prod` non esistono). Le
@@ -623,9 +671,13 @@ dichiara e il codice non rispettava.
       virtuale dell'emulatore riporta `0.000` fisso anche con
       `-allow-host-audio`: il collegamento e' verificato, la reazione al volume
       no. Va vista sul telefono.
-- [ ] **Provare il confronto con dati veri.** Sul server c'e' **un solo
-      utente**, quindi non c'e' nessuno da mettere accanto. Serve un secondo
-      account. Passa i test, ma la lezione del progetto e' che i difetti seri
+- [ ] **Provare il confronto con dati veri.** Sul server c'e' di nuovo **un
+      solo utente**: il secondo (`MartinKoski`, un account di prova) e' stato
+      cancellato il 10 settembre 2026 su richiesta, con i suoi 524
+      `sync_records`, il suo token e l'amicizia accettata che lo legava
+      all'admin. Serve quindi ancora un secondo account, e serve **con dei
+      dati dentro**: il confronto legge quel che l'altro condivide, quindi un
+      account vuoto appena registrato mostra trattini e non prova niente. Passa i test, ma la lezione del progetto e' che i difetti seri
       escono aprendo l'app.
 
 ---

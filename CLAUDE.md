@@ -207,6 +207,39 @@ e' una stringa stabile assegnata alla voce, il server e' uno solo, e la stessa
 voce ha lo stesso `uid` per chiunque. Un `uid` che dall'altra parte non esiste
 non risolve e basta, e la ricaduta sul nome lo ripesca al primo pull.
 
+### Le due pagine degli alimenti
+
+Dal 10 settembre 2026 ce ne sono **due**, e la differenza e' quale query
+leggono:
+
+- **"I miei alimenti"** (`FoodsScreen`, Profilo > Alimentazione) legge
+  `searchMyFoods`, che **esclude i seed**: e' la pagina di quel che si e'
+  aggiunto da se', a mano, dall'archivio o dal codice a barre. **E' la sola
+  pagina dove si scrive** - il "+", il modulo, lo scanner.
+- **"Alimenti"** (`FoodCatalogScreen`, Profilo > Palestra, accanto a
+  `Esercizi`) legge `searchFoods`, cioe' **tutto**, ed e' in sola lettura:
+  ricerca, dialogo Info coi valori per 100 g, preferito, e il bottone che
+  aggiorna il catalogo dal server.
+
+**Il bottone del catalogo sta sulla seconda, e prima stava sulla prima.** Era
+un comando il cui effetto era invisibile dov'era premuto: `searchMyFoods`
+esclude i seed, quindi un pull che correggeva duecento voci di catalogo non
+cambiava una riga di quella schermata, e chi lo premeva leggeva "catalogo
+aggiornato" davanti a un elenco identico. Il proprietario l'ha segnalato
+chiedendo dove fossero gli alimenti del catalogo, che e' la forma in cui
+questo difetto si presenta.
+
+`ExercisesScreen` era **gia'** la pagina giusta per il suo bottone, e non per
+merito: legge `searchExercises`, cioe' tutti gli esercizi, quindi la coppia
+"catalogo + bottone" li era coerente per caso. L'asimmetria fra le due
+schermate era la vera causa, e ora non c'e' piu'.
+
+Chi aggiunge una lettura degli alimenti si faccia la stessa domanda dei tipi
+di pasto (§ I pasti che si possono usare): **sto mostrando quel che l'utente
+ha scritto, o l'anagrafica comune?** La prima e' `searchMyFoods`, la seconda
+`searchFoods` - e `searchFoods` ha `limit = 50` di default, che su una pagina
+di catalogo taglia l'elenco a un quarto senza dirlo.
+
 ### Il codice a barre
 
 `FoodScanScreen`, aperta dall'icona nella barra di Alimenti. Fino al 2

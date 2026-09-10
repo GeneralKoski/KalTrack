@@ -19,6 +19,8 @@ export interface NavParams {
   GymTab: undefined;
   ProfileTab: undefined;
   Foods: undefined;
+  /** Il catalogo comune in sola lettura, gemello di `Exercises`. */
+  FoodCatalog: undefined;
   FoodScan: undefined;
   /**
    * `barcode` senza `id` e' il modulo vuoto con il codice appena letto dentro:

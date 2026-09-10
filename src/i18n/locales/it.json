@@ -24,8 +24,15 @@
   },
   "catalog": {
     "up_to_date": "Catalogo già aggiornato",
-    "updated": "%{count} voci del catalogo aggiornate",
+    "updated": {
+      "one": "1 voce del catalogo aggiornata",
+      "other": "%{count} voci del catalogo aggiornate"
+    },
     "sync_failed": "Aggiornamento del catalogo non riuscito"
+  },
+  "food_catalog": {
+    "title": "Alimenti",
+    "empty": "Nessun alimento nel catalogo"
   },
   "foods": {
     "title": "I miei alimenti",
@@ -91,6 +98,7 @@
     "group_progress": "Progressi",
     "group_app": "App",
     "exercises": "Esercizi",
+    "food_catalog": "Alimenti",
     "equipment": "Attrezzatura"
   },
   "recipes": {

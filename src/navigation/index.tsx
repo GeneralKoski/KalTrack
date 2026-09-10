@@ -59,6 +59,7 @@ import { StepsHistoryScreen } from "@/src/navigation/screens/StepsHistoryScreen"
 import { WeightHistoryScreen } from "@/src/navigation/screens/WeightHistoryScreen";
 import { FoodFormScreen } from "@/src/navigation/screens/FoodFormScreen";
 import { FoodScanScreen } from "@/src/navigation/screens/FoodScanScreen";
+import { FoodCatalogScreen } from "@/src/navigation/screens/FoodCatalogScreen";
 import { FoodsScreen } from "@/src/navigation/screens/FoodsScreen";
 import { GymScreen } from "@/src/navigation/screens/GymScreen";
 import { RecipeFormScreen } from "@/src/navigation/screens/RecipeFormScreen";
@@ -266,6 +267,10 @@ const RootStack = createNativeStackNavigator({
     Exercises: {
       screen: ExercisesScreen,
       linking: { path: "esercizi" },
+    },
+    FoodCatalog: {
+      screen: FoodCatalogScreen,
+      linking: { path: "catalogo-alimenti" },
     },
     Equipment: {
       screen: EquipmentScreen,
