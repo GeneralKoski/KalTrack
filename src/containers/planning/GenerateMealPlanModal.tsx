@@ -4,15 +4,18 @@ import {
   type MealPlanPreferences,
 } from "@/src/ai/generateMealPlan";
 import { DfAlert } from "@/src/components/DfAlert";
-import { Chip } from "@/src/components/kal";
+import { DfOptionSheet } from "@/src/components/DfOptionSheet";
+import { DfSwitch } from "@/src/components/form/DfSwitch";
+import { FieldLabel, Segmented } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { DraftTextInput, Text } from "@/src/components/ui";
 import { addDays } from "@/src/domain/date";
 import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import type { TargetRow } from "@/src/types/nutrition";
+import { formatInteger } from "@/src/utils/number";
 import { showToast } from "@/src/utils/toast";
-import { Sparkles, Utensils } from "lucide-react-native";
+import { ChevronDown, Sparkles } from "lucide-react-native";
 import React, { useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -25,13 +28,13 @@ interface GenerateMealPlanModalProps {
   onClose: () => void;
 }
 
-const DIET_STYLES: { key: DietStyle; label: string }[] = [
-  { key: "balanced", label: "Equilibrata" },
-  { key: "high_protein", label: "Iperproteica" },
-  { key: "low_carb", label: "Low Carb" },
-  { key: "vegetarian", label: "Vegetariana" },
-  { key: "quick_prep", label: "Veloce" },
-  { key: "keto", label: "Chetogenica" },
+const DIET_STYLES: DietStyle[] = [
+  "balanced",
+  "high_protein",
+  "low_carb",
+  "vegetarian",
+  "quick_prep",
+  "keto",
 ];
 
 export const GenerateMealPlanModal: React.FC<GenerateMealPlanModalProps> = ({
@@ -49,6 +52,7 @@ export const GenerateMealPlanModal: React.FC<GenerateMealPlanModalProps> = ({
     "day" | "rest_of_week" | "all_week"
   >("day");
   const [dietStyle, setDietStyle] = useState<DietStyle>("balanced");
+  const [stylePicker, setStylePicker] = useState(false);
   const [useSavedItems, setUseSavedItems] = useState(true);
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
@@ -65,6 +69,7 @@ export const GenerateMealPlanModal: React.FC<GenerateMealPlanModalProps> = ({
     if (isOpen) return;
     setRangeMode("day");
     setDietStyle("balanced");
+    setStylePicker(false);
     setUseSavedItems(true);
     setNotes("");
   }, [isOpen]);
@@ -121,214 +126,185 @@ export const GenerateMealPlanModal: React.FC<GenerateMealPlanModalProps> = ({
 
   const targetDatesCount = getTargetDates().length;
 
+  const styleOptions = DIET_STYLES.map((key) => ({
+    value: key,
+    label: t(`plan.ai_diet.${key}.label`),
+    detail: t(`plan.ai_diet.${key}.detail`),
+  }));
+
   return (
-    <DfAlert
-      isOpen={isOpen}
-      title={t("plan.ai_generate_title")}
-      confirmLabel={t("plan.ai_generate_action")}
-      confirmIcon={<Sparkles size={16} color={colors.accentOn} />}
-      loading={loading}
-      onConfirm={handleGenerate}
-      onClose={onClose}
-    >
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+    <>
+      <DfAlert
+        isOpen={isOpen}
+        title={t("plan.ai_generate_title")}
+        confirmLabel={t("plan.ai_generate_action")}
+        confirmIcon={<Sparkles size={16} color={colors.accentOn} />}
+        loading={loading}
+        onConfirm={handleGenerate}
+        onClose={onClose}
       >
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            {t("plan.ai_period")}
-          </Text>
-          <View style={styles.chipsRow}>
-            <Chip
-              label={t("plan.ai_period_day")}
-              active={rangeMode === "day"}
-              onPress={() => setRangeMode("day")}
-            />
-            <Chip
-              label={t("plan.ai_period_rest")}
-              active={rangeMode === "rest_of_week"}
-              onPress={() => setRangeMode("rest_of_week")}
-            />
-            <Chip
-              label={t("plan.ai_period_all")}
-              active={rangeMode === "all_week"}
-              onPress={() => setRangeMode("all_week")}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.section}>
+            <FieldLabel>{t("plan.ai_period")}</FieldLabel>
+            <Segmented
+              options={[
+                { value: "day", label: t("plan.ai_period_day") },
+                { value: "rest_of_week", label: t("plan.ai_period_rest") },
+                { value: "all_week", label: t("plan.ai_period_all") },
+              ]}
+              value={rangeMode}
+              onChange={setRangeMode}
             />
           </View>
-        </View>
 
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            {t("plan.ai_diet_style")}
-          </Text>
-          <View style={styles.chipsRow}>
-            {DIET_STYLES.map((style) => (
-              <Chip
-                key={style.key}
-                label={style.label}
-                active={dietStyle === style.key}
-                onPress={() => setDietStyle(style.key)}
-              />
-            ))}
-          </View>
-        </View>
-
-        {currentTargets && (
-          <View
-            style={[
-              styles.targetSummary,
-              {
-                backgroundColor: colors.surfaceMuted,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <View style={styles.targetHeader}>
-              <Utensils size={14} color={colors.accent} />
-              <Text style={[styles.targetTitle, { color: colors.text }]}>
-                {t("plan.ai_targets_summary", { kcal: currentTargets.kcal })}
-              </Text>
-            </View>
-            <Text style={[styles.targetMacros, { color: colors.textMuted }]}>
-              {`P: ${currentTargets.protein_g}g • C: ${currentTargets.carbs_g}g • G: ${currentTargets.fat_g}g`}
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.section}>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => setUseSavedItems(!useSavedItems)}
-            style={styles.toggleRow}
-          >
-            <View
+          <View style={styles.section}>
+            <FieldLabel>{t("plan.ai_diet_style")}</FieldLabel>
+            <TouchableOpacity
+              activeOpacity={0.6}
+              accessibilityRole="button"
+              onPress={() => setStylePicker(true)}
               style={[
-                styles.checkbox,
-                {
-                  borderColor: useSavedItems ? colors.accent : colors.border,
-                  backgroundColor: useSavedItems
-                    ? colors.accent
-                    : "transparent",
-                },
+                styles.trigger,
+                { borderColor: colors.border, backgroundColor: colors.surface },
               ]}
             >
-              {useSavedItems && (
-                <Text style={[styles.checkmark, { color: colors.accentOn }]}>
-                  ✓
-                </Text>
-              )}
-            </View>
-            <Text style={[styles.toggleLabel, { color: colors.text }]}>
+              <Text style={[styles.triggerValue, { color: colors.text }]}>
+                {t(`plan.ai_diet.${dietStyle}.label`)}
+              </Text>
+              <ChevronDown size={18} color={colors.textFaint} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.toggleRow}>
+            <Text style={[styles.toggleLabel, { color: colors.textSecondary }]}>
               {t("plan.ai_use_saved_items")}
             </Text>
-          </TouchableOpacity>
-        </View>
+            <DfSwitch
+              initialValue={useSavedItems}
+              onValueChange={setUseSavedItems}
+            />
+          </View>
 
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            {t("plan.ai_notes_title")}
-          </Text>
-          <DraftTextInput
-            value={notes}
-            onChangeText={setNotes}
-            placeholder={t("plan.ai_notes_placeholder")}
-            placeholderTextColor={colors.textFaint}
-            autoCorrect
-            multiline
-            numberOfLines={2}
-            style={[
-              styles.notesInput,
-              {
-                borderColor: colors.border,
-                color: colors.text,
-                backgroundColor: colors.surface,
-              },
-            ]}
-          />
-        </View>
+          <View style={styles.section}>
+            <FieldLabel>{t("plan.ai_notes_title")}</FieldLabel>
+            <DraftTextInput
+              value={notes}
+              onChangeText={setNotes}
+              placeholder={t("plan.ai_notes_placeholder")}
+              placeholderTextColor={colors.textFaint}
+              autoCorrect
+              multiline
+              numberOfLines={2}
+              style={[
+                styles.notesInput,
+                {
+                  borderColor: colors.border,
+                  color: colors.text,
+                  backgroundColor: colors.surface,
+                },
+              ]}
+            />
+          </View>
 
-        <Text style={[styles.daysCounter, { color: colors.textMuted }]}>
-          {t("plan.ai_days_counter", { count: targetDatesCount })}
-        </Text>
-      </ScrollView>
-    </DfAlert>
+          {/*
+           * Il riepilogo sta in fondo, sopra i bottoni: e' la conseguenza delle
+           * scelte di sopra, e si legge nel momento in cui si sta per premere.
+           * Prima le due meta' stavano separate - l'obiettivo a meta' finestra
+           * in un riquadro, le giornate in corsivo sotto le note - e nessuna
+           * delle due era dove si guarda.
+           */}
+          <View style={[styles.recap, { borderColor: colors.border }]}>
+            <Text style={[styles.recapDays, { color: colors.text }]}>
+              {t("plan.ai_days_counter", { count: targetDatesCount })}
+            </Text>
+            {currentTargets ? (
+              <>
+                <Text style={[styles.recapKcal, { color: colors.textMuted }]}>
+                  {t("plan.ai_targets_summary", {
+                    kcal: formatInteger(currentTargets.kcal),
+                  })}
+                </Text>
+                <Text style={[styles.recapMacros, { color: colors.textMuted }]}>
+                  {`P ${currentTargets.protein_g} g · C ${currentTargets.carbs_g} g · G ${currentTargets.fat_g} g`}
+                </Text>
+              </>
+            ) : null}
+          </View>
+        </ScrollView>
+      </DfAlert>
+
+      <DfOptionSheet
+        isOpen={stylePicker}
+        title={t("plan.ai_diet_style")}
+        options={styleOptions}
+        value={dietStyle}
+        onSelect={(value) => {
+          setDietStyle(value);
+          setStylePicker(false);
+        }}
+        onClose={() => setStylePicker(false)}
+      />
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   scrollContent: {
-    gap: theme.spacing.sm,
+    gap: theme.spacing.md,
     paddingTop: theme.spacing.xs,
   },
   section: {
     gap: 6,
   },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  chipsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-  },
-  targetSummary: {
-    borderWidth: 1,
-    borderRadius: theme.radius.md,
-    padding: theme.spacing.sm,
-    gap: 4,
-  },
-  targetHeader: {
+  trigger: {
+    height: 48,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: theme.spacing.sm,
+    borderWidth: 1,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: theme.spacing.sm + 4,
   },
-  targetTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  targetMacros: {
-    fontSize: 12,
+  triggerValue: {
+    flex: 1,
+    fontSize: 15,
   },
   toggleRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.sm,
-    paddingVertical: 4,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  checkmark: {
-    fontSize: 12,
-    fontWeight: "700",
-    lineHeight: 14,
   },
   toggleLabel: {
-    fontSize: 13,
-    fontWeight: "500",
     flex: 1,
+    fontSize: 14,
+    fontWeight: "500",
   },
   notesInput: {
     borderWidth: 1,
     borderRadius: theme.radius.md,
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: theme.spacing.xs,
-    fontSize: 13,
-    minHeight: 52,
+    fontSize: 14,
+    minHeight: 56,
     textAlignVertical: "top",
   },
-  daysCounter: {
+  recap: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: theme.spacing.sm,
+    gap: 2,
+  },
+  recapDays: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  recapKcal: {
     fontSize: 12,
-    fontStyle: "italic",
-    textAlign: "center",
-    marginTop: 2,
+  },
+  recapMacros: {
+    fontSize: 12,
   },
 });

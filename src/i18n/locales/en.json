@@ -785,21 +785,47 @@
     "all_week": "The whole week",
     "current_day": "Current day",
     "ai_generate_title": "Generate plan with AI",
-    "ai_generate_action": "Generate plan",
+    "ai_generate_action": "Generate",
     "ai_generate_done": "%{count} foods added to the plan",
     "ai_generate_failed": "Plan generation failed",
     "ai_period": "Period",
-    "ai_period_day": "Selected day",
-    "ai_period_rest": "Rest of the week",
-    "ai_period_all": "The whole week",
-    "ai_diet_style": "Style / Diet",
-    "ai_targets_summary": "Target: %{kcal} kcal/day",
-    "ai_use_saved_items": "Prefer my own foods and recipes",
-    "ai_notes_title": "Preferences or special notes (optional)",
+    "ai_period_day": "Day",
+    "ai_period_rest": "Rest",
+    "ai_period_all": "Week",
+    "ai_diet_style": "Style",
+    "ai_diet": {
+      "balanced": {
+        "label": "Balanced",
+        "detail": "Classic split, nothing left out"
+      },
+      "high_protein": {
+        "label": "High protein",
+        "detail": "More protein at every meal"
+      },
+      "low_carb": {
+        "label": "Low carb",
+        "detail": "Fewer carbs, more fat and protein"
+      },
+      "vegetarian": {
+        "label": "Vegetarian",
+        "detail": "No meat, no fish"
+      },
+      "quick_prep": {
+        "label": "Quick",
+        "detail": "Simple dishes, fast to prepare"
+      },
+      "keto": {
+        "label": "Keto",
+        "detail": "Carbs to a minimum, fat high"
+      }
+    },
+    "ai_targets_summary": "Target %{kcal} kcal a day",
+    "ai_use_saved_items": "Use my foods and recipes",
+    "ai_notes_title": "Notes (optional)",
     "ai_notes_placeholder": "E.g. light meals at lunch, no lactose, quick to prepare",
     "ai_days_counter": {
-      "one": "The plan will be generated for 1 day",
-      "other": "The plan will be generated for %{count} days"
+      "one": "1 day",
+      "other": "%{count} days"
     }
   },
   "shopping": {

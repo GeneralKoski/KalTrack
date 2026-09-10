@@ -785,21 +785,47 @@
     "all_week": "Tutta la settimana",
     "current_day": "Giorno corrente",
     "ai_generate_title": "Genera piano con IA",
-    "ai_generate_action": "Genera piano",
+    "ai_generate_action": "Genera",
     "ai_generate_done": "%{count} alimenti inseriti a piano",
     "ai_generate_failed": "Generazione del piano non riuscita",
     "ai_period": "Periodo",
-    "ai_period_day": "Giorno selezionato",
-    "ai_period_rest": "Resto della settimana",
-    "ai_period_all": "Tutta la settimana",
-    "ai_diet_style": "Stile / Dieta",
-    "ai_targets_summary": "Obiettivo: %{kcal} kcal/giorno",
-    "ai_use_saved_items": "Usa preferibilmente i miei alimenti e ricette",
-    "ai_notes_title": "Preferenze o note speciali (opzionale)",
+    "ai_period_day": "Giorno",
+    "ai_period_rest": "Resto",
+    "ai_period_all": "Settimana",
+    "ai_diet_style": "Stile",
+    "ai_diet": {
+      "balanced": {
+        "label": "Equilibrata",
+        "detail": "Ripartizione classica, niente esclusioni"
+      },
+      "high_protein": {
+        "label": "Iperproteica",
+        "detail": "Più proteine a ogni pasto"
+      },
+      "low_carb": {
+        "label": "Low carb",
+        "detail": "Pochi carboidrati, più grassi e proteine"
+      },
+      "vegetarian": {
+        "label": "Vegetariana",
+        "detail": "Niente carne né pesce"
+      },
+      "quick_prep": {
+        "label": "Veloce",
+        "detail": "Piatti semplici e rapidi da preparare"
+      },
+      "keto": {
+        "label": "Chetogenica",
+        "detail": "Carboidrati al minimo, grassi alti"
+      }
+    },
+    "ai_targets_summary": "Obiettivo %{kcal} kcal al giorno",
+    "ai_use_saved_items": "Usa i miei alimenti e ricette",
+    "ai_notes_title": "Note (opzionale)",
     "ai_notes_placeholder": "Es. pasti leggeri a pranzo, no lattosio, veloce da preparare",
     "ai_days_counter": {
-      "one": "Verrà generato il piano per 1 giornata",
-      "other": "Verrà generato il piano per %{count} giornate"
+      "one": "1 giornata",
+      "other": "%{count} giornate"
     }
   },
   "shopping": {
