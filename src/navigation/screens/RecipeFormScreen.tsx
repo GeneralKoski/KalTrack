@@ -370,23 +370,27 @@ export function RecipeFormScreen() {
               ]}
             />
 
-            <DfButton
-              label={t("save")}
-              loading={saving}
-              onPress={onSave}
-              style={styles.save}
-            />
-
-            {id ? (
-              <DfButton
-                label={t("delete")}
-                variant="outlined"
-                color={theme.colors.error}
-                icon={<Trash2 size={18} color={theme.colors.error} />}
-                onPress={() => setConfirmDelete(true)}
-                style={styles.deleteButton}
-              />
-            ) : null}
+            {/*
+              Elimina a sinistra e Salva a destra, a metà larghezza: lo stesso
+              ordine di ogni `DfAlert` e di `DfForm` (§ secondaryAction), che
+              qui va composto a mano perché il salvataggio non passa da un form.
+            */}
+            <View style={styles.actions}>
+              {id ? (
+                <View style={styles.action}>
+                  <DfButton
+                    label={t("delete")}
+                    variant="outlined"
+                    color={theme.colors.error}
+                    icon={<Trash2 size={18} color={theme.colors.error} />}
+                    onPress={() => setConfirmDelete(true)}
+                  />
+                </View>
+              ) : null}
+              <View style={styles.action}>
+                <DfButton label={t("save")} loading={saving} onPress={onSave} />
+              </View>
+            </View>
           </FormScreen>
         )}
       </SafeAreaView>
@@ -499,11 +503,13 @@ const styles = StyleSheet.create({
   addButton: {
     marginTop: theme.spacing.md,
   },
-  save: {
+  actions: {
+    flexDirection: "row",
+    gap: theme.spacing.sm,
     marginTop: theme.spacing.lg,
   },
-  deleteButton: {
-    marginTop: theme.spacing.sm,
+  action: {
+    flex: 1,
   },
   loader: {
     marginTop: theme.spacing.xl,

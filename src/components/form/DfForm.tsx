@@ -15,7 +15,8 @@ import {
   type FieldValues,
   type UseFormReturn,
 } from "react-hook-form";
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { theme } from "@/src/styles";
 import { DfButton } from "./DfButton";
 
 export interface DfFormRef {
@@ -31,6 +32,15 @@ interface DfFormProps<T extends FieldValues> {
   submitLabel?: string;
   /** Nascondi il bottone submit automatico */
   hideSubmitButton?: boolean;
+  /**
+   * Un'azione affiancata al submit, a metà larghezza, **alla sua sinistra**:
+   * l'eliminazione di quel che si sta modificando. È lo stesso ordine di ogni
+   * `DfAlert` dell'app - quel che distrugge a sinistra, quel che conferma a
+   * destra, sotto il pollice - e sta qui e non nella schermata perché il
+   * submit lo disegna questo componente: passandola da fuori resterebbe un
+   * bottone impilato sotto, che è il difetto da cui si viene.
+   */
+  secondaryAction?: ReactNode;
   /**
    * Salvataggio. L'app è local-first: qui non si passa da nessuna API, si
    * scrive sul DB locale. Il bottone resta in loading finché la promise
@@ -50,6 +60,7 @@ export function DfForm<T extends FieldValues>({
   initialValues,
   submitLabel,
   hideSubmitButton = false,
+  secondaryAction,
   onSubmit,
   onError,
 }: DfFormProps<T>) {
@@ -100,14 +111,39 @@ export function DfForm<T extends FieldValues>({
       <View>
         {children}
 
-        {!hideSubmitButton && (
-          <DfButton
-            label={resolvedSubmitLabel}
-            loading={isSubmitting}
-            onPress={form.handleSubmit(handleSubmit, handleInvalid)}
-          />
-        )}
+        {!hideSubmitButton &&
+          (secondaryAction ? (
+            <View style={styles.actions}>
+              <View style={styles.action}>{secondaryAction}</View>
+              <View style={styles.action}>
+                <DfButton
+                  label={resolvedSubmitLabel}
+                  loading={isSubmitting}
+                  onPress={form.handleSubmit(handleSubmit, handleInvalid)}
+                />
+              </View>
+            </View>
+          ) : (
+            <DfButton
+              label={resolvedSubmitLabel}
+              loading={isSubmitting}
+              onPress={form.handleSubmit(handleSubmit, handleInvalid)}
+            />
+          ))}
       </View>
     </FormProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  actions: {
+    flexDirection: "row",
+    gap: theme.spacing.sm,
+  },
+  // Il flex sta sull'involucro e non sul bottone: `DfButton` a tutta larghezza
+  // si allarga da sé dentro un contenitore che ha già la sua metà, e così chi
+  // passa `secondaryAction` non deve ricordarsi di spegnere `fullWidth`.
+  action: {
+    flex: 1,
+  },
+});

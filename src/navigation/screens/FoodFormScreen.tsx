@@ -234,6 +234,17 @@ export function FoodFormScreen() {
               initialValues={initial}
               onSubmit={onSubmit}
               submitLabel={t("save")}
+              secondaryAction={
+                id ? (
+                  <DfButton
+                    label={t("delete")}
+                    variant="outlined"
+                    color={theme.colors.error}
+                    icon={<Trash2 size={18} color={theme.colors.error} />}
+                    onPress={() => setConfirmDelete(true)}
+                  />
+                ) : undefined
+              }
             >
               {/*
                 La foto accanto al nome, non in una sezione sua.
@@ -279,17 +290,6 @@ export function FoodFormScreen() {
                 placeholder={t("foods.serving_label_placeholder")}
               />
             </DfForm>
-
-            {id ? (
-              <DfButton
-                label={t("delete")}
-                variant="outlined"
-                color={theme.colors.error}
-                icon={<Trash2 size={18} color={theme.colors.error} />}
-                onPress={() => setConfirmDelete(true)}
-                style={styles.deleteButton}
-              />
-            ) : null}
           </FormScreen>
         )}
       </SafeAreaView>
@@ -347,8 +347,5 @@ const styles = StyleSheet.create({
   identityField: { flex: 1 },
   loader: {
     marginTop: theme.spacing.xl,
-  },
-  deleteButton: {
-    marginTop: theme.spacing.lg,
   },
 });
