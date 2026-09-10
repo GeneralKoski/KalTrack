@@ -237,6 +237,30 @@ export const EntryCompositionSheet: React.FC<EntryCompositionSheetProps> = ({
       onClose={onClose}
       loading={busy}
       size="lg"
+      // La ricetta e' una via laterale - tocca la libreria, non il diario - e
+      // sta sotto il piede come collegamento: sopra, era un bottone che si
+      // contendeva l'occhio con Conferma. Solo in elenco: dalla ricerca e dal
+      // modulo di un alimento non c'e' niente da salvare come ricetta.
+      footerExtra={
+        mode === "list" ? (
+          <TouchableOpacity
+            onPress={() => void salvaComeRicetta()}
+            activeOpacity={0.6}
+            disabled={busy || vuota}
+            accessibilityRole="button"
+            style={styles.recipeLink}
+          >
+            <Text
+              style={[
+                styles.recipeLabel,
+                { color: vuota ? colors.textFaint : colors.textMuted },
+              ]}
+            >
+              {t("diary.composition_save_recipe")}
+            </Text>
+          </TouchableOpacity>
+        ) : undefined
+      }
     >
       {mode === "list" ? (
         <View style={styles.body}>
@@ -300,6 +324,26 @@ export const EntryCompositionSheet: React.FC<EntryCompositionSheetProps> = ({
             ))}
           </ScrollView>
 
+          {/*
+            L'aggiunta e' l'ultima riga dell'elenco, come "Aggiungi qui" sotto
+            ogni pasto del diario: e' un gesto che si ripete dentro la lista, e
+            da bottone si prendeva la stessa quota di Conferma. Sta FUORI dalla
+            ScrollView - dentro, con dieci ingredienti bisognerebbe scorrere
+            fino in fondo per trovarla.
+          */}
+          <TouchableOpacity
+            onPress={() => setMode("add")}
+            activeOpacity={0.6}
+            disabled={busy}
+            accessibilityRole="button"
+            style={styles.addRow}
+          >
+            <Plus size={14} color={colors.textFaint} />
+            <Text style={[styles.addLabel, { color: colors.textFaint }]}>
+              {t("diary.composition_add")}
+            </Text>
+          </TouchableOpacity>
+
           {vuota ? (
             <Text style={[styles.warning, { color: colors.textMuted }]}>
               {t("diary.composition_empty")}
@@ -314,20 +358,6 @@ export const EntryCompositionSheet: React.FC<EntryCompositionSheetProps> = ({
               })}
             </Text>
           )}
-
-          <DfButton
-            label={t("diary.composition_add")}
-            icon={<Plus size={18} color={colors.text} />}
-            variant="outlined"
-            onPress={() => setMode("add")}
-            disabled={busy}
-          />
-          <DfButton
-            label={t("diary.composition_save_recipe")}
-            variant="ghost"
-            onPress={() => void salvaComeRicetta()}
-            disabled={busy || vuota}
-          />
         </View>
       ) : null}
 
@@ -488,6 +518,15 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   unit: { fontSize: 10 },
+  addRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    minHeight: 34,
+  },
+  addLabel: { fontSize: 13, fontWeight: "500" },
+  recipeLink: { alignSelf: "center", justifyContent: "center", minHeight: 32 },
+  recipeLabel: { fontSize: 12, fontWeight: "500" },
   total: { fontSize: 14, fontWeight: "700" },
   warning: { fontSize: 12, lineHeight: 17 },
   back: { flexDirection: "row", alignItems: "center", gap: 4 },

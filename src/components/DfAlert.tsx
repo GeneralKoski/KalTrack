@@ -115,6 +115,33 @@ export function DfAlert({
     (onDismiss ?? onClose)();
   };
 
+  const pair = (
+    <>
+      {!hideCancel && (
+        <View style={styles.buttonWrapper}>
+          <DfButton
+            label={cancelLabel ?? t("cancel")}
+            variant={cancelVariant ?? "outlined"}
+            color={cancelColor}
+            style={[styles.cancelButton, { borderColor: colors.border }]}
+            onPress={handleCancel}
+            disabled={loading}
+          />
+        </View>
+      )}
+      <View style={styles.buttonWrapper}>
+        <DfButton
+          label={confirmLabel ?? t("confirm")}
+          style={styles.confirmButton}
+          color={resolvedConfirmColor}
+          loading={loading}
+          icon={confirmIcon}
+          onPress={onConfirm}
+        />
+      </View>
+    </>
+  );
+
   return (
     <AlertDialog
       isOpen={isOpen}
@@ -196,7 +223,10 @@ export function DfAlert({
 
         <AlertDialogFooter
           className={
-            verticalFooter
+            // Con un `footerExtra` il piede diventa una colonna: l'extra e' una
+            // via laterale e sta SOTTO i due bottoni, non accanto - in riga si
+            // porterebbe via lo spazio di Annulla e Conferma.
+            verticalFooter || footerExtra
               ? "px-5 pb-5 pt-5 gap-3 flex-col items-stretch"
               : "px-5 pb-5 pt-5 gap-3 justify-stretch"
           }
@@ -222,34 +252,10 @@ export function DfAlert({
                 />
               )}
             </>
+          ) : footerExtra ? (
+            <View style={styles.pair}>{pair}</View>
           ) : (
-            <>
-              {!hideCancel && (
-                <View style={styles.buttonWrapper}>
-                  <DfButton
-                    label={cancelLabel ?? t("cancel")}
-                    variant={cancelVariant ?? "outlined"}
-                    color={cancelColor}
-                    style={[
-                      styles.cancelButton,
-                      { borderColor: colors.border },
-                    ]}
-                    onPress={handleCancel}
-                    disabled={loading}
-                  />
-                </View>
-              )}
-              <View style={styles.buttonWrapper}>
-                <DfButton
-                  label={confirmLabel ?? t("confirm")}
-                  style={styles.confirmButton}
-                  color={resolvedConfirmColor}
-                  loading={loading}
-                  icon={confirmIcon}
-                  onPress={onConfirm}
-                />
-              </View>
-            </>
+            pair
           )}
           {footerExtra}
         </AlertDialogFooter>
@@ -287,6 +293,10 @@ const styles = StyleSheet.create({
   },
   buttonWrapper: {
     flex: 1,
+  },
+  pair: {
+    flexDirection: "row",
+    gap: 12,
   },
   // Nessun padding orizzontale qui: questi stili finiscono sul TouchableOpacity
   // ESTERNO di DfButton, che ha gia' il suo padding sulla View interna. Sommati
