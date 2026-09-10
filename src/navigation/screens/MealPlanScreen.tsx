@@ -489,13 +489,23 @@ export function MealPlanScreen() {
                 onPress={openApply}
                 disabled={dayEntries.length === 0}
                 icon={<CheckCheck size={16} color={colors.text} />}
+                fullWidth={false}
+                style={styles.applyButton}
               />
-              <DfButton
-                label={t("plan.copy_days")}
-                variant="ghost"
+              {/* Solo l'icona: affiancata, "Copia giornate" si troncherebbe, e
+                  la copia e' l'azione di servizio delle due. La scatola si
+                  stira sull'altezza della riga (aspectRatio la fa quadrata),
+                  cosi' resta alta quanto il bottone pieno senza ricalcolare a
+                  mano la sua imbottitura. */}
+              <TouchableOpacity
                 onPress={openCopy}
-                icon={<CopyPlus size={16} color={colors.textSecondary} />}
-              />
+                activeOpacity={0.6}
+                accessibilityRole="button"
+                accessibilityLabel={t("plan.copy_days")}
+                style={[styles.copyButton, { borderColor: colors.border }]}
+              >
+                <CopyPlus size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
             </View>
           </FormScreen>
         )}
@@ -1065,7 +1075,19 @@ const styles = StyleSheet.create({
   summaryText: { flexShrink: 1, fontSize: 13 },
   badge: { flexDirection: "row", alignItems: "center", gap: 4 },
   badgeText: { fontSize: 12, fontWeight: "600" },
-  actions: { gap: theme.spacing.sm, marginTop: theme.spacing.sm },
+  actions: {
+    flexDirection: "row",
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.sm,
+  },
+  applyButton: { flex: 1 },
+  copyButton: {
+    aspectRatio: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderRadius: theme.radius.xl,
+  },
   loader: { marginTop: theme.spacing.xl },
   labelInput: {
     fontSize: 16,
