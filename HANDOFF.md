@@ -48,8 +48,9 @@ nuova, e lo scanner in particolare non si puo' verificare altrove.
 - **App**: React Native + Expo, development build. `npm start` per metro,
   `npx expo run:android` per ricostruire il nativo. L'emulatore usato e'
   `Medium_Phone_API_36.1`.
-- **Backend**: Docker su `188.245.201.81`, cartella `/srv/apps/KalTrack`,
-  container `kaltrack-api`, dietro l'nginx del server con certificato.
+- **Backend**: Docker su `koski` (server di casa, `root@koski` via Tailscale), cartella
+  `/srv/apps/KalTrack`, container `kaltrack-api`, dietro l'nginx del server e un
+  Cloudflare Tunnel che fa HTTPS.
   Procedura di deploy in `backend/README.md` § In produzione.
 - **Database**: SQLite in WAL su un volume Docker montato in `/data`. Backup
   ogni notte alle 3:30 in `/srv/backups/kaltrack`, ne tiene quattordici.
