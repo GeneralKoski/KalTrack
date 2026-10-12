@@ -124,4 +124,39 @@ describe("generateMealPlan", () => {
     const snack = plan.find((p) => p.meal_type_id === MEAL_TYPE_IDS.snack);
     expect(snack?.label).toBe("Mela e noci");
   });
+
+  /*
+   * Il difetto: il piano già scritto si cancellava prima di guardare cosa
+   * arrivava al suo posto. Un giorno senza voci valide, o con un `label` che
+   * non è una stringa, lasciava quel giorno senza piano.
+   */
+  it("un giorno senza voci valide non cancella il piano che c'era", async () => {
+    mockAiResponse({
+      days: [
+        {
+          date: "2026-09-02",
+          items: [{ mealTypeId: MEAL_TYPE_IDS.lunch, foodId: pastaId }],
+        },
+      ],
+    });
+    await generateMealPlan({ dates: ["2026-09-02"], dietStyle: "balanced" });
+
+    mockAiResponse({
+      days: [
+        {
+          date: "2026-09-02",
+          items: [{ mealTypeId: MEAL_TYPE_IDS.lunch, label: 42 }],
+        },
+      ],
+    });
+    const result = await generateMealPlan({
+      dates: ["2026-09-02"],
+      dietStyle: "balanced",
+    });
+
+    expect(result.createdCount).toBe(0);
+    const plan = await listPlan("2026-09-02", "2026-09-02");
+    expect(plan).toHaveLength(1);
+    expect(plan[0]?.food_id).toBe(pastaId);
+  });
 });

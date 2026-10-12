@@ -218,34 +218,23 @@ export async function generateMealPlan(
   await db.withTransactionAsync(async () => {
     for (const day of parsed.days!) {
       if (!day.date || !preferences.dates.includes(day.date)) continue;
-
-      // Svuota piano esistente per il giorno
-      await db.runAsync(
-        `UPDATE meal_plan_entries SET deleted_at = ?, updated_at = ?
-         WHERE date = ? AND deleted_at IS NULL`,
-        [now, now, day.date],
-      );
-
       if (!Array.isArray(day.items)) continue;
 
-      for (let i = 0; i < day.items.length; i++) {
-        const item = day.items[i];
-        if (!item.mealTypeId || !validMealTypeIds.has(item.mealTypeId)) {
-          // Assegna il primo tipo di pasto se non valido
-          item.mealTypeId = mealTypes[0].id;
-        }
-
+      const rows = day.items.flatMap((item, i) => {
+        const mealTypeId =
+          item.mealTypeId && validMealTypeIds.has(item.mealTypeId)
+            ? item.mealTypeId
+            : mealTypes[0].id;
         const foodId =
           item.foodId && validFoodIds.has(item.foodId) ? item.foodId : null;
         const recipeId =
           item.recipeId && validRecipeIds.has(item.recipeId)
             ? item.recipeId
             : null;
-        let label = item.label?.trim() || null;
+        const label =
+          typeof item.label === "string" ? item.label.trim() || null : null;
 
-        if (!foodId && !recipeId && !label) {
-          continue;
-        }
+        if (!foodId && !recipeId && !label) return [];
 
         const quantityG = foodId
           ? item.quantityG && item.quantityG > 0
@@ -258,6 +247,23 @@ export async function generateMealPlan(
             : 1
           : null;
 
+        return [
+          { mealTypeId, foodId, recipeId, label, quantityG, servings, sort: i },
+        ];
+      });
+
+      // Il piano già scritto si toglie solo se c'è qualcosa con cui
+      // sostituirlo: un giorno arrivato vuoto o con voci tutte scartate
+      // lasciava quel giorno senza piano, e il toast diceva "creati 0".
+      if (rows.length === 0) continue;
+
+      await db.runAsync(
+        `UPDATE meal_plan_entries SET deleted_at = ?, updated_at = ?
+         WHERE date = ? AND deleted_at IS NULL`,
+        [now, now, day.date],
+      );
+
+      for (const row of rows) {
         await db.runAsync(
           `INSERT INTO meal_plan_entries (
              id, date, meal_type_id, recipe_id, food_id, label,
@@ -266,13 +272,13 @@ export async function generateMealPlan(
           [
             newId(),
             day.date,
-            item.mealTypeId,
-            recipeId,
-            foodId,
-            label,
-            quantityG,
-            servings,
-            i,
+            row.mealTypeId,
+            row.recipeId,
+            row.foodId,
+            row.label,
+            row.quantityG,
+            row.servings,
+            row.sort,
             now,
             now,
           ],
