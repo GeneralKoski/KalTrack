@@ -103,6 +103,9 @@ class ReviewSubmissionRequest extends FormRequest
             'isLiquid' => ['sometimes', 'boolean'],
             'defaultServingG' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:9999'],
             'servingLabel' => ['sometimes', 'nullable', 'string', 'max:40'],
+            // L'`updatedAt` della proposta com'era quando è stata aperta:
+            // vedi `SubmissionController::approve`.
+            'seenUpdatedAt' => ['sometimes', 'nullable', 'string', 'max:40'],
             // Rifiuto
             'note' => ['sometimes', 'nullable', 'string', 'max:500'],
         ];

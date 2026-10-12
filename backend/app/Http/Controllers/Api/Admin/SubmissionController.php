@@ -78,6 +78,21 @@ class SubmissionController extends Controller
 
         $dati = $request->safe()->all();
 
+        /*
+         * Si pubblica quel che l'amministratore ha guardato, non quel che c'è
+         * adesso. Finché è `pending` l'autore può ancora modificarla dal
+         * telefono: senza questo controllo bastava cambiarla mentre la scheda
+         * di revisione era aperta, e al tocco di Approva entrava nel catalogo
+         * di tutti un contenuto che nessuno aveva visto.
+         */
+        $visto = $dati['seenUpdatedAt'] ?? null;
+        unset($dati['seenUpdatedAt']);
+        if ($visto !== null && $visto !== $riga->updated_at?->toIso8601String()) {
+            return response()->json([
+                'message' => 'La proposta e\' cambiata mentre la guardavi: riaprila e ricontrollala prima di approvarla.',
+            ], 409);
+        }
+
         if ($errore = $this->applicaCorrezioni($riga, $dati, $type)) {
             return $errore;
         }
@@ -253,6 +268,8 @@ class SubmissionController extends Controller
             'name' => $riga->name,
             'status' => $riga->status,
             'createdAt' => $riga->created_at?->toIso8601String(),
+            // Torna indietro con l'approvazione: vedi `approve`.
+            'updatedAt' => $riga->updated_at?->toIso8601String(),
             'author' => $riga->author === null ? null : [
                 'handle' => $riga->author->handle,
                 'displayName' => $riga->author->display_name ?? $riga->author->name,

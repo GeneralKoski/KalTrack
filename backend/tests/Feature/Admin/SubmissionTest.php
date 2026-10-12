@@ -100,6 +100,40 @@ class SubmissionTest extends TestCase
     }
 
     /**
+     * Finché è `pending` l'autore può ancora modificarla: approvare deve
+     * pubblicare quel che l'amministratore ha guardato, non la versione
+     * cambiata nel frattempo.
+     */
+    public function test_non_si_approva_una_proposta_cambiata_mentre_la_si_guardava(): void
+    {
+        $voce = $this->proposta();
+        $vista = $this->actingAs($this->admin)
+            ->getJson('/api/admin/submissions?type=food')
+            ->json('data.0.updatedAt');
+
+        $this->travel(5)->seconds();
+        $voce->update(['name' => 'Altro contenuto', 'name_norm' => 'altro contenuto']);
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/admin/submissions/food/{$voce->id}/approve", ['seenUpdatedAt' => $vista])
+            ->assertStatus(409);
+        $this->assertSame('pending', $voce->refresh()->status);
+    }
+
+    public function test_si_approva_la_versione_che_si_e_guardata(): void
+    {
+        $voce = $this->proposta();
+        $vista = $this->actingAs($this->admin)
+            ->getJson('/api/admin/submissions?type=food')
+            ->json('data.0.updatedAt');
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/admin/submissions/food/{$voce->id}/approve", ['seenUpdatedAt' => $vista])
+            ->assertOk();
+        $this->assertSame('published', $voce->refresh()->status);
+    }
+
+    /**
      * Il tetto degli elenchi di slug e' UNO per tutte e tre le porte di
      * scrittura (`Exercise::MAX_SLUG_LIST`), e questo test e' la meta' che
      * conta: se la coda di revisione validasse piu' stretto di `store()`,

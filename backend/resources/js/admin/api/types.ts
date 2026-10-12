@@ -78,6 +78,7 @@ export interface SubmissionRow {
     name: string;
     status: string;
     createdAt: string | null;
+    updatedAt: string | null;
     author: { handle: string; displayName: string } | null;
     /*
      * I campi dipendono dal tipo, e il server li manda in un oggetto a parte

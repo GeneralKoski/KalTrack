@@ -198,7 +198,7 @@ export const ReviewDrawer = ({ proposta, aperto, onChiudi }: Props): React.React
         try {
             await apiFetch(`/api/admin/submissions/${proposta.type}/${proposta.id}/approve`, {
                 method: 'POST',
-                body: correzioni,
+                body: { ...correzioni, seenUpdatedAt: proposta.updatedAt },
             });
             message.success('Approvata: e\' nel catalogo di tutti.');
             await dopoLaDecisione();

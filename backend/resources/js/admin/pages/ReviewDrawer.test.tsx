@@ -13,6 +13,7 @@ const PROPOSTA: SubmissionRow = {
     name: 'Riso',
     status: 'pending',
     createdAt: '2026-09-01T10:00:00+00:00',
+    updatedAt: '2026-09-01T10:05:00+00:00',
     author: { handle: 'tizio', displayName: 'Tizio' },
     fields: {
         brand: null,
@@ -42,6 +43,7 @@ const PROPOSTA_ESERCIZIO: SubmissionRow = {
     name: 'Squat con bilanciere',
     status: 'pending',
     createdAt: '2026-09-01T10:00:00+00:00',
+    updatedAt: '2026-09-01T10:05:00+00:00',
     author: { handle: 'caio', displayName: 'Caio' },
     fields: {
         muscleGroup: 'quadricipiti',
@@ -93,7 +95,10 @@ describe('ReviewDrawer', () => {
                 (c) => typeof c[0] === 'string' && c[0].includes('/approve'),
             );
             expect(chiamata?.[0]).toBe('/api/admin/submissions/food/12/approve');
-            expect(JSON.parse(chiamata?.[1].body)).toEqual({ name: 'Riso basmati' });
+            expect(JSON.parse(chiamata?.[1].body)).toEqual({
+                name: 'Riso basmati',
+                seenUpdatedAt: '2026-09-01T10:05:00+00:00',
+            });
         });
     });
 
@@ -112,7 +117,9 @@ describe('ReviewDrawer', () => {
                 (c) => typeof c[0] === 'string' && c[0].includes('/approve'),
             );
             expect(chiamata?.[0]).toBe('/api/admin/submissions/food/12/approve');
-            expect(JSON.parse(chiamata?.[1].body)).toEqual({});
+            expect(JSON.parse(chiamata?.[1].body)).toEqual({
+                seenUpdatedAt: '2026-09-01T10:05:00+00:00',
+            });
         });
     });
 
@@ -131,7 +138,9 @@ describe('ReviewDrawer', () => {
                 (c) => typeof c[0] === 'string' && c[0].includes('/approve'),
             );
             expect(chiamata?.[0]).toBe('/api/admin/submissions/exercise/34/approve');
-            expect(JSON.parse(chiamata?.[1].body)).toEqual({});
+            expect(JSON.parse(chiamata?.[1].body)).toEqual({
+                seenUpdatedAt: '2026-09-01T10:05:00+00:00',
+            });
         });
     });
 
