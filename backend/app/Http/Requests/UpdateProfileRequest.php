@@ -36,7 +36,12 @@ class UpdateProfileRequest extends FormRequest
             // token voleva dire che chi ne aveva uno rubato metteva la sua,
             // chiedeva il reset - che cancella tutti i token - e l'account
             // non era più del suo proprietario.
-            'currentPassword' => ['required_with:email', 'string', 'current_password:sanctum'],
+            //
+            // `exclude_without`: senza email la password non si guarda
+            // nemmeno. Verificata anche da sola, la risposta - 422 o 200 -
+            // diceva se era giusta, e il limitatore `email-change` conta
+            // solo le richieste con `email`: era un oracolo senza limite.
+            'currentPassword' => ['exclude_without:email', 'required_with:email', 'string', 'current_password:sanctum'],
             'displayName' => ['sometimes', 'string', 'max:60'],
             'avatarUrl' => ['sometimes', 'nullable', 'url', 'max:255'],
             'bio' => ['sometimes', 'nullable', 'string', 'max:160'],

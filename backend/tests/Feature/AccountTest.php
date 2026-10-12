@@ -324,6 +324,23 @@ class AccountTest extends TestCase
             ->assertOk();
     }
 
+    /**
+     * Senza email la password non si verifica: altrimenti 422 o 200 dicevano
+     * se era giusta, fuori dal limitatore che conta solo le richieste con
+     * `email`.
+     */
+    public function test_la_password_da_sola_non_dice_se_e_giusta(): void
+    {
+        $anna = User::factory()->create();
+
+        $this->actingAs($anna, 'sanctum')
+            ->patchJson('/api/me', ['currentPassword' => 'sbagliata'])
+            ->assertOk();
+        $this->actingAs($anna, 'sanctum')
+            ->patchJson('/api/me', ['currentPassword' => 'password'])
+            ->assertOk();
+    }
+
     public function test_il_resto_del_profilo_non_chiede_la_password(): void
     {
         $anna = User::factory()->create();

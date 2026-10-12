@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * La coda di revisione.
@@ -70,44 +71,53 @@ class SubmissionController extends Controller
 
     public function approve(ReviewSubmissionRequest $request, string $type, int $id): JsonResponse
     {
-        $riga = $this->trova($type, $id);
-
-        if ($errore = $this->soloInAttesa($riga)) {
-            return $errore;
-        }
-
         $dati = $request->safe()->all();
-
-        /*
-         * Si pubblica quel che l'amministratore ha guardato, non quel che c'è
-         * adesso. Finché è `pending` l'autore può ancora modificarla dal
-         * telefono: senza questo controllo bastava cambiarla mentre la scheda
-         * di revisione era aperta, e al tocco di Approva entrava nel catalogo
-         * di tutti un contenuto che nessuno aveva visto.
-         */
         $visto = $dati['seenUpdatedAt'] ?? null;
         unset($dati['seenUpdatedAt']);
-        if ($visto !== null && $visto !== $riga->updated_at?->toIso8601String()) {
-            return response()->json([
-                'message' => 'La proposta e\' cambiata mentre la guardavi: riaprila e ricontrollala prima di approvarla.',
-            ], 409);
-        }
 
-        if ($errore = $this->applicaCorrezioni($riga, $dati, $type)) {
-            return $errore;
-        }
+        /*
+         * Controllo e scrittura stanno nella stessa transazione, che su
+         * SQLite e' IMMEDIATE (config/database.php): il lock di scrittura si
+         * prende al BEGIN, quindi una modifica dell'autore non puo' cadere
+         * fra il confronto qui sotto e la pubblicazione. Per lo stesso motivo
+         * la riga si legge qui dentro e non prima.
+         */
+        return DB::transaction(function () use ($request, $type, $id, $dati, $visto): JsonResponse {
+            $riga = $this->trova($type, $id);
 
-        $riga->fill([
-            'status' => 'published',
-            'reviewed_at' => Carbon::now(),
-            'reviewed_by' => $request->user()->id,
-            // Una nota di rifiuto non ha senso su una voce approvata, e
-            // lasciarla scritta racconterebbe una storia sbagliata la
-            // prossima volta che qualcuno la guarda.
-            'review_note' => null,
-        ])->save();
+            if ($errore = $this->soloInAttesa($riga)) {
+                return $errore;
+            }
 
-        return response()->json(['data' => $this->forma($riga->fresh(), $type)]);
+            /*
+             * Si pubblica quel che l'amministratore ha guardato, non quel che
+             * c'è adesso. Finché è `pending` l'autore può ancora modificarla
+             * dal telefono: senza questo controllo bastava cambiarla mentre la
+             * scheda di revisione era aperta, e al tocco di Approva entrava nel
+             * catalogo di tutti un contenuto che nessuno aveva visto.
+             */
+            if ($visto !== null && $visto !== $riga->updated_at?->toIso8601String()) {
+                return response()->json([
+                    'message' => 'La proposta e\' cambiata mentre la guardavi: riaprila e ricontrollala prima di approvarla.',
+                ], 409);
+            }
+
+            if ($errore = $this->applicaCorrezioni($riga, $dati, $type)) {
+                return $errore;
+            }
+
+            $riga->fill([
+                'status' => 'published',
+                'reviewed_at' => Carbon::now(),
+                'reviewed_by' => $request->user()->id,
+                // Una nota di rifiuto non ha senso su una voce approvata, e
+                // lasciarla scritta racconterebbe una storia sbagliata la
+                // prossima volta che qualcuno la guarda.
+                'review_note' => null,
+            ])->save();
+
+            return response()->json(['data' => $this->forma($riga->fresh(), $type)]);
+        });
     }
 
     public function reject(ReviewSubmissionRequest $request, string $type, int $id): JsonResponse
