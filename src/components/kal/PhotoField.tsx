@@ -167,6 +167,8 @@ export const PhotoField: React.FC<PhotoFieldProps> = ({
             onPress={remove}
             activeOpacity={0.6}
             hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t("photo.remove")}
           >
             <X size={16} color={theme.colors.white} />
           </TouchableOpacity>

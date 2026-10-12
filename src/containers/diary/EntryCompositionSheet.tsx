@@ -317,6 +317,8 @@ export const EntryCompositionSheet: React.FC<EntryCompositionSheetProps> = ({
                   }
                   activeOpacity={0.6}
                   hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("a11y.remove")}
                 >
                   <Trash2 size={16} color={colors.textFaint} />
                 </TouchableOpacity>

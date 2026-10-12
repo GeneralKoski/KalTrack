@@ -1,3 +1,4 @@
+import { ApiError } from "@/src/api/errors";
 import * as social from "@/src/api/social";
 import { DfButton } from "@/src/components/form/DfButton";
 import { FormScreen } from "@/src/components/FormScreen";
@@ -46,6 +47,7 @@ export function MyProfileScreen() {
   const [displayName, setDisplayName] = useState("");
   const [handle, setHandle] = useState("");
   const [email, setEmail] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
   const [bio, setBio] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -71,8 +73,11 @@ export function MyProfileScreen() {
     setDisplayName(profile.displayName);
     setHandle(profile.handle);
     setEmail(profile.email);
+    setCurrentPassword("");
     setBio(profile.bio ?? "");
   }, [profile]);
+
+  const emailChanged = profile !== null && email !== profile.email;
 
   const save = async () => {
     setSaving(true);
@@ -90,7 +95,10 @@ export function MyProfileScreen() {
            * proprio.
            */
           ...(handle !== profile?.handle ? { handle } : {}),
-          ...(email !== profile?.email ? { email } : {}),
+          // Il server la chiede per cambiare l'email: è con quella che si
+          // recupera la password, e col solo token chi ne aveva uno rubato
+          // si prendeva l'account.
+          ...(emailChanged ? { email, currentPassword } : {}),
           // Stringa vuota e null non sono la stessa cosa a database: una bio
           // cancellata deve tornare assente, non diventare due apici.
           bio: bio.trim() === "" ? null : bio.trim(),
@@ -99,7 +107,12 @@ export function MyProfileScreen() {
       showToast.success({ title: t("social.profile_saved") });
     } catch (error) {
       logger.warn("[social] profilo non salvato", error);
-      showToast.error({ title: t("social.share_failed") });
+      showToast.error({
+        title:
+          error instanceof ApiError && error.status === 422
+            ? error.message
+            : t("social.share_failed"),
+      });
     } finally {
       setSaving(false);
     }
@@ -110,7 +123,13 @@ export function MyProfileScreen() {
       <ScreenBackground />
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={goBack} activeOpacity={0.6} hitSlop={10}>
+          <TouchableOpacity
+            onPress={goBack}
+            activeOpacity={0.6}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={t("back")}
+          >
             <ChevronLeft size={26} color={colors.textSecondary} />
           </TouchableOpacity>
           <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
@@ -165,6 +184,29 @@ export function MyProfileScreen() {
                 },
               ]}
             />
+
+            {emailChanged ? (
+              <>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  {t("social.current_password")}
+                </Text>
+                <DraftTextInput
+                  value={currentPassword}
+                  onChangeText={setCurrentPassword}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoComplete="current-password"
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                      color: colors.text,
+                    },
+                  ]}
+                />
+              </>
+            ) : null}
 
             <Text style={[styles.label, { color: colors.textMuted }]}>
               {t("social.display_name")}
@@ -230,7 +272,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
     gap: theme.spacing.sm,
   },
-  title: { flex: 1, fontSize: 24, fontWeight: "700" },
+  title: { flex: 1, fontSize: 18, fontWeight: "700" },
   content: { padding: theme.spacing.md, gap: theme.spacing.xs },
   loader: { marginTop: theme.spacing.xl },
   card: { gap: 2, marginBottom: theme.spacing.sm },

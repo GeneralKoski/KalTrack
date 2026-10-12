@@ -1,5 +1,6 @@
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
+import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import { LinearGradient } from "expo-linear-gradient";
 import { ChevronLeft } from "lucide-react-native";
@@ -39,6 +40,7 @@ export const GradientHeader: React.FC<GradientHeaderProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const { colors } = useAppTheme();
+  const { t } = useTranslation();
 
   return (
     <LinearGradient
@@ -54,7 +56,13 @@ export const GradientHeader: React.FC<GradientHeaderProps> = ({
     >
       <View style={styles.row}>
         {onBack && (
-          <Pressable onPress={onBack} hitSlop={12} style={styles.backBtn}>
+          <Pressable
+            onPress={onBack}
+            hitSlop={12}
+            style={styles.backBtn}
+            accessibilityRole="button"
+            accessibilityLabel={t("back")}
+          >
             <ChevronLeft size={24} color={colors.text} />
           </Pressable>
         )}

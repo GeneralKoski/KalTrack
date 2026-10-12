@@ -157,6 +157,8 @@ export function MeasurementsScreen() {
                 onPress={exitSelection}
                 activeOpacity={0.6}
                 hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={t("a11y.exit_selection")}
               >
                 <X size={24} color={colors.textSecondary} />
               </TouchableOpacity>
@@ -175,6 +177,8 @@ export function MeasurementsScreen() {
                 onPress={() => setConfirmDelete(true)}
                 activeOpacity={0.6}
                 hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={t("delete")}
               >
                 <Trash2 size={22} color={theme.colors.error} />
               </TouchableOpacity>
@@ -185,6 +189,8 @@ export function MeasurementsScreen() {
                 onPress={goBack}
                 activeOpacity={0.6}
                 hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={t("back")}
               >
                 <ChevronLeft size={26} color={colors.textSecondary} />
               </TouchableOpacity>

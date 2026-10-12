@@ -47,8 +47,11 @@ const lightSemanticColors = {
   border: "#d8d8dc",
   text: "#0a0a0b",
   textSecondary: "#3f3f46",
-  textMuted: "#71717a",
-  textFaint: "#a1a1aa",
+  // Muted e faint reggono 4,5:1 (WCAG AA) sullo sfondo e sulla superficie:
+  // `textFaint` scrive testo vero - stati vuoti, suggerimenti, segnaposto -
+  // e a #a1a1aa stava a 2,3:1, illeggibile al sole.
+  textMuted: "#5c5c64",
+  textFaint: "#6b6b74",
 
   // Interattivo: scuro sul chiaro, chiaro sullo scuro. Sostituisce il vecchio
   // `primary` di brand, che non esiste più.
@@ -77,7 +80,8 @@ const darkSemanticColors = {
   text: "#fafafa",
   textSecondary: "#d4d4d8",
   textMuted: "#a1a1aa",
-  textFaint: "#71717a",
+  // 5:1 sulla superficie: vedi la nota nel tema chiaro.
+  textFaint: "#85858e",
 
   accent: "#e5e5e7",
   accentOn: "#0a0a0b",

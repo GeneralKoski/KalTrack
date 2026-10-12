@@ -2,7 +2,7 @@ import type { EstimateRow } from "@/src/domain/photoEstimate";
 import type { Nutrients } from "@/src/domain/nutrition";
 import { TodayScreen } from "@/src/navigation/screens/TodayScreen";
 import React from "react";
-import { TouchableOpacity } from "react-native";
+import { AppState, TouchableOpacity } from "react-native";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 
 jest.mock("@/src/hooks/useAppNav", () => ({
@@ -237,7 +237,13 @@ jest.mock("@/src/containers/diary/AddEntrySheet", () => {
 jest.mock("@/src/containers/diary/CalorieRing", () => ({
   CalorieRing: () => null,
 }));
-jest.mock("@/src/containers/diary/DayHeader", () => ({ DayHeader: () => null }));
+const mockDayHeaderProps = jest.fn();
+jest.mock("@/src/containers/diary/DayHeader", () => ({
+  DayHeader: (props: Record<string, unknown>) => {
+    mockDayHeaderProps(props);
+    return null;
+  },
+}));
 jest.mock("@/src/containers/diary/DayPickerSheet", () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const ReactLib = require("react");
@@ -307,12 +313,14 @@ jest.mock("@/src/db/queries/diary", () => ({
   entryDisplayNames: jest.fn(async () => ({})),
   getDayDiary: jest.fn(),
   listMealTypes: jest.fn(),
+  restoreEntry: jest.fn(),
   updateEntryQuantity: jest.fn(),
   updateFreeEntry: (entryId: string, args: Record<string, unknown>) =>
     mockUpdateFreeEntry(entryId, args),
 }));
 
 beforeEach(() => {
+  mockDayHeaderProps.mockClear();
   mockFreeEntrySheetProps.mockClear();
   mockPhotoEstimateSheetProps.mockClear();
   mockMealSectionProps.mockClear();
@@ -504,6 +512,73 @@ describe("TodayScreen, il bivio di onEditEntry", () => {
     };
     expect(freeProps.isOpen).toBe(false);
     expect(freeProps.editing).toBeNull();
+
+    act(() => {
+      renderer.unmount();
+    });
+  });
+});
+
+/*
+ * Il difetto: `date` era lo stato dell'apertura e i tab non si smontano.
+ * L'app lasciata in background la sera e ripresa la mattina mostrava ancora
+ * ieri, e la colazione finiva su ieri.
+ */
+describe("TodayScreen, il cambio di giorno", () => {
+  const header = () =>
+    mockDayHeaderProps.mock.calls.at(-1)?.[0] as {
+      date: string;
+      onChange: (date: string) => void;
+    };
+  const resume = () => {
+    const calls = (AppState.addEventListener as jest.Mock).mock.calls;
+    const listener = calls.at(-1)?.[1] as (state: string) => void;
+    listener("active");
+  };
+
+  beforeEach(() => {
+    jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] });
+    jest.setSystemTime(new Date(2026, 9, 8, 23, 0));
+  });
+  afterEach(() => jest.useRealTimers());
+
+  it("tornando in primo piano dopo mezzanotte Oggi passa al giorno nuovo", async () => {
+    let renderer!: ReactTestRenderer;
+    await act(async () => {
+      renderer = create(<TodayScreen />);
+      await flush();
+    });
+    expect(header().date).toBe("2026-10-08");
+
+    jest.setSystemTime(new Date(2026, 9, 9, 7, 0));
+    await act(async () => {
+      resume();
+      await flush();
+    });
+    expect(header().date).toBe("2026-10-09");
+
+    act(() => {
+      renderer.unmount();
+    });
+  });
+
+  it("un giorno passato scelto a mano resta quello", async () => {
+    let renderer!: ReactTestRenderer;
+    await act(async () => {
+      renderer = create(<TodayScreen />);
+      await flush();
+    });
+    await act(async () => {
+      header().onChange("2026-10-05");
+      await flush();
+    });
+
+    jest.setSystemTime(new Date(2026, 9, 9, 7, 0));
+    await act(async () => {
+      resume();
+      await flush();
+    });
+    expect(header().date).toBe("2026-10-05");
 
     act(() => {
       renderer.unmount();

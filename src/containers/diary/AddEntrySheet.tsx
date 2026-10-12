@@ -335,6 +335,7 @@ const PickerRow: React.FC<{
           activeOpacity={0.6}
           hitSlop={10}
           accessibilityLabel={t("foods.detail_title")}
+          accessibilityRole="button"
         >
           <Info size={20} color={colors.textFaint} />
         </TouchableOpacity>

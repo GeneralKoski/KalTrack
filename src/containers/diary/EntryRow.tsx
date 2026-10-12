@@ -101,6 +101,7 @@ export const EntryRow: React.FC<EntryRowProps> = ({
           activeOpacity={0.6}
           hitSlop={8}
           accessibilityLabel={t("diary.ingredients_show")}
+          accessibilityRole="button"
         >
           {open ? (
             <ChevronUp size={17} color={colors.textFaint} />
@@ -110,7 +111,13 @@ export const EntryRow: React.FC<EntryRowProps> = ({
         </TouchableOpacity>
       ) : null}
 
-      <TouchableOpacity onPress={onDelete} activeOpacity={0.6} hitSlop={10}>
+      <TouchableOpacity
+        onPress={onDelete}
+        activeOpacity={0.6}
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel={t("delete")}
+      >
         <Trash2 size={17} color={colors.textFaint} />
       </TouchableOpacity>
       </View>

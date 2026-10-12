@@ -114,6 +114,7 @@ export const VoiceOrb: React.FC<VoiceOrbProps> = ({ level, onPress }) => {
         onPress={onPress}
         activeOpacity={0.6}
         accessibilityLabel={t("assistant.stop")}
+        accessibilityRole="button"
       >
         <View style={styles.stage}>
           <Animated.View

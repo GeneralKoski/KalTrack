@@ -127,6 +127,8 @@ export const Chip: React.FC<{
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.6}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
       style={[
         styles.chip,
         dot && styles.chipSmall,

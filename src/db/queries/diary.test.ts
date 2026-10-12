@@ -9,6 +9,7 @@ import {
   createMealType,
   dailyKcalRange,
   deleteEntry,
+  restoreEntry,
   deleteMealType,
   getDayDiary,
   getEntryComposition,
@@ -392,6 +393,19 @@ describe("deleteEntry", () => {
     });
     await deleteEntry(entryId);
     expect((await getDayDiary(DATE)).meals).toHaveLength(0);
+  });
+
+  it("restoreEntry la rimette com'era", async () => {
+    const entryId = await addFoodEntry({
+      date: DATE,
+      mealTypeId: MEAL_TYPE_IDS.lunch,
+      foodId: riceId,
+      quantityG: 100,
+    });
+    const prima = (await getDayDiary(DATE)).totals.kcal;
+    await deleteEntry(entryId);
+    await restoreEntry(entryId);
+    expect((await getDayDiary(DATE)).totals.kcal).toBe(prima);
   });
 });
 

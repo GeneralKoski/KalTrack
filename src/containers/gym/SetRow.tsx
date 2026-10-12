@@ -53,6 +53,7 @@ export const SetRow: React.FC<SetRowProps> = ({
   onUndo,
 }) => {
   const { colors } = useAppTheme();
+  const { t } = useTranslation();
   const [focused, setFocused] = useState<"weight" | "reps" | null>(null);
 
   const fieldStyle = (field: "weight" | "reps") => [
@@ -129,11 +130,16 @@ export const SetRow: React.FC<SetRowProps> = ({
             ? { backgroundColor: theme.colors.success }
             : { borderWidth: 1.5, borderColor: colors.border },
         ]}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: done }}
+        accessibilityLabel={t("a11y.set_done")}
       >
         <Check
           size={22}
           strokeWidth={3}
-          color={done ? theme.colors.white : colors.textFaint}
+          // Scura sul verde: bianca stava a 2,3:1, e a colpo d'occhio in
+          // palestra la spunta si confondeva col tondo.
+          color={done ? theme.colors.gray900 : colors.textFaint}
         />
       </TouchableOpacity>
     </View>

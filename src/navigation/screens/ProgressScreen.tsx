@@ -15,7 +15,7 @@ import { average } from "@/src/domain/stats";
 import { useAppNav } from "@/src/hooks/useAppNav";
 import { useFocusData } from "@/src/hooks/useFocusData";
 import { useTranslation } from "@/src/hooks/useTranslation";
-import { formatInteger } from "@/src/utils/number";
+import { formatDecimal, formatInteger } from "@/src/utils/number";
 import { theme } from "@/src/styles";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { ChevronRight, Plus } from "lucide-react-native";
@@ -109,7 +109,7 @@ export function ProgressScreen() {
    */
   const metric = (
     label: string,
-    value: number | null,
+    value: string | null,
     unit: string,
     values: number[],
     emptyLabel: string,
@@ -134,7 +134,7 @@ export function ProgressScreen() {
             "–"
           ) : (
             <>
-              {formatInteger(value)}
+              {value}
               <Text style={[styles.statUnit, { color: colors.textMuted }]}>
                 {` ${unit}`}
               </Text>
@@ -228,7 +228,11 @@ export function ProgressScreen() {
             <ListGroup indent={theme.spacing.md}>
               {metric(
                 t("progress.weight"),
-                data?.latestWeight ?? null,
+                // Un decimale come nello storico: arrotondato all'intero, un
+                // calo di 0,4 kg non si vedeva.
+                data?.latestWeight == null
+                  ? null
+                  : formatDecimal(data.latestWeight, 1),
                 "kg",
                 data?.weights ?? [],
                 t("progress.weight_empty"),
@@ -238,7 +242,9 @@ export function ProgressScreen() {
               )}
               {metric(
                 t("progress.steps"),
-                data?.stepsAverage ?? null,
+                data?.stepsAverage == null
+                  ? null
+                  : formatInteger(data.stepsAverage),
                 t("tracking.steps_unit"),
                 (data?.stepsByDay ?? []).filter((v): v is number => v !== null),
                 t("progress.steps_empty"),
@@ -248,7 +254,9 @@ export function ProgressScreen() {
               )}
               {metric(
                 t("progress.kcal"),
-                data?.kcalAverage ?? null,
+                data?.kcalAverage == null
+                  ? null
+                  : formatInteger(data.kcalAverage),
                 "kcal",
                 (data?.kcalByDay ?? []).filter((v): v is number => v !== null),
                 t("progress.kcal_empty"),

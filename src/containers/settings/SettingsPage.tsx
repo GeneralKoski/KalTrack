@@ -3,6 +3,7 @@ import { ScreenBackground } from "@/src/components/kal";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { useAppNav } from "@/src/hooks/useAppNav";
+import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import { ChevronLeft } from "lucide-react-native";
 import React from "react";
@@ -24,6 +25,7 @@ export const SettingsPage: React.FC<{
   children: React.ReactNode;
 }> = ({ title, children }) => {
   const { colors } = useAppTheme();
+  const { t } = useTranslation();
   const { goBack } = useAppNav();
   const insets = useSafeAreaInsets();
 
@@ -32,7 +34,13 @@ export const SettingsPage: React.FC<{
       <ScreenBackground />
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={goBack} activeOpacity={0.6} hitSlop={10}>
+          <TouchableOpacity
+            onPress={goBack}
+            activeOpacity={0.6}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={t("back")}
+          >
             <ChevronLeft size={26} color={colors.textSecondary} />
           </TouchableOpacity>
           <Text

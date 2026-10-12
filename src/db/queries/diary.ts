@@ -628,6 +628,15 @@ export async function deleteEntry(entryId: string): Promise<void> {
   );
 }
 
+/** Rimette una voce appena eliminata: il "Annulla" del toast. */
+export async function restoreEntry(entryId: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    "UPDATE meal_entries SET deleted_at = NULL, updated_at = ? WHERE id = ?",
+    [nowIso(), entryId],
+  );
+}
+
 /**
  * Copia le righe di un giorno su un altro, conservando gli snapshot invece di
  * ricalcolarli: "a cena come ieri" deve dare esattamente i valori di ieri.

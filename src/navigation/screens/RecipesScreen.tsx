@@ -89,6 +89,8 @@ export function RecipesScreen() {
             onPress={goBack}
             activeOpacity={0.6}
             hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={t("back")}
           >
             <ChevronLeft size={26} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -150,6 +152,8 @@ export function RecipesScreen() {
         style={[styles.fab, { bottom: fabBottom }]}
         activeOpacity={0.6}
         onPress={() => navigate("RecipeForm", {})}
+        accessibilityRole="button"
+        accessibilityLabel={t("recipes.new_title")}
       >
         <MetalSurface radius={28} style={styles.fabSurface}>
           <Plus size={26} color={colors.text} strokeWidth={2.5} />

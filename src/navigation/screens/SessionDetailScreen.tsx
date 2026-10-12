@@ -110,7 +110,13 @@ export function SessionDetailScreen() {
       <ScreenBackground />
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={goBack} activeOpacity={0.6} hitSlop={10}>
+          <TouchableOpacity
+            onPress={goBack}
+            activeOpacity={0.6}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={t("back")}
+          >
             <ChevronLeft size={26} color={colors.textSecondary} />
           </TouchableOpacity>
           <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
@@ -221,11 +227,11 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.xs,
+    gap: theme.spacing.sm,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
   },
-  title: { flex: 1, fontSize: 20, fontWeight: "700" },
+  title: { flex: 1, fontSize: 18, fontWeight: "700" },
   loader: { marginTop: theme.spacing.xl },
   content: { paddingHorizontal: theme.spacing.md },
   summary: { fontSize: 13, marginBottom: theme.spacing.md },

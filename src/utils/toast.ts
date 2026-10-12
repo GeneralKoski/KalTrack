@@ -24,6 +24,16 @@ export const showToast = {
     });
   },
 
+  /** Un'azione già fatta che si può disfare: il toast porta il bottone. */
+  undo: ({ title, onUndo }: { title: string; onUndo: () => void }) => {
+    Toast.show({
+      type: "undo",
+      text1: title,
+      visibilityTime: 5000,
+      props: { onUndo },
+    });
+  },
+
   info: ({ title, message }: ToastOptions) => {
     Toast.show({
       type: "info",

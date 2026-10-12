@@ -203,6 +203,8 @@ export function DfAlert({
                   hitSlop={10}
                   style={styles.closeButton}
                   disabled={loading}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("close")}
                 >
                   <X size={22} color={colors.textMuted} />
                 </Pressable>

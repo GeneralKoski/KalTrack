@@ -210,9 +210,13 @@ describe("SessionScreen, il riordino AI di 'proponi alternativa'", () => {
       await flush();
     });
 
-    // `accessibilityRole="button"` e' unico in questo file: e' proprio il
-    // pulsante "proponi alternativa", non un chevron o un'altra azione.
-    const button = renderer.root.findByProps({ accessibilityRole: "button" });
+    // L'unico `accessibilityRole="button"` senza etichetta è il pulsante
+    // "proponi alternativa": il chevron ha la sua.
+    const button = renderer.root.find(
+      (n) =>
+        n.props.accessibilityRole === "button" &&
+        n.props.accessibilityLabel === undefined,
+    );
     await act(async () => {
       button.props.onPress();
       await flush();
@@ -244,7 +248,11 @@ describe("SessionScreen, il riordino AI di 'proponi alternativa'", () => {
       await flush();
     });
 
-    const button = renderer.root.findByProps({ accessibilityRole: "button" });
+    const button = renderer.root.find(
+      (n) =>
+        n.props.accessibilityRole === "button" &&
+        n.props.accessibilityLabel === undefined,
+    );
     await act(async () => {
       button.props.onPress();
       await flush();

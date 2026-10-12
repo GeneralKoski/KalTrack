@@ -152,6 +152,7 @@ export function FriendsScreen() {
     icon: React.ReactNode,
     onPress: () => void,
     disabled: boolean,
+    label: string,
   ) => (
     <TouchableOpacity
       onPress={onPress}
@@ -159,6 +160,8 @@ export function FriendsScreen() {
       hitSlop={8}
       disabled={disabled}
       style={styles.iconButton}
+      accessibilityRole="button"
+      accessibilityLabel={label}
     >
       {icon}
     </TouchableOpacity>
@@ -219,6 +222,7 @@ export function FriendsScreen() {
                           null,
                         ),
                       busyId !== null,
+                      t("a11y.friend_request"),
                     )
                   ),
                 ),
@@ -248,11 +252,13 @@ export function FriendsScreen() {
                     <Check size={20} color={colors.accent} />,
                     () => void act(() => social.acceptFriendship(f.id), f.id),
                     busyId !== null,
+                    t("a11y.friend_accept"),
                   )}
                   {iconButton(
                     <X size={20} color={colors.textMuted} />,
                     () => void act(() => social.removeFriendship(f.id), f.id),
                     busyId !== null,
+                    t("a11y.friend_decline"),
                   )}
                 </View>,
               ),
@@ -277,6 +283,7 @@ export function FriendsScreen() {
                 <X size={18} color={colors.textFaint} />,
                 () => void act(() => social.removeFriendship(f.id), f.id),
                 busyId !== null,
+                t("a11y.friend_remove"),
               ),
             ),
             )}
@@ -298,6 +305,7 @@ export function FriendsScreen() {
                   <X size={18} color={colors.textFaint} />,
                   () => void act(() => social.removeFriendship(f.id), f.id),
                   busyId !== null,
+                  t("a11y.request_cancel"),
                 ),
               ),
               )}
@@ -322,7 +330,13 @@ export function FriendsScreen() {
       <ScreenBackground />
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={goBack} activeOpacity={0.6} hitSlop={10}>
+          <TouchableOpacity
+            onPress={goBack}
+            activeOpacity={0.6}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={t("back")}
+          >
             <ChevronLeft size={26} color={colors.textSecondary} />
           </TouchableOpacity>
           <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>

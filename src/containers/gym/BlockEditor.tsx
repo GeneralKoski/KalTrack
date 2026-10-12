@@ -120,7 +120,13 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           }))}
         />
 
-        <TouchableOpacity onPress={onRemove} activeOpacity={0.6} hitSlop={10}>
+        <TouchableOpacity
+          onPress={onRemove}
+          activeOpacity={0.6}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={t("delete")}
+        >
           <Trash2 size={18} color={colors.textFaint} />
         </TouchableOpacity>
       </View>
@@ -185,6 +191,8 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
                     onPress={() => removeExercise(exercise.key)}
                     activeOpacity={0.6}
                     hitSlop={10}
+                    accessibilityRole="button"
+                    accessibilityLabel={t("a11y.remove")}
                   >
                     <X size={16} color={colors.textFaint} />
                   </TouchableOpacity>

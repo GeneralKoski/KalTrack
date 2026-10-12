@@ -72,6 +72,9 @@ export const RecipeListItem: React.FC<RecipeListItemProps> = ({
         onPress={onToggleFavorite}
         activeOpacity={0.6}
         hitSlop={10}
+        accessibilityRole="button"
+        accessibilityState={{ selected: isFavorite }}
+        accessibilityLabel={t("a11y.favorite")}
       >
         <Star
           size={20}

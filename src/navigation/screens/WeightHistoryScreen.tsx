@@ -162,6 +162,8 @@ export function WeightHistoryScreen() {
                 onPress={exitSelection}
                 activeOpacity={0.6}
                 hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={t("a11y.exit_selection")}
               >
                 <X size={24} color={colors.textSecondary} />
               </TouchableOpacity>
@@ -180,6 +182,8 @@ export function WeightHistoryScreen() {
                 onPress={() => setConfirmDelete(true)}
                 activeOpacity={0.6}
                 hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={t("delete")}
               >
                 <Trash2 size={22} color={theme.colors.error} />
               </TouchableOpacity>

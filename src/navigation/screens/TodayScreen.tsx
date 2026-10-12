@@ -41,6 +41,7 @@ import {
   entryDisplayNames,
   getDayDiary,
   listMealTypes,
+  restoreEntry,
   updateEntryQuantity,
   updateFreeEntry,
   type DayDiary,
@@ -71,9 +72,10 @@ import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useFocusEffect } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import { Plus, UtensilsCrossed } from "lucide-react-native";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  AppState,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -98,6 +100,30 @@ export function TodayScreen() {
   const today = todayIso();
 
   const [date, setDate] = useState(today);
+
+  /*
+   * Oggi non resta su ieri. I tab non si smontano, quindi senza questo `date`
+   * restava quello dell'apertura: l'app lasciata in background la sera e
+   * ripresa la mattina mostrava il giorno prima, e la colazione - a mano o a
+   * voce, che legge `date` come giorno di riferimento - finiva lì. Si segue
+   * il cambio di giorno solo se si stava guardando oggi: un giorno passato
+   * scelto dal calendario resta quello.
+   */
+  const shownToday = useRef(today);
+  const followToday = useCallback(() => {
+    const now = todayIso();
+    const before = shownToday.current;
+    if (now === before) return;
+    shownToday.current = now;
+    setDate((current) => (current === before ? now : current));
+  }, []);
+  useFocusEffect(followToday);
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") followToday();
+    });
+    return () => subscription.remove();
+  }, [followToday]);
   const [pendingPick, setPendingPick] = useState<DiaryPick | null>(null);
   const [editingEntry, setEditingEntry] = useState<MealEntryRow | null>(null);
   const [editingFood, setEditingFood] = useState<FoodRow | null>(null);
@@ -324,9 +350,20 @@ export function TodayScreen() {
     if (entry) setComposing(entry);
   };
 
+  /*
+   * Si elimina subito e si offre l'annullamento, invece di chiedere conferma:
+   * il cestino sta accanto alla freccia di modifica, e una voce tolta per
+   * sbaglio spariva senza via di ritorno.
+   */
   const onDeleteEntry = async (entryId: string) => {
     await deleteEntry(entryId);
     reload();
+    showToast.undo({
+      title: t("diary.entry_deleted"),
+      onUndo: () => {
+        void restoreEntry(entryId).then(reload);
+      },
+    });
   };
 
   const onEditEntry = async (entryId: string) => {
@@ -460,6 +497,8 @@ export function TodayScreen() {
         style={styles.fab}
         activeOpacity={0.6}
         onPress={() => openAdd()}
+        accessibilityRole="button"
+        accessibilityLabel={t("diary.add_title")}
       >
         <MetalSurface radius={28} style={styles.fabSurface}>
           <Plus size={26} color={colors.text} strokeWidth={2.5} />

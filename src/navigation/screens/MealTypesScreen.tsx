@@ -129,6 +129,8 @@ export function MealTypesScreen() {
                   onPress={() => void rinomina()}
                   activeOpacity={0.6}
                   hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("save")}
                 >
                   <Check size={20} color={colors.accent} />
                 </TouchableOpacity>
@@ -153,6 +155,7 @@ export function MealTypesScreen() {
                 activeOpacity={0.6}
                 hitSlop={8}
                 accessibilityLabel={t("meal_types.rename")}
+                accessibilityRole="button"
               >
                 <Pencil size={18} color={colors.textFaint} />
               </TouchableOpacity>
@@ -164,6 +167,7 @@ export function MealTypesScreen() {
                 hitSlop={8}
                 disabled={bloccato}
                 accessibilityLabel={t("delete")}
+                accessibilityRole="button"
               >
                 <Trash2
                   size={18}
@@ -199,6 +203,7 @@ export function MealTypesScreen() {
           hitSlop={8}
           disabled={draft.trim().length === 0}
           accessibilityLabel={t("meal_types.add")}
+          accessibilityRole="button"
         >
           <Plus
             size={22}

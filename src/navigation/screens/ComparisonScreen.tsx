@@ -259,7 +259,13 @@ export function ComparisonScreen() {
       <ScreenBackground />
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={goBack} activeOpacity={0.6} hitSlop={8}>
+          <TouchableOpacity
+            onPress={goBack}
+            activeOpacity={0.6}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t("back")}
+          >
             <ChevronLeft size={24} color={colors.text} />
           </TouchableOpacity>
           <Text style={[styles.title, { color: colors.text }]}>
@@ -279,6 +285,8 @@ export function ComparisonScreen() {
             activeOpacity={0.6}
             hitSlop={12}
             disabled={date <= EARLIEST_DAY}
+            accessibilityRole="button"
+            accessibilityLabel={t("a11y.previous_day")}
           >
             <ChevronLeft
               size={22}
@@ -293,6 +301,8 @@ export function ComparisonScreen() {
             activeOpacity={0.6}
             hitSlop={12}
             disabled={date >= latestDay(today)}
+            accessibilityRole="button"
+            accessibilityLabel={t("a11y.next_day")}
           >
             <ChevronRight
               size={22}

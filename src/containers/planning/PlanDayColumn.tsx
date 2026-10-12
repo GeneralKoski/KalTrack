@@ -114,7 +114,13 @@ const PlanRow: React.FC<{ entry: PlanEntry; onDelete: () => void }> = ({
         </Text>
       </View>
 
-      <TouchableOpacity onPress={onDelete} activeOpacity={0.6} hitSlop={10}>
+      <TouchableOpacity
+        onPress={onDelete}
+        activeOpacity={0.6}
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel={t("delete")}
+      >
         <X size={18} color={colors.textFaint} />
       </TouchableOpacity>
     </View>

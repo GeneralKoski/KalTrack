@@ -2,6 +2,7 @@ import { SyncedPhoto } from "@/src/components/kal/SyncedPhoto";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { formatInteger } from "@/src/utils/number";
+import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import type { FoodRow } from "@/src/types/nutrition";
 import { Salad, Star } from "lucide-react-native";
@@ -20,6 +21,7 @@ export const FoodListItem: React.FC<FoodListItemProps> = ({
   onToggleFavorite,
 }) => {
   const { colors } = useAppTheme();
+  const { t } = useTranslation();
   const isFavorite = food.is_favorite === 1;
   const unit = food.is_liquid === 1 ? "ml" : "g";
 
@@ -73,6 +75,9 @@ export const FoodListItem: React.FC<FoodListItemProps> = ({
         activeOpacity={0.6}
         hitSlop={10}
         style={styles.star}
+        accessibilityRole="button"
+        accessibilityState={{ selected: isFavorite }}
+        accessibilityLabel={t("a11y.favorite")}
       >
         <Star
           size={20}

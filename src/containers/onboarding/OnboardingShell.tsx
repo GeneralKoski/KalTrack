@@ -4,6 +4,7 @@ import { DfButton } from "@/src/components/form/DfButton";
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { ONBOARDING_STEPS } from "@/src/domain/onboarding";
+import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import { ChevronLeft } from "lucide-react-native";
 import React from "react";
@@ -44,6 +45,7 @@ export const OnboardingShell: React.FC<{
   children,
 }) => {
   const { colors } = useAppTheme();
+  const { t } = useTranslation();
   const stepIndex = ONBOARDING_STEPS.indexOf(step);
 
   return (
@@ -52,7 +54,13 @@ export const OnboardingShell: React.FC<{
       <SafeAreaView edges={["top", "left", "right", "bottom"]} style={styles.safe}>
         <View style={styles.header}>
           {onBack ? (
-            <TouchableOpacity onPress={onBack} activeOpacity={0.6} hitSlop={10}>
+            <TouchableOpacity
+              onPress={onBack}
+              activeOpacity={0.6}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={t("back")}
+            >
               <ChevronLeft size={26} color={colors.textSecondary} />
             </TouchableOpacity>
           ) : (

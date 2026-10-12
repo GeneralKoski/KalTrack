@@ -304,6 +304,8 @@ export function RoutinesScreen() {
             onPress={() => navigation.goBack()}
             activeOpacity={0.6}
             hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={t("back")}
           >
             <ChevronLeft size={26} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -326,6 +328,8 @@ export function RoutinesScreen() {
             disabled={loading && data === null}
             activeOpacity={0.6}
             hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={t("gym.new_routine")}
           >
             <Plus size={24} color={colors.text} />
           </TouchableOpacity>

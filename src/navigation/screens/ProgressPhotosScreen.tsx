@@ -174,6 +174,8 @@ export function ProgressPhotosScreen() {
                 onPress={exitSelection}
                 activeOpacity={0.6}
                 hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={t("a11y.exit_selection")}
               >
                 <X size={24} color={colors.textSecondary} />
               </TouchableOpacity>
@@ -192,6 +194,8 @@ export function ProgressPhotosScreen() {
                 onPress={() => setConfirmDeleteSelection(true)}
                 activeOpacity={0.6}
                 hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={t("delete")}
               >
                 <Trash2 size={22} color={theme.colors.error} />
               </TouchableOpacity>
@@ -202,6 +206,8 @@ export function ProgressPhotosScreen() {
                 onPress={goBack}
                 activeOpacity={0.6}
                 hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={t("back")}
               >
                 <ChevronLeft size={26} color={colors.textSecondary} />
               </TouchableOpacity>
@@ -220,6 +226,7 @@ export function ProgressPhotosScreen() {
                   activeOpacity={0.6}
                   hitSlop={10}
                   accessibilityLabel={t("progress_photos.compare")}
+                  accessibilityRole="button"
                 >
                   <GitCompareArrows size={22} color={colors.text} />
                 </TouchableOpacity>
@@ -228,6 +235,8 @@ export function ProgressPhotosScreen() {
                 onPress={() => formRef.current?.present()}
                 activeOpacity={0.6}
                 hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={t("progress_photos.add")}
               >
                 <Plus size={24} color={colors.text} />
               </TouchableOpacity>

@@ -158,6 +158,7 @@ export const AccountForm: React.FC = () => {
             accessibilityLabel={t(
               showPassword ? "password_hide" : "password_show",
             )}
+            accessibilityRole="button"
           >
             {showPassword ? (
               <EyeOff size={20} color={colors.textFaint} />

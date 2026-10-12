@@ -217,6 +217,7 @@ export const AssistantButton: React.FC<AssistantButtonProps> = ({
         activeOpacity={0.6}
         onPress={() => gate(() => setOpen(true))}
         accessibilityLabel={t("assistant.open")}
+        accessibilityRole="button"
       >
         <MetalSurface radius={28} style={styles.surface}>
           <MessageSquare size={22} color={colors.text} />

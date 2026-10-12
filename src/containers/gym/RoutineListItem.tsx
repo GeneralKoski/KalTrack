@@ -102,12 +102,24 @@ export const RoutineListItem: React.FC<RoutineListItemProps> = ({
       {active ? (
         <Check size={20} color={colors.text} />
       ) : (
-        <TouchableOpacity onPress={onActivate} activeOpacity={0.6} hitSlop={8}>
+        <TouchableOpacity
+          onPress={onActivate}
+          activeOpacity={0.6}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={t("gym.activate")}
+        >
           <Circle size={20} color={colors.textFaint} />
         </TouchableOpacity>
       )}
 
-      <TouchableOpacity onPress={onDelete} activeOpacity={0.6} hitSlop={8}>
+      <TouchableOpacity
+        onPress={onDelete}
+        activeOpacity={0.6}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={t("delete")}
+      >
         <Trash2 size={18} color={colors.textFaint} />
       </TouchableOpacity>
     </View>

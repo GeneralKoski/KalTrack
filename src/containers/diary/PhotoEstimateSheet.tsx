@@ -103,6 +103,9 @@ export const PhotoEstimateSheet: React.FC<PhotoEstimateSheetProps> = ({
                 onPress={() => patch(row.key, { included: !row.included })}
                 activeOpacity={0.6}
                 hitSlop={8}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: row.included }}
+                accessibilityLabel={t("a11y.include")}
               >
                 {row.included ? (
                   <Check size={20} color={colors.accent} />

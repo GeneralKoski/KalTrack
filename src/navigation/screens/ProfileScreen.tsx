@@ -132,6 +132,7 @@ export function ProfileScreen() {
             activeOpacity={0.6}
             hitSlop={10}
             accessibilityLabel={t("profile.settings")}
+            accessibilityRole="button"
           >
             <Settings size={24} color={colors.textSecondary} />
           </TouchableOpacity>

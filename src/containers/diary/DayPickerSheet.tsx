@@ -113,6 +113,8 @@ export const DayPickerSheet = forwardRef<BottomSheetModal, DayPickerSheetProps>(
             activeOpacity={0.6}
             hitSlop={12}
             disabled={!puoIndietro}
+            accessibilityRole="button"
+            accessibilityLabel={t("a11y.previous_month")}
           >
             <ChevronLeft
               size={22}
@@ -129,6 +131,8 @@ export const DayPickerSheet = forwardRef<BottomSheetModal, DayPickerSheetProps>(
             activeOpacity={0.6}
             hitSlop={12}
             disabled={!puoAvanti}
+            accessibilityRole="button"
+            accessibilityLabel={t("a11y.next_month")}
           >
             <ChevronRight
               size={22}

@@ -1,6 +1,7 @@
 import { useAppTheme } from "@/src/components/ThemeContext";
 import { Text } from "@/src/components/ui";
 import { formatInteger } from "@/src/utils/number";
+import { useTranslation } from "@/src/hooks/useTranslation";
 import { theme } from "@/src/styles";
 import { Trash2 } from "lucide-react-native";
 import React from "react";
@@ -29,6 +30,7 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
   onRemove,
 }) => {
   const { colors } = useAppTheme();
+  const { t } = useTranslation();
 
   return (
     <View
@@ -61,7 +63,13 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
         </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={onRemove} activeOpacity={0.6} hitSlop={10}>
+      <TouchableOpacity
+        onPress={onRemove}
+        activeOpacity={0.6}
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel={t("a11y.remove")}
+      >
         <Trash2 size={18} color={colors.textFaint} />
       </TouchableOpacity>
     </View>

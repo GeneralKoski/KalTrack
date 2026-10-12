@@ -239,6 +239,8 @@ function ReminderCard({
             activeOpacity={0.6}
             hitSlop={8}
             style={styles.iconBtn}
+            accessibilityRole="button"
+            accessibilityLabel={t("reminders.edit_reminder")}
           >
             <Pencil size={18} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -247,6 +249,8 @@ function ReminderCard({
             activeOpacity={0.6}
             hitSlop={8}
             style={styles.iconBtn}
+            accessibilityRole="button"
+            accessibilityLabel={t("delete")}
           >
             <Trash2 size={18} color={colors.error} />
           </TouchableOpacity>
@@ -667,7 +671,13 @@ export function RemindersScreen() {
       <ScreenBackground />
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={goBack} activeOpacity={0.6} hitSlop={10}>
+          <TouchableOpacity
+            onPress={goBack}
+            activeOpacity={0.6}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={t("back")}
+          >
             <ChevronLeft size={26} color={colors.textSecondary} />
           </TouchableOpacity>
           <Text
@@ -681,6 +691,8 @@ export function RemindersScreen() {
             activeOpacity={0.6}
             hitSlop={10}
             style={[styles.addButton, { backgroundColor: colors.accent }]}
+            accessibilityRole="button"
+            accessibilityLabel={t("reminders.add_reminder")}
           >
             <Plus size={20} color={colors.accentOn} />
           </TouchableOpacity>
@@ -823,6 +835,9 @@ export function RemindersScreen() {
                       borderColor: isSelected ? colors.accent : colors.border,
                     },
                   ]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isSelected }}
+                  accessibilityLabel={t(`a11y.reminder_icon.${item.key}`)}
                 >
                   <ItemIcon
                     size={20}

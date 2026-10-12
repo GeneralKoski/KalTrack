@@ -44,9 +44,11 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
   const setVoiceReplyEnabled = useAssistantStore((s) => s.setVoiceReplyEnabled);
   const [inputText, setInputText] = useState("");
 
-  const busy = session.phase === "thinking";
   const listening = session.phase === "listening";
   const transcribing = session.phase === "transcribing";
+  // Anche la trascrizione è attesa: senza, "Sto trascrivendo" non compariva
+  // mai e campo e microfono tornavano attivi a metà richiesta.
+  const busy = session.phase === "thinking" || transcribing;
 
   const cancelVoice = () => {
     if (listening || transcribing) {
@@ -90,6 +92,7 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
             accessibilityLabel={t(
               voiceReplyEnabled ? "assistant.mute" : "assistant.unmute",
             )}
+            accessibilityRole="button"
           >
             {voiceReplyEnabled ? (
               <Volume2 size={22} color={colors.textMuted} />
@@ -98,7 +101,13 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={onClose} activeOpacity={0.6} hitSlop={12}>
+          <TouchableOpacity
+            onPress={onClose}
+            activeOpacity={0.6}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={t("close")}
+          >
             <X size={24} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
@@ -252,6 +261,7 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
                       { backgroundColor: colors.accent },
                     ]}
                     accessibilityLabel={t("assistant.send")}
+                    accessibilityRole="button"
                   >
                     <ArrowUp size={18} color={colors.accentOn} />
                   </TouchableOpacity>
@@ -263,6 +273,7 @@ export const AssistantOverlay: React.FC<AssistantOverlayProps> = ({
                 activeOpacity={0.6}
                 disabled={busy}
                 accessibilityLabel={t("assistant.open")}
+                accessibilityRole="button"
               >
                 <View
                   style={[

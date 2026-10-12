@@ -379,7 +379,13 @@ export function MealPlanScreen() {
       <ScreenBackground />
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={goBack} activeOpacity={0.6} hitSlop={10}>
+          <TouchableOpacity
+            onPress={goBack}
+            activeOpacity={0.6}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={t("back")}
+          >
             <ChevronLeft size={26} color={colors.textSecondary} />
           </TouchableOpacity>
           <Text
@@ -393,6 +399,8 @@ export function MealPlanScreen() {
               onPress={() => gate(() => setAiModalOpen(true))}
               activeOpacity={0.6}
               hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={t("plan.ai_generate_title")}
             >
               <Sparkles size={20} color={colors.accent} />
             </TouchableOpacity>
@@ -400,6 +408,8 @@ export function MealPlanScreen() {
               onPress={openShoppingList}
               activeOpacity={0.6}
               hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={t("shopping.title")}
             >
               <ShoppingCart size={22} color={colors.text} />
             </TouchableOpacity>
@@ -412,6 +422,8 @@ export function MealPlanScreen() {
             activeOpacity={0.6}
             hitSlop={10}
             style={styles.weekNavButton}
+            accessibilityRole="button"
+            accessibilityLabel={t("a11y.previous_week")}
           >
             <ChevronLeft size={16} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -426,6 +438,8 @@ export function MealPlanScreen() {
             activeOpacity={0.6}
             hitSlop={10}
             style={styles.weekNavButton}
+            accessibilityRole="button"
+            accessibilityLabel={t("a11y.next_week")}
           >
             <ChevronRight size={16} color={colors.textSecondary} />
           </TouchableOpacity>

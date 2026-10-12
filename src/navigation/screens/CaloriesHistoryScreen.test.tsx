@@ -1,5 +1,6 @@
 import { CaloriesHistoryScreen } from "@/src/navigation/screens/CaloriesHistoryScreen";
 import type { DayKcal } from "@/src/db/queries/diary";
+import { addDays, todayIso } from "@/src/domain/date";
 import React from "react";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 
@@ -98,7 +99,10 @@ beforeEach(() => {
 
 describe("CaloriesHistoryScreen, la definizione: nessuna modifica ne' selezione", () => {
   it("apre HistoryList senza selected/onPress/onLongPress", () => {
-    mockRows = [day("2026-09-07", 1800), day("2026-09-08", 2200)];
+    mockRows = [
+      day(addDays(todayIso(), -1), 1800),
+      day(todayIso(), 2200),
+    ];
 
     let renderer!: ReactTestRenderer;
     act(() => {
@@ -123,7 +127,10 @@ describe("CaloriesHistoryScreen, la definizione: nessuna modifica ne' selezione"
    * calorie.
    */
   it("la media dell'hero e' sui giorni registrati, non su quelli della finestra", () => {
-    mockRows = [day("2026-09-01", 1000), day("2026-09-08", 3000)];
+    mockRows = [
+      day(addDays(todayIso(), -7), 1000),
+      day(todayIso(), 3000),
+    ];
 
     let renderer!: ReactTestRenderer;
     act(() => {
