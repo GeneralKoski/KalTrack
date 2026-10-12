@@ -104,19 +104,20 @@ export function wrapDatabase(db: SQLiteDatabase): LocalDatabase {
         ? activeTx.runAsync(sql, params)
         : enqueue(() => outer.runAsync(sql, params)),
     /**
-     * Una transazione annidata (chiamata da dentro `fn`) passerebbe di qui con
-     * `activeTx` gia' impostato: `enqueue` la mette in coda dietro se stessa e
-     * si blocca per sempre. SQLite non regge comunque le transazioni annidate,
-     * quindi e' un errore di chi chiama, non un caso da gestire - fallisce
-     * subito invece di restare appesa senza dire niente.
+     * Una seconda transazione aperta mentre ce n'è già una si mette in coda
+     * e parte quando la prima ha finito. Prima veniva rifiutata, nell'idea
+     * che `activeTx` impostato volesse dire "annidata": ma vuol dire anche
+     * "partita da codice indipendente nello stesso momento", e quel caso è
+     * normale - mentre la sincronizzazione applica un lotto, salvare una
+     * scheda o una ricetta falliva con un errore.
+     *
+     * Le due situazioni da qui non si distinguono, e una transazione davvero
+     * annidata resterebbe in coda dietro se stessa. Non ce ne sono, e a
+     * escluderle sono i test: `betterSqliteAdapter` apre un `BEGIN` vero, e
+     * SQLite rifiuta un `BEGIN` dentro un altro.
      */
-    withTransactionAsync: (fn) => {
-      if (activeTx) {
-        return Promise.reject(
-          new Error("[db] una transazione non puo' aprirne un'altra"),
-        );
-      }
-      return enqueue(() =>
+    withTransactionAsync: (fn) =>
+      enqueue(() =>
         db.withExclusiveTransactionAsync(async (txn) => {
           activeTx = bindRaw(txn);
           try {
@@ -125,8 +126,7 @@ export function wrapDatabase(db: SQLiteDatabase): LocalDatabase {
             activeTx = null;
           }
         }),
-      );
-    },
+      ),
     closeAsync: () => enqueue(() => db.closeAsync()),
   };
 }

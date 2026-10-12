@@ -129,7 +129,11 @@ that was already released": una coda seriale le accoda tutte su un'unica
 connessione. Le transazioni usano
 `db.withExclusiveTransactionAsync` e non `withTransactionAsync` - era proprio
 la non-esclusivita' la causa vera del crash, non l'assenza della coda - e una
-transazione annidata fallisce esplicitamente invece di restare appesa.
+seconda transazione aperta mentre ce n'è una si mette in coda. Fino all'8
+ottobre 2026 veniva rifiutata come "annidata", ma da lì non si distingue da
+una partita da codice indipendente: mentre la sincronizzazione applicava un
+lotto, salvare una scheda o una ricetta falliva. Le annidate vere le
+escludono i test, dove `BEGIN` dentro `BEGIN` è un errore di SQLite.
 **Solo per expo-sqlite**: `betterSqliteAdapter.ts`, usato dai test, e'
 sincrono su connessione unica e non ha questo problema.
 
