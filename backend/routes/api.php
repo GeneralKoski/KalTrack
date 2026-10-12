@@ -51,7 +51,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('logout', [AuthController::class, 'logout']);
 
     Route::get('me', [ProfileController::class, 'me']);
-    Route::patch('me', [ProfileController::class, 'update']);
+    Route::patch('me', [ProfileController::class, 'update'])
+        ->middleware('throttle:email-change');
     Route::put('me/stats', [SharedStatController::class, 'sync']);
     /*
      * L'unico endpoint che pubblica contenuto e non totali. Rifiuta se

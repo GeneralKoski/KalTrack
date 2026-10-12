@@ -98,7 +98,10 @@ Il resto segue il template, e va seguito:
   con **un secondo account vero** che prova a leggere quel che non e' suo. Non
   e' cortesia: le due regole della privacy si verificano solo da fuori.
 - **Throttle su tutto quel che chiunque puo' chiamare** (`login`, `register`) e
-  su quel che assegna credenziali (`admin/.../password`).
+  su quel che assegna credenziali (`admin/.../password`) o le verifica: il
+  cambio email chiede la password attuale, e `PATCH /me` porta il limitatore
+  `email-change` (`AppServiceProvider`), che conta solo le richieste con
+  `email`.
 
 ## Il pannello
 

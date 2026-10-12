@@ -169,6 +169,8 @@ export const fetchMyProfile = () =>
 export const updateMyProfile = (input: Partial<{
   handle: string;
   email: string;
+  /** Obbligatoria insieme a `email`: vedi `UpdateProfileRequest`. */
+  currentPassword: string;
   displayName: string;
   avatarUrl: string | null;
   bio: string | null;

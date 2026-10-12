@@ -14,4 +14,5 @@
  */
 return [
     'required' => 'This field is required.',
+    'current_password' => 'The current password is incorrect.',
 ];

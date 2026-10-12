@@ -277,4 +277,59 @@ class AccountTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.handle', 'GeneralKoski');
     }
+
+    /**
+     * È con l'email che si recupera la password: col solo token, chi ne
+     * aveva uno rubato metteva la sua e chiedeva il reset.
+     */
+    public function test_cambiare_email_chiede_la_password_attuale(): void
+    {
+        $anna = User::factory()->create(['email' => 'anna@example.test']);
+
+        $this->actingAs($anna, 'sanctum')
+            ->patchJson('/api/me', ['email' => 'ladro@example.test'])
+            ->assertUnprocessable();
+        $this->actingAs($anna, 'sanctum')
+            ->patchJson('/api/me', ['email' => 'ladro@example.test', 'currentPassword' => 'sbagliata'])
+            ->assertUnprocessable();
+        $this->assertSame('anna@example.test', $anna->fresh()->email);
+
+        $this->actingAs($anna, 'sanctum')
+            ->patchJson('/api/me', ['email' => 'nuova@example.test', 'currentPassword' => 'password'])
+            ->assertOk();
+        $this->assertSame('nuova@example.test', $anna->fresh()->email);
+    }
+
+    /**
+     * La risposta dice se la password e' giusta: senza limite, chi ha un
+     * token rubato la indovina a forza bruta.
+     */
+    public function test_i_tentativi_di_cambiare_email_sono_limitati(): void
+    {
+        $anna = User::factory()->create(['email' => 'anna@example.test']);
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->actingAs($anna, 'sanctum')
+                ->patchJson('/api/me', ['email' => 'ladro@example.test', 'currentPassword' => "tentativo{$i}"])
+                ->assertUnprocessable();
+        }
+        $this->actingAs($anna, 'sanctum')
+            ->patchJson('/api/me', ['email' => 'ladro@example.test', 'currentPassword' => 'password'])
+            ->assertStatus(429);
+        $this->assertSame('anna@example.test', $anna->fresh()->email);
+
+        // Gli interruttori di condivisione passano dalla stessa rotta.
+        $this->actingAs($anna, 'sanctum')
+            ->patchJson('/api/me', ['shareSteps' => true])
+            ->assertOk();
+    }
+
+    public function test_il_resto_del_profilo_non_chiede_la_password(): void
+    {
+        $anna = User::factory()->create();
+
+        $this->actingAs($anna, 'sanctum')
+            ->patchJson('/api/me', ['bio' => 'Ciao'])
+            ->assertOk();
+    }
 }

@@ -32,6 +32,11 @@ class UpdateProfileRequest extends FormRequest
                 'max:255',
                 Rule::unique('users')->ignore($this->user()->id),
             ],
+            // È con l'email che si recupera la password: cambiarla col solo
+            // token voleva dire che chi ne aveva uno rubato metteva la sua,
+            // chiedeva il reset - che cancella tutti i token - e l'account
+            // non era più del suo proprietario.
+            'currentPassword' => ['required_with:email', 'string', 'current_password:sanctum'],
             'displayName' => ['sometimes', 'string', 'max:60'],
             'avatarUrl' => ['sometimes', 'nullable', 'url', 'max:255'],
             'bio' => ['sometimes', 'nullable', 'string', 'max:160'],
