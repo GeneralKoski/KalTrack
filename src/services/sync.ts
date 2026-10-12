@@ -133,14 +133,77 @@ const columnsOf = async (table: string): Promise<string[]> => {
 };
 
 /**
- * Le righe cambiate dopo `since`.
+ * Fin dove è arrivato l'invio, tabella per tabella.
+ *
+ * `sync.pushed_at` era un'ora sola, il massimo `updated_at` fra le righe
+ * inviate. Ma il lotto si riempie scorrendo le tabelle in ordine e si ferma a
+ * `BATCH` righe: le tabelle che non aveva ancora raggiunto restavano indietro,
+ * e al giro dopo `updated_at > ora` saltava tutte le loro righe più vecchie
+ * di quell'ora. Al primo accesso con un telefono già pieno i circa 400
+ * alimenti ed esercizi del seed riempivano il lotto, un alimento usato oggi
+ * portava l'ora a oggi, e pesi, pasti e allenamenti non partivano mai più.
+ *
+ * Ora il valore è un JSON `{tabella: ora}`, e una tabella che nel JSON non
+ * c'è riparte da zero: costa al massimo un invio ripetuto, che il server
+ * scarta (tiene la sua copia se è uguale o più recente).
+ *
+ * **Un valore delle versioni precedenti (un'ora sola) non vale niente**, e
+ * si rimanda tutto una volta. Applicarlo a tutte le tabelle fermava il
+ * difetto da lì in avanti, ma quell'ora era proprio quella che aveva già
+ * scavalcato le righe rimaste indietro: su un telefono che aveva già fatto
+ * il primo accesso, quelle righe non sarebbero partite mai più.
+ */
+export const pushedSince = (
+  stored: string | null,
+  table: string,
+): string | null => {
+  if (stored === null || !stored.startsWith("{")) return null;
+  try {
+    const value = (JSON.parse(stored) as Record<string, unknown>)[table];
+    return typeof value === "string" ? value : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Il segnaposto dopo un invio: per ogni tabella, l'ora più recente fra
+ * quella già segnata e le righe appena partite. Le tabelle che il lotto non
+ * ha raggiunto restano dov'erano.
+ *
+ * Le ore si confrontano come testo, ed è la sola eccezione alla regola 2:
+ * qui non si decide chi ha scritto per ultimo, si riprende la stessa query
+ * `updated_at > ?` che SQLite valuta come testo. Un confronto diverso da
+ * quello della query lascerebbe righe in mezzo.
+ */
+export const advancePushed = (
+  stored: string | null,
+  changes: Pick<SyncChange, "table" | "updatedAt">[],
+): string => {
+  const marks: Record<string, string> = {};
+  for (const table of SYNCED_TABLES) {
+    const since = pushedSince(stored, table);
+    if (since !== null) marks[table] = since;
+  }
+  for (const change of changes) {
+    if (change.updatedAt === "") continue;
+    const current = marks[change.table];
+    if (current === undefined || change.updatedAt > current) {
+      marks[change.table] = change.updatedAt;
+    }
+  }
+  return JSON.stringify(marks);
+};
+
+/**
+ * Le righe cambiate dopo il segnaposto `pushed` (vedi `pushedSince`).
  *
  * Include quelle cancellate logicamente: una cancellazione e' una modifica
  * come le altre, e senza mandarla l'altro dispositivo continuerebbe a mostrare
  * quel che qui e' stato tolto.
  */
 export async function collectChanges(
-  since: string | null,
+  pushed: string | null,
   limit = BATCH,
 ): Promise<SyncChange[]> {
   const db = await getDb();
@@ -149,6 +212,7 @@ export async function collectChanges(
   for (const table of SYNCED_TABLES) {
     if (changes.length >= limit) break;
 
+    const since = pushedSince(pushed, table);
     const room = limit - changes.length;
     const rows = await db.getAllAsync<Record<string, unknown>>(
       since === null
@@ -442,14 +506,12 @@ export async function runSync(): Promise<{
       // fallisce a meta', il giro successivo riprende dallo stesso punto
       // invece di dare per ricevute righe che non sono mai entrate.
       await setSetting(CURSOR_KEY, response.cursor);
-      // Fin dove siamo arrivati a mandare: il massimo `updated_at` LOCALE fra
-      // le righe inviate, non l'ora corrente. Prendere "adesso" salterebbe le
-      // righe scritte mentre la richiesta era in volo.
-      const maxSent = changes.reduce(
-        (max, c) => (c.updatedAt > max ? c.updatedAt : max),
-        pushedAt ?? "",
-      );
-      if (maxSent !== "") await setSetting(PUSHED_KEY, maxSent);
+      // Fin dove siamo arrivati a mandare, per tabella: il massimo
+      // `updated_at` LOCALE fra le righe inviate, non l'ora corrente. Prendere
+      // "adesso" salterebbe le righe scritte mentre la richiesta era in volo.
+      if (changes.length > 0) {
+        await setSetting(PUSHED_KEY, advancePushed(pushedAt, changes));
+      }
 
       pushed += response.applied;
       pulled += applied;

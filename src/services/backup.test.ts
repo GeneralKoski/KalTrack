@@ -329,7 +329,10 @@ describe("ripristino e sincronizzazione", () => {
   it("dopo un ripristino tutto e' di nuovo da mandare al server", async () => {
     await seedData();
     // Il file porta con se' "ho gia' mandato tutto fino al 2099".
-    await setSetting(PUSHED_KEY, "2099-01-01T00:00:00.000Z");
+    await setSetting(
+      PUSHED_KEY,
+      JSON.stringify({ foods: "2099-01-01T00:00:00.000Z" }),
+    );
     const backup = buildBackupFixture(await buildBackup());
 
     await restoreBackup(backup);

@@ -14,6 +14,7 @@ import { removeLastWater } from "@/src/db/queries/wellbeing";
 import { EMPTY_NUTRIENTS } from "@/src/domain/nutrition";
 import type { LocalDatabase } from "@/src/db/sqliteAdapter";
 import {
+  advancePushed,
   applyChanges,
   collectChanges,
   LOCAL_ONLY_TABLES,
@@ -30,6 +31,10 @@ import {
 } from "@/src/services/syncMarkers";
 
 let db: LocalDatabase;
+
+/** Il segnaposto di invio con la stessa ora per ogni tabella. */
+const ovunque = (ora: string): string =>
+  JSON.stringify(Object.fromEntries(SYNCED_TABLES.map((t) => [t, ora])));
 
 beforeEach(async () => {
   db = createTestDb();
@@ -74,7 +79,7 @@ describe("cosa parte dal telefono", () => {
     await new Promise((r) => setTimeout(r, 5));
     const recente = await food({ name: "Nuovo" });
 
-    const changes = await collectChanges(cursor);
+    const changes = await collectChanges(ovunque(cursor));
     const nomi = changes
       .filter((c) => c.table === "foods")
       .map((c) => c.payload.name);
@@ -373,11 +378,13 @@ describe("i due orologi", () => {
     // Il server e' avanti di dieci minuti: il suo cursore e' nel futuro
     // rispetto a qualunque updated_at locale.
     const cursoreDelServer = "2026-08-29T10:10:00.000Z";
-    const conCursoreServer = await collectChanges(cursoreDelServer);
+    const conCursoreServer = await collectChanges(ovunque(cursoreDelServer));
     expect(conCursoreServer.some((c) => c.id === "w1")).toBe(false);
 
     // Con il segnaposto locale la riga parte, che e' il comportamento giusto.
-    const conSegnapostoLocale = await collectChanges("2026-08-29T09:00:00.000Z");
+    const conSegnapostoLocale = await collectChanges(
+      ovunque("2026-08-29T09:00:00.000Z"),
+    );
     expect(conSegnapostoLocale.some((c) => c.id === "w1")).toBe(true);
   });
 
@@ -399,7 +406,7 @@ describe("i due orologi", () => {
       );
     }
 
-    const dopo = await collectChanges("2026-08-29T10:00:00.000Z");
+    const dopo = await collectChanges(ovunque("2026-08-29T10:00:00.000Z"));
     const ids = dopo.filter((c) => c.table === "water_logs").map((c) => c.id);
     expect(ids).toContain("c");
     expect(ids).not.toContain("a");
@@ -751,7 +758,7 @@ describe("lotti e righe con la stessa ora", () => {
     }
 
     // Un lotto da 5 cadrebbe in mezzo al gruppo da 12.
-    const primo = await collectChanges(prima, 5);
+    const primo = await collectChanges(ovunque(prima), 5);
     const inviati = primo.filter((c) => c.table === "foods");
     expect(inviati.length).toBe(12);
 
@@ -761,8 +768,54 @@ describe("lotti e righe con la stessa ora", () => {
       (max, c) => (c.updatedAt > max ? c.updatedAt : max),
       "",
     );
-    const secondo = await collectChanges(massimo, 5);
+    const secondo = await collectChanges(ovunque(massimo), 5);
     expect(secondo.filter((c) => c.table === "foods")).toHaveLength(0);
+  });
+
+  /**
+   * Il difetto: il segnaposto era un'ora sola, il massimo fra le righe
+   * inviate. Un lotto riempito dagli alimenti (che in `SYNCED_TABLES` vengono
+   * prima) spostava quell'ora oltre i pesi non ancora raggiunti, e il giro
+   * dopo li saltava per sempre.
+   */
+  it("un lotto pieno non lascia indietro le tabelle che non ha raggiunto", async () => {
+    const db = await getDb();
+    const prima = "2099-01-01T00:00:00.000Z";
+    for (let i = 1; i <= 6; i++) {
+      const ora = `2099-06-0${i}T10:00:00.000Z`;
+      await db.runAsync(
+        `INSERT INTO foods (id, name, kcal, protein, carbs, fat,
+           created_at, updated_at)
+         VALUES (?, ?, 100, 1, 1, 1, ?, ?)`,
+        [`lotto-${i}`, `Alimento ${i}`, ora, ora],
+      );
+    }
+    const piuVecchio = "2099-03-01T10:00:00.000Z";
+    await db.runAsync(
+      `INSERT INTO weight_logs (id, date, weight_kg, created_at, updated_at)
+       VALUES ('peso-vecchio', '2099-03-01', 80, ?, ?)`,
+      [piuVecchio, piuVecchio],
+    );
+
+    const primo = await collectChanges(ovunque(prima), 5);
+    expect(primo.map((c) => c.table)).toEqual(Array(5).fill("foods"));
+
+    const segnaposto = advancePushed(ovunque(prima), primo);
+    const secondo = await collectChanges(segnaposto, 5);
+    expect(secondo.map((c) => c.id)).toEqual(["lotto-6", "peso-vecchio"]);
+
+    const terzo = await collectChanges(advancePushed(segnaposto, secondo), 5);
+    expect(terzo).toHaveLength(0);
+  });
+
+  /**
+   * Applicato a tutte le tabelle, quel valore fermava il difetto da li' in
+   * avanti ma non recuperava le righe che aveva gia' scavalcato.
+   */
+  it("un segnaposto delle versioni precedenti rimanda tutto una volta", async () => {
+    await setWeight("2026-08-29", 80);
+    const tutto = await collectChanges("2099-01-01T00:00:00.000Z");
+    expect(tutto.some((c) => c.table === "weight_logs")).toBe(true);
   });
 
   it("il payload non porta con se' la colonna usata per ordinare", async () => {
@@ -809,7 +862,7 @@ describe("cambio di account", () => {
     });
 
     // Come se fosse gia' stato mandato tutto al vecchio account.
-    await setSetting(PUSHED_KEY, "2099-01-01T00:00:00.000Z");
+    await setSetting(PUSHED_KEY, ovunque("2099-01-01T00:00:00.000Z"));
     const prima = await collectChanges(await getSetting(PUSHED_KEY));
     expect(prima).toHaveLength(0);
 

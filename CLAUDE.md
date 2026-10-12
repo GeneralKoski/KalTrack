@@ -443,7 +443,13 @@ che sembrano dettagli e sono ognuna un difetto già pagato:
 3. **Due segnaposto, non uno** (`src/services/syncMarkers.ts`). `sync.cursor` è
    il contatore del server, `sync.pushed_at` l'ora di questo telefono. Sono
    locali, non viaggiano, e si azzerano a ogni accesso perché valgono per un
-   account solo.
+   account solo. `sync.pushed_at` tiene **un'ora per tabella** (JSON,
+   `pushedSince`/`advancePushed`): con un'ora sola, un lotto riempito dagli
+   alimenti portava l'ora oltre le tabelle che non aveva ancora raggiunto, e
+   al primo accesso pesi, pasti e allenamenti non partivano mai più. Un
+   valore nel formato vecchio (un'ora sola) vale `null` e si rimanda tutto
+   una volta: quell'ora era proprio quella che aveva già scavalcato le righe
+   rimaste indietro, e applicarla a tutte le tabelle non le avrebbe recuperate.
 4. **Un'impostazione che parla del dispositivo non si sincronizza.** Va in
    `LOCAL_ONLY_SETTINGS`. Una che parla dei dati sì: `plan_applied:<data>` deve
    viaggiare, o l'altro telefono riapplica il piano e duplica i pasti.

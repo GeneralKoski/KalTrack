@@ -7,7 +7,7 @@ import { logger } from "@/src/utils/logger";
  *
  * `sync.cursor` e' il contatore DEL SERVER e dice cosa e' gia' stato ricevuto.
  * `sync.pushed_at` e' l'ora di QUESTO telefono e dice cosa e' gia' stato
- * mandato.
+ * mandato, un'ora per tabella (vedi `pushedSince` in `sync.ts`).
  *
  * Usarne uno solo per entrambi confrontava l'ora del server con gli
  * `updated_at` locali: con il telefono anche solo un minuto indietro rispetto
