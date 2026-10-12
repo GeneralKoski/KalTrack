@@ -37,6 +37,12 @@ RUN apk add --no-cache nginx supervisor sqlite-libs \
     && chown -R www-data:www-data /var/lib/nginx /run/nginx \
     && rm -rf /var/cache/apk/*
 
+# Senza un php.ini l'immagine tiene `upload_max_filesize = 2M`, sotto i 5 MB
+# che Laravel accetta per una foto: vedi `client_max_body_size` in
+# docker/nginx.conf, che è l'altra metà dello stesso limite.
+RUN printf "upload_max_filesize = 6M\npost_max_size = 8M\n" \
+    > /usr/local/etc/php/conf.d/uploads.ini
+
 # Composer arriva dalla sua immagine ufficiale: nessuna installazione a mano
 # da tenere aggiornata.
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
